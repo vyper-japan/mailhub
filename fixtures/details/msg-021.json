@@ -1,0 +1,14 @@
+{
+  "id": "msg-021",
+  "threadId": "thread-021",
+  "subject": "【楽天RMS】お問い合わせが届きました",
+  "from": "楽天市場 <rms@rakuten.co.jp>",
+  "messageId": "<msg021@rakuten.co.jp>",
+  "receivedAt": "2025/12/31 01:30:00",
+  "snippet": "お客様からお問い合わせが届きました。問い合わせ番号: 12345678",
+  "gmailLink": "https://mail.google.com/mail/u/0/#inbox/msg-021",
+  "plainTextBody": "お客様からお問い合わせが届きました。\n\n問い合わせ番号: 12345678\n\nお客様名: 山田 太郎 様\n\nお問い合わせ内容:\n商品のサイズについて質問があります。\nMサイズとLサイズの違いを教えてください。\n\nご注文番号: ORD-2025-12345\n\nお問い合わせ日時: 2025年12月31日 01:30:00\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n楽天市場 R-Messe\nhttps://rms.rakuten.co.jp/\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+  "bodyNotice": null,
+  "isInProgress": false
+}
+

@@ -1,0 +1,38 @@
+name: qa-strict
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+
+      - name: Install
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+
+      - name: QA Strict
+        run: npm run qa:strict
+        env:
+          MAILHUB_TEST_MODE: "1"
+          NEXTAUTH_SECRET: dummy
+          NEXTAUTH_URL: http://localhost:3000
+          NEXTAUTH_TRUST_HOST: "true"
+          GOOGLE_CLIENT_ID: dummy
+          GOOGLE_CLIENT_SECRET: dummy
+          GOOGLE_SHARED_INBOX_EMAIL: inbox@vtj.co.jp
+          GOOGLE_SHARED_INBOX_REFRESH_TOKEN: dummy
+

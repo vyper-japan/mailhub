@@ -1,0 +1,28 @@
+@import "tailwindcss";
+
+/* Deep Blue Theme Base */
+body {
+  background-color: #0f172a;
+  color: #cbd5e1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom scrollbar for dark theme */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background-color: #1e293b;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: #475569;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: #64748b;
+}

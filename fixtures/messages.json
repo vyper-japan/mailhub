@@ -1,0 +1,214 @@
+[
+  {
+    "id": "msg-001",
+    "threadId": "thread-001",
+    "subject": "【重要】注文確認のお知らせ",
+    "from": "Amazon.co.jp <auto-confirm@amazon.co.jp>",
+    "messageId": "<msg001@amazon.co.jp>",
+    "receivedAt": "2025/12/31 10:30:00",
+    "snippet": "ご注文ありがとうございます。注文番号: 123-4567890-1234567",
+    "gmailLink": "https://mail.google.com/mail/u/0/#inbox/msg-001"
+  },
+  {
+    "id": "msg-002",
+    "threadId": "thread-002",
+    "subject": "Yahoo!ショッピング-朝レポ：店舗Aの売上状況",
+    "from": "Yahoo!ショッピング <store-report@mail.yahoo.co.jp>",
+    "messageId": "<msg002@yahoo.co.jp>",
+    "receivedAt": "2025/12/31 10:15:00",
+    "snippet": "ご利用のストア様に、売上状況についてご連絡させていただきます。",
+    "gmailLink": "https://mail.google.com/mail/u/0/#inbox/msg-002"
+  },
+  {
+    "id": "msg-003",
+    "threadId": "thread-003",
+    "subject": "お客様への再連絡のお願い",
+    "from": "シェアリングテクノロジー株式会社 <mailback@sharing-tech.jp>",
+    "messageId": "<msg003@sharing-tech.jp>",
+    "receivedAt": "2025/12/31 09:53:10",
+    "snippet": "いつもお世話になっております。下記案件について、お客様からご連絡をいただきました。",
+    "gmailLink": "https://mail.google.com/mail/u/0/#inbox/msg-003"
+  },
+  {
+    "id": "msg-004",
+    "threadId": "thread-004",
+    "subject": "今年も一年ありがとうございました / Wishing you a Happy New Year",
+    "from": "Costco Japan <costco@online.costco.co.jp>",
+    "messageId": "<msg004@costco.co.jp>",
+    "receivedAt": "2025/12/31 09:11:08",
+    "snippet": "Year End Hot Deals / Whats New / KS メールが正しく表示されない方は、こちら をご覧ください。",
+    "gmailLink": "https://mail.google.com/mail/u/0/#inbox/msg-004"
+  },
+  {
+    "id": "msg-005",
+    "threadId": "thread-005",
+    "subject": "売上拡大が期待できる商品を探す",
+    "from": "Amazon Ads <noreply@amazon.com>",
+    "messageId": "<msg005@amazon.com>",
+    "receivedAt": "2025/12/31 08:11:45",
+    "snippet": "未開拓の商品機会を活用してAmazonでの売上拡大を目指しましょう。",
+    "gmailLink": "https://mail.google.com/mail/u/0/#inbox/msg-005"
+  },
+  {
+    "id": "msg-006",
+    "threadId": "thread-006",
+    "subject": "ビジネスに人気のタイムセール",
+    "from": "Amazon Business <no-reply@business.amazon.co.jp>",
+    "messageId": "<msg006@amazon.co.jp>",
+    "receivedAt": "2025/12/31 08:07:22",
+    "snippet": "期間限定の法人向けタイムセールをお見逃しなく",
+    "gmailLink": "https://mail.google.com/mail/u/0/#inbox/msg-006"
+  },
+  {
+    "id": "msg-007",
+    "threadId": "thread-007",
+    "subject": "【Yahoo!ショッピング】GoPro公式ストアへのお問い合わせ",
+    "from": "Yahoo!ショッピング <shopping-promo@mail.yahoo.co.jp>",
+    "messageId": "<msg007@yahoo.co.jp>",
+    "receivedAt": "2025/12/31 07:33:57",
+    "snippet": "あなたのGoPro公式ストアの回答に対して、Yahoo!ショッピングからご連絡です。",
+    "gmailLink": "https://mail.google.com/mail/u/0/#inbox/msg-007"
+  },
+  {
+    "id": "msg-008",
+    "threadId": "thread-008",
+    "subject": "Power Up Your Tesla for 2026",
+    "from": "Teslahubs <hello@teslahubs.com>",
+    "messageId": "<msg008@teslahubs.com>",
+    "receivedAt": "2025/12/31 07:15:03",
+    "snippet": "Up to 65% OFF premium upgrades!",
+    "gmailLink": "https://mail.google.com/mail/u/0/#inbox/msg-008"
+  },
+  {
+    "id": "msg-009",
+    "threadId": "thread-009",
+    "subject": "楽天市場からのお知らせ",
+    "from": "楽天市場 <info@rakuten.co.jp>",
+    "messageId": "<msg009@rakuten.co.jp>",
+    "receivedAt": "2025/12/31 06:45:00",
+    "snippet": "本日のお買い得情報をお届けします。",
+    "gmailLink": "https://mail.google.com/mail/u/0/#inbox/msg-009"
+  },
+  {
+    "id": "msg-010",
+    "threadId": "thread-010",
+    "subject": "返品リクエストが承認されました",
+    "from": "Amazon.co.jp <returns@amazon.co.jp>",
+    "messageId": "<msg010@amazon.co.jp>",
+    "receivedAt": "2025/12/31 06:30:00",
+    "snippet": "返品リクエストが承認されました。返品用ラベルを印刷してください。",
+    "gmailLink": "https://mail.google.com/mail/u/0/#inbox/msg-010"
+  },
+  {
+    "id": "msg-011",
+    "threadId": "thread-011",
+    "subject": "【StoreA】本日の売上速報",
+    "from": "StoreA通知 <notify@store-a.example.com>",
+    "messageId": "<msg011@store-a.example.com>",
+    "receivedAt": "2025/12/31 06:00:00",
+    "snippet": "本日の売上合計: ¥123,456",
+    "gmailLink": "https://mail.google.com/mail/u/0/#inbox/msg-011"
+  },
+  {
+    "id": "msg-012",
+    "threadId": "thread-012",
+    "subject": "【StoreB】新規注文通知",
+    "from": "StoreB通知 <notify@store-b.example.com>",
+    "messageId": "<msg012@store-b.example.com>",
+    "receivedAt": "2025/12/31 05:45:00",
+    "snippet": "新規注文が入りました。注文ID: ORD-2025-001",
+    "gmailLink": "https://mail.google.com/mail/u/0/#inbox/msg-012"
+  },
+  {
+    "id": "msg-013",
+    "threadId": "thread-013",
+    "subject": "配送完了のお知らせ",
+    "from": "ヤマト運輸 <info@kuronekoyamato.co.jp>",
+    "messageId": "<msg013@kuronekoyamato.co.jp>",
+    "receivedAt": "2025/12/31 05:30:00",
+    "snippet": "お届けが完了しました。伝票番号: 1234-5678-9012",
+    "gmailLink": "https://mail.google.com/mail/u/0/#inbox/msg-013"
+  },
+  {
+    "id": "msg-014",
+    "threadId": "thread-014",
+    "subject": "Weekly Digest: Your Store Performance",
+    "from": "Shopify <noreply@shopify.com>",
+    "messageId": "<msg014@shopify.com>",
+    "receivedAt": "2025/12/31 05:00:00",
+    "snippet": "Here's your weekly store performance summary.",
+    "gmailLink": "https://mail.google.com/mail/u/0/#inbox/msg-014"
+  },
+  {
+    "id": "msg-015",
+    "threadId": "thread-015",
+    "subject": "【重要】アカウントセキュリティ通知",
+    "from": "Google <no-reply@accounts.google.com>",
+    "messageId": "<msg015@google.com>",
+    "receivedAt": "2025/12/31 04:30:00",
+    "snippet": "新しいデバイスからのログインがありました。",
+    "gmailLink": "https://mail.google.com/mail/u/0/#inbox/msg-015"
+  },
+  {
+    "id": "msg-016",
+    "threadId": "thread-016",
+    "subject": "【StoreC】在庫アラート",
+    "from": "StoreC通知 <notify@store-c.example.com>",
+    "messageId": "<msg016@store-c.example.com>",
+    "receivedAt": "2025/12/31 04:00:00",
+    "snippet": "以下の商品の在庫が残りわずかです。",
+    "gmailLink": "https://mail.google.com/mail/u/0/#inbox/msg-016"
+  },
+  {
+    "id": "msg-017",
+    "threadId": "thread-017",
+    "subject": "お支払い完了のお知らせ",
+    "from": "PayPal <service@paypal.com>",
+    "messageId": "<msg017@paypal.com>",
+    "receivedAt": "2025/12/31 03:30:00",
+    "snippet": "¥10,000のお支払いが完了しました。",
+    "gmailLink": "https://mail.google.com/mail/u/0/#inbox/msg-017"
+  },
+  {
+    "id": "msg-018",
+    "threadId": "thread-018",
+    "subject": "Newsletter: 2025年の振り返り",
+    "from": "TechCrunch Japan <newsletter@techcrunch.jp>",
+    "messageId": "<msg018@techcrunch.jp>",
+    "receivedAt": "2025/12/31 03:00:00",
+    "snippet": "2025年のテック業界を振り返ります。",
+    "gmailLink": "https://mail.google.com/mail/u/0/#inbox/msg-018"
+  },
+  {
+    "id": "msg-019",
+    "threadId": "thread-019",
+    "subject": "【重要】サービスメンテナンスのお知らせ",
+    "from": "AWS <no-reply@aws.amazon.com>",
+    "messageId": "<msg019@aws.amazon.com>",
+    "receivedAt": "2025/12/31 02:30:00",
+    "snippet": "1月5日にメンテナンスを予定しています。",
+    "gmailLink": "https://mail.google.com/mail/u/0/#inbox/msg-019"
+  },
+  {
+    "id": "msg-020",
+    "threadId": "thread-020",
+    "subject": "Happy New Year 2026!",
+    "from": "Slack <feedback@slack.com>",
+    "messageId": "<msg020@slack.com>",
+    "receivedAt": "2025/12/31 02:00:00",
+    "snippet": "Wishing you and your team a productive new year!",
+    "gmailLink": "https://mail.google.com/mail/u/0/#inbox/msg-020"
+  },
+  {
+    "id": "msg-021",
+    "threadId": "thread-021",
+    "subject": "【楽天RMS】お問い合わせが届きました",
+    "from": "楽天市場 <rms@rakuten.co.jp>",
+    "messageId": "<msg021@rakuten.co.jp>",
+    "receivedAt": "2025/12/31 01:30:00",
+    "snippet": "お客様からお問い合わせが届きました。問い合わせ番号: 12345678",
+    "gmailLink": "https://mail.google.com/mail/u/0/#inbox/msg-021",
+    "pinned": true
+  }
+]
+

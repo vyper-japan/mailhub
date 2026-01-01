@@ -1,0 +1,40 @@
+---
+alwaysApply: true
+A. 必須ゲート
+
+変更後は必ず npm run verify を実行して成功ログを添付する。
+
+失敗したら修正→再実行し、成功するまで完了報告しない。
+
+B. UXの完成条件（UIに触ったときは必須）
+
+左の一覧がクリックでリセットされない（選択・スクロール保持）
+
+クリック直後に右ペインが即反応する（skeleton等で100ms以内に“切替が見える”）
+
+hover / active / selected の視覚差がある（Gmailっぽい触感）
+
+画面が右寄りにならず全幅を自然に使う（左の大きな空白が出ない）
+
+一覧/詳細の幅調整ができる（resize またはドラッグのどちらか）
+
+C. セキュリティ/品質の禁止事項
+
+HTML本文を dangerouslySetInnerHTML で表示しない（XSS防止）
+
+Gmail APIトークン/refresh token/client secret をクライアントに出さない（server-only維持）
+
+Open in Gmail ↗（authuser + rfc822msgid）を壊さない
+
+D. 変更報告フォーマット
+
+変更点（箇条書き）
+
+変更ファイル一覧
+
+npm run verify の結果
+
+体感改善（何をどう良くしたか、どこが即反応になったか）
+
+「verifyが成功していない状態で完了と言ったら不合格」
+---

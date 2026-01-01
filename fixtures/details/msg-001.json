@@ -1,0 +1,13 @@
+{
+  "id": "msg-001",
+  "threadId": "thread-001",
+  "subject": "【重要】注文確認のお知らせ",
+  "from": "Amazon.co.jp <auto-confirm@amazon.co.jp>",
+  "messageId": "<msg001@amazon.co.jp>",
+  "receivedAt": "2025/12/31 10:30:00",
+  "snippet": "ご注文ありがとうございます。注文番号: 123-4567890-1234567",
+  "gmailLink": "https://mail.google.com/mail/u/0/#inbox/msg-001",
+  "plainTextBody": "ご注文ありがとうございます。\n\n注文番号: 123-4567890-1234567\n注文日: 2025年12月30日\n\nご注文内容:\n- 商品名: サンプル商品A\n- 数量: 1\n- 価格: ¥1,234\n\nお届け先:\n〒123-4567\n東京都渋谷区サンプル町1-2-3\n\nお届け予定日: 2025年1月2日\n\nご不明な点がございましたら、カスタマーサービスまでお問い合わせください。\n\nAmazon.co.jp カスタマーサービス",
+  "bodyNotice": null
+}
+
