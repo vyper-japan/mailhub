@@ -1,9 +1,9 @@
 name: MailHub SLA Alerts
 
 on:
-  schedule:
-    # 毎15分実行（重複防止が24hなのでSlackは荒れにくい）
-    - cron: "*/15 * * * *"
+  # schedule:
+  #   # 毎15分実行（重複防止が24hなのでSlackは荒れにくい）
+  #   - cron: "*/15 * * * *"
   workflow_dispatch:
     # 手動実行も可能
     inputs:
