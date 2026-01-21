@@ -2611,14 +2611,15 @@ npm run qa:strict
 ---
 
 ---
-**Date**: 2026-01-21 16:20
-**Topic**: 社内メモ修復トーストの多発抑制
+**Date**: 2026-01-21 16:33
+**Topic**: 社内メモJSON破損時のサイレントリカバリ
 **Summary**:
-- 修復トーストをメッセージIDごとに1回のみ表示するように制御
-- 既に修復済みの場合は再読み込みを抑止し、ロード状態をidleに戻す
-- `npm run verify` を2回実行し、typecheck/build成功を確認
+- サーバー側（`messageNotesStore.ts`）でJSON破損時にエラーをスローせず、空オブジェクトを返すよう変更
+- フロントエンド（`InternalOpsPane.tsx`）から「修復しました」トースト表示ロジックを削除
+- テスト（`messageNotesStore.test.ts`）を「silent recovery」期待に更新
+- `npm run verify` + テスト成功、Vercelにデプロイ完了
 **Next Step**:
-- 必要なら「修復完了」メッセージを完全に非表示にするオプションを検討
+- 破損データが発生した場合はサーバーログ（console.warn）で確認可能
 ---
 
 ---
