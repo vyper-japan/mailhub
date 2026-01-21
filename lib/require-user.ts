@@ -1,5 +1,6 @@
 import "server-only";
 
+import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { isTestMode } from "@/lib/test-mode";
 
@@ -27,8 +28,10 @@ export async function requireUser(): Promise<AuthResult> {
     return {
       ok: true,
       user: {
-        email: "test-user@vtj.co.jp",
-        name: "Test User",
+        // NOTE: E2E/TEST_MODEでは app/page.tsx / playwright.config.ts とユーザーを揃える
+        // （ズレると、担当（assigneeSlug）の判定・フィルタ・担当解除トグルが壊れる）
+        email: "test@vtj.co.jp",
+        name: "Test",
       },
     };
   }
@@ -69,9 +72,10 @@ export async function requireUser(): Promise<AuthResult> {
  * 認証失敗時は適切なJSON Responseを返す
  */
 export function authErrorResponse(result: Extract<AuthResult, { ok: false }>) {
-  return Response.json(
+  return NextResponse.json(
     { error: result.status === 401 ? "unauthorized" : "forbidden", message: result.message },
     { status: result.status }
   );
 }
+
 

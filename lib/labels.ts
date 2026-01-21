@@ -4,8 +4,8 @@
  * - LabelItem: 子ラベル（All, StoreA, Todo等）
  */
 
-export type LabelType = "channel" | "status" | "marketplace";
-export type StatusType = "todo" | "waiting" | "done";
+export type LabelType = "channel" | "status" | "marketplace" | "assignee";
+export type StatusType = "todo" | "waiting" | "done" | "muted" | "snoozed";
 
 export type LabelItem = {
   id: string;
@@ -71,6 +71,18 @@ export const LABEL_GROUPS: LabelGroup[] = [
       { id: "todo", label: "Todo（未対応）", type: "status", statusType: "todo" },
       { id: "waiting", label: "Waiting（保留）", type: "status", statusType: "waiting" },
       { id: "done", label: "Done（完了）", type: "status", statusType: "done" },
+      { id: "muted", label: "Muted（低優先）", type: "status", statusType: "muted" },
+      { id: "snoozed", label: "Snoozed（期限付き保留）", type: "status", statusType: "snoozed" },
+    ],
+  },
+  {
+    id: "assignee",
+    label: "Assignee",
+    collapsible: true,
+    defaultCollapsed: false,
+    items: [
+      { id: "mine", label: "Mine（自分担当）", type: "assignee" },
+      { id: "unassigned", label: "Unassigned（未割当）", type: "assignee" },
     ],
   },
 ];

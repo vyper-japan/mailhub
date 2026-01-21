@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireUser } from "@/lib/require-user";
 import { logAction } from "@/lib/audit-log";
+import { isReadOnlyMode, writeForbiddenResponse } from "@/lib/read-only";
 
 type RakutenReplyRequest = {
   storeId: string; // "store-a" | "store-b" | "store-c"
@@ -21,6 +22,7 @@ export async function POST(req: NextRequest) {
       { status: authResult.status },
     );
   }
+  if (isReadOnlyMode()) return writeForbiddenResponse("rakuten_reply");
 
   const user = authResult.user;
 
@@ -42,12 +44,14 @@ export async function POST(req: NextRequest) {
       );
       logAction({
         actorEmail: user.email,
-        action: "rakutenReply" as any, // TODO: AuditActionに追加
+        action: "rakutenReply",
         messageId: emailId || "unknown",
         metadata: {
           storeId,
           inquiryNumber,
         },
+      }).catch(() => {
+        // ログ失敗は無視
       });
       return NextResponse.json({ ok: true });
     }
@@ -75,13 +79,15 @@ export async function POST(req: NextRequest) {
     // ログ出力
     logAction({
       actorEmail: user.email,
-      action: "rakutenReply" as any, // TODO: AuditActionに追加
+      action: "rakutenReply",
       messageId: emailId || "unknown",
       metadata: {
         storeId,
         inquiryNumber,
         messageLength: message.length,
       },
+    }).catch(() => {
+      // ログ失敗は無視
     });
 
     // 暫定: APIキーがあるが実装が未完了の場合

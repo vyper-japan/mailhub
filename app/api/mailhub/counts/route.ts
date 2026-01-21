@@ -11,7 +11,7 @@ export async function GET() {
   }
 
   try {
-    const counts = await getMessageCounts();
+    const counts = await getMessageCounts(result.user.email);
     return NextResponse.json(
       { counts },
       { headers: { "cache-control": "no-store" } },

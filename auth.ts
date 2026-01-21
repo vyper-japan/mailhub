@@ -5,6 +5,9 @@ import { mustGetEnv } from "@/lib/env";
 const allowedDomain = "vtj.co.jp";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  // Avoid Auth.js UntrustedHost errors in environments where the Host header can vary
+  // (e.g. Playwright webServer, reverse proxies). NEXTAUTH_URL still gates the canonical URL.
+  trustHost: true,
   providers: [
     Google({
       clientId: mustGetEnv("GOOGLE_CLIENT_ID"),

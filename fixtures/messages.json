@@ -7,7 +7,9 @@
     "messageId": "<msg001@amazon.co.jp>",
     "receivedAt": "2025/12/31 10:30:00",
     "snippet": "ご注文ありがとうございます。注文番号: 123-4567890-1234567",
-    "gmailLink": "https://mail.google.com/mail/u/0/#inbox/msg-001"
+    "gmailLink": "https://mail.google.com/mail/u/0/#inbox/msg-001",
+    "isUnread": true,
+    "isStarred": true
   },
   {
     "id": "msg-002",
@@ -17,7 +19,9 @@
     "messageId": "<msg002@yahoo.co.jp>",
     "receivedAt": "2025/12/31 10:15:00",
     "snippet": "ご利用のストア様に、売上状況についてご連絡させていただきます。",
-    "gmailLink": "https://mail.google.com/mail/u/0/#inbox/msg-002"
+    "gmailLink": "https://mail.google.com/mail/u/0/#inbox/msg-002",
+    "isUnread": true,
+    "isStarred": false
   },
   {
     "id": "msg-003",
@@ -27,7 +31,33 @@
     "messageId": "<msg003@sharing-tech.jp>",
     "receivedAt": "2025/12/31 09:53:10",
     "snippet": "いつもお世話になっております。下記案件について、お客様からご連絡をいただきました。",
-    "gmailLink": "https://mail.google.com/mail/u/0/#inbox/msg-003"
+    "gmailLink": "https://mail.google.com/mail/u/0/#inbox/msg-003",
+    "isUnread": false,
+    "isStarred": false
+  },
+  {
+    "id": "msg-101",
+    "threadId": "thread-101",
+    "subject": "【ラベルテスト】お問い合わせ 1",
+    "from": "Label Tester <label-tester@example.com>",
+    "messageId": "<msg101@example.com>",
+    "receivedAt": "2025/12/31 09:50:00",
+    "snippet": "ラベル自動適用のテスト用メール（1通目）です。",
+    "gmailLink": "https://mail.google.com/mail/u/0/#inbox/msg-101",
+    "isUnread": true,
+    "isStarred": false
+  },
+  {
+    "id": "msg-102",
+    "threadId": "thread-102",
+    "subject": "【ラベルテスト】お問い合わせ 2",
+    "from": "Label Tester <label-tester@example.com>",
+    "messageId": "<msg102@example.com>",
+    "receivedAt": "2025/12/31 09:49:00",
+    "snippet": "ラベル自動適用のテスト用メール（2通目）です。",
+    "gmailLink": "https://mail.google.com/mail/u/0/#inbox/msg-102",
+    "isUnread": false,
+    "isStarred": false
   },
   {
     "id": "msg-004",
@@ -37,7 +67,9 @@
     "messageId": "<msg004@costco.co.jp>",
     "receivedAt": "2025/12/31 09:11:08",
     "snippet": "Year End Hot Deals / Whats New / KS メールが正しく表示されない方は、こちら をご覧ください。",
-    "gmailLink": "https://mail.google.com/mail/u/0/#inbox/msg-004"
+    "gmailLink": "https://mail.google.com/mail/u/0/#inbox/msg-004",
+    "isUnread": false,
+    "isStarred": false
   },
   {
     "id": "msg-005",
@@ -209,6 +241,137 @@
     "snippet": "お客様からお問い合わせが届きました。問い合わせ番号: 12345678",
     "gmailLink": "https://mail.google.com/mail/u/0/#inbox/msg-021",
     "pinned": true
+  },
+  {
+    "id": "msg-022",
+    "threadId": "thread-022",
+    "subject": "楽天市場メンテナンスのお知らせ",
+    "from": "楽天市場 <info@rakuten.co.jp>",
+    "messageId": "<msg022@rakuten.co.jp>",
+    "receivedAt": "2025/12/31 01:00:00",
+    "snippet": "システムメンテナンスを実施いたします。ご不便をおかけいたします。",
+    "gmailLink": "https://mail.google.com/mail/u/0/#inbox/msg-022"
+  },
+  {
+    "id": "msg-023",
+    "threadId": "thread-023",
+    "subject": "楽天ポイントキャンペーンのご案内",
+    "from": "楽天市場 <campaign@rakuten.co.jp>",
+    "messageId": "<msg023@rakuten.co.jp>",
+    "receivedAt": "2025/12/31 00:30:00",
+    "snippet": "期間限定でポイントが2倍になるキャンペーンを実施中です。",
+    "gmailLink": "https://mail.google.com/mail/u/0/#inbox/msg-023"
+  },
+  {
+    "id": "msg-024",
+    "threadId": "thread-024",
+    "subject": "【重要】楽天市場からのお問い合わせ対応のお願い",
+    "from": "楽天市場 <support@rakuten.co.jp>",
+    "messageId": "<msg024@rakuten.co.jp>",
+    "receivedAt": "2025/12/31 00:00:00",
+    "snippet": "お客様からのお問い合わせがございます。至急ご対応をお願いいたします。",
+    "gmailLink": "https://mail.google.com/mail/u/0/#inbox/msg-024"
+  },
+  {
+    "id": "msg-025",
+    "threadId": "thread-025",
+    "subject": "利用規約の変更について",
+    "from": "楽天市場 <legal@rakuten.co.jp>",
+    "messageId": "<msg025@rakuten.co.jp>",
+    "receivedAt": "2025/12/30 23:30:00",
+    "snippet": "利用規約が変更されました。詳細はこちらをご確認ください。",
+    "gmailLink": "https://mail.google.com/mail/u/0/#inbox/msg-025"
+  },
+  {
+    "id": "msg-026",
+    "threadId": "thread-021",
+    "subject": "【未割当テスト】問い合わせ対応依頼",
+    "from": "お客様 <customer@example.com>",
+    "messageId": "<msg026@example.com>",
+    "receivedAt": "2025/12/30 22:00:00",
+    "snippet": "商品についてお問い合わせがあります。担当者を割り当ててください。",
+    "gmailLink": "https://mail.google.com/mail/u/0/#inbox/msg-026"
+  },
+  {
+    "id": "msg-027",
+    "threadId": "thread-027",
+    "subject": "【他人担当テスト】対応中の問い合わせ",
+    "from": "お客様 <customer2@example.com>",
+    "messageId": "<msg027@example.com>",
+    "receivedAt": "2025/12/30 21:00:00",
+    "snippet": "このメールは他の担当者が対応中です。引き継ぎテスト用です。",
+    "gmailLink": "https://mail.google.com/mail/u/0/#inbox/msg-027"
+  },
+  {
+    "id": "msg-028",
+    "threadId": "thread-028",
+    "subject": "【SLA Critical】古いTodoメール（3日前）",
+    "from": "お客様 <customer-old@example.com>",
+    "messageId": "<msg028@example.com>",
+    "receivedAt": "2025/12/28 10:00:00",
+    "snippet": "このメールは3日前に受信されました。SLA Criticalのテスト用です。",
+    "gmailLink": "https://mail.google.com/mail/u/0/#inbox/msg-028"
+  },
+  {
+    "id": "msg-029",
+    "threadId": "thread-029",
+    "subject": "【SLA Warn】古いTodoメール（1.5日前）",
+    "from": "お客様 <customer-warn@example.com>",
+    "messageId": "<msg029@example.com>",
+    "receivedAt": "2025/12/29 18:00:00",
+    "snippet": "このメールは1.5日前に受信されました。SLA Warnのテスト用です。",
+    "gmailLink": "https://mail.google.com/mail/u/0/#inbox/msg-029"
+  },
+  {
+    "id": "msg-030",
+    "threadId": "thread-030",
+    "subject": "【Waiting Stale】古い保留メール（3日前）",
+    "from": "お客様 <customer-waiting@example.com>",
+    "messageId": "<msg030@example.com>",
+    "receivedAt": "2025/12/28 14:00:00",
+    "snippet": "このメールは3日前に保留になりました。Waiting staleのテスト用です。",
+    "gmailLink": "https://mail.google.com/mail/u/0/#inbox/msg-030"
+  },
+  {
+    "id": "msg-031",
+    "threadId": "thread-031",
+    "subject": "[SEARCH_HIT] Step51検索テスト用メール",
+    "from": "Search Test <search-test@example.com>",
+    "messageId": "<msg031@example.com>",
+    "receivedAt": "2025/12/31 12:00:00",
+    "snippet": "このメールはStep51の検索機能テスト用です。subject:([SEARCH_HIT])で検索できます。",
+    "gmailLink": "https://mail.google.com/mail/u/0/#inbox/msg-031",
+    "pinned": false
+  },
+  {
+    "id": "msg-dup-001",
+    "threadId": "thread-dup-001",
+    "subject": "【通知】楽天市場からのお知らせ",
+    "from": "楽天市場 <notify@rakuten.co.jp>",
+    "messageId": "<msg-dup-001@rakuten.co.jp>",
+    "receivedAt": "2025/12/31 11:00:00",
+    "snippet": "楽天市場からの通知メール（1通目）です。グルーピングテスト用。",
+    "gmailLink": "https://mail.google.com/mail/u/0/#inbox/msg-dup-001"
+  },
+  {
+    "id": "msg-dup-002",
+    "threadId": "thread-dup-002",
+    "subject": "【通知】楽天市場からのお知らせ",
+    "from": "楽天市場 <notify@rakuten.co.jp>",
+    "messageId": "<msg-dup-002@rakuten.co.jp>",
+    "receivedAt": "2025/12/31 10:55:00",
+    "snippet": "楽天市場からの通知メール（2通目）です。グルーピングテスト用。",
+    "gmailLink": "https://mail.google.com/mail/u/0/#inbox/msg-dup-002"
+  },
+  {
+    "id": "msg-dup-003",
+    "threadId": "thread-dup-003",
+    "subject": "【通知】楽天市場からのお知らせ",
+    "from": "楽天市場 <notify@rakuten.co.jp>",
+    "messageId": "<msg-dup-003@rakuten.co.jp>",
+    "receivedAt": "2025/12/31 10:50:00",
+    "snippet": "楽天市場からの通知メール（3通目）です。グルーピングテスト用。",
+    "gmailLink": "https://mail.google.com/mail/u/0/#inbox/msg-dup-003"
   }
 ]
 

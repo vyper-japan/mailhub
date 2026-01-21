@@ -8,6 +8,8 @@ import {
 } from "@/lib/gmail";
 import { requireUser, authErrorResponse } from "@/lib/require-user";
 import { logAction, type AuditAction } from "@/lib/audit-log";
+import { parseGmailError } from "@/lib/gmail-error";
+import { isReadOnlyMode, writeForbiddenResponse } from "@/lib/read-only";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +21,7 @@ export async function POST(req: Request) {
   if (!authResult.ok) {
     return authErrorResponse(authResult);
   }
+  if (isReadOnlyMode()) return writeForbiddenResponse("status");
 
   const body = await req.json();
   const { id, action, label } = body as { id?: string; action?: StatusAction; label?: string };
@@ -57,12 +60,14 @@ export async function POST(req: Request) {
         break;
     }
 
-    // 操作ログを出力
+    // 操作ログを出力（非同期、エラーは無視）
     logAction({
       actorEmail: authResult.user.email,
       action: action as AuditAction,
       messageId: id,
       label,
+    }).catch(() => {
+      // ログ失敗は無視
     });
 
     return NextResponse.json(
@@ -70,10 +75,18 @@ export async function POST(req: Request) {
       { headers: { "cache-control": "no-store" } },
     );
   } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
+    // サーバーログに詳細を出力（トークン等の秘密情報は出さない）
+    console.error(`[Status API Error] action=${action}, messageId=${id}, user=${authResult.user.email}`, e);
+    
+    const errorInfo = parseGmailError(e);
     return NextResponse.json(
-      { error: "gmail_api_error", message: msg },
-      { status: 500, headers: { "cache-control": "no-store" } },
+      {
+        error: "gmail_api_error",
+        error_code: errorInfo.error_code,
+        message: errorInfo.message,
+        debug: process.env.NODE_ENV === "development" ? errorInfo.debug : undefined,
+      },
+      { status: errorInfo.httpStatus, headers: { "cache-control": "no-store" } },
     );
   }
 }

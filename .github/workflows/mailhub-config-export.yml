@@ -1,0 +1,72 @@
+name: MailHub Config Export (Backup)
+
+on:
+  schedule:
+    # 毎日 03:15 JST = 18:15 UTC (前日)
+    - cron: "15 18 * * *"
+  workflow_dispatch:
+    # 手動実行も可能
+    inputs:
+      targetUrl:
+        description: "Target base URL (e.g. https://your-prod.example.com)"
+        required: false
+        type: string
+        default: ""
+
+concurrency:
+  group: mailhub-config-backup-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Determine target URL
+        id: url
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ] && [ -n "${{ github.event.inputs.targetUrl }}" ]; then
+            echo "url=${{ github.event.inputs.targetUrl }}" >> $GITHUB_OUTPUT
+          else
+            # スケジュール実行の場合はproduction URLを使用
+            if [ -z "${{ secrets.MAILHUB_PROD_URL }}" ]; then
+              echo "Missing secret: MAILHUB_PROD_URL"
+              exit 1
+            fi
+            echo "url=${{ secrets.MAILHUB_PROD_URL }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Health check
+        run: |
+          curl --fail --retry 3 --max-time 20 \
+            "${{ steps.url.outputs.url }}/api/health" || exit 1
+
+      - name: Export config (JSON)
+        env:
+          TARGET_URL: ${{ steps.url.outputs.url }}
+          EXPORT_SECRET: ${{ secrets.MAILHUB_CONFIG_EXPORT_SECRET }}
+        run: |
+          set -euo pipefail
+          if [ -z "${EXPORT_SECRET:-}" ]; then
+            echo "Missing secret: MAILHUB_CONFIG_EXPORT_SECRET"
+            exit 1
+          fi
+
+          ts="$(date -u +%Y%m%d-%H%M%S)"
+          out="mailhub-config-${ts}.json"
+
+          # Do not echo secrets
+          curl --fail --retry 3 --max-time 20 \
+            -H "Authorization: Bearer ${EXPORT_SECRET}" \
+            "${TARGET_URL%/}/api/mailhub/config/export" \
+            -o "${out}"
+
+          echo "Saved: ${out}"
+          ls -lh "${out}"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mailhub-config-backup
+          path: mailhub-config-*.json
+          retention-days: 14
+

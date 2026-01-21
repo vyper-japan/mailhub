@@ -4,6 +4,16 @@ import { extractInquiryNumber, extractOrderNumber } from "../rakuten/extract";
 describe("extractInquiryNumber", () => {
   const testCases = [
     {
+      name: "問い合わせID（別パターン）",
+      text: "問い合わせID: 55555555",
+      expected: "55555555",
+    },
+    {
+      name: "Inquiry Number（英語）",
+      text: "Inquiry Number: 99999999",
+      expected: "99999999",
+    },
+    {
       name: "標準パターン（全角コロン）",
       text: "問い合わせ番号：12345678",
       expected: "12345678",
@@ -65,6 +75,11 @@ describe("extractInquiryNumber", () => {
 
 describe("extractOrderNumber", () => {
   const testCases = [
+    {
+      name: "Order Number（英語）",
+      text: "Order Number: ORD-2026-99999",
+      expected: "ORD-2026-99999",
+    },
     {
       name: "標準パターン（全角コロン）",
       text: "注文番号：ORD-2025-12345",

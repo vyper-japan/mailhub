@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { routeReply } from "../replyRouter";
 import type { MessageDetail } from "../mailhub-types";
+import type { ChannelId } from "../channels";
 
 describe("routeReply", () => {
   const createMessage = (overrides: Partial<MessageDetail>): MessageDetail => ({
@@ -13,7 +14,10 @@ describe("routeReply", () => {
     snippet: "Test snippet",
     gmailLink: "https://mail.google.com/mail/u/0/#inbox/msg-001",
     plainTextBody: "Test body",
+    htmlBody: null,
+    bodySource: "plain",
     bodyNotice: null,
+    assigneeSlug: null,
     ...overrides,
   });
 
@@ -24,7 +28,7 @@ describe("routeReply", () => {
         from: "楽天市場 <rms@rakuten.co.jp>",
       });
       const result = routeReply(message, "all");
-      expect(result.kind).toBe("email");
+      expect(result.kind).toBe("gmail");
       expect(result.storeId).toBeUndefined();
     });
   });
@@ -75,7 +79,7 @@ describe("routeReply", () => {
     ["store-a", "store-b", "store-c"].forEach((channelId) => {
       rakutenMessages.forEach(({ name, message }) => {
         it(`${channelId}: ${name} → rakuten_rms`, () => {
-          const result = routeReply(message, channelId as any);
+          const result = routeReply(message, channelId as ChannelId);
           expect(result.kind).toBe("rakuten_rms");
           expect(result.storeId).toBe(channelId);
         });
@@ -111,8 +115,8 @@ describe("routeReply", () => {
     ["store-a", "store-b", "store-c"].forEach((channelId) => {
       nonRakutenMessages.forEach(({ name, message }) => {
         it(`${channelId}: ${name} → email`, () => {
-          const result = routeReply(message, channelId as any);
-          expect(result.kind).toBe("email");
+          const result = routeReply(message, channelId as ChannelId);
+          expect(result.kind).toBe("gmail");
           expect(result.storeId).toBeUndefined();
         });
       });
@@ -128,7 +132,7 @@ describe("routeReply", () => {
         plainTextBody: undefined,
       });
       const result = routeReply(message, "store-a");
-      expect(result.kind).toBe("email");
+      expect(result.kind).toBe("gmail");
     });
 
     it("大文字小文字混在の楽天キーワード", () => {

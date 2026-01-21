@@ -1,18 +1,21 @@
 import type { MessageDetail } from "./mailhub-types";
 import type { ChannelId } from "./channels";
+import { extractInquiryNumber } from "./rakuten/extract";
 
-export type ReplyKind = "email" | "rakuten_rms" | "unknown";
+export type ReplyKind = "gmail" | "rakuten_rms" | "unknown";
 
 export type ReplyRoute = {
   kind: ReplyKind;
   storeId?: string; // "store-a" | "store-b" | "store-c"
+  inquiryId?: string; // 問い合わせ番号（自動抽出）
+  openUrl?: string; // RMSのdeep link URL（設定されている場合）
 };
 
 /**
- * メールの返信先を判定する
+ * メールの返信先を判定する（Step55拡張版）
  * @param message メール詳細
  * @param channelId 現在のチャンネル（StoreA/B/Cなど）
- * @returns 返信先の種類とストアID
+ * @returns 返信先の種類、ストアID、問い合わせ番号、RMS URL
  */
 export function routeReply(
   message: MessageDetail,
@@ -20,7 +23,7 @@ export function routeReply(
 ): ReplyRoute {
   // チャンネルがストア系でない場合は通常のメール返信
   if (channelId === "all") {
-    return { kind: "email" };
+    return { kind: "gmail" };
   }
 
   // ストア系チャンネルの場合、楽天RMS判定を行う
@@ -53,10 +56,31 @@ export function routeReply(
   );
 
   if (hasRakutenKeyword) {
-    return { kind: "rakuten_rms", storeId };
+    // 問い合わせ番号を自動抽出
+    const inquiryId = message.plainTextBody ? extractInquiryNumber(message.plainTextBody) : null;
+    
+    // RMS URLを組み立て（環境変数が設定されている場合）
+    let openUrl: string | undefined;
+    const baseUrl = process.env.MAILHUB_RAKUTEN_RMS_BASE_URL;
+    if (inquiryId && baseUrl) {
+      // baseUrlの末尾にスラッシュがある場合は除去
+      const normalizedBase = baseUrl.replace(/\/$/, "");
+      openUrl = `${normalizedBase}/inquiry/${inquiryId}`;
+    }
+    
+    return {
+      kind: "rakuten_rms",
+      storeId,
+      inquiryId: inquiryId ?? undefined,
+      openUrl,
+    };
   }
 
   // 判定できない場合は通常のメール返信
-  return { kind: "email" };
+  return { kind: "gmail" };
 }
+
+
+
+
 

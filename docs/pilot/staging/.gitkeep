@@ -1,0 +1,6 @@
+# Staging証跡ファイル置き場
+
+このディレクトリには、Step28以降のstaging環境での手動QA証跡（スクショ/CSV/JSON）を保存してください。
+
+命名規約は `STAGING_QA_CHECKLIST.md` を参照してください。
+

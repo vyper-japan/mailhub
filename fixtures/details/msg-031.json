@@ -1,0 +1,13 @@
+{
+  "id": "msg-031",
+  "threadId": "thread-031",
+  "subject": "[SEARCH_HIT] Step51検索テスト用メール",
+  "from": "Search Test <search-test@example.com>",
+  "messageId": "<msg031@example.com>",
+  "receivedAt": "2025/12/31 12:00:00",
+  "snippet": "このメールはStep51の検索機能テスト用です。subject:([SEARCH_HIT])で検索できます。",
+  "gmailLink": "https://mail.google.com/mail/u/0/#inbox/msg-031",
+  "plainTextBody": "このメールはStep51の検索機能テスト用です。\n\nsubject:([SEARCH_HIT])で検索できます。\n\nGmail検索式のテスト用メールです。",
+  "bodyNotice": null,
+  "isInProgress": false
+}

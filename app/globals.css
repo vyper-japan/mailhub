@@ -1,28 +1,76 @@
 @import "tailwindcss";
 
-/* Deep Blue Theme Base */
+/* Light Theme Base (Gmail-like) */
 body {
-  background-color: #0f172a;
-  color: #cbd5e1;
+  background-color: #ffffff;
+  color: #202124;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Custom scrollbar for dark theme */
+/* Custom scrollbar (light) */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background-color: #1e293b;
+  background-color: #f1f3f4;
 }
 
 ::-webkit-scrollbar-thumb {
-  background-color: #475569;
+  background-color: #dadce0;
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background-color: #64748b;
+  background-color: #bdc1c6;
+}
+
+/* Step 73: UI重なり防止 */
+/* 選択中バーとメッセージ行の重なり防止 */
+[data-testid="bulk-action-bar"] {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background-color: #fff;
+}
+
+/* メッセージ行のチェックボックス/テキスト重なり防止 */
+[data-testid="message-row"] {
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+}
+
+[data-testid="message-row"] input[type="checkbox"] {
+  flex-shrink: 0;
+  margin-right: 8px;
+}
+
+/* ラベルpillのオーバーフロー処理 */
+[data-testid="user-label-pill"] {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* Step 74: 処理中スピナー */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.action-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+/* 処理中ボタンのスタイル */
+button:disabled .action-spinner {
+  opacity: 0.6;
 }

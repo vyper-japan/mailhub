@@ -129,7 +129,7 @@ describe("危険防止テスト", () => {
         { encoding: "utf-8", cwd: process.cwd() },
       );
       expect(result.trim()).toBe("");
-    } catch (e) {
+    } catch {
       // grepが見つからない場合はスキップ（CI環境では別ツールを使う）
       expect(true).toBe(true);
     }

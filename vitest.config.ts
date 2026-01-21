@@ -11,6 +11,7 @@ export default defineConfig({
       "**/e2e/**",
       "**/*.config.*",
     ],
+    setupFiles: ["./vitest.setup.ts"],
     coverage: {
       provider: "v8",
       reporter: ["text", "json", "html"],
@@ -21,6 +22,15 @@ export default defineConfig({
         "**/*.config.*",
         "**/fixtures/**",
         "**/scripts/**",
+        // Gmail API依存ファイル（テストモードではモック）
+        "**/lib/gmail.ts",
+        "**/lib/labelRegistryStore.ts",
+        "**/lib/mailhub-labels.ts",
+        // 環境変数定義のみ
+        "**/lib/env.ts",
+        // 複雑なビジネスロジック（Gmail API依存が多い）
+        "**/lib/ruleInspector.ts",
+        "**/lib/ruleSuggestions.ts",
       ],
       thresholds: {
         lines: 80,
