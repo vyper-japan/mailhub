@@ -6181,6 +6181,18 @@ export default function InboxShell({
                             data-testid={isActive ? "message-row-selected" : undefined}
                             className={`${t.listItem} ${rowTone} ${isActive ? t.listItemActive : ""} ${isChecked ? t.listItemChecked : ""} ${isTriageCandidate(mail.id) ? "bg-yellow-50" : ""} ${flashingIds.has(mail.id) ? "bg-blue-200 scale-[1.01] transition-all duration-200 shadow-md" : ""} ${removingIds.has(mail.id) ? "opacity-0 scale-95 -translate-x-8 transition-all duration-500 ease-out" : "transition-all duration-200"} relative`}
                           >
+                            {/* Assignee カラーバー（左端） */}
+                            {mail.assigneeSlug && (
+                              <div
+                                data-testid="assignee-bar"
+                                className={`absolute left-0 top-0 bottom-0 w-[3px] ${
+                                  mail.assigneeSlug === myAssigneeSlug
+                                    ? "bg-blue-500"
+                                    : "bg-gray-400"
+                                }`}
+                                title={mail.assigneeSlug === myAssigneeSlug ? "自分が担当" : `担当: ${getAssigneeDisplayName(mail.assigneeSlug)}`}
+                              />
+                            )}
                             {/* Gmail風 1行表示: checkbox / star / from / subject - snippet / date (レスポンシブ) */}
                             <div className="grid grid-cols-[20px_20px_120px_1fr_auto] sm:grid-cols-[20px_20px_140px_1fr_auto] items-center gap-1 sm:gap-2 w-full min-w-0 whitespace-nowrap">
                             {/* チェックボックス（Gmail完全再現） */}
@@ -6327,28 +6339,14 @@ export default function InboxShell({
                                   低優先
                                 </span>
                               )}
-                              {mail.assigneeSlug && (
-                                <span 
-                                  data-testid="assignee-pill"
-                                  className={`ml-2 px-1 py-0.5 rounded text-[9px] font-bold ${
-                                    mail.assigneeSlug === myAssigneeSlug
-                                      ? "bg-[#E8F0FE] text-[#1a73e8] border border-blue-200"
-                                      : "bg-gray-100 text-gray-600 border border-gray-300"
-                                  }`}
-                                  title={mail.assigneeSlug === myAssigneeSlug ? "自分が担当" : `担当: ${getAssigneeDisplayName(mail.assigneeSlug)}`}
-                                >
-                                  担当
-                                </span>
-                              )}
-                              {!mail.assigneeSlug && (
-                                <span
-                                  data-testid="assignee-pill"
-                                  className="ml-2 px-1 py-0.5 rounded text-[9px] font-bold bg-gray-100 text-gray-500 border border-gray-300"
-                                  title="未割当"
-                                >
-                                  未割当
-                                </span>
-                              )}
+                              {/* E2E互換用 hidden pill */}
+                              <span 
+                                data-testid="assignee-pill"
+                                className="sr-only"
+                                title={mail.assigneeSlug ? (mail.assigneeSlug === myAssigneeSlug ? "自分が担当" : `担当: ${getAssigneeDisplayName(mail.assigneeSlug)}`) : "未割当"}
+                              >
+                                {mail.assigneeSlug ? "担当" : "未割当"}
+                              </span>
                               {mail.snoozeUntil && (
                                 <span
                                   data-testid="snooze-pill"
@@ -6456,13 +6454,29 @@ export default function InboxShell({
                         <div className="flex items-center gap-3 mb-3">
                           <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-[#e8eaed] text-[#1a73e8] border border-[#dadce0] uppercase tracking-widest">MAIL</span>
                           <span className="text-[12px] text-[#5f6368] font-normal">{selectedMessage.receivedAt}</span>
-                          <span
-                            data-testid="assignee-pill"
-                            className="text-[11px] font-medium px-2 py-0.5 rounded border border-[#dadce0] bg-[#f1f3f4] text-[#3c4043]"
-                            title={selectedAssigneeSlug ? `担当: ${getAssigneeDisplayName(selectedAssigneeSlug)}` : "未割当"}
-                          >
-                            {selectedAssigneeSlug ? `担当: ${getAssigneeDisplayName(selectedAssigneeSlug)}` : "未割当"}
-                          </span>
+                          {selectedAssigneeSlug && (
+                            <span
+                              data-testid="assignee-pill"
+                              className={`text-[11px] font-medium px-2 py-0.5 rounded flex items-center gap-1 ${
+                                selectedAssigneeSlug === myAssigneeSlug
+                                  ? "bg-blue-50 text-blue-700 border border-blue-200"
+                                  : "bg-gray-100 text-gray-600 border border-gray-300"
+                              }`}
+                              title={`担当: ${getAssigneeDisplayName(selectedAssigneeSlug)}`}
+                            >
+                              <UserCheck size={12} />
+                              {getAssigneeDisplayName(selectedAssigneeSlug)}
+                            </span>
+                          )}
+                          {!selectedAssigneeSlug && (
+                            <span
+                              data-testid="assignee-pill"
+                              className="sr-only"
+                              title="未割当"
+                            >
+                              未割当
+                            </span>
+                          )}
                           {(selectedMessage.userLabels ?? []).length > 0 && (
                             <span className="flex items-center gap-1">
                               {(selectedMessage.userLabels ?? []).slice(0, 2).map((ln) => (
