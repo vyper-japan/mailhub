@@ -8322,10 +8322,10 @@ export default function InboxShell({
       {toast && (
         <div data-testid="toast" className={`fixed bottom-8 left-1/2 -translate-x-1/2 z-[200] flex items-center gap-4 px-6 py-3 rounded-2xl shadow-2xl backdrop-blur-xl border transition-all animate-in slide-in-from-bottom-4 duration-300 ${
           toast.type === "error" 
-            ? "bg-red-600 border-red-500 text-white shadow-lg" 
+            ? "bg-red-100 border-red-200 text-black shadow-lg" 
             : toast.type === "info"
-            ? "bg-blue-500/20 border-blue-500/30 text-blue-200"
-            : "bg-blue-600 border-blue-400/30 text-white"
+            ? "bg-blue-100 border-blue-200 text-black"
+            : "bg-emerald-100 border-emerald-200 text-black"
         }`}>
           <div className="flex items-center gap-3">
             {toast.type === "success" && <CheckCircle className="w-5 h-5" />}
@@ -8333,7 +8333,7 @@ export default function InboxShell({
             <span className="text-sm font-bold tracking-tight">{toast.message}</span>
           </div>
           {undoStack.length > 0 && (
-            <button onClick={handleUndo} data-testid="toast-undo" className="ml-2 px-3 py-1 bg-white/10 hover:bg-white/20 rounded-lg text-xs font-black uppercase tracking-widest transition-colors">
+            <button onClick={handleUndo} data-testid="toast-undo" className="ml-2 px-3 py-1 bg-black/10 hover:bg-black/20 text-black rounded-lg text-xs font-black uppercase tracking-widest transition-colors">
               Undo{undoStack.length > 1 ? ` (${undoStack.length})` : ""}
             </button>
           )}

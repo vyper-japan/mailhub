@@ -2609,3 +2609,14 @@ npm run qa:strict
 **Next Step**:
 - local3000で目視確認可能。AssigneePickerでTeam候補が表示されることを確認。
 ---
+
+---
+**Date**: 2026-01-21 16:11
+**Topic**: トースト通知の可読性改善
+**Summary**:
+- Inboxのトースト背景色を淡色に調整し、文字色を黒に統一
+- Undoボタンの背景を黒系に変更してコントラストを確保
+- `npm run verify` を実行し、typecheck/build成功を確認
+**Next Step**:
+- 必要ならトーストの色味（info/success/error）を現場で微調整
+---
