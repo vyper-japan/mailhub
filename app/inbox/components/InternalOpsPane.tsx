@@ -97,7 +97,6 @@ export function InternalOpsPane({
   const [noteSaveState, setNoteSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const suppressSaveRef = useRef(false);
   const noteAbortRef = useRef<AbortController | null>(null);
-  const repairedMessageIdsRef = useRef<Set<string>>(new Set());
 
   const noteLastUpdatedText = useMemo(() => {
     const at = formatIsoToJa(noteMeta?.updatedAt ?? null);
@@ -132,21 +131,7 @@ export function InternalOpsPane({
       if ((e as { name?: string }).name === "AbortError") return;
       setNoteLoadState("error");
       const errorMsg = e instanceof Error ? e.message : String(e);
-      // JSON破損エラーの場合は自動修復されるため、より分かりやすいメッセージを表示
-      if (errorMsg.includes("config_json_corrupt_notes")) {
-        if (!repairedMessageIdsRef.current.has(messageId)) {
-          repairedMessageIdsRef.current.add(messageId);
-          showToast("社内メモのデータを修復しました", "info");
-          // エラー状態をリセットして再読み込みを試みる
-          setTimeout(() => {
-            void loadNote();
-          }, 1000);
-        } else {
-          setNoteLoadState("idle");
-        }
-      } else {
-        showToast(`社内メモの読み込みに失敗しました: ${errorMsg}`, "error");
-      }
+      showToast(`社内メモの読み込みに失敗しました: ${errorMsg}`, "error");
     } finally {
       // 次のレンダーサイクルで解除（state反映時の副作用を避ける）
       setTimeout(() => {

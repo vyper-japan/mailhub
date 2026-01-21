@@ -54,9 +54,10 @@ describe("messageNotesStore (file parse/validation)", () => {
     expect(all["msg-001"]?.body).toBe("hello");
   });
 
-  test("corrupt json throws (not swallowed)", async () => {
+  test("corrupt json returns empty (silent recovery)", async () => {
     await writeFile(notesPath, "{bad json", "utf-8");
-    await expect(storeFile.list()).rejects.toThrow(/config_json_corrupt_notes/i);
+    const all = await storeFile.list();
+    expect(all).toEqual({});
   });
 });
 

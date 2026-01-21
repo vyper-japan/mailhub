@@ -42,8 +42,9 @@ function parseNotes(raw: string): MessageNotes {
     }
     return result;
   } catch (e) {
-    const message = e instanceof Error ? e.message : String(e);
-    throw new Error(`config_json_corrupt_notes:${message}`);
+    // JSON破損時はサイレントに空オブジェクトを返す（ログのみ）
+    console.warn("[messageNotesStore] JSON parse failed, returning empty:", e);
+    return {};
   }
 }
 
