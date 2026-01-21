@@ -37,11 +37,11 @@ export type LabelGroup = {
 export const LABEL_GROUPS: LabelGroup[] = [
   {
     id: "channels",
-    label: "Channels",
+    label: "チャンネル",
     collapsible: true,
     defaultCollapsed: false,
     items: [
-      { id: "all", label: "All", type: "channel" },
+      { id: "all", label: "すべて", type: "channel" },
       {
         id: "store-a",
         label: "StoreA",
@@ -64,25 +64,25 @@ export const LABEL_GROUPS: LabelGroup[] = [
   },
   {
     id: "status",
-    label: "Status",
+    label: "ステータス",
     collapsible: true,
     defaultCollapsed: false, // デフォルト展開
     items: [
-      { id: "todo", label: "Todo（未対応）", type: "status", statusType: "todo" },
-      { id: "waiting", label: "Waiting（保留）", type: "status", statusType: "waiting" },
-      { id: "done", label: "Done（完了）", type: "status", statusType: "done" },
-      { id: "muted", label: "Muted（低優先）", type: "status", statusType: "muted" },
-      { id: "snoozed", label: "Snoozed（期限付き保留）", type: "status", statusType: "snoozed" },
+      { id: "todo", label: "未対応", type: "status", statusType: "todo" },
+      { id: "waiting", label: "保留", type: "status", statusType: "waiting" },
+      { id: "done", label: "完了", type: "status", statusType: "done" },
+      { id: "muted", label: "低優先", type: "status", statusType: "muted" },
+      { id: "snoozed", label: "スヌーズ", type: "status", statusType: "snoozed" },
     ],
   },
   {
     id: "assignee",
-    label: "Assignee",
+    label: "担当者",
     collapsible: true,
     defaultCollapsed: false,
     items: [
-      { id: "mine", label: "Mine（自分担当）", type: "assignee" },
-      { id: "unassigned", label: "Unassigned（未割当）", type: "assignee" },
+      { id: "mine", label: "自分", type: "assignee" },
+      { id: "unassigned", label: "未割当", type: "assignee" },
     ],
   },
 ];
