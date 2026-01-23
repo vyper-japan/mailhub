@@ -379,7 +379,7 @@ export function Sidebar({
           </div>
         </div>
 
-        {/* Assigneeセクション（そのまま表示） */}
+        {/* Step 113: Assigneeセクション（Mine/Unassigned + 全メンバー） */}
         {labelGroups
           .filter((g) => g.id === "assignee")
           .map((group) => {
@@ -387,15 +387,21 @@ export function Sidebar({
             const mineSlug = user.email.replace("@", "_at_").replace(/\./g, "_");
             const mineLoad = statusCounts?.assigneeLoadBySlug?.[mineSlug] ?? 0;
             const unassignedLoad = statusCounts?.unassignedLoad ?? 0;
+            // Step 113: ログインユーザーの表示名をAssigneesから取得
+            const myAssignee = team.find((m) => m.email.toLowerCase() === user.email.toLowerCase());
+            const myDisplayName = myAssignee?.name || user.name?.split(" ")[0] || user.email.split("@")[0];
             return (
             <div key={group.id} className="mb-6" data-testid="label-assignee">
               <div className={t.sidebarHeader}>{group.label}</div>
               <div className="space-y-0.5">
+                {/* Mine / Unassigned */}
                 {group.items.map((item) => {
                   const isActive = item.id === labelId && !activeAssigneeSlug;
                   // Step 65: Mine/Unassignedの件数バッジ
                   const count = item.id === "mine" ? mineLoad : item.id === "unassigned" ? unassignedLoad : 0;
                   const countTestId = item.id === "mine" ? "assignee-count-mine" : item.id === "unassigned" ? "assignee-count-unassigned" : undefined;
+                  // Step 113: 「自分」→「Mine(表示名)」に変更
+                  const displayLabel = item.id === "mine" ? `Mine (${myDisplayName})` : item.label;
                   return (
                     <div
                       key={item.id}
@@ -405,10 +411,33 @@ export function Sidebar({
                     >
                       <span className="flex items-center gap-2">
                         <User size={20} className={isActive ? "text-[#1a73e8]" : "text-[#5f6368]"} />
-                        <span>{item.label}</span>
+                        <span>{displayLabel}</span>
                       </span>
                       {count > 0 && countTestId && (
                         <span data-testid={countTestId} className={t.badge}>{count}</span>
+                      )}
+                    </div>
+                  );
+                })}
+                {/* Step 113: Team全メンバーをAssigneeセクションに追加 */}
+                {team.map((member) => {
+                  const memberSlug = member.email.replace("@", "_at_").replace(/\./g, "_");
+                  const isActive = activeAssigneeSlug === memberSlug;
+                  const displayName = member.name || member.email.split("@")[0];
+                  const memberLoad = statusCounts?.assigneeLoadBySlug?.[memberSlug] ?? 0;
+                  return (
+                    <div
+                      key={member.email}
+                      data-testid={`assignee-item-${member.email}`}
+                      onClick={() => onSelectTeamMember(member.email)}
+                      className={`${t.sidebarItem} ${isActive ? t.sidebarItemActive : ""}`}
+                    >
+                      <span className="flex items-center gap-2">
+                        <UserCheck size={20} className={isActive ? "text-[#1a73e8]" : "text-[#5f6368]"} />
+                        <span className="truncate">{displayName}</span>
+                      </span>
+                      {memberLoad > 0 && (
+                        <span data-testid={`assignee-count-${memberSlug}`} className={t.badge}>{memberLoad}</span>
                       )}
                     </div>
                   );
@@ -417,12 +446,14 @@ export function Sidebar({
             </div>
           );})}
 
-        {/* Step 64: Team セクション（admin only） */}
-        {(isAdmin || testMode) && team.length > 0 && (
+        {/* Step 64: Team セクション（admin only・自分以外のメンバーのみ表示） */}
+        {(isAdmin || testMode) && team.filter((m) => m.email.toLowerCase() !== user.email.toLowerCase()).length > 0 && (
           <div className="mb-6" data-testid="sidebar-team">
             <div className={t.sidebarHeader}>Team</div>
             <div className="space-y-0.5">
-              {team.map((member) => {
+              {team
+                .filter((m) => m.email.toLowerCase() !== user.email.toLowerCase())
+                .map((member) => {
                 const memberSlug = member.email.replace("@", "_at_").replace(/\./g, "_");
                 const isActive = activeAssigneeSlug === memberSlug;
                 const displayName = member.name || member.email.split("@")[0];

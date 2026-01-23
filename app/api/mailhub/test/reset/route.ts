@@ -8,6 +8,7 @@ import { resetAssigneeRulesForTest } from "@/lib/assigneeRulesStore";
 import { clearActivityLogs, type AuditLogEntry } from "@/lib/audit-log";
 import { setTestReadOnlyMode } from "@/lib/read-only";
 import { getTeamStore } from "@/lib/teamStore";
+import { getAssigneeRegistryStore } from "@/lib/assigneeRegistryStore";
 
 export const dynamic = "force-dynamic";
 
@@ -82,6 +83,16 @@ export async function POST(req: Request) {
     }
     await teamStore.create({ email: "other@vtj.co.jp", name: "Other User" }).catch(() => {});
     await teamStore.create({ email: "member2@vtj.co.jp", name: "Member Two" }).catch(() => {});
+
+    // Step 113: AssigneeRegistryにもseed（サイドバーTeam表示用）
+    const assigneeStore = getAssigneeRegistryStore("memory");
+    await assigneeStore.replaceAll([
+      { email: "taka@vtj.co.jp", displayName: "Taka" },
+      { email: "maki@vtj.co.jp", displayName: "Maki" },
+      { email: "yuka@vtj.co.jp", displayName: "Yuka" },
+      { email: "eri_s@vtj.co.jp", displayName: "Eri" },
+      { email: "kumiko@vtj.co.jp", displayName: "Kumiko" },
+    ]).catch(() => {});
     
     // Activityログをクリアしてからseedを投入
     await clearActivityLogs();

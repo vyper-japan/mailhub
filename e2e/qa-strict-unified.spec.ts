@@ -761,9 +761,9 @@ test.describe("QA-Strict Unified E2E Tests", () => {
     // 詳細が表示される
     await expect(page.getByTestId("detail-subject")).toBeVisible({ timeout: 5000 });
     
-    // 未割当pillが表示される（初期状態では未割当）
+    // 未割当pillが存在する（初期状態では未割当）- sr-onlyなのでtoHaveCountで確認
     const unassignedPill = page.getByTestId("assignee-pill").filter({ hasText: "未割当" });
-    await expect(unassignedPill.first()).toBeVisible({ timeout: 3000 });
+    await expect(unassignedPill.first()).toHaveCount(1, { timeout: 3000 });
     
     // Assignボタンが表示される
     const assignButton = page.getByTestId("action-assign");
@@ -787,8 +787,8 @@ test.describe("QA-Strict Unified E2E Tests", () => {
     // API成功を待つ
     await assignRespP;
     
-    // 自分担当pillが表示される（詳細ペイン内）
-    const assignedPillDetail = page.getByTestId("assignee-pill").filter({ hasText: "担当: test" });
+    // 自分担当pillが存在する（詳細ペイン内）- 表示名 "test" を含む
+    const assignedPillDetail = page.getByTestId("assignee-pill").filter({ hasText: "test" });
     await expect(assignedPillDetail.first()).toBeVisible({ timeout: 3000 });
     
     // Unassignボタンが表示される
@@ -813,8 +813,8 @@ test.describe("QA-Strict Unified E2E Tests", () => {
     // API成功を待つ
     await unassignRespP;
     
-    // 未割当pillが表示される
-    await expect(unassignedPill.first()).toBeVisible({ timeout: 3000 });
+    // 未割当pillが存在する - sr-onlyなのでtoHaveCountで確認
+    await expect(unassignedPill.first()).toHaveCount(1, { timeout: 3000 });
   });
 
   test("14) Activityパネル（操作ログ表示＋フィルタ＋経過時間）", async ({ page }) => {
@@ -1137,8 +1137,8 @@ test.describe("QA-Strict Unified E2E Tests", () => {
     // API成功を待つ
     await assignRespP;
     
-    // 自分担当pillが表示される（詳細ペイン内）
-    const assignedPillDetail = page.getByTestId("assignee-pill").filter({ hasText: "担当: test" });
+    // 自分担当pillが存在する（詳細ペイン内）- 表示名 "test" を含む
+    const assignedPillDetail = page.getByTestId("assignee-pill").filter({ hasText: "test" });
     await expect(assignedPillDetail.first()).toBeVisible({ timeout: 3000 });
     
     // Waitingボタンをクリック（保留に設定）
@@ -6273,25 +6273,21 @@ test("Step110-1) rosterに2名登録→メールに2番目をAssign→一覧pill
   // 10) モーダルが閉じることを確認（assignee-selector）
   await expect(page.getByTestId("assignee-selector")).toBeHidden({ timeout: 5000 });
   
-  // 11) 一覧のpillが「他人担当」になることを確認（assignee-pillが表示される）
+  // 11) 一覧のカラーバーが「他人担当」になることを確認（assignee-barが表示される）
   await expect.poll(async () => {
-    const firstRowPills = firstRow.locator('[data-testid="assignee-pill"]');
-    const count = await firstRowPills.count();
+    const firstRowBar = firstRow.locator('[data-testid="assignee-bar"]');
+    const count = await firstRowBar.count();
     return count > 0;
   }, { timeout: 5000 }).toBe(true);
   
-  // 12) pillが「他人担当」であることを確認（灰色のpill = 他人担当）
-  const pill = firstRow.locator('[data-testid="assignee-pill"]').first();
-  await expect(pill).toBeVisible({ timeout: 5000 });
-  const pillText = await pill.textContent();
-  expect(pillText).toBeTruthy();
-  // 一覧のpillは「担当」という固定テキスト（他人担当は灰色）
-  expect(pillText).toBe("担当");
+  // 12) カラーバーが「他人担当」であることを確認（灰色のバー = 他人担当）
+  const bar = firstRow.locator('[data-testid="assignee-bar"]').first();
+  await expect(bar).toBeVisible({ timeout: 5000 });
   
-  // 13) pillの色が灰色（他人担当）であることを確認（bg-gray-100クラス）
-  const pillClass = await pill.getAttribute("class");
-  expect(pillClass).toBeTruthy();
-  expect(pillClass).toContain("bg-gray-100"); // 他人担当は灰色
+  // 13) カラーバーの色が灰色（他人担当）であることを確認（bg-gray-400クラス）
+  const barClass = await bar.getAttribute("class");
+  expect(barClass).toBeTruthy();
+  expect(barClass).toContain("bg-gray-400"); // 他人担当は灰色
 });
 
 // ========== Step 111: Take Next（未割当を1件自動で自分に割当）+ Nショートカット ==========
@@ -6346,18 +6342,18 @@ test("Step111-1) Nキー→/assign成功待機→自分担当pillが付く", asy
   expect(assignData.success || assignData.ok).toBe(true);
   expect(assignData.assigneeEmail).toBe("test@vtj.co.jp");
   
-  // 4) 自分担当pillが付くことを確認
+  // 4) 自分担当のカラーバーが付くことを確認
   await expect.poll(async () => {
-    const pill = firstUnassignedRow!.locator('[data-testid="assignee-pill"]');
-    const count = await pill.count();
+    const bar = firstUnassignedRow!.locator('[data-testid="assignee-bar"]');
+    const count = await bar.count();
     return count > 0;
   }, { timeout: 5000 }).toBe(true);
   
-  // 5) pillの色が自分担当（青色）であることを確認
-  const pill = firstUnassignedRow!.locator('[data-testid="assignee-pill"]').first();
-  const pillClass = await pill.getAttribute("class");
-  expect(pillClass).toBeTruthy();
-  expect(pillClass).toContain("bg-[#E8F0FE]"); // 自分担当は青色
+  // 5) カラーバーの色が自分担当（青色）であることを確認
+  const bar = firstUnassignedRow!.locator('[data-testid="assignee-bar"]').first();
+  const barClass = await bar.getAttribute("class");
+  expect(barClass).toBeTruthy();
+  expect(barClass).toContain("bg-blue-500"); // 自分担当は青色
 });
 
 // ========== Step 109: Team Roster（assign候補の名簿）をConfigStoreで管理 ==========

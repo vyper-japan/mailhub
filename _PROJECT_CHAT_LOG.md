@@ -1,5 +1,7 @@
 # MailHub Project Chat Log
 
+> **新しいチャットで作業を開始する場合**: `_START_HERE.md` と `_HANDOVER_GUIDE.md` を最初に読んでください。
+
 ---
 **Date**: 2026-01-19 06:30
 **Topic**: [Step 97] Focus Refresh（復帰時に自動同期）でチーム運用のズレを減らす
@@ -1795,6 +1797,26 @@ Running 10 tests using 5 workers
 **Next Step**: プロジェクトの安定運用とフィードバック収集
 
 ---
+**Date**: 2026-01-03 21:30
+**Topic**: [Step 15] Collaboration（担当者アサイン + 引き継ぎ + 自分フィルタ）
+**Summary**:
+- **担当者アサイン機能**: Gmailラベル（`MailHub/Assignee/<email>`）を使用してメールに担当者を割り当て
+- **自分フィルタ**: サイドバーに「Mine（自分担当）」フィルタを追加し、自分が担当しているメールのみを表示
+- **引き継ぎ機能**: 既に他人が担当しているメールを自分に引き継ぐ機能（takeover）
+- **担当者表示**: 一覧行と詳細ペインに担当者pillを表示（自分担当/他人担当/未割当）
+- **担当解除**: 自分が担当しているメールの担当を解除する機能
+**変更ファイル一覧**:
+- `lib/gmail.ts`（担当者ラベル管理、`MAILHUB_LABEL_ASSIGNEE_PREFIX`）
+- `app/api/mailhub/assign/route.ts`（担当者アサインAPI）
+- `app/inbox/InboxShell.tsx`（担当者アサインUI、自分フィルタ、引き継ぎ確認）
+- `app/inbox/components/Sidebar.tsx`（Mineフィルタ追加）
+- `e2e/qa-strict-unified.spec.ts`（担当者アサインE2Eテスト追加）
+**実行した検証コマンドと結果**:
+- `npm run qa:strict`: ✅ PASS（1回目）
+- `npm run qa:strict`: ✅ PASS（2回目）
+**Next Step**: Step 15.1 QA Gate Fix
+
+---
 **Date**: 2026-01-03 22:00
 **Topic**: [inbox_ui] Gmailデザイン要素の完全再現（配色・フォント・スペーシング）
 **Summary**: 
@@ -2372,6 +2394,106 @@ Running 10 tests using 5 workers
 ---
 
 ---
+**Date**: 2026-01-11 12:00
+**Topic**: [Step 51] Search v2（Gmail検索式でサーバ検索 + URL共有 + 操作継続）
+**Summary**:
+- **サーバ検索実装**: トップバーの検索ボックスでGmail検索式（`subject:`, `from:`, `newer_than:`等）を入力してEnterでサーバ側検索を実行
+- **URL共有**: 検索クエリをURLパラメータ（`?q=...`）に保持し、共有・再読み込みで同じ結果に戻れる
+- **操作継続**: 検索状態でも操作（Done/Mute/Waiting/Assign/Label/Undo）が継続できる
+- **検索中表示**: 検索中は「検索中: [query]」チップを表示、クリックで解除、Escキーでクリア
+- **現在選択中のラベルに対して検索**: Channels/Status/Assigneeの現在選択中のラベルに対して検索が実行される
+**変更ファイル一覧**:
+- `app/inbox/InboxShell.tsx`（検索クエリ状態管理、URL同期、検索実行）
+- `app/inbox/components/TopHeader.tsx`（検索入力UI、検索中チップ）
+- `app/page.tsx`（URLから検索クエリ読み込み）
+- `app/api/mailhub/list/route.ts`（検索クエリパラメータ受け取り）
+- `lib/gmail.ts`（Gmail検索式パース、テストモード対応）
+- `e2e/qa-strict-unified.spec.ts`（Step51テスト追加）
+**実行した検証コマンドと結果**:
+- `npm run qa:strict`: ✅ PASS（1回目）
+- `npm run qa:strict`: ✅ PASS（2回目）
+**Next Step**: なし（Step 51完了）
+
+---
+**Date**: 2026-01-11 12:30
+**Topic**: [Step 52] Work Queues（定型検索＝作業キュー保存＆共有）
+**Summary**:
+- **Queues管理**: Settings → Queuesタブで保存済み検索を管理（adminのみ作成/編集/削除、非adminは閲覧のみ）
+- **Queues適用**: トップバーのQueuesボタンから保存済みキューを選択して即座に検索を適用
+- **URL共有**: キュー適用時にURLに検索クエリが保持され、共有・再読み込みで同じ結果に戻れる
+- **最大50件**: 最大50件まで保存可能
+**変更ファイル一覧**:
+- `lib/queues.ts`（Queue型定義）
+- `lib/queuesStore.ts`（Queue CRUD、ConfigStore永続化）
+- `app/api/mailhub/queues/route.ts`（Queue API）
+- `app/api/mailhub/queues/[id]/route.ts`（Queue個別API）
+- `app/inbox/InboxShell.tsx`（Queues Popover、キュー適用）
+- `app/settings/labels/settings-panel.tsx`（Settings: Queuesタブ）
+- `e2e/qa-strict-unified.spec.ts`（Step52テスト追加）
+**実行した検証コマンドと結果**:
+- `npm run qa:strict`: ✅ PASS（1回目）
+- `npm run qa:strict`: ✅ PASS（2回目）
+**Next Step**: なし（Step 52完了）
+
+---
+**Date**: 2026-01-11 13:00
+**Topic**: [Step 53] Auto Rules Runner（自動ラベリング定期実行・安全設計）
+**Summary**:
+- **Run All機能**: Settings → Auto Rulesタブに「Run All」ボタンを追加（dryRun/applyの2段階）
+- **dryRun**: 有効化されたルールを一括でPreview実行し、対象件数とサンプルを表示
+- **apply**: dryRun後にApplyを実行し、実際にラベルを付与（最大50件/同時実行3/1件6秒タイムアウト）
+- **結果モーダル**: Run All実行後に結果モーダルを表示（対象件数、成功/失敗件数、エラー詳細）
+- **安全設計**: 適用対象はUnassignedのみ（既担当はスキップ）、takeoverは自動ルールでは絶対にしない
+**変更ファイル一覧**:
+- `lib/autoRulesRunner.ts`（Run Allロジック）
+- `app/api/mailhub/rules/run-all/route.ts`（Run All API）
+- `app/settings/labels/settings-panel.tsx`（Run All UI、結果モーダル）
+- `e2e/qa-strict-unified.spec.ts`（Step53テスト追加）
+**実行した検証コマンドと結果**:
+- `npm run qa:strict`: ✅ PASS（1回目）
+- `npm run qa:strict`: ✅ PASS（2回目）
+**Next Step**: なし（Step 53完了）
+
+---
+**Date**: 2026-01-11 13:30
+**Topic**: [Step 55] Reply Launcher（返信導線の最短化：RMS/Gmail判定、問い合わせ番号抽出、テンプレ挿入）
+**Summary**:
+- **返信先判定**: メール詳細ペインに「Reply（返信）」ブロックを追加し、返信先種別を自動判定（Gmail返信/楽天RMS返信/Unknown）
+- **RMS導線**: 楽天メール（StoreA/B/Cチャンネル）の場合、問い合わせ番号を自動抽出し、「RMSを開く」「問い合わせ番号をコピー」ボタンを表示
+- **テンプレ挿入**: Replyブロック内でテンプレを選択して返信欄に挿入、編集可能、「コピー」でクリップボードへ
+- **単体/複数選択時で挙動を分ける**: 単体はテンプレ挿入・転記・RMS/Gmail導線すべて有効、複数はテンプレの「コピー」だけ許可（事故防止）
+- **READ ONLY対応**: READ ONLY時は「RMSを開く」「コピー」はOK、「社内メモへ転記（=書き込み）」はNG
+**変更ファイル一覧**:
+- `lib/replyRoutes.ts`（返信先判定ロジック）
+- `app/inbox/InboxShell.tsx`（Replyブロック表示、RMS導線）
+- `app/inbox/components/InternalOpsPane.tsx`（テンプレ挿入統合）
+- `e2e/qa-strict-unified.spec.ts`（Step55-1、Step55-2テスト追加）
+**実行した検証コマンドと結果**:
+- `npm run qa:strict`: ✅ PASS（1回目）
+- `npm run qa:strict`: ✅ PASS（2回目）
+**Next Step**: なし（Step 55完了）
+
+---
+**Date**: 2026-01-23 06:30
+**Topic**: [Step 112] Command Palette（Ctrl/⌘K）で操作を最短化
+**Summary**:
+- **Command Palette実装**: `Ctrl+K`（Win/Linux）/ `⌘K`（Mac）でコマンドパレットを開く（data-testid="command-palette"）
+- **コマンド一覧**: Refresh、Focus Search、Toggle Activity、Toggle Settings（権限/READ ONLYに従う）、Take Next、Show Shortcuts
+- **操作**: ↑↓で選択、Enterで実行、Escで閉じる
+- **検索機能**: コマンド名で検索可能
+- **Views Command Palette分離**: Views専用のCommand Paletteは`Cmd+Shift+K` / `Ctrl+Shift+K`に変更
+- **UI**: TopHeaderにCommand Paletteを開くボタン（⌘K）を追加（E2Eテスト用）
+**変更ファイル一覧**:
+- `app/inbox/components/CommandPalette.tsx`（新規: 汎用Command Paletteコンポーネント）
+- `app/inbox/InboxShell.tsx`（Command Palette統合、コマンドリスト定義、キーボードショートカット）
+- `app/inbox/components/TopHeader.tsx`（Command Palette開くボタン追加）
+- `e2e/qa-strict-unified.spec.ts`（Step112-1テスト追加、Views Paletteテスト更新）
+**実行した検証コマンドと結果**:
+- `rm -rf node_modules .next && npm ci && npm run qa:strict`: ✅ PASS（1回目）
+- `rm -rf node_modules .next && npm ci && npm run qa:strict`: ✅ PASS（2回目）
+**Next Step**: なし（Step 112完了）
+
+---
 **Date**: 2026-01-11 14:20
 **Topic**: [Step 36] Team & Assignee（チーム運用の担当割当を完成）
 **Summary**:
@@ -2646,4 +2768,53 @@ npm run qa:strict
 - `npm run verify` を実行し、typecheck/build成功を確認
 **Next Step**:
 - 必要ならトーストの色味（info/success/error）を現場で微調整
+---
+
+---
+**Date**: 2026-01-23 07:40
+**Topic**: [Step 113] Assigneeセクションに全メンバー表示（作業中）
+**Summary**:
+- **目的**: Assigneeセクションに Mine/Unassigned + 全メンバー（Taka/Maki/Yuka/Eri/Kumiko）を表示
+- **受け入れ条件**:
+  - サイドバーに Assignee: Mine(Taka), Unassigned, Maki, Yuka, Eri, Kumiko が表示される
+  - クリックでその担当者のメールに絞り込める（一覧が壊れない）
+  - 詳細の Assign ボタンで担当者選択UIが出る
+  - 選んだ担当者に割り当てられ、一覧/詳細の pill も更新される
+  - 既に他人担当なら Takeover 確認が出る
+  - `npm run qa:strict` が2回連続PASS
+- **実装方針（最小差分）**:
+  - assignees を ConfigStore に追加（labels/rules と同系統の保存）
+  - API: GET /api/mailhub/assignees（全員OK）＋ 変更系は admin のみ
+  - Assign API を assigneeEmail 受け取り対応（既存は自分固定だったので拡張）
+  - UI: Settings Drawer に "Assignees" タブ（最小UI）
+  - UI: Assign ポップオーバーで assignees を選択
+- **現在の進捗**:
+  - ✅ `app/api/mailhub/test/reset/route.ts`: AssigneeRegistryにseed追加（Taka/Maki/Yuka/Eri/Kumiko）
+  - ✅ `app/inbox/components/Sidebar.tsx`: 
+    - Mine表示名を「Mine (表示名)」に変更（例: "Mine (Taka)"）
+    - AssigneeセクションにTeam全メンバーを追加表示
+    - Teamセクションは自分以外のみ表示（admin/testMode時）
+  - ✅ `e2e/qa-strict-unified.spec.ts`: カラーバー対応のE2Eテスト修正
+  - ⏳ Settings Drawerに「Assignees」タブ追加（未実装）
+  - ⏳ Assign操作で担当者選択UIに全メンバー表示（AssigneeSelector修正、未実装）
+  - ⏳ `npm run qa:strict` 2回連続PASS（未検証）
+- **既存実装の確認**:
+  - ✅ `/api/mailhub/assignees` APIは既に実装済み（GET/POST/DELETE）
+  - ✅ `lib/assigneeRegistryStore.ts`でConfigStore永続化済み
+  - ✅ `app/api/mailhub/assign/route.ts`は`assigneeEmail`対応済み
+  - ✅ Step 80でSettings Drawerのタブ追加パターン実装済み
+  - ✅ Step 76でAssigneeSelectorの実装パターン実装済み
+**変更ファイル一覧**（現在）:
+- `app/api/mailhub/test/reset/route.ts`（AssigneeRegistry seed追加）
+- `app/inbox/components/Sidebar.tsx`（Mine表示名変更、Assigneeセクションに全メンバー追加）
+- `e2e/qa-strict-unified.spec.ts`（カラーバー対応のE2Eテスト修正）
+**Next Step**:
+- Settings Drawerに「Assignees」タブ追加（管理者のみ編集可能）
+  - 参考: Step 80の実装パターン（`app/settings/labels/settings-panel.tsx`）
+  - AssigneeRegistryStoreを使用してCRUD操作を実装
+- Assign操作で担当者選択UIに全メンバー表示
+  - 参考: Step 76の実装パターン（`app/inbox/components/AssigneeSelector.tsx`）
+  - `/api/mailhub/assignees`から取得するように修正
+- `npm run qa:strict` 2回連続PASS
+- **引き継ぎ**: 新しいチャットでは`_HANDOVER_GUIDE.md`を参照すること
 ---
