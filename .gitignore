@@ -10,5 +10,6 @@ dist
 .claude/
 .cursor/
 .entire/
+coverage/
 
 
