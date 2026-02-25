@@ -240,50 +240,43 @@ export function AssigneeSelector({ open, onClose, currentUserEmail, currentAssig
             </div>
           )}
 
-          {/* 担当者名簿 (Admin only) */}
-          {isAdmin && (
-            filteredAssignees.length === 0 ? (
-              <div className="text-center text-gray-500 py-8 text-sm">
-                {searchQuery ? "該当するメンバーが見つかりません" : "担当者が登録されていません"}
-              </div>
-            ) : (
-              <ul className="space-y-1" data-testid="assignee-picker-team-list">
-                {filteredAssignees
-                  .filter((m) => m.email.toLowerCase() !== currentUserLower)
-                  .map((member) => {
-                    const isSelected = currentAssigneeLower === member.email.toLowerCase();
-                    return (
-                      <li key={member.email}>
-                        <button
-                          type="button"
-                          className={`w-full flex items-center gap-2 p-2 rounded-md hover:bg-gray-50 text-left text-sm ${
-                            isSelected ? "bg-blue-50" : ""
-                          }`}
-                          onClick={() => void handleSelect(member.email)}
-                          disabled={loading}
-                          data-testid={`assignee-picker-item-${member.email}`}
-                        >
-                          <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
-                            <User size={16} className="text-gray-500" />
-                          </div>
-                          <div className="flex-1">
-                            <div className="font-medium">{member.displayName || member.email}</div>
-                            {member.displayName && (
-                              <div className="text-xs text-gray-500">{member.email}</div>
-                            )}
-                          </div>
-                          {isSelected && <Check size={16} className="text-blue-600" />}
-                        </button>
-                      </li>
-                    );
-                  })}
-              </ul>
-            )
-          )}
-          {!isAdmin && (
-            <div className="text-center text-gray-500 py-4 text-sm" data-testid="assignee-picker-admin-only-hint">
-              他のメンバーへの割当は管理者のみ可能です
+          {/* 担当者名簿（閲覧・選択は全員OK、追加はAdminのみ） */}
+          {filteredAssignees.length === 0 ? (
+            <div className="text-center text-gray-500 py-8 text-sm">
+              {searchQuery ? "該当するメンバーが見つかりません" : "担当者が登録されていません"}
             </div>
+          ) : (
+            <ul className="space-y-1" data-testid="assignee-picker-team-list">
+              {filteredAssignees
+                .filter((m) => m.email.toLowerCase() !== currentUserLower)
+                .map((member) => {
+                  const isSelected = currentAssigneeLower === member.email.toLowerCase();
+                  return (
+                    <li key={member.email}>
+                      <button
+                        type="button"
+                        className={`w-full flex items-center gap-2 p-2 rounded-md hover:bg-gray-50 text-left text-sm ${
+                          isSelected ? "bg-blue-50" : ""
+                        }`}
+                        onClick={() => void handleSelect(member.email)}
+                        disabled={loading}
+                        data-testid={`assignee-picker-item-${member.email}`}
+                      >
+                        <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
+                          <User size={16} className="text-gray-500" />
+                        </div>
+                        <div className="flex-1">
+                          <div className="font-medium">{member.displayName || member.email}</div>
+                          {member.displayName && (
+                            <div className="text-xs text-gray-500">{member.email}</div>
+                          )}
+                        </div>
+                        {isSelected && <Check size={16} className="text-blue-600" />}
+                      </button>
+                    </li>
+                  );
+                })}
+            </ul>
           )}
         </div>
 

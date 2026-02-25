@@ -853,6 +853,8 @@ export default function InboxShell({
     return messages.find((m) => m.id === selectedId)?.assigneeSlug ?? selectedMessage?.assigneeSlug ?? null;
   }, [messages, selectedId, selectedMessage]);
   const isSelectedMine = selectedAssigneeSlug === myAssigneeSlug;
+  // Step 114: 他人担当かどうか（担当者がいて、自分ではない）
+  const isSelectedOtherAssigned = Boolean(selectedAssigneeSlug && !isSelectedMine);
 
   // Step 59: 単一アクション処理中かどうか（ボタンdisable用）
   const isActionInProgress = useMemo(() => {
@@ -924,6 +926,15 @@ export default function InboxShell({
   const someSelectedMine = useMemo(() => {
     if (selectedIds.length === 0) return false;
     return selectedIds.some((id) => (messages.find((m) => m.id === id)?.assigneeSlug ?? null) === myAssigneeSlug);
+  }, [messages, myAssigneeSlug, selectedIds]);
+
+  // Step 114: 選択中に他人担当が含まれるか
+  const someSelectedOtherAssigned = useMemo(() => {
+    if (selectedIds.length === 0) return false;
+    return selectedIds.some((id) => {
+      const slug = messages.find((m) => m.id === id)?.assigneeSlug ?? null;
+      return slug && slug !== myAssigneeSlug;
+    });
   }, [messages, myAssigneeSlug, selectedIds]);
 
   const toggleStarLocal = useCallback((id: string) => {
@@ -3226,17 +3237,23 @@ export default function InboxShell({
     setShowAssigneeSelector(true);
   }, []);
 
-  const handleAssigneeSelect = useCallback(async (assigneeEmail: string | null, handoffNote?: string, reason?: string) => {
-    const ids = assigneeSelectorBulkIds.length > 0 ? assigneeSelectorBulkIds : (assigneeSelectorMessageId ? [assigneeSelectorMessageId] : []);
+  // Step 114: targetIds引数を追加して、ツールバーから直接呼び出し可能に
+  const handleAssigneeSelect = useCallback(async (assigneeEmail: string | null, handoffNote?: string, reason?: string, targetIds?: string[]) => {
+    // targetIdsが渡されたらそれを使い、なければ状態変数から取得
+    const ids = targetIds && targetIds.length > 0 ? targetIds : (assigneeSelectorBulkIds.length > 0 ? assigneeSelectorBulkIds : (assigneeSelectorMessageId ? [assigneeSelectorMessageId] : []));
     if (ids.length === 0) return;
 
-    // Step 91: takeover判定（既に担当者がいて、別の担当者に変更する場合）
-    // 単一選択で既存担当者がいて、かつ担当変更(assign)の場合に理由必須
+    // Step 91: takeover判定（「他人担当」からの変更のみ理由必須）
     if (ids.length === 1 && assigneeEmail) {
       const messageId = ids[0];
       const targetMessage = messages.find((m) => m.id === messageId);
-      // 既に担当者がいて、自分ではない担当者への変更の場合 → takeover
-      if (targetMessage?.assigneeSlug && targetMessage.assigneeSlug !== assigneeSlug(assigneeEmail)) {
+      const mySlug = assigneeSlug(user.email);
+      // 既に担当者がいて、かつ「自分以外」担当からの変更なら takeover
+      if (
+        targetMessage?.assigneeSlug &&
+        targetMessage.assigneeSlug !== mySlug &&
+        targetMessage.assigneeSlug !== assigneeSlug(assigneeEmail)
+      ) {
         // reasonが未入力の場合、理由入力モーダルを表示
         if (!reason) {
           setPendingReasonModal({
@@ -3281,6 +3298,10 @@ export default function InboxShell({
 
         // Step 72: Optimistic更新: 即座にUIを更新（API待ち前）
         const newAssigneeSlug = assigneeEmail ? assigneeSlug(assigneeEmail) : null;
+        const shouldForceAssign =
+          Boolean(assigneeEmail) &&
+          Boolean(targetMessage.assigneeSlug) &&
+          targetMessage.assigneeSlug !== newAssigneeSlug;
         const updatedMessages = messages.map((m) =>
           m.id === messageId ? { ...m, assigneeSlug: newAssigneeSlug } : m
         );
@@ -3300,6 +3321,7 @@ export default function InboxShell({
               action: assigneeEmail ? "assign" : "unassign",
               assigneeEmail: assigneeEmail || undefined,
               reason, // Step 91: 理由入力
+              force: assigneeEmail ? shouldForceAssign : false,
             }),
           });
 
@@ -5401,28 +5423,58 @@ export default function InboxShell({
                 <span className={t.toolbarShortcut} title="ショートカット: W">W</span>
               </button>
 
-              {/* 担当（1ボタンに統合 - Gmail完全再現） */}
+              {/* Step 114: 担当ボタン（状態で挙動分岐） */}
+              {/* 未割当 → 即座に自分に割当、自分担当 → 即座に解除、他人担当 → ポップアップで引き継ぎ */}
               <button
-                data-testid={checkedIds.size > 0 ? (allSelectedMine ? "action-unassign" : "action-assign") : (isSelectedMine ? "action-unassign" : "action-assign")}
+                data-testid={
+                  checkedIds.size > 0
+                    ? (someSelectedOtherAssigned ? "action-takeover" : allSelectedMine ? "action-unassign" : "action-assign")
+                    : (isSelectedOtherAssigned ? "action-takeover" : isSelectedMine ? "action-unassign" : "action-assign")
+                }
                 className={`${t.toolbarButton} ${(checkedIds.size > 0 ? someSelectedMine : isSelectedMine) ? t.toolbarButtonActive : ""} ${(isActionInProgress || bulkProgress) ? "opacity-60" : ""}`}
-                onClick={() => {
+                onClick={async () => {
+                  // Step 114: 状態によって挙動を分岐
                   if (checkedIds.size > 0) {
-                    handleAssignClick(null, Array.from(checkedIds));
+                    const ids = Array.from(checkedIds);
+                    // 複数選択時：他人担当が含まれる場合はポップアップ
+                    if (someSelectedOtherAssigned) {
+                      handleAssignClick(null, ids);
+                    } else if (allSelectedMine) {
+                      // 全て自分担当 → 即座に解除（IDを直接渡す）
+                      await handleAssigneeSelect(null, undefined, undefined, ids);
+                    } else {
+                      // 未割当を含む → 即座に自分に割当（IDを直接渡す）
+                      await handleAssigneeSelect(user.email, undefined, undefined, ids);
+                    }
                   } else if (selectedId) {
-                    handleAssignClick(selectedId);
+                    // 単一選択時
+                    if (isSelectedOtherAssigned) {
+                      // 他人担当 → ポップアップで引き継ぎ
+                      handleAssignClick(selectedId);
+                    } else if (isSelectedMine) {
+                      // 自分担当 → 即座に解除（IDを直接渡す）
+                      await handleAssigneeSelect(null, undefined, undefined, [selectedId]);
+                    } else {
+                      // 未割当 → 即座に自分に割当（IDを直接渡す）
+                      await handleAssigneeSelect(user.email, undefined, undefined, [selectedId]);
+                    }
                   }
                 }}
                 title={
                   readOnlyMode
                     ? (getWriteBlockedTitle() ?? "実行できません")
                     : checkedIds.size > 0
-                    ? (allSelectedMine ? "選択分を担当解除" : "選択分を担当")
-                    : (isSelectedMine ? "担当解除" : "担当")
+                    ? (someSelectedOtherAssigned ? "選択分を引き継ぎ" : allSelectedMine ? "選択分を担当解除" : "選択分を担当")
+                    : (isSelectedOtherAssigned ? "引き継ぎ" : isSelectedMine ? "担当解除" : "担当")
                 }
                 disabled={readOnlyMode || selectedIds.length === 0 || bulkProgress !== null || isActionInProgress}
               >
                 <UserCheck size={20} className={(checkedIds.size > 0 ? someSelectedMine : isSelectedMine) ? "text-[#1a73e8]" : "text-[#5f6368]"} />
-                <span className="hidden lg:inline">{(checkedIds.size > 0 ? allSelectedMine : isSelectedMine) ? "担当解除" : "担当"}</span>
+                <span className="hidden lg:inline">
+                  {checkedIds.size > 0
+                    ? (someSelectedOtherAssigned ? "引き継ぎ" : allSelectedMine ? "担当解除" : "担当")
+                    : (isSelectedOtherAssigned ? "引き継ぎ" : isSelectedMine ? "担当解除" : "担当")}
+                </span>
                 <span className={t.toolbarShortcut} title="ショートカット: C">C</span>
               </button>
 
@@ -6454,28 +6506,34 @@ export default function InboxShell({
                         <div className="flex items-center gap-3 mb-3">
                           <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-[#e8eaed] text-[#1a73e8] border border-[#dadce0] uppercase tracking-widest">MAIL</span>
                           <span className="text-[12px] text-[#5f6368] font-normal">{selectedMessage.receivedAt}</span>
+                          {/* Step 114: 担当者pillをクリックでAssigneeSelectorを開く */}
                           {selectedAssigneeSlug && (
-                            <span
+                            <button
                               data-testid="assignee-pill"
-                              className={`text-[11px] font-medium px-2 py-0.5 rounded flex items-center gap-1 ${
+                              type="button"
+                              onClick={() => handleAssignClick(selectedMessage?.id ?? selectedId)}
+                              className={`text-[11px] font-medium px-2 py-0.5 rounded flex items-center gap-1 cursor-pointer hover:opacity-80 ${
                                 selectedAssigneeSlug === myAssigneeSlug
                                   ? "bg-blue-50 text-blue-700 border border-blue-200"
                                   : "bg-gray-100 text-gray-600 border border-gray-300"
                               }`}
-                              title={`担当: ${getAssigneeDisplayName(selectedAssigneeSlug)}`}
+                              title={`担当: ${getAssigneeDisplayName(selectedAssigneeSlug)} (クリックで変更)`}
                             >
                               <UserCheck size={12} />
                               {getAssigneeDisplayName(selectedAssigneeSlug)}
-                            </span>
+                            </button>
                           )}
                           {!selectedAssigneeSlug && (
-                            <span
+                            <button
                               data-testid="assignee-pill"
-                              className="sr-only"
-                              title="未割当"
+                              type="button"
+                              onClick={() => handleAssignClick(selectedMessage?.id ?? selectedId)}
+                              className="text-[11px] font-medium px-2 py-0.5 rounded flex items-center gap-1 cursor-pointer hover:opacity-80 bg-gray-100 text-gray-500 border border-gray-200"
+                              title="未割当 (クリックで担当者を選択)"
                             >
+                              <UserCheck size={12} />
                               未割当
-                            </span>
+                            </button>
                           )}
                           {(selectedMessage.userLabels ?? []).length > 0 && (
                             <span className="flex items-center gap-1">

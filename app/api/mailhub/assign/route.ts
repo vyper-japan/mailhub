@@ -6,7 +6,6 @@ import { isTestMode } from "@/lib/test-mode";
 import { parseGmailError } from "@/lib/gmail-error";
 import type { NextRequest } from "next/server";
 import { isReadOnlyMode, writeForbiddenResponse } from "@/lib/read-only";
-import { isAdminEmail } from "@/lib/admin";
 
 export const dynamic = "force-dynamic";
 
@@ -43,20 +42,14 @@ export async function POST(req: NextRequest) {
     if (!assigneeEmail.endsWith("@vtj.co.jp")) {
       return NextResponse.json({ error: "invalid_domain", message: "@vtj.co.jp ドメインのみ許可されています" }, { status: 400 });
     }
-    // 他人への割当はadminのみ
-    if (assigneeEmail !== authResult.user.email.toLowerCase()) {
-      if (!isAdminEmail(authResult.user.email)) {
-        return NextResponse.json({ error: "forbidden_admin_only_for_others" }, { status: 403 });
-      }
-      // Team登録必須チェック（Team未登録でも@vtj.co.jpなら許可するため、このチェックをスキップ可能に）
-      // TODO: Team登録必須を強制するかどうかは運用で決める
-      // 現状: Team登録チェックを維持（Step70ではTeam未登録でも許可する方向に変更）
-      // const teamStore = getTeamStore();
-      // const member = await teamStore.get(assigneeEmail);
-      // if (!member) {
-      //   return NextResponse.json({ error: "assignee_not_in_team", assigneeEmail }, { status: 400 });
-      // }
-    }
+    // Team登録必須チェック（Team未登録でも@vtj.co.jpなら許可するため、このチェックをスキップ可能に）
+    // TODO: Team登録必須を強制するかどうかは運用で決める
+    // 現状: Team登録チェックを維持（Step70ではTeam未登録でも許可する方向に変更）
+    // const teamStore = getTeamStore();
+    // const member = await teamStore.get(assigneeEmail);
+    // if (!member) {
+    //   return NextResponse.json({ error: "assignee_not_in_team", assigneeEmail }, { status: 400 });
+    // }
     targetEmail = assigneeEmail;
   }
 
