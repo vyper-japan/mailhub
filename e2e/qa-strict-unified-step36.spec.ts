@@ -85,48 +85,33 @@ test.describe("Step36 Team & Assignee E2E Tests", () => {
   });
 
   test("33) Assign UI（担当者選択モーダル）", async ({ page }) => {
-    // まずTeamメンバーを追加（adminとして）
-    await page.getByTestId("action-settings").click();
-    const drawer = page.getByTestId("settings-drawer");
-    await expect(drawer).toBeVisible({ timeout: 3000 });
-    await drawer.getByTestId("settings-tab-team").click();
-    await drawer.getByTestId("team-new-email").fill("assign-test@vtj.co.jp");
-    await drawer.getByTestId("team-new-name").fill("担当テスト");
-    const createRespP2 = page.waitForResponse((r) =>
-      r.url().includes("/api/mailhub/team") && r.request().method() === "POST" && r.status() === 200
-    );
-    await drawer.getByTestId("team-create").click();
-    await createRespP2;
-    // Settings Drawerを閉じる
-    await page.keyboard.press("Escape");
-    await expect(drawer).not.toBeVisible({ timeout: 2000 });
+    // Step 114: 新しい挙動テスト
+    // 未割当 → 担当ボタンで即座に自分に割当
+    // 自分担当 → 担当解除ボタンで即座に解除
 
     // メッセージを選択
     const firstMessage = page.getByTestId("message-row").first();
     await firstMessage.click();
     await page.waitForTimeout(500);
 
-    // 担当ボタンをクリック（担当者選択モーダルが開く）
-    await page.getByTestId("action-assign").click();
-    const selector = page.getByTestId("assignee-selector");
-    await expect(selector).toBeVisible({ timeout: 3000 });
-
-    // 自分を選択
+    // 担当ボタンをクリック（即座に自分に割当、ポップアップなし）
     const assignRespP = page.waitForResponse((r) =>
       r.url().includes("/api/mailhub/assign") && r.request().method() === "POST" && r.status() === 200
     );
-    await selector.getByTestId("assignee-picker-apply").click();
+    await page.getByTestId("action-assign").click();
     await assignRespP;
-    await expect(selector).not.toBeVisible({ timeout: 2000 });
 
-    // 再度担当ボタンをクリック（今度は担当解除が表示される）
-    await page.getByTestId("action-unassign").click();
-    await expect(selector).toBeVisible({ timeout: 3000 });
+    // 担当済みになったことを確認（ボタンが担当解除に変わる）
+    await expect(page.getByTestId("action-unassign")).toBeVisible({ timeout: 3000 });
+
+    // 再度担当ボタンをクリック（即座に解除、ポップアップなし）
     const unassignRespP = page.waitForResponse((r) =>
       r.url().includes("/api/mailhub/assign") && r.request().method() === "POST" && r.status() === 200
     );
-    await selector.getByTestId("assignee-selector-unassign").click();
+    await page.getByTestId("action-unassign").click();
     await unassignRespP;
-    await expect(selector).not.toBeVisible({ timeout: 2000 });
+
+    // 担当解除されたことを確認（ボタンが担当に戻る）
+    await expect(page.getByTestId("action-assign")).toBeVisible({ timeout: 3000 });
   });
 });
