@@ -15,7 +15,7 @@ from googleapiclient.errors import HttpError
 # =====================
 # 認証設定
 # =====================
-TOKEN_FILE = "/Users/takayukisuzuki/VYPER JAPAN Dropbox/Suzuki Takayuki/VYPER-Dev/vyper-ai-workspace/.cursor/gmail-token.json"
+TOKEN_FILE = "/Users/takayukisuzuki/VYPER-Dev/vyper-ai-workspace/.cursor/gmail-token.json"
 
 with open(TOKEN_FILE) as f:
     ti = json.load(f)
