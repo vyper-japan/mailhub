@@ -1,6 +1,6 @@
 import "server-only";
 import { NextResponse } from "next/server";
-import { getActivityLogs, isAuditAction, type AuditAction } from "@/lib/audit-log";
+import { getActivityLogs, isAuditAction, logAction, type AuditAction } from "@/lib/audit-log";
 import { requireUser, authErrorResponse } from "@/lib/require-user";
 import { listLatestInboxMessages } from "@/lib/gmail";
 import { getLabelById } from "@/lib/labels";
@@ -112,3 +112,47 @@ export async function GET(req: Request) {
   );
 }
 
+/**
+ * Activityログを追加するAPI
+ * POST /api/mailhub/activity
+ */
+export async function POST(req: Request) {
+  // 認証チェック
+  const authResult = await requireUser();
+  if (!authResult.ok) {
+    return authErrorResponse(authResult);
+  }
+
+  const body = (await req.json().catch(() => null)) as unknown;
+  if (!body || typeof body !== "object") {
+    return NextResponse.json({ error: "invalid_json" }, { status: 400 });
+  }
+
+  const b = body as Record<string, unknown>;
+  const action = typeof b.action === "string" ? b.action : null;
+  const messageId = typeof b.messageId === "string" ? b.messageId : "";
+  const label = typeof b.label === "string" && b.label.trim() ? b.label.trim() : undefined;
+  const metadata =
+    b.metadata && typeof b.metadata === "object" && !Array.isArray(b.metadata)
+      ? (b.metadata as Record<string, unknown>)
+      : undefined;
+  const reason = typeof b.reason === "string" && b.reason.trim() ? b.reason.trim() : undefined;
+
+  if (!action || !isAuditAction(action)) {
+    return NextResponse.json({ error: "invalid_action" }, { status: 400 });
+  }
+
+  await logAction({
+    actorEmail: authResult.user.email,
+    action,
+    messageId,
+    label,
+    metadata,
+    reason,
+  });
+
+  return NextResponse.json(
+    { ok: true },
+    { headers: { "cache-control": "no-store" } },
+  );
+}

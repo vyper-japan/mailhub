@@ -142,12 +142,13 @@ export class SheetsStore implements ActivityStore {
       try {
         const headerCheck = await sheets.spreadsheets.values.get({
           spreadsheetId: this.spreadsheetId,
-          range: `${this.sheetName}!A1:I1`,
+          range: `${this.sheetName}!A1:J1`,
         });
-        if (!headerCheck.data.values || headerCheck.data.values.length === 0) {
+        const header = headerCheck.data.values?.[0] || [];
+        if (header.length === 0 || header[9] !== "reason") {
           await sheets.spreadsheets.values.update({
             spreadsheetId: this.spreadsheetId,
-            range: `${this.sheetName}!A1:I1`,
+            range: `${this.sheetName}!A1:J1`,
             valueInputOption: "RAW",
             requestBody: {
               values: [[
@@ -160,6 +161,7 @@ export class SheetsStore implements ActivityStore {
                 "status",
                 "label",
                 "metaJSON",
+                "reason",
               ]],
             },
           });
@@ -171,7 +173,7 @@ export class SheetsStore implements ActivityStore {
       await Promise.race([
         sheets.spreadsheets.values.append({
           spreadsheetId: this.spreadsheetId,
-          range: `${this.sheetName}!A:I`,
+          range: `${this.sheetName}!A:J`,
           valueInputOption: "RAW",
           insertDataOption: "INSERT_ROW",
           requestBody: {
@@ -185,6 +187,7 @@ export class SheetsStore implements ActivityStore {
               "", // status (後でenrich)
               entry.label || "",
               JSON.stringify(entry.metadata || {}),
+              entry.reason || "",
             ]],
           },
         }),
@@ -201,7 +204,7 @@ export class SheetsStore implements ActivityStore {
       const sheets = await this.getSheetsClient();
       const response = await sheets.spreadsheets.values.get({
         spreadsheetId: this.spreadsheetId,
-        range: `${this.sheetName}!A:I`,
+        range: `${this.sheetName}!A:J`,
       });
 
       const rows = response.data.values || [];
@@ -219,13 +222,18 @@ export class SheetsStore implements ActivityStore {
         try {
           const actionRaw = String(row[2] || "");
           if (!isAuditAction(actionRaw)) continue;
+          const isLegacyCompactRow = row.length < 9;
+          const label = isLegacyCompactRow ? row[4] : row[7];
+          const metadataRaw = isLegacyCompactRow ? row[5] : row[8];
+          const reason = isLegacyCompactRow ? row[6] : row[9];
           const entry: AuditLogEntry = {
             timestamp: row[0] || "",
             actorEmail: row[1] || "",
             action: actionRaw as AuditAction,
             messageId: row[3] || "",
-            label: row[4] || undefined,
-            metadata: row[5] ? JSON.parse(row[5]) : undefined,
+            label: label || undefined,
+            metadata: metadataRaw ? JSON.parse(metadataRaw) : undefined,
+            reason: reason || undefined,
           };
           logs.push(entry);
         } catch {
@@ -311,4 +319,3 @@ export function getActivityStore(): ActivityStore {
 
   return storeInstance;
 }
-

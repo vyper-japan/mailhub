@@ -522,6 +522,7 @@ export default function InboxShell({
   const toastTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
   // Undoスタック（複数の操作をUndoできるように）
+  const UNDO_TTL_MS = 30 * 1000;
   type SingleUndoItem = {
     id: string;
     message: InboxListMessage;
@@ -533,7 +534,24 @@ export default function InboxShell({
     messages: InboxListMessage[];
   };
   type UndoItem = SingleUndoItem | BulkUndoItem;
-  const [undoStack, setUndoStack] = useState<UndoItem[]>([]);
+  type UndoStackItem = UndoItem & { createdAt: number };
+  const [undoStack, setUndoStack] = useState<UndoStackItem[]>([]);
+
+  useEffect(() => {
+    if (undoStack.length === 0) return;
+
+    const pruneExpiredUndoItems = () => {
+      const now = Date.now();
+      setUndoStack((prev) => {
+        const next = prev.filter((item) => now - item.createdAt < UNDO_TTL_MS);
+        return next.length === prev.length ? prev : next;
+      });
+    };
+
+    pruneExpiredUndoItems();
+    const timer = setInterval(pruneExpiredUndoItems, 1000);
+    return () => clearInterval(timer);
+  }, [UNDO_TTL_MS, undoStack.length]);
 
   const [showShortcutHelp, setShowShortcutHelp] = useState(false);
   const [showBulkMuteConfirm, setShowBulkMuteConfirm] = useState(false);
@@ -585,6 +603,11 @@ export default function InboxShell({
     title: string;
     unresolvedVars: string[];
   } | null>(null);
+
+  useEffect(() => {
+    setReplyMessage("");
+    setLastAppliedTemplate(null);
+  }, [selectedMessage?.id]);
   
   // 本文の折りたたみ状態
   const [bodyCollapsed, setBodyCollapsed] = useState(false);
@@ -2580,7 +2603,7 @@ export default function InboxShell({
   }, [testMode, showToast]);
 
   const addToUndoStack = useCallback((item: UndoItem) => {
-    setUndoStack((prev) => [item, ...prev].slice(0, 10)); // 最大10件まで保持
+    setUndoStack((prev) => [{ ...item, createdAt: Date.now() }, ...prev].slice(0, 10)); // 最大10件まで保持
   }, []);
 
   const dismissToast = useCallback(() => {
@@ -4720,12 +4743,22 @@ export default function InboxShell({
         await loadList(labelId, id, { q: serverSearchQuery });
       } else {
         // 検索クエリがない場合は楽観的更新
-        setMessages((prev) => {
-          // 既に存在する場合は追加しない
-          if (prev.some((m) => m.id === id)) return prev;
-          return [message, ...prev];
+        flushSync(() => {
+          setMessages((prev) => {
+            // 既に存在する場合は追加しない
+            if (prev.some((m) => m.id === id)) return prev;
+            return [message, ...prev];
+          });
+          setSelectedId(id);
+          setSelectedMessage(message);
+          setReplyMessage("");
+          setLastAppliedTemplate(null);
+          setBodyCollapsed(false);
+          setDetailError(null);
+          setDetailBody({ plainTextBody: null, htmlBody: null, bodyNotice: null, isLoading: true });
         });
-        onSelectMessage(id);
+        replaceUrl(labelId, id);
+        void loadDetailBodyOnly(id);
       }
       
       showToast("元に戻しました", "success");
@@ -4736,7 +4769,7 @@ export default function InboxShell({
       showToast(`エラー: ${e instanceof Error ? e.message : String(e)}`, "error");
       reloadCurrentList();
     }
-  }, [undoStack, serverSearchQuery, labelId, onSelectMessage, showToast, fetchCountsDebounced, reloadCurrentList, loadList, handleUnassign, handleAssign]);
+  }, [undoStack, serverSearchQuery, labelId, showToast, fetchCountsDebounced, reloadCurrentList, loadList, handleUnassign, handleAssign, replaceUrl, loadDetailBodyOnly]);
 
   // 楽天RMS返信の送信
   const handleRakutenReply = useCallback(async () => {
@@ -5281,7 +5314,7 @@ export default function InboxShell({
               setServerSearchQuery("");
               startTransition(async () => {
                 try {
-                  await loadList(labelId, selectedId, {});
+                  await loadList(labelId, selectedId, { q: "" });
                   listRef.current?.scrollTo({ top: 0 });
                 } catch (e) {
                   setListError(e instanceof Error ? e.message : String(e));
@@ -5332,7 +5365,7 @@ export default function InboxShell({
                   setSearchTerm("");
                   startTransition(async () => {
                     try {
-                      await loadList(labelId, selectedId, {});
+                      await loadList(labelId, selectedId, { q: "" });
                       listRef.current?.scrollTo({ top: 0 });
                     } catch (e) {
                       setListError(e instanceof Error ? e.message : String(e));
