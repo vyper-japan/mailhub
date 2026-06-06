@@ -134,6 +134,12 @@ async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
   return data as T;
 }
 
+// 編集中のassigneesDraftを再マウント越しに保持するモジュールスコープキャッシュ。
+// next dev環境でパネルがタブ表示中に再マウントすると編集が消える
+// (qa-strict Step80-1 flaky根因)。5秒以内の再マウントのみ復元し、
+// それ以降は従来通り新規fetchが正 (「開いた時に再読込」のUX維持)。
+let assigneesDraftRemountCache: { draft: Array<{ email: string; displayName: string | null }>; at: number } | null = null;
+
 export function SettingsPanel({ mode, onOpenActivity }: { mode: SettingsMode; onOpenActivity?: (ruleId?: string) => void }) {
   const [tab, setTab] = useState<"labels" | "rules" | "templates" | "auto-assign" | "views" | "team" | "assignees" | "diagnostics" | "suggestions" | "queues">("labels");
   const [toast, setToast] = useState<string | null>(null);
@@ -149,7 +155,19 @@ export function SettingsPanel({ mode, onOpenActivity }: { mode: SettingsMode; on
   const [rosterDraft, setRosterDraft] = useState<string>("");
   // Step 80: Assignees（担当者名簿）
   const [assignees, setAssignees] = useState<Array<{ email: string; displayName: string | null }>>([]);
-  const [assigneesDraft, setAssigneesDraft] = useState<Array<{ email: string; displayName: string | null }>>([]);
+  const [assigneesDraft, setAssigneesDraftState] = useState<Array<{ email: string; displayName: string | null }>>(
+    () => (assigneesDraftRemountCache && Date.now() - assigneesDraftRemountCache.at < 5000 ? assigneesDraftRemountCache.draft : []),
+  );
+  const setAssigneesDraft = useCallback(
+    (action: React.SetStateAction<Array<{ email: string; displayName: string | null }>>) => {
+      setAssigneesDraftState((prev) => {
+        const next = typeof action === "function" ? action(prev) : action;
+        assigneesDraftRemountCache = { draft: next, at: Date.now() };
+        return next;
+      });
+    },
+    [],
+  );
   const [assigneesSaving, setAssigneesSaving] = useState(false);
   const [savedSearches, setSavedSearches] = useState<Array<{ id: string; name: string; query: string; baseLabelId?: string | null }>>([]);
   const [newQueueName, setNewQueueName] = useState("");
@@ -380,17 +398,19 @@ export function SettingsPanel({ mode, onOpenActivity }: { mode: SettingsMode; on
     const enteredAssignees = tab === "assignees" && prevSettingsTabRef.current !== "assignees";
     prevSettingsTabRef.current = tab;
     if (enteredAssignees) {
+      // 再マウント直後 (キャッシュ5秒以内) は編集中draftを保持し、canonicalのみ更新
+      const hasFreshDraft = assigneesDraftRemountCache !== null && Date.now() - assigneesDraftRemountCache.at < 5000;
       void (async () => {
         try {
           const res = await fetchJson<{ assignees: Array<{ email: string; displayName: string | null }> }>("/api/mailhub/assignees");
           setAssignees(res.assignees ?? []);
-          setAssigneesDraft(res.assignees ?? []);
+          if (!hasFreshDraft) setAssigneesDraft(res.assignees ?? []);
         } catch (e) {
           showError(`担当者名簿の読み込みに失敗しました: ${e instanceof Error ? e.message : String(e)}`);
         }
       })();
     }
-  }, [tab, showError]);
+  }, [tab, showError, setAssigneesDraft]);
 
   const loadRuleSuggestions = useCallback(async () => {
     setIsLoadingSuggestions(true);
