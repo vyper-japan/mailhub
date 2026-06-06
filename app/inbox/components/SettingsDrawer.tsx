@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
-import { SettingsPanel } from "@/app/settings/labels/settings-panel";
+import { SettingsPanel, clearSettingsPanelRemountCache } from "@/app/settings/labels/settings-panel";
 
 type Props = {
   open: boolean;
@@ -13,6 +13,14 @@ type Props = {
 
 export function SettingsDrawer({ open, onClose, onOpenActivity }: Props) {
   const panelRef = useRef<HTMLDivElement | null>(null);
+
+  // 意図的なclose (open: true→false) でパネルの再マウント耐性キャッシュをクリアする。
+  // hot-update起因の再マウントではopenがtrueのままなので、編集中state復元と区別できる
+  const wasOpenRef = useRef(false);
+  useEffect(() => {
+    if (wasOpenRef.current && !open) clearSettingsPanelRemountCache();
+    wasOpenRef.current = open;
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;

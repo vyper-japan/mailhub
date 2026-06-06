@@ -140,8 +140,37 @@ async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
 // それ以降は従来通り新規fetchが正 (「開いた時に再読込」のUX維持)。
 let assigneesDraftRemountCache: { draft: Array<{ email: string; displayName: string | null }>; at: number } | null = null;
 
+type SettingsTab = "labels" | "rules" | "templates" | "auto-assign" | "views" | "team" | "assignees" | "diagnostics" | "suggestions" | "queues";
+// tabも同様に再マウント越しに保持 (next devのhot updateでパネルが再マウントすると
+// 選択中タブが"labels"へ戻り、開いていたタブのUIごと消える)
+let settingsTabRemountCache: { tab: SettingsTab; at: number } | null = null;
+
+// ドロワーを「意図的に閉じた」時に呼ぶ (SettingsDrawerのopen=false遷移で使用)。
+// hot-update再マウントではopenはtrueのままなのでクリアされない = 区別できる
+export function clearSettingsPanelRemountCache() {
+  settingsTabRemountCache = null;
+  assigneesDraftRemountCache = null;
+}
+
 export function SettingsPanel({ mode, onOpenActivity }: { mode: SettingsMode; onOpenActivity?: (ruleId?: string) => void }) {
-  const [tab, setTab] = useState<"labels" | "rules" | "templates" | "auto-assign" | "views" | "team" | "assignees" | "diagnostics" | "suggestions" | "queues">("labels");
+  const [tab, setTabState] = useState<SettingsTab>(
+    () => (settingsTabRemountCache && Date.now() - settingsTabRemountCache.at < 5000 ? settingsTabRemountCache.tab : "labels"),
+  );
+  const setTab = useCallback((action: React.SetStateAction<SettingsTab>) => {
+    setTabState((prev) => {
+      const next = typeof action === "function" ? action(prev) : action;
+      settingsTabRemountCache = { tab: next, at: Date.now() };
+      return next;
+    });
+  }, []);
+  // 表示中もタイムスタンプを更新し続ける (操作が5秒以上空いた瞬間の再マウントにも耐える)
+  useEffect(() => {
+    settingsTabRemountCache = { tab, at: Date.now() };
+    const t = setInterval(() => {
+      settingsTabRemountCache = { tab, at: Date.now() };
+    }, 2000);
+    return () => clearInterval(t);
+  }, [tab]);
   const [toast, setToast] = useState<string | null>(null);
   const [errorBanner, setErrorBanner] = useState<string | null>(null);
 
