@@ -72,6 +72,79 @@ async function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise
   return await Promise.race([p, timeout]);
 }
 
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" ? (value as Record<string, unknown>) : null;
+}
+
+function getNumericStatus(value: unknown): number | null {
+  if (typeof value === "number") return value;
+  if (typeof value === "string") {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : null;
+  }
+  return null;
+}
+
+function getSheetsErrorStatus(e: unknown): number | null {
+  const err = asRecord(e);
+  if (!err) return null;
+  const direct = getNumericStatus(err.code) ?? getNumericStatus(err.status);
+  if (direct !== null) return direct;
+
+  const response = asRecord(err.response);
+  const responseStatus = getNumericStatus(response?.status);
+  if (responseStatus !== null) return responseStatus;
+
+  const data = asRecord(response?.data);
+  const dataError = asRecord(data?.error);
+  return getNumericStatus(dataError?.code);
+}
+
+function getSheetsErrorText(e: unknown): string {
+  const messages: string[] = [];
+  if (e instanceof Error) messages.push(e.message);
+
+  const err = asRecord(e);
+  const response = asRecord(err?.response);
+  const data = asRecord(response?.data);
+  const dataError = asRecord(data?.error);
+  const candidates = [err, dataError];
+
+  for (const candidate of candidates) {
+    const message = candidate && typeof candidate.message === "string" ? candidate.message : "";
+    const status = candidate && typeof candidate.status === "string" ? candidate.status : "";
+    if (message) messages.push(message);
+    if (status) messages.push(status);
+  }
+
+  const errors = Array.isArray(dataError?.errors) ? dataError.errors : [];
+  for (const item of errors) {
+    const record = asRecord(item);
+    const message = record && typeof record.message === "string" ? record.message : "";
+    const reason = record && typeof record.reason === "string" ? record.reason : "";
+    if (message) messages.push(message);
+    if (reason) messages.push(reason);
+  }
+
+  return messages.join(" ");
+}
+
+function isMissingSheetRangeError(e: unknown, sheetName: string): boolean {
+  const text = getSheetsErrorText(e).toLowerCase();
+  if (text.includes("unable to parse range")) return true;
+
+  const status = getSheetsErrorStatus(e);
+  if (status !== 400) return false;
+
+  const normalizedSheetName = sheetName.toLowerCase();
+  return text.includes(normalizedSheetName) && (text.includes("range") || text.includes("sheet"));
+}
+
+function isDuplicateSheetError(e: unknown): boolean {
+  const text = getSheetsErrorText(e).toLowerCase();
+  return text.includes("already exists") || text.includes("duplicate");
+}
+
 class MemoryConfigStore<T> implements ConfigStore<T> {
   private key: string;
   private empty: T;
@@ -188,6 +261,38 @@ class SheetsConfigStore<T> implements ConfigStore<T> {
     return google.sheets({ version: "v4", auth });
   }
 
+  private emptyJsonBlobData(): T {
+    return this.opts.fromJson?.("") ?? ({} as T);
+  }
+
+  private async ensureJsonBlobSheet(): Promise<void> {
+    const sheets = await this.getSheetsClient();
+    try {
+      await withTimeout(
+        sheets.spreadsheets.batchUpdate({
+          spreadsheetId: this.opts.spreadsheetId,
+          requestBody: {
+            requests: [
+              {
+                addSheet: {
+                  properties: {
+                    title: this.opts.sheetName,
+                  },
+                },
+              },
+            ],
+          },
+        }),
+        6000,
+        "sheets_add_sheet",
+      );
+    } catch (e) {
+      if (isDuplicateSheetError(e)) return;
+      const message = e instanceof Error ? e.message : String(e);
+      throw new Error(`sheets_sheet_bootstrap_failed:${this.opts.sheetName}:${message}`);
+    }
+  }
+
   private async ensureHeaderTable(): Promise<void> {
     const sheets = await this.getSheetsClient();
     const range = `${this.opts.sheetName}!A1:Z1`;
@@ -211,12 +316,20 @@ class SheetsConfigStore<T> implements ConfigStore<T> {
         sheets.spreadsheets.values.get({ spreadsheetId: this.opts.spreadsheetId, range }),
         6000,
         "sheets_read",
-      );
+      ).catch((e: unknown) => {
+        if (isMissingSheetRangeError(e, this.opts.sheetName)) {
+          return null;
+        }
+        throw e;
+      });
+      if (!resp) {
+        return { data: this.emptyJsonBlobData(), lastUpdatedAt: null, source: "sheets" };
+      }
       const values = resp.data.values ?? [];
       const json = String(values?.[1]?.[0] ?? "");
       const updatedAt = String(values?.[1]?.[1] ?? "") || null;
       if (!json.trim()) {
-        return { data: (this.opts.fromJson?.("") ?? ({} as T)), lastUpdatedAt: updatedAt, source: "sheets" };
+        return { data: this.emptyJsonBlobData(), lastUpdatedAt: updatedAt, source: "sheets" };
       }
       return { data: this.opts.fromJson ? this.opts.fromJson(json) : (JSON.parse(json) as T), lastUpdatedAt: updatedAt, source: "sheets" };
     }
@@ -240,8 +353,7 @@ class SheetsConfigStore<T> implements ConfigStore<T> {
     if (this.opts.mode === "json_blob") {
       const now = new Date().toISOString();
       const json = this.opts.toJson ? this.opts.toJson(data) : JSON.stringify(data);
-      // 1操作で整合性を担保（A1:B2を一括update）
-      await withTimeout(
+      const writeJsonBlob = () =>
         sheets.spreadsheets.values.update({
           spreadsheetId: this.opts.spreadsheetId,
           range: `${this.opts.sheetName}!A1`,
@@ -252,10 +364,15 @@ class SheetsConfigStore<T> implements ConfigStore<T> {
               [json, now],
             ],
           },
-        }),
-        6000,
-        "sheets_write",
-      );
+        });
+      // 1操作で整合性を担保（A1:B2を一括update）
+      try {
+        await withTimeout(writeJsonBlob(), 6000, "sheets_write");
+      } catch (e) {
+        if (!isMissingSheetRangeError(e, this.opts.sheetName)) throw e;
+        await this.ensureJsonBlobSheet();
+        await withTimeout(writeJsonBlob(), 6000, "sheets_write");
+      }
       return;
     }
 
@@ -332,5 +449,4 @@ export function createConfigStore<T>(params: {
     fromJson: params.sheets.fromJson,
   });
 }
-
 
