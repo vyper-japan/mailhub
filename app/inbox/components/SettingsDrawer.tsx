@@ -12,11 +12,6 @@ type Props = {
 };
 
 export function SettingsDrawer({ open, onClose, onOpenActivity }: Props) {
-  useEffect(() => {
-    console.log(`[diag] SettingsDrawer MOUNT ${Date.now()}`);
-    return () => console.log(`[diag] SettingsDrawer UNMOUNT ${Date.now()}`);
-  }, []);
-  useEffect(() => { console.log(`[diag] SettingsDrawer open=${open} ${Date.now()}`); }, [open]);
   const panelRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {

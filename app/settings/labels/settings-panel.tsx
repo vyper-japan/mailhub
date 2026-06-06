@@ -342,10 +342,6 @@ export function SettingsPanel({ mode, onOpenActivity }: { mode: SettingsMode; on
 
   // Step 84: Auto Rules用Assignee一覧を取得
   useEffect(() => {
-    console.log(`[diag] SettingsPanel MOUNT ${Date.now()}`);
-    return () => console.log(`[diag] SettingsPanel UNMOUNT ${Date.now()}`);
-  }, []);
-  useEffect(() => {
     void (async () => {
       try {
         const data = await fetchJson<{ assignees: Array<{ email: string; displayName?: string | null }> }>("/api/mailhub/assignees");
