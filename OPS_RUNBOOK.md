@@ -288,6 +288,8 @@ SLA Focus状態をURLで共有できます：
 ### 永続化（Config Store）
 - `MAILHUB_CONFIG_STORE=sheets`（推奨）で、ラベル/ルール設定をGoogle Sheetsに保存する。
   - Tabs: `ConfigLabels` / `ConfigRules`（必要なら `MAILHUB_SHEETS_TAB_LABELS` / `MAILHUB_SHEETS_TAB_RULES` で変更）
+  - Sheets config writeは同一プロセス内でタブ単位に直列化される。
+  - 複数インスタンス/複数プロセス間では直列化されないため、同時編集運用は避ける。
 - ローカルは `MAILHUB_CONFIG_STORE=file` で `.mailhub/*.json` に保存する。
 
 ### Import from File（file→sheets移行）
@@ -942,4 +944,3 @@ curl https://mailhub.vercel.app/api/health
 ---
 
 **最終更新**: 2025-01-02
-

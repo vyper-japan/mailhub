@@ -4,8 +4,19 @@ import { getActivityLogs, isAuditAction, logAction, type AuditAction } from "@/l
 import { requireUser, authErrorResponse } from "@/lib/require-user";
 import { listLatestInboxMessages } from "@/lib/gmail";
 import { getLabelById } from "@/lib/labels";
+import { isReadOnlyMode } from "@/lib/read-only";
 
 export const dynamic = "force-dynamic";
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const proto = Object.getPrototypeOf(value);
+  return proto === Object.prototype || proto === null;
+}
+
+function invalidInputResponse(): NextResponse {
+  return NextResponse.json({ error: "invalid_input" }, { status: 400 });
+}
 
 /**
  * Activityログを取得するAPI
@@ -122,6 +133,12 @@ export async function POST(req: Request) {
   if (!authResult.ok) {
     return authErrorResponse(authResult);
   }
+  if (isReadOnlyMode()) {
+    return NextResponse.json(
+      { error: "read_only", message: "READ ONLYのため実行できません", reason: "activity_write" },
+      { status: 403 },
+    );
+  }
 
   const body = (await req.json().catch(() => null)) as unknown;
   if (!body || typeof body !== "object") {
@@ -130,16 +147,39 @@ export async function POST(req: Request) {
 
   const b = body as Record<string, unknown>;
   const action = typeof b.action === "string" ? b.action : null;
-  const messageId = typeof b.messageId === "string" ? b.messageId : "";
-  const label = typeof b.label === "string" && b.label.trim() ? b.label.trim() : undefined;
-  const metadata =
-    b.metadata && typeof b.metadata === "object" && !Array.isArray(b.metadata)
-      ? (b.metadata as Record<string, unknown>)
-      : undefined;
-  const reason = typeof b.reason === "string" && b.reason.trim() ? b.reason.trim() : undefined;
-
   if (!action || !isAuditAction(action)) {
     return NextResponse.json({ error: "invalid_action" }, { status: 400 });
+  }
+
+  let messageId = "";
+  if (Object.prototype.hasOwnProperty.call(b, "messageId")) {
+    if (typeof b.messageId !== "string") return invalidInputResponse();
+    messageId = b.messageId.trim();
+    if (messageId.length > 512) return invalidInputResponse();
+  }
+
+  let label: string | undefined;
+  if (Object.prototype.hasOwnProperty.call(b, "label")) {
+    if (typeof b.label !== "string") return invalidInputResponse();
+    const trimmed = b.label.trim();
+    if (trimmed.length > 256) return invalidInputResponse();
+    label = trimmed || undefined;
+  }
+
+  let reason: string | undefined;
+  if (Object.prototype.hasOwnProperty.call(b, "reason")) {
+    if (typeof b.reason !== "string") return invalidInputResponse();
+    const trimmed = b.reason.trim();
+    if (trimmed.length > 1000) return invalidInputResponse();
+    reason = trimmed || undefined;
+  }
+
+  let metadata: Record<string, unknown> | undefined;
+  if (Object.prototype.hasOwnProperty.call(b, "metadata")) {
+    if (!isPlainObject(b.metadata)) return invalidInputResponse();
+    const serialized = JSON.stringify(b.metadata);
+    if (serialized.length > 8192) return invalidInputResponse();
+    metadata = b.metadata;
   }
 
   await logAction({

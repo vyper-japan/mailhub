@@ -4584,6 +4584,12 @@ export default function InboxShell({
     
     // スタックから最新の操作を取り出す
     const latestUndo = undoStack[0];
+
+    if (Date.now() - latestUndo.createdAt > UNDO_TTL_MS) {
+      setUndoStack((prev) => prev.slice(1));
+      showToast("Undoの期限が切れました", "info");
+      return;
+    }
     
     // スタックから削除
     setUndoStack((prev) => prev.slice(1));
@@ -4769,7 +4775,7 @@ export default function InboxShell({
       showToast(`エラー: ${e instanceof Error ? e.message : String(e)}`, "error");
       reloadCurrentList();
     }
-  }, [undoStack, serverSearchQuery, labelId, showToast, fetchCountsDebounced, reloadCurrentList, loadList, handleUnassign, handleAssign, replaceUrl, loadDetailBodyOnly]);
+  }, [undoStack, UNDO_TTL_MS, serverSearchQuery, labelId, showToast, fetchCountsDebounced, reloadCurrentList, loadList, handleUnassign, handleAssign, replaceUrl, loadDetailBodyOnly]);
 
   // 楽天RMS返信の送信
   const handleRakutenReply = useCallback(async () => {
@@ -5312,6 +5318,7 @@ export default function InboxShell({
             onSearchClear={() => {
               // Step 51: 検索解除
               setServerSearchQuery("");
+              replaceUrl(labelId, selectedId, true, "");
               startTransition(async () => {
                 try {
                   await loadList(labelId, selectedId, { q: "" });
@@ -5363,6 +5370,7 @@ export default function InboxShell({
                 onClick={() => {
                   setServerSearchQuery("");
                   setSearchTerm("");
+                  replaceUrl(labelId, selectedId, true, "");
                   startTransition(async () => {
                     try {
                       await loadList(labelId, selectedId, { q: "" });

@@ -145,6 +145,23 @@ function isDuplicateSheetError(e: unknown): boolean {
   return text.includes("already exists") || text.includes("duplicate");
 }
 
+type SheetsTitleLookupClient = {
+  spreadsheets: {
+    get(params: {
+      spreadsheetId: string;
+      fields: "sheets.properties.title";
+    }): Promise<{
+      data: {
+        sheets?: Array<{
+          properties?: {
+            title?: string | null;
+          } | null;
+        } | null> | null;
+      };
+    }>;
+  };
+};
+
 class MemoryConfigStore<T> implements ConfigStore<T> {
   private key: string;
   private empty: T;
@@ -246,6 +263,7 @@ class FileConfigStore<T> implements ConfigStore<T> {
 }
 
 class SheetsConfigStore<T> implements ConfigStore<T> {
+  private static sheetWriteLocks = new Map<string, Promise<void>>();
   private opts: SheetsBackendOpts<T>;
   constructor(opts: SheetsBackendOpts<T>) {
     this.opts = { ...opts, privateKey: opts.privateKey.replace(/\\n/g, "\n") };
@@ -263,6 +281,23 @@ class SheetsConfigStore<T> implements ConfigStore<T> {
 
   private emptyJsonBlobData(): T {
     return this.opts.fromJson?.("") ?? ({} as T);
+  }
+
+  private async hasConfiguredSheet(sheets: SheetsTitleLookupClient): Promise<boolean> {
+    const resp = await withTimeout(
+      sheets.spreadsheets.get({
+        spreadsheetId: this.opts.spreadsheetId,
+        fields: "sheets.properties.title",
+      }),
+      6000,
+      "sheets_list_titles",
+    );
+    return (resp.data.sheets ?? []).some((sheet) => sheet?.properties?.title === this.opts.sheetName);
+  }
+
+  private async isConfirmedMissingSheet(sheets: SheetsTitleLookupClient, e: unknown): Promise<boolean> {
+    if (!isMissingSheetRangeError(e, this.opts.sheetName)) return false;
+    return !(await this.hasConfiguredSheet(sheets));
   }
 
   private async ensureJsonBlobSheet(): Promise<void> {
@@ -312,17 +347,15 @@ class SheetsConfigStore<T> implements ConfigStore<T> {
     const sheets = await this.getSheetsClient();
     if (this.opts.mode === "json_blob") {
       const range = `${this.opts.sheetName}!A1:B2`;
-      const resp = await withTimeout(
-        sheets.spreadsheets.values.get({ spreadsheetId: this.opts.spreadsheetId, range }),
-        6000,
-        "sheets_read",
-      ).catch((e: unknown) => {
-        if (isMissingSheetRangeError(e, this.opts.sheetName)) {
-          return null;
-        }
-        throw e;
-      });
-      if (!resp) {
+      let resp;
+      try {
+        resp = await withTimeout(
+          sheets.spreadsheets.values.get({ spreadsheetId: this.opts.spreadsheetId, range }),
+          6000,
+          "sheets_read",
+        );
+      } catch (e) {
+        if (!(await this.isConfirmedMissingSheet(sheets, e))) throw e;
         return { data: this.emptyJsonBlobData(), lastUpdatedAt: null, source: "sheets" };
       }
       const values = resp.data.values ?? [];
@@ -349,6 +382,20 @@ class SheetsConfigStore<T> implements ConfigStore<T> {
   }
 
   async write(data: T): Promise<void> {
+    const key = `${this.opts.spreadsheetId}:${this.opts.sheetName}`;
+    const prev = SheetsConfigStore.sheetWriteLocks.get(key) ?? Promise.resolve();
+    const next = prev.catch(() => {}).then(() => this.writeUnlocked(data));
+    SheetsConfigStore.sheetWriteLocks.set(key, next);
+    try {
+      await next;
+    } finally {
+      if (SheetsConfigStore.sheetWriteLocks.get(key) === next) {
+        SheetsConfigStore.sheetWriteLocks.delete(key);
+      }
+    }
+  }
+
+  private async writeUnlocked(data: T): Promise<void> {
     const sheets = await this.getSheetsClient();
     if (this.opts.mode === "json_blob") {
       const now = new Date().toISOString();
@@ -369,7 +416,7 @@ class SheetsConfigStore<T> implements ConfigStore<T> {
       try {
         await withTimeout(writeJsonBlob(), 6000, "sheets_write");
       } catch (e) {
-        if (!isMissingSheetRangeError(e, this.opts.sheetName)) throw e;
+        if (!(await this.isConfirmedMissingSheet(sheets, e))) throw e;
         await this.ensureJsonBlobSheet();
         await withTimeout(writeJsonBlob(), 6000, "sheets_write");
       }
@@ -449,4 +496,3 @@ export function createConfigStore<T>(params: {
     fromJson: params.sheets.fromJson,
   });
 }
-

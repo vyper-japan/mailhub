@@ -226,13 +226,21 @@ export class SheetsStore implements ActivityStore {
           const label = isLegacyCompactRow ? row[4] : row[7];
           const metadataRaw = isLegacyCompactRow ? row[5] : row[8];
           const reason = isLegacyCompactRow ? row[6] : row[9];
+          let metadata: Record<string, unknown> | undefined;
+          if (metadataRaw) {
+            try {
+              metadata = JSON.parse(String(metadataRaw)) as Record<string, unknown>;
+            } catch {
+              metadata = undefined;
+            }
+          }
           const entry: AuditLogEntry = {
             timestamp: row[0] || "",
             actorEmail: row[1] || "",
             action: actionRaw as AuditAction,
             messageId: row[3] || "",
             label: label || undefined,
-            metadata: metadataRaw ? JSON.parse(metadataRaw) : undefined,
+            metadata,
             reason: reason || undefined,
           };
           logs.push(entry);
