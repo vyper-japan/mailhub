@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { isBroadDomain, normalizeDomain } from "@/lib/ruleSafety";
@@ -371,9 +371,15 @@ export function SettingsPanel({ mode, onOpenActivity }: { mode: SettingsMode; on
     }
   }, [tab, loadRuleInspection]);
 
-  // Step 80: Assigneesタブが開かれた時に読み込む（毎回再読み込み）
+  // Step 80: Assigneesタブが開かれた時に読み込む（タブ遷移時のみ）
+  // 注意: 依存配列の showError は再レンダリングで identity が変わり得るため、
+  // 「assignees 表示中の再発火 → 遅延応答が編集中 draft を上書き」のレースが起きていた
+  // (qa-strict Step80-1 flaky の根因)。タブが assignees に遷移した時だけ fetch する。
+  const prevSettingsTabRef = useRef<string | null>(null);
   useEffect(() => {
-    if (tab === "assignees") {
+    const enteredAssignees = tab === "assignees" && prevSettingsTabRef.current !== "assignees";
+    prevSettingsTabRef.current = tab;
+    if (enteredAssignees) {
       void (async () => {
         try {
           const res = await fetchJson<{ assignees: Array<{ email: string; displayName: string | null }> }>("/api/mailhub/assignees");
