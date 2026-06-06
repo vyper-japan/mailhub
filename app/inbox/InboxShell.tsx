@@ -605,8 +605,11 @@ export default function InboxShell({
   } | null>(null);
 
   useEffect(() => {
-    setReplyMessage("");
-    setLastAppliedTemplate(null);
+    // 既に空なら同一値を返してsetStateの再レンダリングを発生させない
+    // (リスト自動選択によるid変化のたびに全体再レンダリングすると、
+    //  Settingsドロワー等の操作中stateとレースする — Step80-1 flaky化の教訓)
+    setReplyMessage((prev) => (prev ? "" : prev));
+    setLastAppliedTemplate((prev) => (prev ? null : prev));
   }, [selectedMessage?.id]);
   
   // 本文の折りたたみ状態
