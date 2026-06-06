@@ -72,6 +72,23 @@ async function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise
   return await Promise.race([p, timeout]);
 }
 
+const writeTimeoutDrains = new WeakMap<Error, Promise<void>>();
+
+function getWriteTimeoutDrain(e: unknown): Promise<void> | null {
+  return e instanceof Error ? writeTimeoutDrains.get(e) ?? null : null;
+}
+
+async function withWriteTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
+  try {
+    return await withTimeout(p, ms, label);
+  } catch (e) {
+    if (e instanceof Error && e.message === `${label}_timeout`) {
+      writeTimeoutDrains.set(e, p.then(() => undefined, () => undefined));
+    }
+    throw e;
+  }
+}
+
 function asRecord(value: unknown): Record<string, unknown> | null {
   return value && typeof value === "object" ? (value as Record<string, unknown>) : null;
 }
@@ -303,7 +320,7 @@ class SheetsConfigStore<T> implements ConfigStore<T> {
   private async ensureJsonBlobSheet(): Promise<void> {
     const sheets = await this.getSheetsClient();
     try {
-      await withTimeout(
+      await withWriteTimeout(
         sheets.spreadsheets.batchUpdate({
           spreadsheetId: this.opts.spreadsheetId,
           requestBody: {
@@ -323,6 +340,7 @@ class SheetsConfigStore<T> implements ConfigStore<T> {
       );
     } catch (e) {
       if (isDuplicateSheetError(e)) return;
+      if (getWriteTimeoutDrain(e)) throw e;
       const message = e instanceof Error ? e.message : String(e);
       throw new Error(`sheets_sheet_bootstrap_failed:${this.opts.sheetName}:${message}`);
     }
@@ -384,15 +402,20 @@ class SheetsConfigStore<T> implements ConfigStore<T> {
   async write(data: T): Promise<void> {
     const key = `${this.opts.spreadsheetId}:${this.opts.sheetName}`;
     const prev = SheetsConfigStore.sheetWriteLocks.get(key) ?? Promise.resolve();
-    const next = prev.catch(() => {}).then(() => this.writeUnlocked(data));
-    SheetsConfigStore.sheetWriteLocks.set(key, next);
-    try {
-      await next;
-    } finally {
-      if (SheetsConfigStore.sheetWriteLocks.get(key) === next) {
+    const run = prev.catch(() => {}).then(() => this.writeUnlocked(data));
+    const lock = run.catch(async (e) => {
+      const drain = getWriteTimeoutDrain(e);
+      if (drain) await drain;
+    });
+
+    SheetsConfigStore.sheetWriteLocks.set(key, lock);
+    void lock.finally(() => {
+      if (SheetsConfigStore.sheetWriteLocks.get(key) === lock) {
         SheetsConfigStore.sheetWriteLocks.delete(key);
       }
-    }
+    });
+
+    await run;
   }
 
   private async writeUnlocked(data: T): Promise<void> {
@@ -414,20 +437,20 @@ class SheetsConfigStore<T> implements ConfigStore<T> {
         });
       // 1操作で整合性を担保（A1:B2を一括update）
       try {
-        await withTimeout(writeJsonBlob(), 6000, "sheets_write");
+        await withWriteTimeout(writeJsonBlob(), 6000, "sheets_write");
       } catch (e) {
         if (!(await this.isConfirmedMissingSheet(sheets, e))) throw e;
         await this.ensureJsonBlobSheet();
-        await withTimeout(writeJsonBlob(), 6000, "sheets_write");
+        await withWriteTimeout(writeJsonBlob(), 6000, "sheets_write");
       }
       return;
     }
 
-    await withTimeout(this.ensureHeaderTable(), 6000, "sheets_header");
+    await withWriteTimeout(this.ensureHeaderTable(), 6000, "sheets_header");
     const values = [this.opts.headers ?? [], ...(this.opts.toRows ? this.opts.toRows(data) : [])];
     const range = `${this.opts.sheetName}!A:Z`;
-    await withTimeout(sheets.spreadsheets.values.clear({ spreadsheetId: this.opts.spreadsheetId, range }), 6000, "sheets_clear");
-    await withTimeout(
+    await withWriteTimeout(sheets.spreadsheets.values.clear({ spreadsheetId: this.opts.spreadsheetId, range }), 6000, "sheets_clear");
+    await withWriteTimeout(
       sheets.spreadsheets.values.update({
         spreadsheetId: this.opts.spreadsheetId,
         range: `${this.opts.sheetName}!A1`,

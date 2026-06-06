@@ -624,6 +624,80 @@ describe("configStore", () => {
     deferredUpdates.forEach((pending) => pending.resolve());
     await Promise.all([labelsWrite, rulesWrite]);
   });
+
+  test("SheetsConfigStore json_blob write waits for timed-out raw update before next same-sheet update", async () => {
+    setSheetsEnv();
+    vi.useFakeTimers();
+    type DeferredUpdate = {
+      range: string;
+      values: string[][];
+      resolve: () => void;
+    };
+    const deferredUpdates: DeferredUpdate[] = [];
+
+    sheetsState.updateImpl = async (args) => {
+      sheetsState.calls.update.push({ spreadsheetId: args.spreadsheetId, range: args.range, requestBody: args.requestBody });
+      await new Promise<void>((resolve) => {
+        deferredUpdates.push({
+          range: args.range,
+          values: args.requestBody.values,
+          resolve,
+        });
+      });
+
+      if (args.range.endsWith("!A1")) {
+        const sheetName = args.range.split("!")[0];
+        sheetsState.valuesByRange[`${sheetName}!A1:B2`] = args.requestBody.values;
+        sheetsState.valuesByRange[`${sheetName}!A:Z`] = args.requestBody.values;
+        sheetsState.valuesByRange[`${sheetName}!A1:Z1`] = [args.requestBody.values[0] ?? []];
+      } else {
+        sheetsState.valuesByRange[args.range] = args.requestBody.values;
+      }
+      return { data: {} };
+    };
+
+    try {
+      const store = createConfigStore<string[]>({
+        key: "__test_sheets_timeout_lock_drain",
+        empty: [],
+        forceType: "sheets",
+        sheets: {
+          sheetName: "ConfigLabels",
+          mode: "json_blob",
+          toJson: (v) => JSON.stringify(v),
+          fromJson: (json) => (json.trim() ? (JSON.parse(json) as string[]) : []),
+        },
+      });
+
+      const firstWrite = store.write(["first"]);
+      const firstError = firstWrite.catch((e: unknown) => e);
+      await vi.advanceTimersByTimeAsync(0);
+      expect(deferredUpdates.length).toBe(1);
+
+      await vi.advanceTimersByTimeAsync(6000);
+      const timedOut = await firstError;
+      expect(timedOut).toBeInstanceOf(Error);
+      expect((timedOut as Error).message).toBe("sheets_write_timeout");
+
+      const secondWrite = store.write(["second"]);
+      await vi.advanceTimersByTimeAsync(0);
+      expect(deferredUpdates.length).toBe(1);
+
+      deferredUpdates[0]?.resolve();
+      await vi.advanceTimersByTimeAsync(0);
+      expect(deferredUpdates.length).toBe(2);
+      expect(deferredUpdates[1]?.values[1]?.[0]).toBe("[\"second\"]");
+
+      deferredUpdates[1]?.resolve();
+      await vi.advanceTimersByTimeAsync(0);
+      await secondWrite;
+
+      const finalRead = await store.read();
+      expect(finalRead.data).toEqual(["second"]);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
 
 describe("test-mode client guard", () => {
