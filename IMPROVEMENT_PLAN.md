@@ -8,7 +8,11 @@
 
 ---
 
-## Phase 0: バグ修正（最優先・全9件）
+## Phase 0: バグ修正（最優先・全9件） ✅ 完了 (2026-06-06, ticket: mailhub-p0-bugfix)
+
+> 全9件修正済み + レビュー検出P1×7追加修正 (Sheets空上書き消失経路・activity列整合・Undo TTL等)。
+> 検証: claims 18/18 MATCH / unit 326本 / 新規E2E 5本 / qa:strict 2連続PASS。
+> 既知の残課題: qa-strictスイートのdev環境flake (別チケット mailhub-step80-flaky-root-cause 推奨)
 
 ここは全て明確な不具合。最初に全部潰す。
 
