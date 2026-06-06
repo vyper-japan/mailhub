@@ -80,10 +80,24 @@ describe("audit-log", () => {
     expect(logs.length).toBe(1);
   });
 
+  it("getActivityLogs filters by metadata.ruleId and drops entries without object metadata", async () => {
+    const { getActivityLogs } = await modP;
+    list.mockResolvedValueOnce([
+      { messageId: "match", metadata: { ruleId: "rule-1" } },
+      { messageId: "other", metadata: { ruleId: "rule-2" } },
+      { messageId: "missing" },
+      { messageId: "null-meta", metadata: null },
+    ]);
+
+    const logs = await getActivityLogs({ ruleId: "rule-1", limit: 50 });
+
+    expect(list).toHaveBeenCalledWith({ actorEmail: undefined, action: undefined, limit: 50 });
+    expect(logs).toEqual([{ messageId: "match", metadata: { ruleId: "rule-1" } }]);
+  });
+
   it("clearActivityLogs should call store.clear", async () => {
     const { clearActivityLogs } = await modP;
     await clearActivityLogs();
     expect(clear).toHaveBeenCalledTimes(1);
   });
 });
-

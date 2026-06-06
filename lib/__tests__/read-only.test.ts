@@ -1,5 +1,5 @@
 import { describe, expect, test, beforeEach, afterEach } from "vitest";
-import { isReadOnlyMode, writeForbiddenResponse } from "@/lib/read-only";
+import { isReadOnlyMode, setTestReadOnlyMode, writeForbiddenResponse } from "@/lib/read-only";
 import { isAdminEmail } from "@/lib/admin";
 
 describe("read-only", () => {
@@ -43,6 +43,28 @@ describe("read-only", () => {
     process.env.MAILHUB_READ_ONLY = "1";
     g.window = {};
     expect(isReadOnlyMode()).toBe(false);
+  });
+
+  test("TEST_MODE override only changes read-only state while test mode is enabled", () => {
+    Object.defineProperty(process.env, "NODE_ENV", { value: "development", configurable: true });
+    process.env.MAILHUB_TEST_MODE = "0";
+    process.env.MAILHUB_READ_ONLY = "0";
+
+    setTestReadOnlyMode(true);
+    expect(isReadOnlyMode()).toBe(false);
+    expect(globalThis.__mailhubTestReadOnly).toBeUndefined();
+
+    process.env.MAILHUB_TEST_MODE = "1";
+    setTestReadOnlyMode(true);
+    expect(isReadOnlyMode()).toBe(true);
+
+    setTestReadOnlyMode(false);
+    expect(isReadOnlyMode()).toBe(false);
+
+    process.env.MAILHUB_READ_ONLY = "1";
+    setTestReadOnlyMode(null);
+    expect(globalThis.__mailhubTestReadOnly).toBeUndefined();
+    expect(isReadOnlyMode()).toBe(true);
   });
 
   // Step 79: writeForbiddenResponse returns 403
@@ -113,5 +135,4 @@ describe("admin guards for assign", () => {
     expect(shouldReject).toBe(false);
   });
 });
-
 

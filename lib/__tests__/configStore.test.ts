@@ -10,6 +10,7 @@ const sheetsState: {
   sheetTitles: string[];
   getErrorsByRange: Record<string, Error>;
   updateErrorsByRange: Record<string, Error[]>;
+  batchUpdateErrors: Error[];
   throwGet?: boolean;
   throwSpreadsheetsGet?: boolean;
   throwUpdate?: boolean;
@@ -21,6 +22,7 @@ const sheetsState: {
   sheetTitles: [],
   getErrorsByRange: {},
   updateErrorsByRange: {},
+  batchUpdateErrors: [],
   throwGet: false,
   throwSpreadsheetsGet: false,
   throwUpdate: false,
@@ -48,6 +50,7 @@ vi.mock("googleapis", () => {
         },
         batchUpdate: async (args: unknown) => {
           sheetsState.calls.batchUpdate.push(args);
+          if (sheetsState.batchUpdateErrors.length) throw sheetsState.batchUpdateErrors.shift();
           const request = args as { requestBody?: { requests?: Array<{ addSheet?: { properties?: { title?: string } } }> } };
           const title = request.requestBody?.requests?.[0]?.addSheet?.properties?.title;
           if (title && !sheetsState.sheetTitles.includes(title)) {
@@ -120,6 +123,7 @@ describe("configStore", () => {
     sheetsState.sheetTitles = [];
     sheetsState.getErrorsByRange = {};
     sheetsState.updateErrorsByRange = {};
+    sheetsState.batchUpdateErrors = [];
     sheetsState.throwGet = false;
     sheetsState.throwSpreadsheetsGet = false;
     sheetsState.throwUpdate = false;
@@ -219,6 +223,26 @@ describe("configStore", () => {
     });
     const h = await store.health();
     expect(h.ok).toBe(false);
+  });
+
+  test("FileConfigStore health returns ok=true with lastUpdatedAt for readable file", async () => {
+    const p = `${process.cwd()}/.mailhub/test-good-health.json`;
+    await (await import("fs/promises")).writeFile(p, JSON.stringify(["ok"]), "utf-8");
+    const store = createConfigStore<string[]>({
+      key: "__test_cfg_good_health",
+      empty: [],
+      forceType: "file",
+      file: {
+        primaryPath: p,
+        parse: (raw) => JSON.parse(raw) as string[],
+        serialize: (data) => JSON.stringify(data),
+      },
+    });
+
+    const h = await store.health();
+
+    expect(h).toMatchObject({ storeType: "file", ok: true });
+    expect(typeof h.lastUpdatedAt).toBe("string");
   });
 
   test("createConfigStore: sheets requested but config missing => safe memory fallback", async () => {
@@ -425,6 +449,52 @@ describe("configStore", () => {
     expect(sheetsState.sheetTitles).toContain("ConfigLabels");
     expect(sheetsState.calls.update.length).toBe(1);
     expect(sheetsState.valuesByRange["ConfigLabels!A1:B2"]?.[1]?.[0]).toBe("[\"after-retry\"]");
+  });
+
+  test("SheetsConfigStore json_blob write ignores duplicate addSheet during missing-tab retry", async () => {
+    setSheetsEnv();
+    sheetsState.updateErrorsByRange["ConfigLabels!A1"] = [unableToParseRangeError()];
+    sheetsState.batchUpdateErrors = [new Error("Sheet already exists: ConfigLabels")];
+
+    const store = createConfigStore<string[]>({
+      key: "__test_sheets_duplicate_add_sheet",
+      empty: [],
+      forceType: "sheets",
+      sheets: {
+        sheetName: "ConfigLabels",
+        mode: "json_blob",
+        toJson: (v) => JSON.stringify(v),
+        fromJson: (json) => (json.trim() ? (JSON.parse(json) as string[]) : []),
+      },
+    });
+
+    await store.write(["after-duplicate"]);
+
+    expect(sheetsState.calls.batchUpdate.length).toBe(1);
+    expect(sheetsState.calls.update.length).toBe(1);
+    expect(sheetsState.valuesByRange["ConfigLabels!A1:B2"]?.[1]?.[0]).toBe("[\"after-duplicate\"]");
+  });
+
+  test("SheetsConfigStore json_blob write throws bootstrap error when addSheet retry fails", async () => {
+    setSheetsEnv();
+    sheetsState.updateErrorsByRange["ConfigLabels!A1"] = [unableToParseRangeError()];
+    sheetsState.batchUpdateErrors = [new Error("quota exhausted")];
+
+    const store = createConfigStore<string[]>({
+      key: "__test_sheets_add_sheet_fails",
+      empty: [],
+      forceType: "sheets",
+      sheets: {
+        sheetName: "ConfigLabels",
+        mode: "json_blob",
+        toJson: (v) => JSON.stringify(v),
+        fromJson: (json) => (json.trim() ? (JSON.parse(json) as string[]) : []),
+      },
+    });
+
+    await expect(store.write(["x"])).rejects.toThrow("sheets_sheet_bootstrap_failed:ConfigLabels:quota exhausted");
+    expect(sheetsState.calls.batchUpdate.length).toBe(1);
+    expect(sheetsState.calls.update.length).toBe(0);
   });
 
   test("SheetsConfigStore json_blob read throws when title lookup fails", async () => {

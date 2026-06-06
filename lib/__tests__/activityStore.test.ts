@@ -98,6 +98,16 @@ describe("activityStore", () => {
     expect(mod.getActivitySheetsConfigured()).toBe(false);
   });
 
+  it("getResolvedActivityStoreType: file and unknown requests resolve safely", async () => {
+    const mod = await import("@/lib/activityStore");
+
+    process.env.MAILHUB_ACTIVITY_STORE = "file";
+    expect(mod.getResolvedActivityStoreType()).toBe("file");
+
+    process.env.MAILHUB_ACTIVITY_STORE = "bogus";
+    expect(mod.getResolvedActivityStoreType()).toBe("memory");
+  });
+
   it("getResolvedActivityStoreType: sheets requested and configured resolves to sheets", async () => {
     const mod = await import("@/lib/activityStore");
     process.env.MAILHUB_ACTIVITY_STORE = "sheets";
@@ -210,6 +220,29 @@ describe("activityStore", () => {
     expect(logs.length).toBe(1);
     expect(logs[0]?.messageId).toBe("msg-1");
     expect(logs[0]?.metadata).toEqual({ x: 1 });
+  });
+
+  it("SheetsStore: list returns [] when the sheet has no rows", async () => {
+    const mod = await import("@/lib/activityStore");
+    const store = new mod.SheetsStore("spreadsheet", "client@example.com", "key", "Activity");
+
+    const get = vi.fn().mockResolvedValue({ data: { values: [] } });
+    const fakeSheets = {
+      spreadsheets: {
+        values: {
+          get,
+          append: vi.fn().mockResolvedValue({}),
+          update: vi.fn().mockResolvedValue({}),
+        },
+      },
+    };
+    (store as unknown as { getSheetsClient: () => Promise<unknown> }).getSheetsClient = async () => fakeSheets;
+
+    await expect(store.list({ limit: 5 })).resolves.toEqual([]);
+    expect(get).toHaveBeenCalledWith({
+      spreadsheetId: "spreadsheet",
+      range: "Activity!A:J",
+    });
   });
 
   it("SheetsStore: append initializes header when empty (happy path via mocked client)", async () => {
