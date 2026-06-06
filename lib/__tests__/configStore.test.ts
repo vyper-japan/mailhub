@@ -6,14 +6,23 @@ import { isTestMode } from "@/lib/test-mode";
 type ValuesCall = { spreadsheetId: string; range: string; requestBody?: { values?: string[][] } };
 const sheetsState: {
   valuesByRange: Record<string, string[][]>;
-  calls: { get: ValuesCall[]; update: ValuesCall[]; clear: ValuesCall[] };
+  calls: { get: ValuesCall[]; update: ValuesCall[]; clear: ValuesCall[]; batchUpdate: unknown[]; spreadsheetsGet: unknown[] };
+  sheetTitles: string[];
+  getErrorsByRange: Record<string, Error>;
+  updateErrorsByRange: Record<string, Error[]>;
   throwGet?: boolean;
+  throwSpreadsheetsGet?: boolean;
   throwUpdate?: boolean;
   throwClear?: boolean;
+  updateImpl?: (args: { spreadsheetId: string; range: string; requestBody: { values: string[][] } }) => Promise<{ data: object }>;
 } = {
   valuesByRange: {},
-  calls: { get: [], update: [], clear: [] },
+  calls: { get: [], update: [], clear: [], batchUpdate: [], spreadsheetsGet: [] },
+  sheetTitles: [],
+  getErrorsByRange: {},
+  updateErrorsByRange: {},
   throwGet: false,
+  throwSpreadsheetsGet: false,
   throwUpdate: false,
   throwClear: false,
 };
@@ -28,10 +37,30 @@ vi.mock("googleapis", () => {
     },
     sheets: () => ({
       spreadsheets: {
+        get: async (args: { spreadsheetId: string; fields: string }) => {
+          if (sheetsState.throwSpreadsheetsGet) throw new Error("mock_spreadsheets_get_fail");
+          sheetsState.calls.spreadsheetsGet.push(args);
+          return {
+            data: {
+              sheets: sheetsState.sheetTitles.map((title) => ({ properties: { title } })),
+            },
+          };
+        },
+        batchUpdate: async (args: unknown) => {
+          sheetsState.calls.batchUpdate.push(args);
+          const request = args as { requestBody?: { requests?: Array<{ addSheet?: { properties?: { title?: string } } }> } };
+          const title = request.requestBody?.requests?.[0]?.addSheet?.properties?.title;
+          if (title && !sheetsState.sheetTitles.includes(title)) {
+            sheetsState.sheetTitles.push(title);
+          }
+          return { data: {} };
+        },
         values: {
           get: async (args: { spreadsheetId: string; range: string }) => {
             if (sheetsState.throwGet) throw new Error("mock_get_fail");
             sheetsState.calls.get.push({ spreadsheetId: args.spreadsheetId, range: args.range });
+            const rangeError = sheetsState.getErrorsByRange[args.range];
+            if (rangeError) throw rangeError;
             return { data: { values: sheetsState.valuesByRange[args.range] ?? [] } };
           },
           clear: async (args: { spreadsheetId: string; range: string }) => {
@@ -43,6 +72,9 @@ vi.mock("googleapis", () => {
           },
           update: async (args: { spreadsheetId: string; range: string; requestBody: { values: string[][] } }) => {
             if (sheetsState.throwUpdate) throw new Error("mock_update_fail");
+            const queuedErrors = sheetsState.updateErrorsByRange[args.range];
+            if (queuedErrors?.length) throw queuedErrors.shift();
+            if (sheetsState.updateImpl) return sheetsState.updateImpl(args);
             sheetsState.calls.update.push({ spreadsheetId: args.spreadsheetId, range: args.range, requestBody: args.requestBody });
             // normalize storage: writing to A1 updates both A1:B2 and A:Z snapshots for reads
             if (args.range.endsWith("!A1")) {
@@ -67,15 +99,32 @@ describe("configStore", () => {
 
   const g = globalThis as unknown as Record<string, unknown>;
 
+  function setSheetsEnv() {
+    process.env.MAILHUB_TEST_MODE = "0";
+    process.env.MAILHUB_CONFIG_STORE = "sheets";
+    process.env.MAILHUB_SHEETS_ID = "sid";
+    process.env.MAILHUB_SHEETS_CLIENT_EMAIL = "svc@x";
+    process.env.MAILHUB_SHEETS_PRIVATE_KEY = "k";
+  }
+
+  function unableToParseRangeError() {
+    return new Error("Unable to parse range: ConfigLabels!A1:B2");
+  }
+
   beforeEach(() => {
     process.env = { ...originalEnv };
     // ensure no client guard unless explicitly set
     delete g.window;
     sheetsState.valuesByRange = {};
-    sheetsState.calls = { get: [], update: [], clear: [] };
+    sheetsState.calls = { get: [], update: [], clear: [], batchUpdate: [], spreadsheetsGet: [] };
+    sheetsState.sheetTitles = [];
+    sheetsState.getErrorsByRange = {};
+    sheetsState.updateErrorsByRange = {};
     sheetsState.throwGet = false;
+    sheetsState.throwSpreadsheetsGet = false;
     sheetsState.throwUpdate = false;
     sheetsState.throwClear = false;
+    sheetsState.updateImpl = undefined;
   });
 
   afterEach(() => {
@@ -184,7 +233,7 @@ describe("configStore", () => {
       key: "__test_cfg2",
       empty: [],
       sheets: {
-        sheetName: "ConfigLabels",
+        sheetName: "ConfigParallelLabels",
         mode: "json_blob",
       },
     });
@@ -226,7 +275,7 @@ describe("configStore", () => {
       empty: [],
       forceType: "sheets",
       sheets: {
-        sheetName: "ConfigLabels",
+        sheetName: "ConfigParallelLabels",
         mode: "json_blob",
         toJson: (v) => JSON.stringify(v),
         fromJson: (json) => (json.trim() ? (JSON.parse(json) as string[]) : []),
@@ -278,7 +327,7 @@ describe("configStore", () => {
       empty: [],
       forceType: "sheets",
       sheets: {
-        sheetName: "ConfigRules",
+        sheetName: "ConfigParallelRules",
         mode: "table",
         headers: ["n"],
         toRows: (data) => data.map((x) => [String(x.n)]),
@@ -315,6 +364,196 @@ describe("configStore", () => {
     const h = await store.health();
     expect(h.ok).toBe(false);
   });
+
+  test("SheetsConfigStore json_blob read treats missing Config tab as empty but throws range errors for existing tab", async () => {
+    setSheetsEnv();
+    sheetsState.getErrorsByRange["ConfigLabels!A1:B2"] = unableToParseRangeError();
+
+    const missingStore = createConfigStore<string[]>({
+      key: "__test_sheets_missing_tab",
+      empty: [],
+      forceType: "sheets",
+      sheets: {
+        sheetName: "ConfigLabels",
+        mode: "json_blob",
+        fromJson: (json) => (json.trim() ? (JSON.parse(json) as string[]) : []),
+      },
+    });
+
+    await expect(missingStore.read()).resolves.toMatchObject({
+      data: [],
+      lastUpdatedAt: null,
+      source: "sheets",
+    });
+    expect(sheetsState.calls.spreadsheetsGet.length).toBe(1);
+
+    sheetsState.sheetTitles = ["ConfigLabels"];
+    const existingStore = createConfigStore<string[]>({
+      key: "__test_sheets_existing_tab_error",
+      empty: [],
+      forceType: "sheets",
+      sheets: {
+        sheetName: "ConfigLabels",
+        mode: "json_blob",
+        fromJson: (json) => (json.trim() ? (JSON.parse(json) as string[]) : []),
+      },
+    });
+
+    await expect(existingStore.read()).rejects.toThrow("Unable to parse range");
+  });
+
+  test("SheetsConfigStore json_blob write retries addSheet on missing tab range error", async () => {
+    setSheetsEnv();
+    sheetsState.updateErrorsByRange["ConfigLabels!A1"] = [unableToParseRangeError()];
+
+    const store = createConfigStore<string[]>({
+      key: "__test_sheets_retry_add_sheet",
+      empty: [],
+      forceType: "sheets",
+      sheets: {
+        sheetName: "ConfigLabels",
+        mode: "json_blob",
+        toJson: (v) => JSON.stringify(v),
+        fromJson: (json) => (json.trim() ? (JSON.parse(json) as string[]) : []),
+      },
+    });
+
+    await store.write(["after-retry"]);
+
+    expect(sheetsState.calls.spreadsheetsGet.length).toBe(1);
+    expect(sheetsState.calls.batchUpdate.length).toBe(1);
+    expect(sheetsState.sheetTitles).toContain("ConfigLabels");
+    expect(sheetsState.calls.update.length).toBe(1);
+    expect(sheetsState.valuesByRange["ConfigLabels!A1:B2"]?.[1]?.[0]).toBe("[\"after-retry\"]");
+  });
+
+  test("SheetsConfigStore json_blob read throws when title lookup fails", async () => {
+    setSheetsEnv();
+    sheetsState.getErrorsByRange["ConfigLabels!A1:B2"] = unableToParseRangeError();
+    sheetsState.throwSpreadsheetsGet = true;
+
+    const store = createConfigStore<string[]>({
+      key: "__test_sheets_title_lookup_fail",
+      empty: [],
+      forceType: "sheets",
+      sheets: {
+        sheetName: "ConfigLabels",
+        mode: "json_blob",
+        fromJson: (json) => (json.trim() ? (JSON.parse(json) as string[]) : []),
+      },
+    });
+
+    await expect(store.read()).rejects.toThrow("mock_spreadsheets_get_fail");
+  });
+
+  test("SheetsConfigStore json_blob write serializes same sheet and allows different sheets in parallel", async () => {
+    setSheetsEnv();
+    type DeferredUpdate = {
+      range: string;
+      values: string[][];
+      resolve: () => void;
+    };
+    const deferredUpdates: DeferredUpdate[] = [];
+    let activeUpdates = 0;
+    let maxConcurrent = 0;
+    const callOrder: string[] = [];
+
+    sheetsState.updateImpl = async (args) => {
+      sheetsState.calls.update.push({ spreadsheetId: args.spreadsheetId, range: args.range, requestBody: args.requestBody });
+      activeUpdates += 1;
+      maxConcurrent = Math.max(maxConcurrent, activeUpdates);
+      callOrder.push(args.range);
+
+      await new Promise<void>((resolve) => {
+        deferredUpdates.push({
+          range: args.range,
+          values: args.requestBody.values,
+          resolve,
+        });
+      });
+
+      activeUpdates -= 1;
+      if (args.range.endsWith("!A1")) {
+        const sheetName = args.range.split("!")[0];
+        sheetsState.valuesByRange[`${sheetName}!A1:B2`] = args.requestBody.values;
+        sheetsState.valuesByRange[`${sheetName}!A:Z`] = args.requestBody.values;
+        sheetsState.valuesByRange[`${sheetName}!A1:Z1`] = [args.requestBody.values[0] ?? []];
+      } else {
+        sheetsState.valuesByRange[args.range] = args.requestBody.values;
+      }
+      return { data: {} };
+    };
+
+    const sameSheetStore = createConfigStore<string[]>({
+      key: "__test_sheets_same_sheet_lock",
+      empty: [],
+      forceType: "sheets",
+      sheets: {
+        sheetName: "ConfigLabels",
+        mode: "json_blob",
+        toJson: (v) => JSON.stringify(v),
+        fromJson: (json) => (json.trim() ? (JSON.parse(json) as string[]) : []),
+      },
+    });
+
+    const firstWrite = sameSheetStore.write(["first"]);
+    await vi.waitUntil(() => deferredUpdates.length === 1);
+    const secondWrite = sameSheetStore.write(["first", "second"]);
+    await Promise.resolve();
+    expect(deferredUpdates.length).toBe(1);
+
+    deferredUpdates[0]?.resolve();
+    await vi.waitUntil(() => deferredUpdates.length === 2);
+    expect(callOrder).toEqual(["ConfigLabels!A1", "ConfigLabels!A1"]);
+    deferredUpdates[1]?.resolve();
+    await Promise.all([firstWrite, secondWrite]);
+
+    const finalRead = await sameSheetStore.read();
+    expect(finalRead.data).toEqual(["first", "second"]);
+
+    deferredUpdates.length = 0;
+    activeUpdates = 0;
+    maxConcurrent = 0;
+    callOrder.length = 0;
+    sheetsState.calls.update = [];
+
+    const labelsStore = createConfigStore<string[]>({
+      key: "__test_sheets_parallel_labels",
+      empty: [],
+      forceType: "sheets",
+      sheets: {
+        sheetName: "ConfigParallelLabels",
+        mode: "json_blob",
+        toJson: (v) => JSON.stringify(v),
+        fromJson: (json) => (json.trim() ? (JSON.parse(json) as string[]) : []),
+      },
+    });
+    const rulesStore = createConfigStore<string[]>({
+      key: "__test_sheets_parallel_rules",
+      empty: [],
+      forceType: "sheets",
+      sheets: {
+        sheetName: "ConfigParallelRules",
+        mode: "json_blob",
+        toJson: (v) => JSON.stringify(v),
+        fromJson: (json) => (json.trim() ? (JSON.parse(json) as string[]) : []),
+      },
+    });
+
+    // NOTE: 2つのwriteを完全同時に開始すると、vitestのmocked dynamic import
+    // (`await import("googleapis")`) が並行解決時にmockを擦り抜けて実モジュールを
+    // 掴むraceがある (実JWT署名→DECODERエラーで7attempt連続タイムアウトの根因)。
+    // ここでは labels の update を deferred で保持したまま rules を開始することで、
+    // import の同時発火を避けつつ「別シートはロックで直列化されない」ことを検証する。
+    const labelsWrite = labelsStore.write(["labels"]);
+    await vi.waitUntil(() => deferredUpdates.length === 1);
+    const rulesWrite = rulesStore.write(["rules"]);
+    await vi.waitUntil(() => deferredUpdates.length === 2);
+    expect(maxConcurrent).toBeGreaterThanOrEqual(2);
+    expect(callOrder).toEqual(expect.arrayContaining(["ConfigParallelLabels!A1", "ConfigParallelRules!A1"]));
+    deferredUpdates.forEach((pending) => pending.resolve());
+    await Promise.all([labelsWrite, rulesWrite]);
+  });
 });
 
 describe("test-mode client guard", () => {
@@ -332,5 +571,3 @@ describe("test-mode client guard", () => {
     expect(isTestMode()).toBe(false);
   });
 });
-
-

@@ -232,5 +232,103 @@ describe("activityStore", () => {
     expect(update).toHaveBeenCalled(); // header init attempted
     expect(append).toHaveBeenCalled();
   });
-});
 
+  it("SheetsStore: append/list round-trips label metadata reason in 10 columns", async () => {
+    const mod = await import("@/lib/activityStore");
+    const store = new mod.SheetsStore("spreadsheet", "client@example.com", "key", "Activity");
+
+    const values: string[][] = [
+      ["timeISO", "actor", "action", "messageId", "subject", "channel", "status", "label", "metaJSON", "reason"],
+    ];
+    const get = vi.fn().mockImplementation(() => Promise.resolve({ data: { values } }));
+    const update = vi.fn().mockResolvedValue({});
+    const append = vi.fn().mockImplementation((args: { requestBody: { values: string[][] } }) => {
+      values.push(...args.requestBody.values);
+      return Promise.resolve({});
+    });
+
+    const fakeSheets = {
+      spreadsheets: {
+        values: { get, update, append },
+      },
+    };
+    (store as unknown as { getSheetsClient: () => Promise<unknown> }).getSheetsClient = async () => fakeSheets;
+
+    await store.append({
+      timestamp: "2026-01-01T00:00:00.000Z",
+      actorEmail: "a@vtj.co.jp",
+      action: "assign",
+      messageId: "msg-1",
+      label: "MailHub/Todo",
+      metadata: { x: 1 },
+      reason: "handoff",
+    });
+
+    expect(append).toHaveBeenCalledWith(
+      expect.objectContaining({
+        range: "Activity!A:J",
+        requestBody: {
+          values: [
+            [
+              "2026-01-01T00:00:00.000Z",
+              "a@vtj.co.jp",
+              "assign",
+              "msg-1",
+              "",
+              "",
+              "",
+              "MailHub/Todo",
+              "{\"x\":1}",
+              "handoff",
+            ],
+          ],
+        },
+      }),
+    );
+    expect(values[1]?.length).toBe(10);
+
+    const logs = await store.list({ limit: 10 });
+    expect(logs[0]).toMatchObject({
+      messageId: "msg-1",
+      label: "MailHub/Todo",
+      metadata: { x: 1 },
+      reason: "handoff",
+    });
+  });
+
+  it("SheetsStore: list supports legacy compact rows and keeps rows with invalid metaJSON", async () => {
+    const mod = await import("@/lib/activityStore");
+    const store = new mod.SheetsStore("spreadsheet", "client@example.com", "key", "Activity");
+
+    const values = [
+      ["timeISO", "actor", "action", "messageId", "subject", "channel", "status", "label", "metaJSON", "reason"],
+      ["2026-01-01T00:00:00.000Z", "a@vtj.co.jp", "assign", "msg-old", "LegacyLabel", "{\"legacy\":true}", "LegacyReason"],
+      ["2026-01-01T00:00:01.000Z", "a@vtj.co.jp", "assign", "msg-bad-meta", "", "", "", "MailHub/Waiting", "{bad-json", "BadMetaReason"],
+    ];
+    const fakeSheets = {
+      spreadsheets: {
+        values: {
+          get: vi.fn().mockResolvedValue({ data: { values } }),
+          append: vi.fn().mockResolvedValue({}),
+          update: vi.fn().mockResolvedValue({}),
+        },
+      },
+    };
+    (store as unknown as { getSheetsClient: () => Promise<unknown> }).getSheetsClient = async () => fakeSheets;
+
+    const logs = await store.list({ limit: 10 });
+    const legacy = logs.find((log) => log.messageId === "msg-old");
+    const badMeta = logs.find((log) => log.messageId === "msg-bad-meta");
+
+    expect(legacy).toMatchObject({
+      label: "LegacyLabel",
+      metadata: { legacy: true },
+      reason: "LegacyReason",
+    });
+    expect(badMeta).toMatchObject({
+      label: "MailHub/Waiting",
+      reason: "BadMetaReason",
+    });
+    expect(badMeta?.metadata).toBeUndefined();
+  });
+});
