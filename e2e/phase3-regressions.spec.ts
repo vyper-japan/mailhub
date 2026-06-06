@@ -94,7 +94,8 @@ test.describe("Phase 3 regressions E2E", () => {
         r.url().includes("q=") &&
         r.request().method() === "GET" &&
         r.status() === 200,
-      { timeout: 5000 },
+      // next dev のコールドコンパイル直後は初回API応答が遅いため長めに待つ
+      { timeout: 15000 },
     );
     await searchInput.press("Enter");
     await searchRespP;
@@ -206,7 +207,8 @@ test.describe("Phase 3 regressions E2E", () => {
 
   test("T-8: reply template state does not leak while InternalOps draft is retained", async ({ page }) => {
     console.log("progress: T-8 start");
-    await resetAndOpen(page, "/?channel=store-a");
+    // channel指定なし (実在channelは n/store-b/store-c のみ。store-aは存在しない)
+    await resetAndOpen(page);
     await closeInterferingOverlays(page);
     const list = page.getByTestId("message-list");
 
@@ -230,9 +232,11 @@ test.describe("Phase 3 regressions E2E", () => {
     await expect(replyBody).not.toHaveValue("", { timeout: 5000 });
     await expect(page.getByTestId("reply-template-applied")).toBeVisible({ timeout: 5000 });
 
-    const messageB = list.locator('[data-message-id="msg-022"]');
+    // msg-022が現ビューに無い場合は別の行へフォールバック (msg-021と異なる行を保証)
+    const { row: messageB, id: messageBId } = await selectTargetRow(page, "msg-022");
+    if (messageBId === "msg-021") throw new Error("message B fallback resolved to message A");
     await expect(messageB).toBeVisible({ timeout: 5000 });
-    console.log("progress: T-8 switch to message B msg-022");
+    console.log(`progress: T-8 switch to message B ${messageBId}`);
     await openMessage(page, messageB);
 
     await expect(replyBody).toHaveValue("", { timeout: 5000 });
