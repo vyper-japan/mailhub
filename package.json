@@ -14,8 +14,8 @@
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:watch": "vitest",
-    "test:e2e": "MAILHUB_TEST_MODE=1 npx playwright test e2e/qa-strict-unified.spec.ts",
-    "e2e": "MAILHUB_TEST_MODE=1 npx playwright test --workers=1",
+    "test:e2e": "node scripts/e2e-preclean.mjs && MAILHUB_TEST_MODE=1 npx playwright test e2e/qa-strict-unified.spec.ts",
+    "e2e": "node scripts/e2e-preclean.mjs && MAILHUB_TEST_MODE=1 npx playwright test --workers=1",
     "security:scan": "node scripts/security-scan.mjs",
     "qa:strict": "npm run verify && npm run smoke && npm run lint && npm run test:coverage && npm run security:scan && npm run e2e"
   },
