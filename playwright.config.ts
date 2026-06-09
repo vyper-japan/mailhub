@@ -10,8 +10,16 @@ export default defineConfig({
   testDir: "./e2e",
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
+  // 真因(2026-06-09実測): E2E flake の主因はテストコードのraceではなく「実行環境の
+  // リソース競合」。マシンが他作業(他session/MCP/Chromium)で混雑すると next dev が遅延し、
+  // waitForResponse / 操作待ちが一斉に timeout する(run3: 通常6-7分→20.8分、全失敗が timeout 系)。
+  // CI(専用クリーン環境)は retries=2 を維持。ローカルは環境ノイズを1回リトライで吸収する。
+  // unit(vitest 327本)が論理バグを別途守るため、E2E のローカル retry で品質は落ちない。
+  retries: process.env.CI ? 2 : 1,
   workers: process.env.CI ? 1 : undefined,
+  // 混雑時のマージン: テスト全体 30s→60s、expect(toBeVisible等) 5s→10s。
+  timeout: 60 * 1000,
+  expect: { timeout: 10 * 1000 },
   reporter: [["html", { outputFolder: path.join(PW_OUTPUT_DIR, "report"), open: "never" }]],
   outputDir: path.join(PW_OUTPUT_DIR, "test-results"),
   use: {
@@ -20,6 +28,9 @@ export default defineConfig({
     baseURL: "http://localhost:3001",
     trace: "on-first-retry",
     screenshot: "only-on-failure",
+    // 操作・遷移待ちの上限を明示(デフォルトは test timeout 依存で実質無制限)。混雑時の暴走を防ぐ。
+    actionTimeout: 15 * 1000,
+    navigationTimeout: 30 * 1000,
   },
   projects: [
     {
