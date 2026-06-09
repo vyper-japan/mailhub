@@ -1,4 +1,4 @@
-import { describe, expect, test, beforeEach } from "vitest";
+import { describe, expect, test, beforeEach, afterEach } from "vitest";
 import { getReplyTemplatesStore } from "@/lib/replyTemplatesStore";
 import { mkdir, writeFile } from "fs/promises";
 import { join } from "path";
@@ -53,6 +53,11 @@ describe("replyTemplatesStore (file parse/validation)", () => {
     await writeFile(path, "", "utf-8");
   });
 
+  afterEach(async () => {
+    await mkdir(join(process.cwd(), ".mailhub"), { recursive: true });
+    await writeFile(path, "", "utf-8");
+  });
+
   test("empty file returns defaults", async () => {
     const list = await storeFile.list();
     expect(list.length).toBeGreaterThan(0);
@@ -76,4 +81,3 @@ describe("replyTemplatesStore (file parse/validation)", () => {
     await expect(storeFile.list()).rejects.toThrow(/config_json_corrupt_templates/i);
   });
 });
-

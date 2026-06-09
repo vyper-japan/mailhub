@@ -9,6 +9,8 @@ import { clearActivityLogs, type AuditLogEntry } from "@/lib/audit-log";
 import { setTestReadOnlyMode } from "@/lib/read-only";
 import { getTeamStore } from "@/lib/teamStore";
 import { getAssigneeRegistryStore } from "@/lib/assigneeRegistryStore";
+import { getRosterStore } from "@/lib/rosterStore";
+import { getMessageNotesStore } from "@/lib/messageNotesStore";
 
 export const dynamic = "force-dynamic";
 
@@ -74,6 +76,10 @@ export async function POST(req: Request) {
     await resetLabelRulesForTest();
     await resetAssigneeRulesForTest();
 
+    // Step 109/notes: TEST_MODE専用の設定ストア汚染を初期化
+    await getRosterStore("memory").set([]);
+    await getMessageNotesStore("memory").clear();
+
     // Step 61: Teamメンバーをseed（E2E用固定候補）
     const teamStore = getTeamStore("memory");
     // 既存をクリアして固定メンバーを追加
@@ -129,4 +135,3 @@ export async function POST(req: Request) {
     );
   }
 }
-

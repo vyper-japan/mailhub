@@ -1,4 +1,34 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
+
+async function openSettingsTab(page: Page, tab: "assignees" | "team") {
+  const targetPanel = page.getByTestId(`settings-panel-${tab}`);
+
+  if (await targetPanel.isVisible().catch(() => false)) {
+    await page.getByTestId("settings-tab-labels").click();
+    await expect(page.getByTestId("settings-panel-labels")).toBeVisible({ timeout: 5000 });
+  }
+
+  const tabButton = page.getByTestId(`settings-tab-${tab}`);
+  await expect(tabButton).toBeVisible({ timeout: 5000 });
+  // タブ遷移でトリガーされるGET(あれば)の完了を待ち、初回draft/rosterをGET結果で確定させてからreturn。
+  // 既にロード済みでGETが飛ばないケースもあるため timeout は catch で握る(hang回避)。
+  const apiPath = tab === "team" ? "/api/mailhub/team" : "/api/mailhub/assignees";
+  const tabGet = page
+    .waitForResponse((r) => r.url().includes(apiPath) && r.request().method() === "GET", { timeout: 5000 })
+    .catch(() => null);
+  await tabButton.click();
+  await tabGet;
+  await expect(targetPanel).toBeVisible({ timeout: 5000 });
+}
+
+async function expectAssigneeEmailValue(page: Page, index: number, expected: string) {
+  const testId = `assignees-email-${index}`;
+  await expect.poll(async () => {
+    const input = page.getByTestId(testId);
+    if (!(await input.isVisible().catch(() => false))) return null;
+    return await input.inputValue().catch(() => null);
+  }, { timeout: 10000, intervals: [100, 250, 500, 1000] }).toBe(expected);
+}
 
 test.describe("QA-Strict Unified E2E Tests", () => {
   test.beforeEach(async ({ page }, testInfo) => {
@@ -4656,15 +4686,8 @@ test("Step80-1) Settings Assigneesタブ→追加→保存→再読込で残る"
   // 3) Settings Drawerが開く
   await expect(page.getByTestId("settings-drawer")).toBeVisible({ timeout: 5000 });
   
-  // 4) Assigneesタブをクリック（GETリクエストを待機）
-  const assigneesTab = page.getByTestId("settings-tab-assignees");
-  await expect(assigneesTab).toBeVisible({ timeout: 5000 });
-  const getAssigneesP1 = page.waitForResponse(
-    (r) => r.url().includes("/api/mailhub/assignees") && r.request().method() === "GET",
-    { timeout: 10000 },
-  );
-  await assigneesTab.click();
-  await getAssigneesP1;
+  // 4) Assigneesタブをクリック
+  await openSettingsTab(page, "assignees");
   
   // 5) Assigneesパネルが表示される（空の状態）
   await expect(page.getByTestId("settings-panel-assignees")).toBeVisible({ timeout: 5000 });
@@ -4700,19 +4723,11 @@ test("Step80-1) Settings Assigneesタブ→追加→保存→再読込で残る"
   await settingsBtn.click();
   await expect(page.getByTestId("settings-drawer")).toBeVisible({ timeout: 5000 });
   
-  // 12) Assigneesタブをクリック（APIレスポンスを待機）
-  const assigneesTab2 = page.getByTestId("settings-tab-assignees");
-  const getAssigneesP = page.waitForResponse(
-    (r) => r.url().includes("/api/mailhub/assignees") && r.request().method() === "GET",
-    { timeout: 10000 },
-  );
-  await assigneesTab2.click();
-  await expect(page.getByTestId("settings-panel-assignees")).toBeVisible({ timeout: 5000 });
+  // 12) Assigneesタブをクリック
+  await openSettingsTab(page, "assignees");
   
-  // 13) 保存したメンバーが表示されている（GET /api/mailhub/assignees を待つ）
-  await getAssigneesP;
-  await expect(page.getByTestId("assignees-email-0")).toBeVisible({ timeout: 5000 });
-  await expect(page.getByTestId("assignees-email-0")).toHaveValue("newmember@vtj.co.jp", { timeout: 5000 });
+  // 13) 保存したメンバーがdraft/UIに反映されるまで待つ
+  await expectAssigneeEmailValue(page, 0, "newmember@vtj.co.jp");
 });
 
 // ========== Step 81: 担当者表示をdisplayName優先に統一 ==========
@@ -6301,30 +6316,24 @@ test("Step111-1) Nキー→/assign成功待機→自分担当pillが付く", asy
   const allRowsCount = await allRows.count();
   expect(allRowsCount).toBeGreaterThan(0);
   
-  // 未割当のメッセージを探す（assignee-pillがない、または「未割当」pillがある）
-  let firstUnassignedRow = null;
-  let firstUnassignedId = null;
+  // 未割当のメッセージが存在することを確認
+  let hasUnassignedRow = false;
   for (let i = 0; i < allRowsCount; i++) {
     const row = allRows.nth(i);
     const pill = row.locator('[data-testid="assignee-pill"]');
     const pillCount = await pill.count();
     if (pillCount === 0) {
-      // assignee-pillがない = 未割当
-      firstUnassignedRow = row;
-      firstUnassignedId = await row.getAttribute("data-message-id");
+      hasUnassignedRow = true;
       break;
-    } else {
-      // 「未割当」pillがあるか確認
-      const pillText = await pill.first().textContent();
-      if (pillText === "未割当") {
-        firstUnassignedRow = row;
-        firstUnassignedId = await row.getAttribute("data-message-id");
-        break;
-      }
+    }
+    const pillText = await pill.first().textContent();
+    if (pillText === "未割当") {
+      hasUnassignedRow = true;
+      break;
     }
   }
   
-  if (!firstUnassignedRow || !firstUnassignedId) {
+  if (!hasUnassignedRow) {
     throw new Error("未割当のメッセージが見つかりません");
   }
   
@@ -6337,16 +6346,28 @@ test("Step111-1) Nキー→/assign成功待機→自分担当pillが付く", asy
   const assignData = await assignResponse.json();
   expect(assignData.success || assignData.ok).toBe(true);
   expect(assignData.assigneeEmail).toBe("test@vtj.co.jp");
+
+  const assignPayload = assignResponse.request().postDataJSON() as { id?: unknown; action?: unknown; assigneeEmail?: unknown };
+  expect(assignPayload.action).toBe("assign");
+  expect(assignPayload.assigneeEmail).toBe("test@vtj.co.jp");
+
+  const assignedMessageId = typeof assignPayload.id === "string" ? assignPayload.id : null;
+  if (!assignedMessageId) {
+    throw new Error("assign request id missing");
+  }
+
+  const assignedRow = page.locator(`[data-message-id="${assignedMessageId}"]`);
+  await expect(assignedRow).toBeVisible({ timeout: 5000 });
   
-  // 4) 自分担当のカラーバーが付くことを確認
+  // 4) 実際にassignされた行に自分担当のカラーバーが付くことを確認
   await expect.poll(async () => {
-    const bar = firstUnassignedRow!.locator('[data-testid="assignee-bar"]');
+    const bar = assignedRow.locator('[data-testid="assignee-bar"]');
     const count = await bar.count();
     return count > 0;
   }, { timeout: 5000 }).toBe(true);
   
   // 5) カラーバーの色が自分担当（青色）であることを確認
-  const bar = firstUnassignedRow!.locator('[data-testid="assignee-bar"]').first();
+  const bar = assignedRow.locator('[data-testid="assignee-bar"]').first();
   const barClass = await bar.getAttribute("class");
   expect(barClass).toBeTruthy();
   expect(barClass).toContain("bg-blue-500"); // 自分担当は青色
@@ -6365,7 +6386,7 @@ test("Step109-1) Roster: 保存→閉→再openで残る", async ({ page }) => {
   // 1) Settingsを開いてTeamタブを選択
   await page.getByTestId("action-settings").click();
   await page.waitForSelector('[data-testid="settings-drawer"]', { timeout: 5000 });
-  await page.getByTestId("settings-tab-team").click();
+  await openSettingsTab(page, "team");
   
   // 2) Roster編集エリアが表示されることを確認
   const rosterEdit = page.getByTestId("roster-edit");
@@ -6386,9 +6407,7 @@ test("Step109-1) Roster: 保存→閉→再openで残る", async ({ page }) => {
   expect(Array.isArray(saveData.roster)).toBe(true);
   expect(saveData.roster.length).toBeGreaterThan(0);
   
-  // 5) 保存されたRosterが表示されることを確認（Rosterが再読み込みされるまで待つ）
-  await page.waitForResponse((r) => r.url().includes("/api/mailhub/team") && r.request().method() === "GET" && r.status() === 200, { timeout: 5000 }).catch(() => null);
-  
+  // 5) 保存されたRosterが表示されることを確認
   for (const email of testEmails) {
     await expect(page.getByTestId(`roster-item-${email}`)).toBeVisible({ timeout: 5000 });
   }
@@ -6400,24 +6419,20 @@ test("Step109-1) Roster: 保存→閉→再openで残る", async ({ page }) => {
   // 7) Settingsを再度開いてTeamタブを選択
   await page.getByTestId("action-settings").click();
   await page.waitForSelector('[data-testid="settings-drawer"]', { timeout: 5000 });
-  await page.getByTestId("settings-tab-team").click();
+  await openSettingsTab(page, "team");
   
-  // 8) Rosterが再読み込みされるまで待つ（GET /api/mailhub/team）
-  await page.waitForResponse((r) => r.url().includes("/api/mailhub/team") && r.request().method() === "GET" && r.status() === 200, { timeout: 5000 });
-  
-  // 9) Roster編集エリアが表示されるまで待つ
+  // 8) Roster編集エリアが表示されるまで待つ
   const rosterEditAfterReload = page.getByTestId("roster-edit");
   await expect(rosterEditAfterReload).toBeVisible({ timeout: 5000 });
   
-  // 10) Roster編集エリアに保存した内容が表示されることを確認（ポーリングで待つ）
+  // 9) Roster編集エリアに保存した内容が表示されることを確認
   await expect.poll(async () => {
     const rosterValue = await rosterEditAfterReload.inputValue();
     return testEmails.every((email) => rosterValue.includes(email));
   }, { timeout: 10000 }).toBe(true);
   
-  // 11) 保存したRosterが表示されることを確認（roster-itemが表示されるまで待つ）
+  // 10) 保存したRosterが表示されることを確認（roster-itemが表示されるまで待つ）
   for (const email of testEmails) {
     await expect(page.getByTestId(`roster-item-${email}`)).toBeVisible({ timeout: 5000 });
   }
 });
-

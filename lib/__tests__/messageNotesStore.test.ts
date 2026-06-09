@@ -1,4 +1,4 @@
-import { describe, expect, test, beforeEach } from "vitest";
+import { describe, expect, test, beforeEach, afterEach } from "vitest";
 import { getMessageNotesStore } from "@/lib/messageNotesStore";
 import { mkdir, writeFile } from "fs/promises";
 import { join } from "path";
@@ -41,6 +41,11 @@ describe("messageNotesStore (file parse/validation)", () => {
     await writeFile(notesPath, "{}", "utf-8");
   });
 
+  afterEach(async () => {
+    await mkdir(join(process.cwd(), ".mailhub"), { recursive: true });
+    await writeFile(notesPath, "{}", "utf-8");
+  });
+
   test("parseNotes filters invalid entries and trims body", async () => {
     const raw = JSON.stringify({
       "msg-001": { body: "  hello  ", updatedAt: "2026-01-01T00:00:00.000Z", updatedBy: "user@example.com" },
@@ -60,4 +65,3 @@ describe("messageNotesStore (file parse/validation)", () => {
     expect(all).toEqual({});
   });
 });
-

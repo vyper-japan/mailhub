@@ -1,4 +1,4 @@
-import { describe, expect, test, beforeEach } from "vitest";
+import { describe, expect, test, beforeEach, afterEach } from "vitest";
 import { getViewsStore } from "@/lib/viewsStore";
 import { mkdir, writeFile } from "fs/promises";
 import { join } from "path";
@@ -98,6 +98,11 @@ describe("viewsStore (file parse/validation)", () => {
     await writeFile(path, "", "utf-8");
   });
 
+  afterEach(async () => {
+    await mkdir(join(process.cwd(), ".mailhub"), { recursive: true });
+    await writeFile(path, "", "utf-8");
+  });
+
   test("empty file returns defaults", async () => {
     const list = await storeFile.list();
     expect(list.length).toBeGreaterThan(0);
@@ -139,4 +144,3 @@ describe("viewsStore (file parse/validation)", () => {
     await expect(storeFile.list()).rejects.toThrow(/config_json_corrupt_views/i);
   });
 });
-
