@@ -420,7 +420,7 @@ export function Sidebar({
                   );
                 })}
                 {/* Step 113: Team全メンバーをAssigneeセクションに追加 */}
-                {team.map((member) => {
+                {team.filter((m) => m.email.toLowerCase() !== user.email.toLowerCase()).map((member) => {
                   const memberSlug = member.email.replace("@", "_at_").replace(/\./g, "_");
                   const isActive = activeAssigneeSlug === memberSlug;
                   const displayName = member.name || member.email.split("@")[0];
