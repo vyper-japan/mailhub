@@ -4,6 +4,7 @@ import { isAdminEmail } from "@/lib/admin";
 import { requireUser, authErrorResponse } from "@/lib/require-user";
 import { isTestMode } from "@/lib/test-mode";
 import { getResolvedConfigStoreType } from "@/lib/configStore";
+import { isReadOnlyMode, writeForbiddenResponse } from "@/lib/read-only";
 
 export const dynamic = "force-dynamic";
 
@@ -61,6 +62,11 @@ export async function POST(req: NextRequest) {
 
     if (!isAdmin) {
       return jsonNoStore({ error: "admin_only" }, { status: 403 });
+    }
+    if (isReadOnlyMode()) {
+      const res = writeForbiddenResponse("assignees_write");
+      res.headers.set("cache-control", "no-store");
+      return res;
     }
 
     const body = (await req.json()) as { assignees?: unknown };
