@@ -45,6 +45,8 @@ type PreviewResult = {
   truncated: boolean;
 };
 
+type AssigneeDraftEntry = { email: string; displayName: string | null };
+
 type AssigneeRule = {
   id: string;
   enabled: boolean;
@@ -135,10 +137,8 @@ async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
 }
 
 // 編集中のassigneesDraftを再マウント越しに保持するモジュールスコープキャッシュ。
-// next dev環境でパネルがタブ表示中に再マウントすると編集が消える
-// (qa-strict Step80-1 flaky根因)。5秒以内の再マウントのみ復元し、
-// それ以降は従来通り新規fetchが正 (「開いた時に再読込」のUX維持)。
-let assigneesDraftRemountCache: { draft: Array<{ email: string; displayName: string | null }>; at: number } | null = null;
+// dirty=true の draft は hydrate GET で上書きしない。
+let assigneesDraftRemountCache: { draft: AssigneeDraftEntry[]; at: number; dirty: boolean } | null = null;
 
 type SettingsTab = "labels" | "rules" | "templates" | "auto-assign" | "views" | "team" | "assignees" | "diagnostics" | "suggestions" | "queues";
 // tabも同様に再マウント越しに保持 (next devのhot updateでパネルが再マウントすると
@@ -183,20 +183,44 @@ export function SettingsPanel({ mode, onOpenActivity }: { mode: SettingsMode; on
   const [roster, setRoster] = useState<string[]>([]);
   const [rosterDraft, setRosterDraft] = useState<string>("");
   // Step 80: Assignees（担当者名簿）
-  const [assignees, setAssignees] = useState<Array<{ email: string; displayName: string | null }>>([]);
-  const [assigneesDraft, setAssigneesDraftState] = useState<Array<{ email: string; displayName: string | null }>>(
-    () => (assigneesDraftRemountCache && Date.now() - assigneesDraftRemountCache.at < 5000 ? assigneesDraftRemountCache.draft : []),
+  const [assignees, setAssignees] = useState<AssigneeDraftEntry[]>([]);
+  const freshAssigneesDraftRemountCache =
+    assigneesDraftRemountCache && Date.now() - assigneesDraftRemountCache.at < 5000 ? assigneesDraftRemountCache : null;
+  const [assigneesDraft, setAssigneesDraftState] = useState<AssigneeDraftEntry[]>(
+    () => freshAssigneesDraftRemountCache?.draft ?? [],
   );
-  const setAssigneesDraft = useCallback(
-    (action: React.SetStateAction<Array<{ email: string; displayName: string | null }>>) => {
-      setAssigneesDraftState((prev) => {
-        const next = typeof action === "function" ? action(prev) : action;
-        assigneesDraftRemountCache = { draft: next, at: Date.now() };
-        return next;
-      });
-    },
-    [],
-  );
+  const assigneesDraftDirtyRef = useRef(freshAssigneesDraftRemountCache?.dirty ?? false);
+  const assigneesHydrateRequestIdRef = useRef(0);
+  const [assigneesHydrated, setAssigneesHydrated] = useState(false);
+
+  const setAssigneesDraft = useCallback((action: React.SetStateAction<AssigneeDraftEntry[]>) => {
+    setAssigneesDraftState((prev) => {
+      const next = typeof action === "function" ? action(prev) : action;
+      assigneesDraftDirtyRef.current = true;
+      assigneesDraftRemountCache = { draft: next, at: Date.now(), dirty: true };
+      return next;
+    });
+  }, []);
+
+  const setAssigneesDraftFromCanonical = useCallback((nextDraft: AssigneeDraftEntry[]) => {
+    assigneesDraftDirtyRef.current = false;
+    assigneesDraftRemountCache = { draft: nextDraft, at: Date.now(), dirty: false };
+    setAssigneesDraftState(nextDraft);
+  }, []);
+
+  // 表示中のdirty draftもタイムスタンプを更新し続ける
+  // (操作が5秒以上空いた瞬間のnext dev再マウントにも耐える)
+  useEffect(() => {
+    if (tab !== "assignees") return;
+    const refreshDirtyAssigneesDraftRemountCache = () => {
+      if (assigneesDraftRemountCache?.dirty !== true) return;
+      assigneesDraftRemountCache = { ...assigneesDraftRemountCache, at: Date.now() };
+    };
+    refreshDirtyAssigneesDraftRemountCache();
+    const t = setInterval(refreshDirtyAssigneesDraftRemountCache, 2000);
+    return () => clearInterval(t);
+  }, [tab]);
+
   const [assigneesSaving, setAssigneesSaving] = useState(false);
   const [savedSearches, setSavedSearches] = useState<Array<{ id: string; name: string; query: string; baseLabelId?: string | null }>>([]);
   const [newQueueName, setNewQueueName] = useState("");
@@ -422,24 +446,45 @@ export function SettingsPanel({ mode, onOpenActivity }: { mode: SettingsMode; on
   // 注意: 依存配列の showError は再レンダリングで identity が変わり得るため、
   // 「assignees 表示中の再発火 → 遅延応答が編集中 draft を上書き」のレースが起きていた
   // (qa-strict Step80-1 flaky の根因)。タブが assignees に遷移した時だけ fetch する。
-  const prevSettingsTabRef = useRef<string | null>(null);
+  const prevSettingsTabRef = useRef<SettingsTab | null>(null);
   useEffect(() => {
-    const enteredAssignees = tab === "assignees" && prevSettingsTabRef.current !== "assignees";
+    const previousTab = prevSettingsTabRef.current;
+    const enteredAssignees = tab === "assignees" && previousTab !== "assignees";
+    const leftAssignees = previousTab === "assignees" && tab !== "assignees";
     prevSettingsTabRef.current = tab;
-    if (enteredAssignees) {
-      // 再マウント直後 (キャッシュ5秒以内) は編集中draftを保持し、canonicalのみ更新
-      const hasFreshDraft = assigneesDraftRemountCache !== null && Date.now() - assigneesDraftRemountCache.at < 5000;
-      void (async () => {
-        try {
-          const res = await fetchJson<{ assignees: Array<{ email: string; displayName: string | null }> }>("/api/mailhub/assignees");
-          setAssignees(res.assignees ?? []);
-          if (!hasFreshDraft) setAssigneesDraft(res.assignees ?? []);
-        } catch (e) {
-          showError(`担当者名簿の読み込みに失敗しました: ${e instanceof Error ? e.message : String(e)}`);
-        }
-      })();
+
+    if (leftAssignees) {
+      assigneesHydrateRequestIdRef.current += 1;
+      setAssigneesHydrated(false);
     }
-  }, [tab, showError, setAssigneesDraft]);
+    if (!enteredAssignees) return;
+
+    const requestId = ++assigneesHydrateRequestIdRef.current;
+    const controller = new AbortController();
+    setAssigneesHydrated(false);
+
+    void (async () => {
+      try {
+        const res = await fetchJson<{ assignees: AssigneeDraftEntry[] }>("/api/mailhub/assignees", {
+          signal: controller.signal,
+        });
+        if (requestId !== assigneesHydrateRequestIdRef.current) return;
+
+        const nextAssignees = res.assignees ?? [];
+        setAssignees(nextAssignees);
+        if (!assigneesDraftDirtyRef.current) {
+          setAssigneesDraftFromCanonical(nextAssignees);
+        }
+        setAssigneesHydrated(true);
+      } catch (e) {
+        if (e instanceof Error && e.name === "AbortError") return;
+        if (requestId !== assigneesHydrateRequestIdRef.current) return;
+        showError(`担当者名簿の読み込みに失敗しました: ${e instanceof Error ? e.message : String(e)}`);
+      }
+    })();
+
+    return () => controller.abort();
+  }, [tab, showError, setAssigneesDraftFromCanonical]);
 
   const loadRuleSuggestions = useCallback(async () => {
     setIsLoadingSuggestions(true);
@@ -2663,7 +2708,7 @@ export function SettingsPanel({ mode, onOpenActivity }: { mode: SettingsMode; on
           </div>
         </section>
       ) : tab === "assignees" ? (
-        <section data-testid="settings-panel-assignees">
+        <section data-testid="settings-panel-assignees" data-hydrated={assigneesHydrated ? "true" : "false"}>
           {!isAdmin && (
             <div className="mb-3 text-[12px] text-amber-900 bg-amber-50 border border-amber-200 rounded px-3 py-2">
               担当者名簿の編集は管理者のみです。
@@ -2774,7 +2819,7 @@ export function SettingsPanel({ mode, onOpenActivity }: { mode: SettingsMode; on
                     body: JSON.stringify({ assignees: cleaned }),
                   });
                   setAssignees(cleaned);
-                  setAssigneesDraft(cleaned);
+                  setAssigneesDraftFromCanonical(cleaned);
                   showToast("担当者名簿を保存しました");
                 } catch (e) {
                   showError(`保存に失敗しました: ${e instanceof Error ? e.message : String(e)}`);
@@ -2790,7 +2835,7 @@ export function SettingsPanel({ mode, onOpenActivity }: { mode: SettingsMode; on
               className="px-4 py-2 border rounded text-sm disabled:opacity-40"
               disabled={!isAdmin || readOnly || assigneesSaving}
               onClick={() => {
-                setAssigneesDraft([...assignees]);
+                setAssigneesDraftFromCanonical([...assignees]);
               }}
             >
               Reset
@@ -3559,5 +3604,3 @@ export function SettingsPanel({ mode, onOpenActivity }: { mode: SettingsMode; on
     </div>
   );
 }
-
-
