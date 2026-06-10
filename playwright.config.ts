@@ -2,9 +2,15 @@ import { defineConfig, devices } from "@playwright/test";
 import os from "node:os";
 import path from "node:path";
 
+function defaultPlaywrightOutputDir() {
+  const runId = new Date().toISOString().replace(/[:.]/g, "-") + `-${process.pid}`;
+  return path.join(os.tmpdir(), "mailhub-playwright", runId);
+}
+
 // Write Playwright artifacts outside the repo so Next dev server Fast Refresh
-// doesn't reload due to test output file changes.
-const PW_OUTPUT_DIR = process.env.PW_OUTPUT_DIR ?? path.join(os.tmpdir(), "mailhub-playwright");
+// doesn't reload due to test output file changes. The default path is unique per
+// Playwright invocation so a rerun does not delete the previous failure artifacts.
+const PW_OUTPUT_DIR = process.env.PW_OUTPUT_DIR ?? defaultPlaywrightOutputDir();
 
 export default defineConfig({
   testDir: "./e2e",
@@ -57,5 +63,4 @@ export default defineConfig({
     },
   },
 });
-
 
