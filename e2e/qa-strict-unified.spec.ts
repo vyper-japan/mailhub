@@ -10,9 +10,17 @@ async function openSettingsTab(page: Page, tab: "assignees" | "team") {
 
   const tabButton = page.getByTestId(`settings-tab-${tab}`);
   await expect(tabButton).toBeVisible({ timeout: 5000 });
+
+  if (tab === "assignees") {
+    await tabButton.click();
+    await expect(targetPanel).toBeVisible({ timeout: 5000 });
+    await expect(targetPanel).toHaveAttribute("data-hydrated", "true", { timeout: 10000 });
+    return;
+  }
+
   // タブ遷移でトリガーされるGET(あれば)の完了を待ち、初回draft/rosterをGET結果で確定させてからreturn。
   // 既にロード済みでGETが飛ばないケースもあるため timeout は catch で握る(hang回避)。
-  const apiPath = tab === "team" ? "/api/mailhub/team" : "/api/mailhub/assignees";
+  const apiPath = "/api/mailhub/team";
   const tabGet = page
     .waitForResponse((r) => r.url().includes(apiPath) && r.request().method() === "GET", { timeout: 5000 })
     .catch(() => null);
@@ -28,6 +36,17 @@ async function expectAssigneeEmailValue(page: Page, index: number, expected: str
     if (!(await input.isVisible().catch(() => false))) return null;
     return await input.inputValue().catch(() => null);
   }, { timeout: 10000, intervals: [100, 250, 500, 1000] }).toBe(expected);
+}
+
+function normalizeAssigneesForAssert(value: unknown) {
+  if (!Array.isArray(value)) return [];
+  return value.map((item) => {
+    const obj = item && typeof item === "object" ? (item as Record<string, unknown>) : {};
+    return {
+      email: typeof obj.email === "string" ? obj.email : "",
+      displayName: typeof obj.displayName === "string" ? obj.displayName : null,
+    };
+  });
 }
 
 test.describe("QA-Strict Unified E2E Tests", () => {
@@ -4702,7 +4721,8 @@ test("Step80-1) Settings Assigneesタブ→追加→保存→再読込で残る"
   await expect(emailInput).toBeVisible({ timeout: 3000 });
   
   // 8) emailを入力
-  await emailInput.fill("newmember@vtj.co.jp");
+  const expectedAssignees = [{ email: "newmember@vtj.co.jp", displayName: null }];
+  await emailInput.fill(expectedAssignees[0].email);
   
   // 9) Saveボタンをクリック
   const saveRespP = page.waitForResponse(
@@ -4712,7 +4732,18 @@ test("Step80-1) Settings Assigneesタブ→追加→保存→再読込で残る"
   const saveBtn = page.getByTestId("assignees-save");
   await expect(saveBtn).toBeVisible({ timeout: 3000 });
   await saveBtn.click();
-  await saveRespP;
+
+  const saveResp = await saveRespP;
+  const saveRequestBody = saveResp.request().postDataJSON() as { assignees?: unknown };
+  expect(normalizeAssigneesForAssert(saveRequestBody.assignees)).toEqual(expectedAssignees);
+
+  const saveBody = (await saveResp.json()) as { assignees?: unknown };
+  expect(normalizeAssigneesForAssert(saveBody.assignees)).toEqual(expectedAssignees);
+
+  const readbackResp = await page.request.get("/api/mailhub/assignees");
+  expect(readbackResp.status()).toBe(200);
+  const readbackBody = (await readbackResp.json()) as { assignees?: unknown };
+  expect(normalizeAssigneesForAssert(readbackBody.assignees)).toEqual(expectedAssignees);
   
   // 10) Drawerを閉じる
   const closeBtn = page.getByTestId("settings-drawer-close");
