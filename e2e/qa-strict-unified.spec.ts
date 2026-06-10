@@ -6467,3 +6467,270 @@ test("Step109-1) Roster: 保存→閉→再openで残る", async ({ page }) => {
     await expect(page.getByTestId(`roster-item-${email}`)).toBeVisible({ timeout: 5000 });
   }
 });
+
+// ========== Step 113: Assignee機能完成 ==========
+const step113TargetMessageId = "msg-021";
+const step113MakiSlug = "maki_at_vtj_co_jp";
+
+const step113Assignees = [
+  { email: "test@vtj.co.jp", displayName: "Taka" },
+  { email: "maki@vtj.co.jp", displayName: "Maki" },
+  { email: "yuka@vtj.co.jp", displayName: "Yuka" },
+  { email: "eri_s@vtj.co.jp", displayName: "Eri" },
+  { email: "kumiko@vtj.co.jp", displayName: "Kumiko" },
+] as const;
+
+const step113ExpectedAssignees = [...step113Assignees]
+  .map((a) => ({ email: a.email, displayName: a.displayName }))
+  .sort((a, b) => a.email.localeCompare(b.email));
+
+type Step113AssignPayload = {
+  id?: unknown;
+  action?: unknown;
+  assigneeEmail?: unknown;
+  force?: unknown;
+  reason?: unknown;
+};
+
+async function step113SuppressOnboarding(page: Page) {
+  await page.addInitScript(() => {
+    localStorage.setItem("mailhub-onboarding-shown", "true");
+  });
+}
+
+async function step113ResetAndSeed(page: Page) {
+  const resetResp = await page.request.post("/api/mailhub/test/reset", { data: { readOnly: false } });
+  expect(resetResp.status()).toBe(200);
+
+  const seedResp = await page.request.post("/api/mailhub/assignees", {
+    data: { assignees: step113Assignees },
+  });
+  expect(seedResp.status()).toBe(200);
+
+  const seedBody = (await seedResp.json()) as { success?: unknown; assignees?: unknown };
+  expect(seedBody.success).toBe(true);
+  expect(normalizeAssigneesForAssert(seedBody.assignees)).toEqual(step113ExpectedAssignees);
+
+  const readbackResp = await page.request.get("/api/mailhub/assignees");
+  expect(readbackResp.status()).toBe(200);
+  const readbackBody = (await readbackResp.json()) as { assignees?: unknown };
+  expect(normalizeAssigneesForAssert(readbackBody.assignees)).toEqual(step113ExpectedAssignees);
+}
+
+async function step113ApiAssign(page: Page, assigneeEmail: string) {
+  const assignResp = await page.request.post("/api/mailhub/assign", {
+    data: { id: step113TargetMessageId, action: "assign", assigneeEmail },
+  });
+  expect(assignResp.status()).toBe(200);
+  const assignBody = (await assignResp.json()) as { ok?: unknown; success?: unknown; assigneeEmail?: unknown };
+  expect(assignBody.ok || assignBody.success).toBe(true);
+  expect(assignBody.assigneeEmail).toBe(assigneeEmail);
+}
+
+async function step113OpenTarget(page: Page) {
+  await page.goto("/");
+  await expect.poll(
+    async () => page.getByTestId("message-row").count(),
+    { timeout: 10000, intervals: [250, 500, 1000] },
+  ).toBeGreaterThan(0);
+
+  const row = page.getByTestId("message-list").locator(`[data-message-id="${step113TargetMessageId}"]`);
+  await expect(row).toBeVisible({ timeout: 10000 });
+  await row.click();
+  await expect(page.getByTestId("detail-subject")).toBeVisible({ timeout: 5000 });
+  return row;
+}
+
+async function step113OpenSelectorFromDetail(page: Page) {
+  const detailPane = page.getByTestId("detail-pane");
+  const detailPill = detailPane.getByTestId("assignee-pill");
+  await expect(detailPill).toBeVisible({ timeout: 5000 });
+
+  const assigneesLoadP = page
+    .waitForResponse(
+      (r) => r.url().includes("/api/mailhub/assignees") && r.request().method() === "GET" && r.status() === 200,
+      { timeout: 10000 },
+    )
+    .catch(() => null);
+
+  await Promise.all([assigneesLoadP, detailPill.click()]);
+  const selector = page.getByTestId("assignee-selector");
+  await expect(selector).toBeVisible({ timeout: 5000 });
+  return selector;
+}
+
+// ----- T-D block: Step113-1 / Step113-2 / Step113-5 -----
+test("Step113-1) local seed後、Sidebar AssigneeにMine(Taka)/未割当/自分以外4名が表示される", async ({ page }) => {
+  await step113ResetAndSeed(page);
+  await step113SuppressOnboarding(page);
+  await page.goto("/");
+
+  await expect.poll(
+    async () => page.getByTestId("message-row").count(),
+    { timeout: 10000, intervals: [250, 500, 1000] },
+  ).toBeGreaterThan(0);
+
+  const assigneeSection = page.getByTestId("label-assignee");
+  await expect(assigneeSection).toBeVisible({ timeout: 10000 });
+
+  await expect.poll(
+    async () => (await assigneeSection.getByTestId("label-item-mine").textContent())?.trim() ?? "",
+    { timeout: 10000, intervals: [250, 500, 1000] },
+  ).toBe("Mine (Taka)");
+
+  await expect(assigneeSection.getByTestId("label-item-unassigned")).toBeVisible({ timeout: 5000 });
+
+  for (const email of ["maki@vtj.co.jp", "yuka@vtj.co.jp", "eri_s@vtj.co.jp", "kumiko@vtj.co.jp"]) {
+    await expect(assigneeSection.getByTestId(`assignee-item-${email}`)).toBeVisible({ timeout: 5000 });
+  }
+
+  await expect(assigneeSection.getByTestId("assignee-item-test@vtj.co.jp")).toHaveCount(0);
+});
+
+test("Step113-2) Maki担当をSidebarから選ぶとassigneeSlugで絞り込まれ、対象messageが表示される", async ({ page }) => {
+  const step113UnassignedFixtureMessageId = "msg-001";
+
+  await step113ResetAndSeed(page);
+  await step113ApiAssign(page, "maki@vtj.co.jp");
+  await step113SuppressOnboarding(page);
+  await page.goto("/");
+
+  const makiItem = page.getByTestId("label-assignee").getByTestId("assignee-item-maki@vtj.co.jp");
+  await expect(makiItem).toBeVisible({ timeout: 10000 });
+
+  const listRespP = page.waitForResponse((r) => {
+    const url = new URL(r.url());
+    return (
+      url.pathname.endsWith("/api/mailhub/list") &&
+      url.searchParams.get("assigneeSlug") === step113MakiSlug &&
+      r.request().method() === "GET" &&
+      r.status() === 200
+    );
+  }, { timeout: 15000 });
+
+  const [listResp] = await Promise.all([listRespP, makiItem.click()]);
+  expect(listResp.status()).toBe(200);
+
+  const listBody = (await listResp.json()) as {
+    messages?: Array<{ id?: unknown; assigneeSlug?: unknown }>;
+  };
+  expect(Array.isArray(listBody.messages)).toBe(true);
+
+  const responseMessages = Array.isArray(listBody.messages) ? listBody.messages : [];
+  const responseMessageIds = responseMessages.map((m) => m.id);
+  expect(responseMessages.length).toBeGreaterThan(0);
+  expect(responseMessages.every((m) => m.assigneeSlug === step113MakiSlug)).toBe(true);
+  expect(responseMessageIds).toContain(step113TargetMessageId);
+  expect(responseMessageIds).not.toContain(step113UnassignedFixtureMessageId);
+
+  const list = page.getByTestId("message-list");
+  await expect.poll(
+    async () => list.getByTestId("message-row").count(),
+    { timeout: 10000, intervals: [250, 500, 1000] },
+  ).toBeGreaterThan(0);
+  await expect(list.locator(`[data-message-id="${step113TargetMessageId}"]`)).toBeVisible({ timeout: 10000 });
+  await expect(list.locator(`[data-message-id="${step113UnassignedFixtureMessageId}"]`)).toHaveCount(0);
+});
+
+test("Step113-5) READ ONLY時のassignees POSTは403 read_only/no-storeを返す", async ({ page }) => {
+  await step113ResetAndSeed(page);
+
+  const readOnlyResetResp = await page.request.post("/api/mailhub/test/reset", { data: { readOnly: true } });
+  expect(readOnlyResetResp.status()).toBe(200);
+
+  const blockedResp = await page.request.post("/api/mailhub/assignees", {
+    data: { assignees: [{ email: "blocked@vtj.co.jp", displayName: "Blocked" }] },
+  });
+
+  expect(blockedResp.status()).toBe(403);
+  expect(blockedResp.headers()["cache-control"]).toBe("no-store");
+  expect(await blockedResp.json()).toMatchObject({
+    error: "read_only",
+    reason: "assignees_write",
+  });
+
+  const cleanupResp = await page.request.post("/api/mailhub/test/reset", { data: { readOnly: false } });
+  expect(cleanupResp.status()).toBe(200);
+});
+
+// ----- T-E block: Step113-3 / Step113-4 -----
+test("Step113-3) 詳細pillからpickerを開き、fallback名簿4名表示後Makiへ割当できる", async ({ page }) => {
+  await step113ResetAndSeed(page);
+  await step113SuppressOnboarding(page);
+  const row = await step113OpenTarget(page);
+
+  const detailPane = page.getByTestId("detail-pane");
+  await expect(detailPane.getByTestId("assignee-pill")).toContainText("未割当", { timeout: 5000 });
+
+  const selector = await step113OpenSelectorFromDetail(page);
+  await expect(page.getByTestId("assignee-picker-apply")).toBeVisible({ timeout: 5000 });
+  await expect(page.getByTestId("assignee-picker-item-test@vtj.co.jp")).toHaveCount(0);
+
+  for (const email of ["maki@vtj.co.jp", "yuka@vtj.co.jp", "eri_s@vtj.co.jp", "kumiko@vtj.co.jp"]) {
+    await expect(page.getByTestId(`assignee-picker-item-${email}`)).toBeVisible({ timeout: 5000 });
+  }
+
+  const [assignResp] = await Promise.all([
+    page.waitForResponse(
+      (r) => r.url().includes("/api/mailhub/assign") && r.request().method() === "POST" && r.status() === 200,
+      { timeout: 15000 },
+    ),
+    page.getByTestId("assignee-picker-item-maki@vtj.co.jp").click(),
+  ]);
+
+  const payload = assignResp.request().postDataJSON() as Step113AssignPayload;
+  expect(payload.id).toBe(step113TargetMessageId);
+  expect(payload.action).toBe("assign");
+  expect(payload.assigneeEmail).toBe("maki@vtj.co.jp");
+  expect(payload.force).toBe(false);
+
+  await expect(selector).toBeHidden({ timeout: 5000 });
+  await expect.poll(
+    async () => await row.locator('[data-testid="assignee-bar"]').getAttribute("class").catch(() => ""),
+    { timeout: 5000, intervals: [250, 500, 1000] },
+  ).toContain("bg-gray-400");
+  await expect(detailPane.getByTestId("assignee-pill")).toContainText("Maki", { timeout: 5000 });
+});
+
+test("Step113-4) Maki担当をYukaへtakeoverすると理由モーダル後force/reason付きPOSTになる", async ({ page }) => {
+  const reason = "Step113 takeover to Yuka";
+
+  await step113ResetAndSeed(page);
+  await step113ApiAssign(page, "maki@vtj.co.jp");
+  await step113SuppressOnboarding(page);
+  const row = await step113OpenTarget(page);
+
+  const detailPane = page.getByTestId("detail-pane");
+  await expect(detailPane.getByTestId("assignee-pill")).toContainText("Maki", { timeout: 5000 });
+
+  await step113OpenSelectorFromDetail(page);
+  const yukaItem = page.getByTestId("assignee-picker-item-yuka@vtj.co.jp");
+  await expect(yukaItem).toBeVisible({ timeout: 5000 });
+  await yukaItem.click();
+
+  const reasonModal = page.getByTestId("audit-reason-modal");
+  await expect(reasonModal).toBeVisible({ timeout: 5000 });
+  await page.getByTestId("audit-reason-input").fill(reason);
+
+  const [takeoverResp] = await Promise.all([
+    page.waitForResponse(
+      (r) => r.url().includes("/api/mailhub/assign") && r.request().method() === "POST" && r.status() === 200,
+      { timeout: 15000 },
+    ),
+    page.getByTestId("audit-reason-ok").click(),
+  ]);
+
+  const payload = takeoverResp.request().postDataJSON() as Step113AssignPayload;
+  expect(payload.id).toBe(step113TargetMessageId);
+  expect(payload.action).toBe("assign");
+  expect(payload.assigneeEmail).toBe("yuka@vtj.co.jp");
+  expect(payload.force).toBe(true);
+  expect(payload.reason).toBe(reason);
+
+  await expect(reasonModal).toBeHidden({ timeout: 5000 });
+  await expect.poll(
+    async () => await row.locator('[data-testid="assignee-bar"]').getAttribute("class").catch(() => ""),
+    { timeout: 5000, intervals: [250, 500, 1000] },
+  ).toContain("bg-gray-400");
+  await expect(detailPane.getByTestId("assignee-pill")).toContainText("Yuka", { timeout: 5000 });
+});
