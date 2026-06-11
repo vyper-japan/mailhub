@@ -27,7 +27,7 @@ describe("routeReply", () => {
         subject: "【楽天RMS】お問い合わせ",
         from: "楽天市場 <rms@rakuten.co.jp>",
       });
-      const result = routeReply(message, "all");
+      const result = routeReply(message, "all", true);
       expect(result.kind).toBe("gmail");
       expect(result.storeId).toBeUndefined();
     });
@@ -79,11 +79,59 @@ describe("routeReply", () => {
     ["store-a", "store-b", "store-c"].forEach((channelId) => {
       rakutenMessages.forEach(({ name, message }) => {
         it(`${channelId}: ${name} → rakuten_rms`, () => {
-          const result = routeReply(message, channelId as ChannelId);
+          const result = routeReply(message, channelId as ChannelId, true);
           expect(result.kind).toBe("rakuten_rms");
           expect(result.storeId).toBe(channelId);
         });
       });
+    });
+  });
+
+  describe("PRODチャンネル", () => {
+    const rakutenMessage = createMessage({
+      subject: "【楽天RMS】お問い合わせが届きました",
+      from: "楽天市場 <rms@rakuten.co.jp>",
+      plainTextBody: "問い合わせ番号: 12345678",
+    });
+
+    (["cricut-rakuten", "gopro-rakuten", "vyperglobal-rakuten"] as ChannelId[]).forEach(
+      (channelId) => {
+        it(`${channelId}: 楽天メール → rakuten_rms`, () => {
+          const result = routeReply(rakutenMessage, channelId, false);
+          expect(result.kind).toBe("rakuten_rms");
+          expect(result.storeId).toBe(channelId);
+          expect(result.inquiryId).toBe("12345678");
+        });
+      },
+    );
+
+    ([
+      "cricut-yahoo",
+      "cricut-amazon",
+      "cricut-makeshop",
+      "gopro-yahoo",
+      "gopro-mp",
+      "vyperglobal-yahoo",
+      "vyperglobal-amazon",
+      "vyper-amazon",
+      "datacolor",
+      "akg",
+      "sbd",
+      "secondhand",
+      "steiner",
+      "ebay",
+    ] as ChannelId[]).forEach((channelId) => {
+      it(`${channelId}: 楽天語を含んでもgmail`, () => {
+        const result = routeReply(rakutenMessage, channelId, false);
+        expect(result.kind).toBe("gmail");
+        expect(result.storeId).toBeUndefined();
+      });
+    });
+
+    it("store-a: PRODではTEST fixtureを参照せずgmail", () => {
+      const result = routeReply(rakutenMessage, "store-a", false);
+      expect(result.kind).toBe("gmail");
+      expect(result.storeId).toBeUndefined();
     });
   });
 
@@ -115,7 +163,7 @@ describe("routeReply", () => {
     ["store-a", "store-b", "store-c"].forEach((channelId) => {
       nonRakutenMessages.forEach(({ name, message }) => {
         it(`${channelId}: ${name} → email`, () => {
-          const result = routeReply(message, channelId as ChannelId);
+          const result = routeReply(message, channelId as ChannelId, true);
           expect(result.kind).toBe("gmail");
           expect(result.storeId).toBeUndefined();
         });
@@ -131,7 +179,7 @@ describe("routeReply", () => {
         snippet: undefined,
         plainTextBody: undefined,
       });
-      const result = routeReply(message, "store-a");
+      const result = routeReply(message, "store-a", true);
       expect(result.kind).toBe("gmail");
     });
 
@@ -139,9 +187,8 @@ describe("routeReply", () => {
       const message = createMessage({
         subject: "RaKuTeN からのお知らせ",
       });
-      const result = routeReply(message, "store-a");
+      const result = routeReply(message, "store-a", true);
       expect(result.kind).toBe("rakuten_rms");
     });
   });
 });
-

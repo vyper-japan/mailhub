@@ -255,4 +255,28 @@ test.describe("Phase 3 regressions E2E", () => {
     expect(body).toContain("<svg");
     expect(response.headers()["content-type"] ?? "").toMatch(/image\/svg\+xml|text\/xml|application\/octet-stream/);
   });
+
+  test("T-10: selecting Todo from a stale store channel clears channel from URL", async ({ page }) => {
+    console.log("progress: T-10 start");
+    await resetAndOpen(page, "/?channel=store-a");
+    await closeInterferingOverlays(page);
+
+    await Promise.all([
+      page.waitForResponse(
+        (r) => r.url().includes("/api/mailhub/list") && r.request().method() === "GET" && r.status() === 200,
+        { timeout: 10000 },
+      ),
+      page.getByTestId("label-item-todo").click(),
+    ]);
+
+    await expect
+      .poll(() => {
+        const params = new URL(page.url()).searchParams;
+        return {
+          label: params.get("label"),
+          hasChannel: params.has("channel"),
+        };
+      }, { timeout: 5000 })
+      .toEqual({ label: "todo", hasChannel: false });
+  });
 });

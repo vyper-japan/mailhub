@@ -3,6 +3,7 @@ import { getLabelById, getDefaultLabel, getLabelQuery } from "@/lib/labels";
 import { listLatestInboxMessages } from "@/lib/gmail";
 import { requireUser, authErrorResponse } from "@/lib/require-user";
 import { assigneeSlug } from "@/lib/assignee";
+import { isTestMode } from "@/lib/test-mode";
 
 export const dynamic = "force-dynamic";
 
@@ -14,9 +15,10 @@ export async function GET(req: Request) {
   }
 
   const url = new URL(req.url);
+  const testMode = isTestMode();
   // label パラメータ（channel も後方互換で対応）
   const labelId = url.searchParams.get("label") ?? url.searchParams.get("channel") ?? "all";
-  const label = getLabelById(labelId) ?? getDefaultLabel();
+  const label = getLabelById(labelId, testMode) ?? getDefaultLabel(testMode);
   const baseQuery = getLabelQuery(label);
   
   // Step 51: ユーザー検索クエリ（Gmail検索式）

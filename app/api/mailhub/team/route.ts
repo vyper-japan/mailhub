@@ -11,6 +11,11 @@ export const dynamic = "force-dynamic";
 
 export async function GET(): Promise<NextResponse> {
   // 全員OK（READ ONLYでも閲覧可）
+  const authResult = await requireUser();
+  if (!authResult.ok) {
+    return authErrorResponse(authResult);
+  }
+
   try {
     const teamStore = getTeamStore();
     const team = await teamStore.list();

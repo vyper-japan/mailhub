@@ -2,9 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireUser } from "@/lib/require-user";
 import { logAction } from "@/lib/audit-log";
 import { isReadOnlyMode, writeForbiddenResponse } from "@/lib/read-only";
+import { getRmsEnvPrefix } from "@/lib/channels";
+import { isTestMode } from "@/lib/test-mode";
 
 type RakutenReplyRequest = {
-  storeId: string; // "store-a" | "store-b" | "store-c"
+  storeId: string;
   inquiryNumber: string;
   message: string;
   emailId?: string; // 元メールのID（ログ用）
@@ -29,6 +31,7 @@ export async function POST(req: NextRequest) {
   try {
     const body: RakutenReplyRequest = await req.json();
     const { storeId, inquiryNumber, message, emailId } = body;
+    const testMode = isTestMode();
 
     if (!storeId || !inquiryNumber || !message) {
       return NextResponse.json(
@@ -38,7 +41,7 @@ export async function POST(req: NextRequest) {
     }
 
     // テストモードの場合は成功を返すだけ
-    if (process.env.MAILHUB_TEST_MODE === "1") {
+    if (testMode) {
       console.log(
         `[TEST MODE] Rakuten RMS Reply: storeId=${storeId}, inquiryNumber=${inquiryNumber}, message=${message.substring(0, 50)}...`,
       );
@@ -57,9 +60,10 @@ export async function POST(req: NextRequest) {
     }
 
     // 環境変数からRMS APIキーを取得
-    const shopId = process.env[`RMS_${storeId.toUpperCase().replace("-", "_")}_SHOP_ID`];
-    const serviceSecret = process.env[`RMS_${storeId.toUpperCase().replace("-", "_")}_SERVICE_SECRET`];
-    const licenseKey = process.env[`RMS_${storeId.toUpperCase().replace("-", "_")}_LICENSE_KEY`];
+    const rmsEnvPrefix = getRmsEnvPrefix(storeId, testMode);
+    const shopId = rmsEnvPrefix ? process.env[`${rmsEnvPrefix}_SHOP_ID`] : undefined;
+    const serviceSecret = rmsEnvPrefix ? process.env[`${rmsEnvPrefix}_SERVICE_SECRET`] : undefined;
+    const licenseKey = rmsEnvPrefix ? process.env[`${rmsEnvPrefix}_LICENSE_KEY`] : undefined;
 
     if (!shopId || !serviceSecret || !licenseKey) {
       return NextResponse.json(
@@ -107,4 +111,3 @@ export async function POST(req: NextRequest) {
     );
   }
 }
-

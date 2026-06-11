@@ -4,6 +4,7 @@ import { requireUser, authErrorResponse } from "@/lib/require-user";
 import { logAction } from "@/lib/audit-log";
 import { isTestMode } from "@/lib/test-mode";
 import { parseGmailError } from "@/lib/gmail-error";
+import { assigneeSlug } from "@/lib/assignee";
 import type { NextRequest } from "next/server";
 import { isReadOnlyMode, writeForbiddenResponse } from "@/lib/read-only";
 
@@ -53,9 +54,6 @@ export async function POST(req: NextRequest) {
     targetEmail = assigneeEmail;
   }
 
-  // assigneeSlugを計算（emailからローカル部分を抽出）
-  const computeAssigneeSlug = (email: string) => email.split("@")[0].toLowerCase();
-
   // Test mode handling
   if (isTestMode()) {
     if (action === "assign") {
@@ -75,7 +73,7 @@ export async function POST(req: NextRequest) {
         reason,
       }).catch(() => {});
       // Step 76: assigneeSlugを返す
-      return NextResponse.json({ ok: true, assigneeSlug: computeAssigneeSlug(targetEmail), assigneeEmail: targetEmail });
+      return NextResponse.json({ ok: true, assigneeSlug: assigneeSlug(targetEmail), assigneeEmail: targetEmail });
     } else {
       await unassignMessage(id);
       // Step 91: Test modeでも logAction を呼ぶ（E2E検証のため）
@@ -116,7 +114,7 @@ export async function POST(req: NextRequest) {
       });
       // Step 76: assigneeSlugを返す
       return NextResponse.json(
-        { success: true, id, action, assigneeSlug: computeAssigneeSlug(targetEmail), assigneeEmail: targetEmail },
+        { success: true, id, action, assigneeSlug: assigneeSlug(targetEmail), assigneeEmail: targetEmail },
         { headers: { "cache-control": "no-store" } },
       );
     } else {
@@ -149,4 +147,3 @@ export async function POST(req: NextRequest) {
     );
   }
 }
-

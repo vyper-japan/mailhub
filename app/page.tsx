@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation";
 import { auth, signOut } from "@/auth";
 import { getMessageDetail, listLatestInboxMessages } from "@/lib/gmail";
-import { LABEL_GROUPS, getLabelById, getDefaultLabel, getLabelQuery } from "@/lib/labels";
-import type { ChannelId } from "@/lib/channels";
+import { buildLabelGroups, getLabelQuery } from "@/lib/labels";
+import { coerceChannelId, type ChannelId } from "@/lib/channels";
 import { isTestMode } from "@/lib/test-mode";
 import { getMailhubEnv } from "@/lib/mailhub-env";
 import { getViewsStore } from "@/lib/viewsStore";
@@ -24,6 +24,7 @@ export default async function HomePage({
 }) {
   const testMode = isTestMode();
   const mailhubEnv = getMailhubEnv();
+  const labelGroups = buildLabelGroups(testMode);
 
   // ユーザー情報を取得
   let userEmail: string | null = null;
@@ -52,7 +53,10 @@ export default async function HomePage({
 
   // label パラメータを優先、なければ channel（後方互換）、なければデフォルト
   const labelId = view?.labelId ?? getFirstString(sp?.label) ?? getFirstString(sp?.channel);
-  const label = getLabelById(labelId) ?? getDefaultLabel();
+  const defaultLabel = labelGroups[0].items[0];
+  const label =
+    labelGroups.flatMap((group) => group.items).find((item) => item.id === labelId) ??
+    defaultLabel;
   const baseLabelQuery = getLabelQuery(label);
   
   // Step 51: 検索クエリをURLから読み込む（ViewのqとURLのqの両方を考慮）
@@ -63,9 +67,7 @@ export default async function HomePage({
   // channelIdを取得（返信ルーター用）
   // labelパラメータから推測（label=store-a → channelId=store-a）
   const channelIdParam = getFirstString(sp?.channel) ?? labelId;
-  const channelId: ChannelId = channelIdParam === "store-a" || channelIdParam === "store-b" || channelIdParam === "store-c" 
-    ? channelIdParam 
-    : "all";
+  const channelId: ChannelId = coerceChannelId(channelIdParam, testMode) ?? "all";
 
   // Step 104: maxパラメータをURLから取得
   const maxParam = getFirstString(sp?.max);
@@ -109,7 +111,6 @@ export default async function HomePage({
       // statusTypeでフィルタリングした結果が空の場合、デフォルト（all）で再試行
       // これにより、初期状態でmutedラベルを選択してもメールが表示される
       if (result.messages.length === 0 && statusType && label.id !== "all") {
-        const defaultLabel = getDefaultLabel();
         const defaultResult = await listLatestInboxMessages({
           max: 20,
           q: getLabelQuery(defaultLabel),
@@ -153,7 +154,7 @@ export default async function HomePage({
       <InboxShell
         initialLabelId={label.id}
         initialChannelId={channelId}
-        labelGroups={LABEL_GROUPS}
+        labelGroups={labelGroups}
         initialMessages={messages}
         initialSelectedId={selectedId ?? null}
         initialSelectedMessage={selectedMessage}

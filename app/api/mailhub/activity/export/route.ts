@@ -4,6 +4,7 @@ import { getActivityLogs, isAuditAction, type AuditAction } from "@/lib/audit-lo
 import { requireUser, authErrorResponse } from "@/lib/require-user";
 import { listLatestInboxMessages } from "@/lib/gmail";
 import { getLabelById } from "@/lib/labels";
+import { isTestMode } from "@/lib/test-mode";
 
 export const dynamic = "force-dynamic";
 
@@ -29,6 +30,7 @@ export async function GET(req: Request) {
   if (!authResult.ok) {
     return authErrorResponse(authResult);
   }
+  const testMode = isTestMode();
 
   const url = new URL(req.url);
   const actorFilter = url.searchParams.get("actor");
@@ -70,7 +72,7 @@ export async function GET(req: Request) {
         
         if (message) {
           // labelからchannelを推測
-          const label = log.label ? getLabelById(log.label) : null;
+          const label = log.label ? getLabelById(log.label, testMode) : null;
           const channel = label?.type === "channel" ? label.id : undefined;
           const status = label?.statusType || undefined;
           
@@ -140,6 +142,5 @@ export async function GET(req: Request) {
     },
   });
 }
-
 
 

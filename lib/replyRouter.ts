@@ -1,15 +1,20 @@
 import type { MessageDetail } from "./mailhub-types";
-import type { ChannelId } from "./channels";
+import { coerceChannelId, getChannelById, type ChannelDef, type ChannelId } from "./channels";
 import { extractInquiryNumber } from "./rakuten/extract";
 
 export type ReplyKind = "gmail" | "rakuten_rms" | "unknown";
 
 export type ReplyRoute = {
   kind: ReplyKind;
-  storeId?: string; // "store-a" | "store-b" | "store-c"
+  storeId?: string;
   inquiryId?: string; // 問い合わせ番号（自動抽出）
   openUrl?: string; // RMSのdeep link URL（設定されている場合）
 };
+
+function getReplyChannel(channelId: ChannelId, testMode: boolean): ChannelDef | undefined {
+  const activeChannelId = coerceChannelId(channelId, testMode);
+  return activeChannelId ? getChannelById(activeChannelId, testMode) : undefined;
+}
 
 /**
  * メールの返信先を判定する（Step55拡張版）
@@ -20,14 +25,14 @@ export type ReplyRoute = {
 export function routeReply(
   message: MessageDetail,
   channelId: ChannelId,
+  testMode: boolean,
 ): ReplyRoute {
-  // チャンネルがストア系でない場合は通常のメール返信
-  if (channelId === "all") {
+  const channel = getReplyChannel(channelId, testMode);
+  if (channel?.replyKind !== "rakuten_rms") {
     return { kind: "gmail" };
   }
 
-  // ストア系チャンネルの場合、楽天RMS判定を行う
-  const storeId = channelId; // "store-a" | "store-b" | "store-c"
+  const storeId = channel.id;
 
   // 楽天RMS判定キーワード
   const rakutenKeywords = [
@@ -79,8 +84,6 @@ export function routeReply(
   // 判定できない場合は通常のメール返信
   return { kind: "gmail" };
 }
-
-
 
 
 

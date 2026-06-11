@@ -3,6 +3,7 @@
 import type { ChannelCounts, StatusCounts } from "@/lib/mailhub-types";
 import type { LabelGroup, LabelItem } from "@/lib/labels";
 import type { View } from "@/lib/views";
+import { assigneeSlug } from "@/lib/assignee";
 import { Inbox, Clock, VolumeX, User, UserCheck, LogOut, Timer } from "lucide-react";
 import { t } from "../inbox-ui";
 
@@ -123,11 +124,10 @@ export function Sidebar({
           </div>
         )}
 
-        {/* Channelsセクション（テストモードのみ表示） */}
-        {testMode &&
-          labelGroups
-            .filter((g) => g.id === "channels")
-            .map((group) => (
+        {/* Channelsセクション */}
+        {labelGroups
+          .filter((g) => g.id === "channels")
+          .map((group) => (
               <div key={group.id} className="mb-6" data-testid="label-channels">
                 <div className={t.sidebarHeader}>{group.label}</div>
                 <div className="space-y-0.5">
@@ -384,7 +384,7 @@ export function Sidebar({
           .filter((g) => g.id === "assignee")
           .map((group) => {
             // Step 65: MineのslugはuserのemailからSlugを作成
-            const mineSlug = user.email.replace("@", "_at_").replace(/\./g, "_");
+            const mineSlug = assigneeSlug(user.email);
             const mineLoad = statusCounts?.assigneeLoadBySlug?.[mineSlug] ?? 0;
             const unassignedLoad = statusCounts?.unassignedLoad ?? 0;
             // Step 113: ログインユーザーの表示名をAssigneesから取得
@@ -421,7 +421,7 @@ export function Sidebar({
                 })}
                 {/* Step 113: Team全メンバーをAssigneeセクションに追加 */}
                 {team.filter((m) => m.email.toLowerCase() !== user.email.toLowerCase()).map((member) => {
-                  const memberSlug = member.email.replace("@", "_at_").replace(/\./g, "_");
+                  const memberSlug = assigneeSlug(member.email);
                   const isActive = activeAssigneeSlug === memberSlug;
                   const displayName = member.name || member.email.split("@")[0];
                   const memberLoad = statusCounts?.assigneeLoadBySlug?.[memberSlug] ?? 0;
@@ -454,7 +454,7 @@ export function Sidebar({
               {team
                 .filter((m) => m.email.toLowerCase() !== user.email.toLowerCase())
                 .map((member) => {
-                const memberSlug = member.email.replace("@", "_at_").replace(/\./g, "_");
+                const memberSlug = assigneeSlug(member.email);
                 const isActive = activeAssigneeSlug === memberSlug;
                 const displayName = member.name || member.email.split("@")[0];
                 // Step 65: Team担当別の件数バッジ
@@ -516,7 +516,5 @@ export function Sidebar({
     </aside>
   );
 }
-
-
 
 

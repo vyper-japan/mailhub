@@ -8,10 +8,11 @@ import { SettingsPanel, clearSettingsPanelRemountCache } from "@/app/settings/la
 type Props = {
   open: boolean;
   onClose: () => void;
+  testMode: boolean;
   onOpenActivity?: (ruleId?: string) => void;
 };
 
-export function SettingsDrawer({ open, onClose, onOpenActivity }: Props) {
+export function SettingsDrawer({ open, onClose, testMode, onOpenActivity }: Props) {
   const panelRef = useRef<HTMLDivElement | null>(null);
 
   // 意図的なclose (open: true→false) でパネルの再マウント耐性キャッシュをクリアする。
@@ -63,13 +64,12 @@ export function SettingsDrawer({ open, onClose, onOpenActivity }: Props) {
           </button>
         </div>
         <div className="flex-1 overflow-auto">
-          <SettingsPanel mode="drawer" onOpenActivity={onOpenActivity} />
+          <SettingsPanel mode="drawer" testMode={testMode} onOpenActivity={onOpenActivity} />
         </div>
       </div>
     </div>,
     document.body,
   );
 }
-
 
 

@@ -5,7 +5,9 @@ import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { isBroadDomain, normalizeDomain } from "@/lib/ruleSafety";
 import { buildMailhubLabelName, MAILHUB_USER_LABEL_PREFIX, slugifyMailhubLabel } from "@/lib/mailhub-labels";
+import { buildViewLabelSelectOptions } from "@/lib/view-label-options";
 import type { View } from "@/lib/views";
+import type { ImportPreviewV2 } from "@/lib/config-import-preview";
 import { normalizeVtjEmail } from "@/lib/assigneeRules";
 
 type SettingsMode = "drawer" | "page";
@@ -97,31 +99,18 @@ type ConfigHealth = {
   sheets: null | { configured: boolean; ok: boolean | null; detail: string | null };
 };
 
-type ImportPreview = {
-  labels: {
-    sourceCount: number;
-    targetCount: number;
-    willAdd: number;
-    willUpdate: number;
-    willSkip: number;
-    add: Array<{ labelName: string; afterDisplayName?: string }>;
-    update: Array<{ labelName: string; beforeDisplayName?: string; afterDisplayName?: string }>;
-    skip: Array<{ labelName: string }>;
-  };
-  rules: {
-    sourceCount: number;
-    targetCount: number;
-    willAdd: number;
-    willUpdate: number;
-    willSkip: number;
-    add: Array<{ id: string }>;
-    update: Array<{ id: string }>;
-    skip: Array<{ id: string }>;
-  };
-  warnings: Array<{ level: "danger"; message: string; totalChanges: number; threshold: number }>;
-  requiresConfirm: boolean;
-  previewToken?: string;
-};
+type ImportPreview = ImportPreviewV2 & { previewToken?: string };
+
+function getImportPreviewTotalChanges(preview: ImportPreview): number {
+  return (
+    preview.labels.willAdd +
+    preview.labels.willUpdate +
+    preview.rules.willAdd +
+    preview.rules.willUpdate +
+    preview.assignees.willAdd +
+    preview.assignees.willUpdate
+  );
+}
 
 async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, { ...init, headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) } });
@@ -152,7 +141,8 @@ export function clearSettingsPanelRemountCache() {
   assigneesDraftRemountCache = null;
 }
 
-export function SettingsPanel({ mode, onOpenActivity }: { mode: SettingsMode; onOpenActivity?: (ruleId?: string) => void }) {
+export function SettingsPanel({ mode, testMode, onOpenActivity }: { mode: SettingsMode; testMode: boolean; onOpenActivity?: (ruleId?: string) => void }) {
+  const viewLabelSelectOptions = useMemo(() => buildViewLabelSelectOptions(testMode), [testMode]);
   const [tab, setTabState] = useState<SettingsTab>(
     () => (settingsTabRemountCache && Date.now() - settingsTabRemountCache.at < 5000 ? settingsTabRemountCache.tab : "labels"),
   );
@@ -984,11 +974,7 @@ export function SettingsPanel({ mode, onOpenActivity }: { mode: SettingsMode; on
       return;
     }
     if (importPreview.requiresConfirm) {
-      const totalChanges =
-        importPreview.labels.willAdd +
-        importPreview.labels.willUpdate +
-        importPreview.rules.willAdd +
-        importPreview.rules.willUpdate;
+      const totalChanges = getImportPreviewTotalChanges(importPreview);
       const ok = window.confirm(`⚠️ 変更件数が${totalChanges}件です。Importを実行しますか？`);
       if (!ok) return;
     }
@@ -2336,15 +2322,9 @@ export function SettingsPanel({ mode, onOpenActivity }: { mode: SettingsMode; on
                   className="flex-1 border rounded px-3 py-2 text-sm"
                   disabled={!canEditViews}
                 >
-                  <option value="todo">todo</option>
-                  <option value="waiting">waiting</option>
-                  <option value="muted">muted</option>
-                  <option value="mine">mine</option>
-                  <option value="unassigned">unassigned</option>
-                  <option value="all">all</option>
-                  <option value="store-a">store-a</option>
-                  <option value="store-b">store-b</option>
-                  <option value="store-c">store-c</option>
+                  {viewLabelSelectOptions.newView.map((option) => (
+                    <option key={option.value} value={option.value}>{option.label}</option>
+                  ))}
                 </select>
                 <label className="flex items-center gap-2 text-sm px-2">
                   <input
@@ -2420,15 +2400,9 @@ export function SettingsPanel({ mode, onOpenActivity }: { mode: SettingsMode; on
                           className="flex-1 border rounded px-3 py-2 text-sm font-mono"
                           disabled={!isAdmin}
                         >
-                          <option value="todo">todo</option>
-                          <option value="waiting">waiting</option>
-                          <option value="muted">muted</option>
-                          <option value="mine">mine</option>
-                          <option value="unassigned">unassigned</option>
-                          <option value="all">all</option>
-                          <option value="store-a">store-a</option>
-                          <option value="store-b">store-b</option>
-                          <option value="store-c">store-c</option>
+                          {viewLabelSelectOptions.editView.map((option) => (
+                            <option key={option.value} value={option.value}>{option.label}</option>
+                          ))}
                         </select>
                         <label className="flex items-center gap-2 text-sm">
                           <input
@@ -3498,7 +3472,7 @@ export function SettingsPanel({ mode, onOpenActivity }: { mode: SettingsMode; on
                 isImporting ||
                 readOnly ||
                 !importPreview ||
-                (importPreview.labels.willAdd + importPreview.labels.willUpdate + importPreview.rules.willAdd + importPreview.rules.willUpdate === 0)
+                getImportPreviewTotalChanges(importPreview) === 0
               }
               title={!importPreview ? "先にPreviewを取得してください" : ""}
             >
@@ -3563,6 +3537,9 @@ export function SettingsPanel({ mode, onOpenActivity }: { mode: SettingsMode; on
           <div>
             Rules: file {importPreview.rules.sourceCount} / current {importPreview.rules.targetCount} / add {importPreview.rules.willAdd} / update {importPreview.rules.willUpdate} / skip {importPreview.rules.willSkip}
           </div>
+          <div>
+            Assignees: file {importPreview.assignees.sourceCount} / current {importPreview.assignees.targetCount} / add {importPreview.assignees.willAdd} / update {importPreview.assignees.willUpdate} / skip {importPreview.assignees.willSkip}
+          </div>
           {renderDiffList(
             "Labels Add",
             importPreview.labels.add,
@@ -3598,6 +3575,24 @@ export function SettingsPanel({ mode, onOpenActivity }: { mode: SettingsMode; on
             importPreview.rules.skip,
             (item) => item.id,
             "config-import-rules-skip",
+          )}
+          {renderDiffList(
+            "Assignees Add",
+            importPreview.assignees.add,
+            (item) => `${item.email} ${item.afterDisplayName ? `(${item.afterDisplayName})` : ""}`.trim(),
+            "config-import-assignees-add",
+          )}
+          {renderDiffList(
+            "Assignees Update",
+            importPreview.assignees.update,
+            (item) => `${item.email} ${item.beforeDisplayName ?? ""} → ${item.afterDisplayName ?? ""}`.trim(),
+            "config-import-assignees-update",
+          )}
+          {renderDiffList(
+            "Assignees Skip",
+            importPreview.assignees.skip,
+            (item) => `${item.email} ${item.afterDisplayName ? `(${item.afterDisplayName})` : ""}`.trim(),
+            "config-import-assignees-skip",
           )}
         </div>
       )}

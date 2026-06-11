@@ -4,6 +4,8 @@
  * - LabelItem: 子ラベル（All, StoreA, Todo等）
  */
 
+import { getChannels } from "@/lib/channels";
+
 export type LabelType = "channel" | "status" | "marketplace" | "assignee";
 export type StatusType = "todo" | "waiting" | "done" | "muted" | "snoozed";
 
@@ -29,70 +31,73 @@ export type LabelGroup = {
   items: LabelItem[];
 };
 
+const STATUS_GROUP: LabelGroup = {
+  id: "status",
+  label: "ステータス",
+  collapsible: true,
+  defaultCollapsed: false, // デフォルト展開
+  items: [
+    { id: "todo", label: "未対応", type: "status", statusType: "todo" },
+    { id: "waiting", label: "保留", type: "status", statusType: "waiting" },
+    { id: "done", label: "完了", type: "status", statusType: "done" },
+    { id: "muted", label: "低優先", type: "status", statusType: "muted" },
+    { id: "snoozed", label: "スヌーズ", type: "status", statusType: "snoozed" },
+  ],
+};
+
+const ASSIGNEE_GROUP: LabelGroup = {
+  id: "assignee",
+  label: "担当者",
+  collapsible: true,
+  defaultCollapsed: false,
+  items: [
+    { id: "mine", label: "自分", type: "assignee" },
+    { id: "unassigned", label: "未割当", type: "assignee" },
+  ],
+};
+
+function cloneGroup(group: LabelGroup): LabelGroup {
+  return {
+    ...group,
+    items: group.items.map((item) => ({ ...item })),
+  };
+}
+
+export function buildLabelGroups(testMode: boolean): LabelGroup[] {
+  return [
+    {
+      id: "channels",
+      label: "チャンネル",
+      collapsible: true,
+      defaultCollapsed: false,
+      items: getChannels(testMode).map((channel) => {
+        const item: LabelItem = {
+          id: channel.id,
+          label: channel.id === "all" ? "すべて" : channel.label,
+          type: "channel",
+        };
+        if (channel.q) item.q = channel.q;
+        return item;
+      }),
+    },
+    cloneGroup(STATUS_GROUP),
+    cloneGroup(ASSIGNEE_GROUP),
+  ];
+}
+
 /**
  * ラベルツリー定義
  * Channels: メール振り分け用（既存のchannels.tsと互換）
  * Status: 対応状況（将来用）
  */
-export const LABEL_GROUPS: LabelGroup[] = [
-  {
-    id: "channels",
-    label: "チャンネル",
-    collapsible: true,
-    defaultCollapsed: false,
-    items: [
-      { id: "all", label: "すべて", type: "channel" },
-      {
-        id: "store-a",
-        label: "StoreA",
-        type: "channel",
-        q: "(deliveredto:shop-a@vtj.co.jp OR to:shop-a@vtj.co.jp OR cc:shop-a@vtj.co.jp)",
-      },
-      {
-        id: "store-b",
-        label: "StoreB",
-        type: "channel",
-        q: "(deliveredto:shop-b@vtj.co.jp OR to:shop-b@vtj.co.jp OR cc:shop-b@vtj.co.jp)",
-      },
-      {
-        id: "store-c",
-        label: "StoreC",
-        type: "channel",
-        q: "(deliveredto:shop-c@vtj.co.jp OR to:shop-c@vtj.co.jp OR cc:shop-c@vtj.co.jp)",
-      },
-    ],
-  },
-  {
-    id: "status",
-    label: "ステータス",
-    collapsible: true,
-    defaultCollapsed: false, // デフォルト展開
-    items: [
-      { id: "todo", label: "未対応", type: "status", statusType: "todo" },
-      { id: "waiting", label: "保留", type: "status", statusType: "waiting" },
-      { id: "done", label: "完了", type: "status", statusType: "done" },
-      { id: "muted", label: "低優先", type: "status", statusType: "muted" },
-      { id: "snoozed", label: "スヌーズ", type: "status", statusType: "snoozed" },
-    ],
-  },
-  {
-    id: "assignee",
-    label: "担当者",
-    collapsible: true,
-    defaultCollapsed: false,
-    items: [
-      { id: "mine", label: "自分", type: "assignee" },
-      { id: "unassigned", label: "未割当", type: "assignee" },
-    ],
-  },
-];
+export const LABEL_GROUPS: LabelGroup[] = buildLabelGroups(true);
 
 /**
  * IDからラベルを検索
  */
-export function getLabelById(id: string | undefined): LabelItem | null {
+export function getLabelById(id: string | undefined, testMode = true): LabelItem | null {
   if (!id) return null;
-  for (const group of LABEL_GROUPS) {
+  for (const group of buildLabelGroups(testMode)) {
     const hit = group.items.find((item) => item.id === id);
     if (hit) return hit;
   }
@@ -102,8 +107,8 @@ export function getLabelById(id: string | undefined): LabelItem | null {
 /**
  * デフォルトラベル（All）を取得
  */
-export function getDefaultLabel(): LabelItem {
-  return LABEL_GROUPS[0].items[0];
+export function getDefaultLabel(testMode = true): LabelItem {
+  return buildLabelGroups(testMode)[0].items[0];
 }
 
 /**
@@ -118,4 +123,3 @@ export function getLabelQuery(label: LabelItem): string | undefined {
   // status タイプは将来実装
   return undefined;
 }
-

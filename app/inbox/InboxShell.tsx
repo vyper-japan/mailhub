@@ -9,7 +9,7 @@ import type { LabelGroup, LabelItem } from "@/lib/labels";
 import type { ThreadMessageSummary } from "@/lib/thread";
 import { routeReply } from "@/lib/replyRouter";
 import { extractInquiryNumber } from "@/lib/rakuten/extract";
-import { type ChannelId } from "@/lib/channels";
+import { coerceChannelId, getChannels, type ChannelId } from "@/lib/channels";
 import { getTriageCandidates, type TriageContext } from "@/lib/triageRules";
 import { assigneeSlug } from "@/lib/assignee";
 import { fetchJson, postJsonOrThrow } from "./client-api";
@@ -95,6 +95,17 @@ export default function InboxShell({
 
   const [labelId, setLabelId] = useState<string>(initialLabelId);
   const [channelId, setChannelId] = useState<ChannelId>(initialChannelId);
+  const availableChannelIds = useMemo(
+    () => getChannels(testMode).map((channel) => channel.id),
+    [testMode],
+  );
+  const resolveChannelId = useCallback(
+    (candidate: string | null | undefined): ChannelId => {
+      if (!candidate || !availableChannelIds.includes(candidate as ChannelId)) return "all";
+      return coerceChannelId(candidate, testMode) ?? "all";
+    },
+    [availableChannelIds, testMode],
+  );
   const [messages, setMessages] = useState<InboxListMessage[]>(() => initialMessages);
   // Step 103: ページングトークン
   const [nextPageToken, setNextPageToken] = useState<string | null>(null);
@@ -850,7 +861,7 @@ export default function InboxShell({
   const assigneeDisplayNameMap = useMemo(() => {
     const map = new Map<string, string>();
     for (const m of team) {
-      const slug = m.email.replace("@", "_at_").replace(/\./g, "_");
+      const slug = assigneeSlug(m.email);
       // displayName優先、なければ短縮email（ローカル部分）
       map.set(slug, m.name || m.email.split("@")[0]);
     }
@@ -1284,13 +1295,9 @@ export default function InboxShell({
   useEffect(() => {
     // Step 51: 検索クエリをURLに保持
     replaceUrl(labelId, selectedId, true, serverSearchQuery || undefined);
-    // labelIdからchannelIdを更新（URLから直接開いた場合の対応）
-    if (labelId === "store-a" || labelId === "store-b" || labelId === "store-c") {
-      setChannelId(labelId as ChannelId);
-    } else {
-      setChannelId("all");
-    }
-  }, [labelId, selectedId, serverSearchQuery, replaceUrl]);
+    const params = new URLSearchParams(window.location.search);
+    setChannelId(resolveChannelId(params.get("channel") ?? labelId));
+  }, [labelId, selectedId, serverSearchQuery, replaceUrl, resolveChannelId]);
 
   // Step 50: デバウンス用のref（300-500ms）
   const fetchCountsDebounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -1711,8 +1718,8 @@ export default function InboxShell({
       bodySource: detailBody.htmlBody ? "html" : "plain",
       bodyNotice: detailBody.bodyNotice,
     };
-    return routeReply(detail, channelId);
-  }, [selectedMessage, detailBody.plainTextBody, detailBody.htmlBody, detailBody.bodyNotice, channelId]);
+    return routeReply(detail, channelId, testMode);
+  }, [selectedMessage, detailBody.plainTextBody, detailBody.htmlBody, detailBody.bodyNotice, channelId, testMode]);
 
   // 問い合わせ番号を自動抽出（Step55: replyRouteから取得）
   useEffect(() => {
@@ -2276,16 +2283,19 @@ export default function InboxShell({
   }, [messages.length, initialMessages.length, listError, isPending, labelId, loadList]);
 
   const onSelectLabel = useCallback((item: LabelItem) => {
+    const nextChannelId = resolveChannelId(item.id);
     // 同じラベルでも再読み込みする（リストが更新されない問題を修正）
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("assignee");
+      if (nextChannelId === "all") url.searchParams.delete("channel");
+      else url.searchParams.set("channel", nextChannelId);
+      window.history.replaceState({}, "", url.toString());
+    }
     setLabelId(item.id);
     setActiveViewId(null);
     // Step 64: Team View をクリア
     setActiveAssigneeSlug(null);
-    if (typeof window !== "undefined") {
-      const url = new URL(window.location.href);
-      url.searchParams.delete("assignee");
-      window.history.replaceState({}, "", url.toString());
-    }
     
     // ステータスラベルをクリックしたときは、対応するviewTabを設定（タブとサイドバーをリンク）
     if (item.statusType === "todo") {
@@ -2305,11 +2315,7 @@ export default function InboxShell({
     }
     
     // channelIdを更新（labelIdから推測）
-    if (item.id === "store-a" || item.id === "store-b" || item.id === "store-c") {
-      setChannelId(item.id as ChannelId);
-    } else {
-      setChannelId("all");
-    }
+    setChannelId(nextChannelId);
     
     // loadList内でreplaceUrlが呼ばれるため、ここでは呼ばない
     // startTransitionを使ってloadListを呼ぶ（Reactの状態更新を確実にする）
@@ -2324,7 +2330,7 @@ export default function InboxShell({
         setListError(e instanceof Error ? e.message : String(e));
       }
     });
-  }, [loadList]);
+  }, [loadList, resolveChannelId]);
 
   const onSelectView = useCallback((viewId: string) => {
     const v = views.find((x) => x.id === viewId);
@@ -2436,7 +2442,7 @@ export default function InboxShell({
 
   // Step 64: Team View - チームメンバー選択ハンドラ
   const handleSelectTeamMember = useCallback((email: string) => {
-    const memberSlug = email.replace("@", "_at_").replace(/\./g, "_");
+    const memberSlug = assigneeSlug(email);
     setActiveAssigneeSlug(memberSlug);
     setViewTab("inbox");
     const todoLabel = labelGroups.flatMap((g) => g.items).find((item) => item.statusType === "todo");
@@ -5393,6 +5399,7 @@ export default function InboxShell({
           <SettingsDrawer
             open={showSettingsDrawer}
             onClose={() => setShowSettingsDrawer(false)}
+            testMode={testMode}
             onOpenActivity={(ruleId) => {
               // Settings内リンクから開く場合も、Settings overlay がクリックを遮るため先に閉じる
               setShowSettingsDrawer(false);

@@ -6,160 +6,24 @@ import { getLabelRegistryFileStoreForImport, overwriteRegisteredLabelsForImport 
 import { getLabelRulesFileStoreForImport, overwriteLabelRulesForImport } from "@/lib/labelRulesStore";
 import { getLabelRegistryStore } from "@/lib/labelRegistryStore";
 import { getLabelRulesStore } from "@/lib/labelRulesStore";
-import type { RegisteredLabel } from "@/lib/labelRegistryStore";
-import type { LabelRule } from "@/lib/labelRules";
+import {
+  getAssigneeRegistryFileStoreForImport,
+  getAssigneeRegistryStore,
+  getInvalidAssigneeImportSourceEmails,
+  normalizeAssignees,
+  overwriteAssigneesForImport,
+} from "@/lib/assigneeRegistryStore";
+import {
+  buildLabelIndex,
+  buildPreviewToken,
+  buildRuleIndex,
+  computeImportPreview,
+} from "@/lib/config-import-preview";
 import { isReadOnlyMode, writeForbiddenResponse } from "@/lib/read-only";
 import { logAction } from "@/lib/audit-log";
 import { isTestMode } from "@/lib/test-mode";
-import { createHash } from "crypto";
 
 export const dynamic = "force-dynamic";
-
-type LabelDiffItem = {
-  labelName: string;
-  beforeDisplayName?: string;
-  afterDisplayName?: string;
-};
-
-type RuleDiffItem = {
-  id: string;
-};
-
-type Preview = {
-  labels: {
-    sourceCount: number;
-    targetCount: number;
-    willAdd: number;
-    willUpdate: number;
-    willSkip: number;
-    add: LabelDiffItem[];
-    update: LabelDiffItem[];
-    skip: LabelDiffItem[];
-  };
-  rules: {
-    sourceCount: number;
-    targetCount: number;
-    willAdd: number;
-    willUpdate: number;
-    willSkip: number;
-    add: RuleDiffItem[];
-    update: RuleDiffItem[];
-    skip: RuleDiffItem[];
-  };
-  warnings: Array<{ level: "danger"; message: string; totalChanges: number; threshold: number }>;
-  requiresConfirm: boolean;
-};
-
-function buildLabelIndex(labels: RegisteredLabel[]): Map<string, RegisteredLabel> {
-  return new Map(labels.map((l) => [l.labelName, l]));
-}
-
-function buildRuleIndex(rules: LabelRule[]): Map<string, LabelRule> {
-  return new Map(rules.map((r) => [r.id, r]));
-}
-
-function normalizeRule(r: LabelRule): LabelRule {
-  return {
-    ...r,
-    labelNames: r.labelNames?.length ? r.labelNames : r.labelName ? [r.labelName] : [],
-  };
-}
-
-function computePreview(sourceLabels: RegisteredLabel[], targetLabels: RegisteredLabel[], sourceRules: LabelRule[], targetRules: LabelRule[]): Preview {
-  const sL = buildLabelIndex(sourceLabels);
-  const tL = buildLabelIndex(targetLabels);
-  const addLabels: LabelDiffItem[] = [];
-  const updateLabels: LabelDiffItem[] = [];
-  const skipLabels: LabelDiffItem[] = [];
-  for (const [k, v] of sL) {
-    const cur = tL.get(k);
-    if (!cur) {
-      addLabels.push({ labelName: k, afterDisplayName: v.displayName ?? "" });
-      continue;
-    }
-    if ((cur.displayName ?? "") !== (v.displayName ?? "")) {
-      updateLabels.push({
-        labelName: k,
-        beforeDisplayName: cur.displayName ?? "",
-        afterDisplayName: v.displayName ?? "",
-      });
-    } else {
-      skipLabels.push({ labelName: k, afterDisplayName: v.displayName ?? "" });
-    }
-  }
-
-  const sR = buildRuleIndex(sourceRules.map(normalizeRule));
-  const tR = buildRuleIndex(targetRules.map(normalizeRule));
-  const addRules: RuleDiffItem[] = [];
-  const updateRules: RuleDiffItem[] = [];
-  const skipRules: RuleDiffItem[] = [];
-  for (const [id, v] of sR) {
-    const cur = tR.get(id);
-    if (!cur) {
-      addRules.push({ id });
-      continue;
-    }
-    const same =
-      cur.enabled === v.enabled &&
-      (cur.match.fromEmail ?? "") === (v.match.fromEmail ?? "") &&
-      (cur.match.fromDomain ?? "") === (v.match.fromDomain ?? "") &&
-      JSON.stringify((cur.labelNames ?? []).slice().sort()) === JSON.stringify((v.labelNames ?? []).slice().sort());
-    if (!same) {
-      updateRules.push({ id });
-    } else {
-      skipRules.push({ id });
-    }
-  }
-
-  const willAddL = addLabels.length;
-  const willUpdateL = updateLabels.length;
-  const willSkipL = skipLabels.length;
-  const willAddR = addRules.length;
-  const willUpdateR = updateRules.length;
-  const willSkipR = skipRules.length;
-  const totalChanges = willAddL + willUpdateL + willAddR + willUpdateR;
-  const DANGER_THRESHOLD = 50;
-  const warnings =
-    totalChanges >= DANGER_THRESHOLD
-      ? [
-          {
-            level: "danger" as const,
-            message: `⚠️ 変更件数が${totalChanges}件です。意図した差分か必ず確認してください。`,
-            totalChanges,
-            threshold: DANGER_THRESHOLD,
-          },
-        ]
-      : [];
-
-  return {
-    labels: {
-      sourceCount: sourceLabels.length,
-      targetCount: targetLabels.length,
-      willAdd: willAddL,
-      willUpdate: willUpdateL,
-      willSkip: willSkipL,
-      add: addLabels,
-      update: updateLabels,
-      skip: skipLabels,
-    },
-    rules: {
-      sourceCount: sourceRules.length,
-      targetCount: targetRules.length,
-      willAdd: willAddR,
-      willUpdate: willUpdateR,
-      willSkip: willSkipR,
-      add: addRules,
-      update: updateRules,
-      skip: skipRules,
-    },
-    warnings,
-    requiresConfirm: warnings.length > 0,
-  };
-}
-
-function buildPreviewToken(preview: Preview): string {
-  return createHash("sha256").update(JSON.stringify(preview)).digest("hex").slice(0, 12);
-}
 
 export async function POST(req: Request) {
   const authResult = await requireUser();
@@ -181,18 +45,35 @@ export async function POST(req: Request) {
   const previewTokenFromClient = typeof body.previewToken === "string" ? body.previewToken : null;
   const confirmed = body.confirmed === true;
 
-  const [sourceLabels, sourceRules] = await Promise.all([
+  const [sourceLabels, sourceRules, rawSourceAssignees] = await Promise.all([
     getLabelRegistryFileStoreForImport().list(),
     getLabelRulesFileStoreForImport().getRules(),
+    getAssigneeRegistryFileStoreForImport().list(),
   ]);
+  const sourceAssignees = normalizeAssignees(rawSourceAssignees);
+  const invalidAssigneeEmails = getInvalidAssigneeImportSourceEmails(sourceAssignees);
+  if (invalidAssigneeEmails.length > 0) {
+    return NextResponse.json(
+      { error: "import_invalid_assignee_domain", emails: invalidAssigneeEmails },
+      { status: 400 },
+    );
+  }
 
   // targetは現store（sheets想定）
-  const [targetLabels, targetRules] = await Promise.all([
+  const [targetLabels, targetRules, targetAssignees] = await Promise.all([
     getLabelRegistryStore().list(),
     getLabelRulesStore().getRules(),
+    getAssigneeRegistryStore().list(),
   ]);
 
-  const preview = computePreview(sourceLabels, targetLabels, sourceRules, targetRules);
+  const preview = computeImportPreview({
+    sourceLabels,
+    targetLabels,
+    sourceRules,
+    targetRules,
+    sourceAssignees,
+    targetAssignees,
+  });
   const previewToken = buildPreviewToken(preview);
   if (dryRun) {
     if (log) {
@@ -227,6 +108,9 @@ export async function POST(req: Request) {
 
   await overwriteRegisteredLabelsForImport(mergedLabels);
   await overwriteLabelRulesForImport(mergedRules);
+  if (sourceAssignees.length > 0) {
+    await overwriteAssigneesForImport(sourceAssignees, targetAssignees);
+  }
 
   await logAction({
     actorEmail: authResult.user.email,
@@ -237,5 +121,4 @@ export async function POST(req: Request) {
 
   return NextResponse.json({ ok: true, preview, previewToken }, { headers: { "cache-control": "no-store" } });
 }
-
 

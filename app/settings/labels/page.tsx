@@ -1,9 +1,11 @@
 import { requireUser } from "@/lib/require-user";
+import { isTestMode } from "@/lib/test-mode";
 import { SettingsPanel } from "./settings-panel";
 
 export const dynamic = "force-dynamic";
 
 export default async function LabelsSettingsPage() {
+  const testMode = isTestMode();
   const auth = await requireUser();
   if (!auth.ok) {
     return (
@@ -14,8 +16,7 @@ export default async function LabelsSettingsPage() {
     );
   }
 
-  return <SettingsPanel mode="page" />;
+  return <SettingsPanel mode="page" testMode={testMode} />;
 }
-
 
 

@@ -17,11 +17,14 @@
  *   - 掃除対象は SIGTERM (行儀よく終了)。SIGKILL の連打はしない。
  */
 import { execSync } from "node:child_process";
+import { existsSync, readFileSync, unlinkSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const PORT = 3001;
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const ASSIGNEES_SOURCE_PATH = path.join(REPO_ROOT, ".mailhub", "assignees.json");
+const E2E_ASSIGNEE_PREFIX = "e2e-import-";
 
 /** port を LISTEN しているプロセスの PID 一覧 (誰もいなければ空配列) */
 function listeningPids(port) {
@@ -63,7 +66,33 @@ function isOwnMailhubDev(cmd) {
   return ownsRepo || explicitPort || e2eEnv;
 }
 
+function isE2eOnlyAssigneesFile(value) {
+  if (!Array.isArray(value) || value.length === 0) return false;
+  return value.every((item) => {
+    if (!item || typeof item !== "object") return false;
+    const email = typeof item.email === "string" ? item.email.trim().toLowerCase() : "";
+    return email.startsWith(E2E_ASSIGNEE_PREFIX) && email.endsWith("@vtj.co.jp");
+  });
+}
+
+function cleanE2eAssigneesSource() {
+  if (!existsSync(ASSIGNEES_SOURCE_PATH)) return;
+  try {
+    const parsed = JSON.parse(readFileSync(ASSIGNEES_SOURCE_PATH, "utf8"));
+    if (!isE2eOnlyAssigneesFile(parsed)) {
+      console.warn("[e2e-preclean] .mailhub/assignees.json はE2E専用prefix以外を含むため削除しません。");
+      return;
+    }
+    unlinkSync(ASSIGNEES_SOURCE_PATH);
+    console.log("[e2e-preclean] E2E専用 .mailhub/assignees.json を削除しました。");
+  } catch (e) {
+    console.warn(`[e2e-preclean] .mailhub/assignees.json の確認に失敗。削除しません: ${e.message}`);
+  }
+}
+
 function main() {
+  cleanE2eAssigneesSource();
+
   const pids = listeningPids(PORT);
   if (pids.length === 0) {
     console.log(`[e2e-preclean] port ${PORT} は空き。掃除不要。`);

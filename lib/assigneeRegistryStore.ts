@@ -46,6 +46,34 @@ function serializeAssignees(data: AssigneeEntry[]): string {
   return JSON.stringify(data, null, 2);
 }
 
+export function normalizeAssignees(entries: AssigneeEntry[]): AssigneeEntry[] {
+  const seen = new Set<string>();
+  const normalized: AssigneeEntry[] = [];
+  for (const e of entries) {
+    const email = e.email.toLowerCase().trim();
+    if (!email || seen.has(email)) continue;
+    seen.add(email);
+    normalized.push({
+      email,
+      displayName: e.displayName?.trim() || undefined,
+    });
+  }
+  return normalized.sort((a, b) => a.email.localeCompare(b.email));
+}
+
+export function getInvalidAssigneeImportSourceEmails(entries: AssigneeEntry[]): string[] {
+  return normalizeAssignees(entries)
+    .filter((e) => !e.email.endsWith(`@${ALLOWED_DOMAIN}`))
+    .map((e) => e.email);
+}
+
+function assertValidAssigneeImportSource(entries: AssigneeEntry[]): void {
+  const invalidEmails = getInvalidAssigneeImportSourceEmails(entries);
+  if (invalidEmails.length > 0) {
+    throw new Error(`assignee_import_invalid_domain:${invalidEmails.join(",")}`);
+  }
+}
+
 function buildConfigStore(forceType?: ConfigStoreType): ConfigStore<AssigneeEntry[]> {
   return createConfigStore<AssigneeEntry[]>({
     key: "__mailhub_config_assignees",
@@ -75,26 +103,13 @@ class Store implements AssigneeRegistryStore {
   }
 
   async replaceAll(entries: AssigneeEntry[]): Promise<AssigneeEntry[]> {
-    // 正規化・重複除去・昇順ソート
-    const seen = new Set<string>();
-    const normalized: AssigneeEntry[] = [];
-    for (const e of entries) {
-      const email = e.email.toLowerCase().trim();
-      if (seen.has(email)) continue;
-      seen.add(email);
-      normalized.push({
-        email,
-        displayName: e.displayName?.trim() || undefined,
-      });
-    }
+    const normalized = normalizeAssignees(entries);
 
     // バリデーション: vtj.co.jpドメインのみ許可（正規化後にチェック）
     const invalidEntries = normalized.filter((e) => !e.email.endsWith(`@${ALLOWED_DOMAIN}`));
     if (invalidEntries.length > 0) {
       throw new Error(`assignee_invalid_domain:${invalidEntries.map((e) => e.email).join(",")}`);
     }
-
-    normalized.sort((a, b) => a.email.localeCompare(b.email));
 
     await this.cfg.write(normalized);
     return normalized;
@@ -112,6 +127,27 @@ export function getAssigneeRegistryStore(forceType?: ConfigStoreType): AssigneeR
   const cfg = buildConfigStore(forceType);
   _instance = new Store(cfg);
   return _instance;
+}
+
+export function getAssigneeRegistryFileStoreForImport(): AssigneeRegistryStore {
+  return new Store(buildConfigStore("file"));
+}
+
+export async function overwriteAssigneesForImport(sourceEntries: AssigneeEntry[], targetEntries: AssigneeEntry[]): Promise<AssigneeEntry[]> {
+  const normalizedSource = normalizeAssignees(sourceEntries);
+  assertValidAssigneeImportSource(normalizedSource);
+
+  const merged = new Map<string, AssigneeEntry>();
+  for (const entry of normalizeAssignees(targetEntries)) {
+    merged.set(entry.email, entry);
+  }
+  for (const entry of normalizedSource) {
+    merged.set(entry.email, entry);
+  }
+
+  const next = [...merged.values()].sort((a, b) => a.email.localeCompare(b.email));
+  await buildConfigStore().write(next);
+  return next;
 }
 
 /** テスト用: インスタンスをリセット */

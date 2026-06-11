@@ -1,4 +1,12 @@
 import { test, expect, type Page } from "@playwright/test";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+
+const repoRoot = process.cwd();
+const e2eImportAssignees = [
+  { email: "e2e-import-alpha@vtj.co.jp", displayName: "E2E Import Alpha" },
+  { email: "e2e-import-beta@vtj.co.jp", displayName: "E2E Import Beta" },
+];
 
 async function openSettingsTab(page: Page, tab: "assignees" | "team") {
   const targetPanel = page.getByTestId(`settings-panel-${tab}`);
@@ -47,6 +55,12 @@ function normalizeAssigneesForAssert(value: unknown) {
       displayName: typeof obj.displayName === "string" ? obj.displayName : null,
     };
   });
+}
+
+function seedImportAssigneesSource() {
+  const mailhubDir = join(repoRoot, ".mailhub");
+  mkdirSync(mailhubDir, { recursive: true });
+  writeFileSync(join(mailhubDir, "assignees.json"), JSON.stringify(e2eImportAssignees, null, 2), "utf8");
 }
 
 test.describe("QA-Strict Unified E2E Tests", () => {
@@ -4857,6 +4871,7 @@ test("Step82-1) Settings→ExportでJSONに必要なキーが含まれる", asyn
   expect(json).toHaveProperty("labels");
   expect(json).toHaveProperty("rules");
   expect(json).toHaveProperty("assignees");
+  expect(normalizeAssigneesForAssert(json.assignees)).toEqual([{ email: "export@vtj.co.jp", displayName: "Export Test" }]);
   expect(json).toHaveProperty("meta");
   expect(json.meta).toHaveProperty("env");
   expect(json.meta).toHaveProperty("counts");
@@ -4882,8 +4897,7 @@ test("Step82-1) Settings→ExportでJSONに必要なキーが含まれる", asyn
     (r) => r.url().includes("/api/mailhub/config/export") && r.status() === 200,
     { timeout: 15000 }
   );
-  await page.getByTestId("config-export").click();
-  await exportRespP;
+  await Promise.all([exportRespP, page.getByTestId("config-export").click()]);
   
   // 6) 成功トーストが表示されること（Settings内のトースト）
   await expect(page.getByTestId("settings-toast")).toBeVisible({ timeout: 5000 });
@@ -4898,6 +4912,7 @@ test("Step96-1) Import Preview→差分表示→Apply→counts増加", async ({ 
   await page.addInitScript(() => {
     localStorage.setItem("mailhub-onboarding-shown", "true");
   });
+  seedImportAssigneesSource();
 
   const healthBefore = await page.request.get("/api/mailhub/config/health");
   const healthJsonBefore = (await healthBefore.json()) as { labelsCount?: number; rulesCount?: number };
@@ -4914,15 +4929,26 @@ test("Step96-1) Import Preview→差分表示→Apply→counts増加", async ({ 
     (r) => r.url().includes("/api/mailhub/config/import") && r.request().method() === "POST" && r.status() === 200,
     { timeout: 15000 },
   );
-  await page.getByTestId("config-import-preview").click();
-  const previewResp = await previewRespP;
+  const [previewResp] = await Promise.all([previewRespP, page.getByTestId("config-import-preview").click()]);
   const previewJson = (await previewResp.json()) as {
     preview: {
       labels: { willAdd: number; willUpdate: number; willSkip: number; add: Array<unknown>; update: Array<unknown>; skip: Array<unknown> };
       rules: { willAdd: number; willUpdate: number; willSkip: number; add: Array<unknown>; update: Array<unknown>; skip: Array<unknown> };
+      assignees: {
+        willAdd: number;
+        willUpdate: number;
+        willSkip: number;
+        add: Array<{ email?: string }>;
+        update: Array<{ email?: string }>;
+        skip: Array<{ email?: string }>;
+      };
       requiresConfirm: boolean;
     };
   };
+  expect(previewJson.preview.assignees.willAdd).toBeGreaterThanOrEqual(e2eImportAssignees.length);
+  expect(previewJson.preview.assignees.add.map((item) => item.email).sort()).toEqual(
+    e2eImportAssignees.map((item) => item.email).sort(),
+  );
 
   // 差分表示が出ていることを確認
   await expect(page.getByTestId("config-import-preview-result")).toBeVisible({ timeout: 5000 });
@@ -4932,6 +4958,9 @@ test("Step96-1) Import Preview→差分表示→Apply→counts増加", async ({ 
   if (previewJson.preview.rules.add.length > 0) {
     await expect(page.getByTestId("config-import-rules-add")).toBeVisible({ timeout: 5000 });
   }
+  if (previewJson.preview.assignees.add.length > 0) {
+    await expect(page.getByTestId("config-import-assignees-add")).toBeVisible({ timeout: 5000 });
+  }
 
   // Apply実行
   await expect(page.getByTestId("config-import-apply")).toBeVisible({ timeout: 5000 });
@@ -4939,18 +4968,51 @@ test("Step96-1) Import Preview→差分表示→Apply→counts増加", async ({ 
     (r) => r.url().includes("/api/mailhub/config/import") && r.request().method() === "POST" && r.status() === 200,
     { timeout: 15000 },
   );
-  await page.getByTestId("config-import-apply").click();
-  await applyRespP;
+  await Promise.all([applyRespP, page.getByTestId("config-import-apply").click()]);
 
   // Health countsが増える（追加分以上）
-  const healthAfter = await page.request.get("/api/mailhub/config/health");
-  const healthJsonAfter = (await healthAfter.json()) as { labelsCount?: number; rulesCount?: number };
   const labelsBefore = healthJsonBefore.labelsCount ?? 0;
   const rulesBefore = healthJsonBefore.rulesCount ?? 0;
-  const labelsAfter = healthJsonAfter.labelsCount ?? 0;
-  const rulesAfter = healthJsonAfter.rulesCount ?? 0;
-  expect(labelsAfter).toBeGreaterThanOrEqual(labelsBefore + previewJson.preview.labels.willAdd);
-  expect(rulesAfter).toBeGreaterThanOrEqual(rulesBefore + previewJson.preview.rules.willAdd);
+  await expect.poll(async () => {
+    const healthAfter = await page.request.get("/api/mailhub/config/health");
+    const healthJsonAfter = (await healthAfter.json()) as { labelsCount?: number; rulesCount?: number };
+    const labelsAfter = healthJsonAfter.labelsCount ?? 0;
+    const rulesAfter = healthJsonAfter.rulesCount ?? 0;
+    return labelsAfter >= labelsBefore + previewJson.preview.labels.willAdd &&
+      rulesAfter >= rulesBefore + previewJson.preview.rules.willAdd;
+  }, { timeout: 10000, intervals: [250, 500, 1000] }).toBe(true);
+
+  await expect.poll(async () => {
+    const assigneesResp = await page.request.get("/api/mailhub/assignees");
+    const body = (await assigneesResp.json()) as { assignees?: unknown };
+    const assignees = normalizeAssigneesForAssert(body.assignees);
+    return e2eImportAssignees.every((expected) =>
+      assignees.some((actual) => actual.email === expected.email && actual.displayName === expected.displayName),
+    );
+  }, { timeout: 10000, intervals: [250, 500, 1000] }).toBe(true);
+
+  const secondPreviewRespP = page.waitForResponse(
+    (r) => r.url().includes("/api/mailhub/config/import") && r.request().method() === "POST" && r.status() === 200,
+    { timeout: 15000 },
+  );
+  const [secondPreviewResp] = await Promise.all([secondPreviewRespP, page.getByTestId("config-import-preview").click()]);
+  const secondPreviewJson = (await secondPreviewResp.json()) as {
+    preview: {
+      assignees: {
+        willAdd: number;
+        willUpdate: number;
+        willSkip: number;
+        skip: Array<{ email?: string }>;
+      };
+    };
+  };
+  expect(secondPreviewJson.preview.assignees.willAdd).toBe(0);
+  expect(secondPreviewJson.preview.assignees.willUpdate).toBe(0);
+  expect(secondPreviewJson.preview.assignees.willSkip).toBeGreaterThanOrEqual(e2eImportAssignees.length);
+  expect(secondPreviewJson.preview.assignees.skip.map((item) => item.email).sort()).toEqual(
+    e2eImportAssignees.map((item) => item.email).sort(),
+  );
+  await expect(page.getByTestId("config-import-assignees-skip")).toBeVisible({ timeout: 5000 });
 });
 
 // ========== Step 97: Focus Refresh ==========
