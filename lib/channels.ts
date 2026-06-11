@@ -121,7 +121,7 @@ const PROD_CHANNELS: ChannelDef[] = ([
   },
   {
     id: "gopro-mp",
-    label: "GoPro MP",
+    label: "GoPro Amazon",
     addresses: ["gopro_mp@vtj.co.jp"],
     replyKind: "gmail",
   },
