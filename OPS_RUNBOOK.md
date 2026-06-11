@@ -2,6 +2,8 @@
 
 MailHubの日常運用とトラブルシューティングの手順書です。
 
+本番rolloutの正本手順は `~/.claude/instructions/mailhub-prod-rollout/phase1/ops/prod-rollout-runbook.md`、本番env台帳は `~/.claude/instructions/mailhub-prod-rollout/phase1/ops/prod-env-ledger.md` を参照します。本番secret値はrunbookやログに書かず、secret_refで管理します。
+
 ## 📋 目次
 
 1. [オンボーディング](#オンボーディング)
@@ -286,8 +288,9 @@ SLA Focus状態をURLで共有できます：
 - 非管理者が直接APIを叩いても `403 forbidden_admin_only` で拒否される（UIでも歯車非表示）。
 
 ### 永続化（Config Store）
-- `MAILHUB_CONFIG_STORE=sheets`（推奨）で、ラベル/ルール設定をGoogle Sheetsに保存する。
-  - Tabs: `ConfigLabels` / `ConfigRules`（必要なら `MAILHUB_SHEETS_TAB_LABELS` / `MAILHUB_SHEETS_TAB_RULES` で変更）
+- `MAILHUB_CONFIG_STORE=sheets`（推奨）で、ラベル/ルール/担当者/テンプレ/ビュー/メモ等の設定をGoogle Sheetsに保存する。
+  - 主要Tabs: `ConfigLabels` / `ConfigRules` / `ConfigAssignees` / `ConfigAssigneeRules` / `ConfigTemplates` / `ConfigSavedSearches` / `ConfigViews` / `ConfigTeam` / `ConfigRoster` / `ConfigNotes` / `ConfigMeta`
+  - 必要なら `MAILHUB_SHEETS_TAB_*` の各envでタブ名を変更する。詳細は本番env台帳を参照する。
   - Sheets config writeは同一プロセス内でタブ単位に直列化される。
   - 複数インスタンス/複数プロセス間では直列化されないため、同時編集運用は避ける。
 - ローカルは `MAILHUB_CONFIG_STORE=file` で `.mailhub/*.json` に保存する。
@@ -327,7 +330,8 @@ GitHub Actions等（セッション無し）で取得する場合は Bearer secr
 3. JSONファイルがダウンロードされる（最後のExport時刻がフッターに表示される）
 
 **方法B: GitHub Actionsから（自動バックアップ）**
-- `.github/workflows/mailhub-config-backup.yml` が毎日03:15 JSTに自動実行
+- `.github/workflows/mailhub-config-export.yml` で手動実行する。現状のscheduleはコメントアウトされている。
+- schedule有効化は `~/.claude/instructions/mailhub-prod-rollout/phase1/ops/schedule-enable.patch` を使うが、のび太承認後の別アクションとして適用する。
 - Artifact保存場所: GitHub Actions → Workflow runs → Artifacts
 - Retention: 14日間
 
@@ -356,6 +360,7 @@ curl --fail --retry 3 --max-time 20 \
    - 「Import Apply」をクリック
    - Confirmダイアログで確認
    - 実行後、Activityに `config_import_apply` として記録される
+   - Productionでは、のび太承認後の別アクションとして実行する
 
 **注意**:
 - Importは**非破壊マージ**（既存Sheets側にしかない設定は削除せず残す）
@@ -556,7 +561,8 @@ Productionは **最初に必ず READ ONLY** で公開し、問題が無いこと
 **SLA Alerts（放置防止通知）**:
 - **通知チャネル**: Slack webhook（推奨）または無効化
 - **設定**: `MAILHUB_ALERTS_PROVIDER=slack` + `MAILHUB_SLACK_WEBHOOK_URL` + `MAILHUB_ALERTS_SECRET`（本番必須）
-- **実行**: GitHub Actionsで毎15分自動実行（`.github/workflows/mailhub-alerts.yml`）
+- **実行**: 現状は `.github/workflows/mailhub-alerts.yml` の `workflow_dispatch` 手動実行のみ。15分schedule有効化は `~/.claude/instructions/mailhub-prod-rollout/phase1/ops/schedule-enable.patch` を、のび太承認後の別アクションとして適用する。
+- **Vercel保護**: Deployment Protectionを維持する場合、GitHub Actions cronは401になり得るため、Protection Bypass for Automation等の扱いを本番rollout runbookで決めてから有効化する。
 - **認可**: production環境では`Authorization: Bearer <MAILHUB_ALERTS_SECRET>`ヘッダが必須
 - **定期実行例（手動実行時）**:
   ```bash
@@ -623,14 +629,16 @@ Productionは **最初に必ず READ ONLY** で公開し、問題が無いこと
 **URL**: `https://mailhub-staging.vercel.app`（例）
 
 **環境変数設定（Vercel）**:
+Vercel env変更・Google OAuth redirect変更・本番URL変更は、のび太承認後の別アクションとして実行する。
+
 ```
 NEXTAUTH_URL=https://mailhub-staging.vercel.app
-NEXTAUTH_SECRET=<staging用のシークレット>
+NEXTAUTH_SECRET=<secret_ref: vyper/mailhub/staging/nextauth_secret>
 NEXTAUTH_TRUST_HOST=true
-GOOGLE_CLIENT_ID=<staging用>
-GOOGLE_CLIENT_SECRET=<staging用>
+GOOGLE_CLIENT_ID=<secret_ref: vyper/mailhub/staging/google_client_id>
+GOOGLE_CLIENT_SECRET=<secret_ref: vyper/mailhub/staging/google_client_secret>
 GOOGLE_SHARED_INBOX_EMAIL=inbox@vtj.co.jp
-GOOGLE_SHARED_INBOX_REFRESH_TOKEN=<staging用>
+GOOGLE_SHARED_INBOX_REFRESH_TOKEN=<secret_ref: vyper/mailhub/staging/google_shared_inbox_refresh_token>
 MAILHUB_TEST_MODE=0  # または未設定（本番ガードで無効化される）
 ```
 
@@ -641,17 +649,23 @@ https://mailhub-staging.vercel.app/api/auth/callback/google
 
 ### Production環境
 
-**URL**: `https://mailhub.vercel.app`（例）
+**URL**: 既存Vercel projectは稼働中。安定URLまたはカスタムドメインは本番rollout runbookで決裁する。
 
 **環境変数設定（Vercel）**:
+Vercel env変更・Google OAuth redirect変更・本番URL変更は、のび太承認後の別アクションとして実行する。
+
 ```
-NEXTAUTH_URL=https://mailhub.vercel.app
-NEXTAUTH_SECRET=<本番用のシークレット>
+NEXTAUTH_URL=<production-stable-url>
+NEXTAUTH_SECRET=<secret_ref: vyper/mailhub/prod/nextauth_secret>
 NEXTAUTH_TRUST_HOST=true
-GOOGLE_CLIENT_ID=<本番用>
-GOOGLE_CLIENT_SECRET=<本番用>
+GOOGLE_CLIENT_ID=<secret_ref: vyper/mailhub/prod/google_client_id>
+GOOGLE_CLIENT_SECRET=<secret_ref: vyper/mailhub/prod/google_client_secret>
 GOOGLE_SHARED_INBOX_EMAIL=inbox@vtj.co.jp
-GOOGLE_SHARED_INBOX_REFRESH_TOKEN=<本番用>
+GOOGLE_SHARED_INBOX_REFRESH_TOKEN=<secret_ref: vyper/mailhub/prod/google_shared_inbox_refresh_token>
+MAILHUB_ENV=production
+MAILHUB_READ_ONLY=1
+MAILHUB_CONFIG_STORE=sheets
+MAILHUB_ACTIVITY_STORE=sheets
 # MAILHUB_TEST_MODE は設定しない（本番ガードで無効化される）
 ```
 
@@ -863,24 +877,27 @@ https://mailhub.vercel.app/api/auth/callback/google
 
 ### デプロイ手順
 
-1. **コードをコミット**
+1. **コードをコミット（のび太承認後の別アクション）**
    ```bash
    git add .
    git commit -m "feat: 機能追加"
    git push origin main
    ```
 
-2. **GitHub Actionsで自動デプロイ**
-   - `main`ブランチにpushすると、自動的に`qa:strict`が実行される
-   - すべてPASSすると、Vercelに自動デプロイされる
+2. **既存Vercel Git連携で自動デプロイ**
+   - リポ内にdeploy用GitHub Actions workflowはない。
+   - `main`ブランチpushごとに、既存Vercel projectのGit連携がProduction deploymentを作成する。
+   - `qa:strict`はrelease gateとして確認するが、GitHub ActionsがVercel deployを実行しているわけではない。
 
 3. **デプロイ確認**
    - Vercelのダッシュボードでデプロイ状況を確認
-   - Staging/Production環境それぞれで確認
+   - Deployment Protectionが有効なURLはSSOで401になるため、チーム内確認とautomation bypassの扱いを分けて確認する。
 
 ### ロールバック手順
 
 **Vercelでのロールバック**:
+
+以下はのび太承認後の別アクションとして実行する。
 
 1. Vercelダッシュボードにログイン
 2. プロジェクトを選択
@@ -890,6 +907,8 @@ https://mailhub.vercel.app/api/auth/callback/google
    - または、該当デプロイメントをクリックして「Promote」ボタンをクリック
 
 **Gitでのロールバック**:
+
+以下はのび太承認後の別アクションとして実行する。
 
 1. 問題のあるコミットを特定
 2. 前のコミットに戻す
