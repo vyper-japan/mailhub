@@ -17,7 +17,8 @@
     "test:e2e": "node scripts/e2e-preclean.mjs && MAILHUB_TEST_MODE=1 npx playwright test e2e/qa-strict-unified.spec.ts",
     "e2e": "node scripts/e2e-preclean.mjs && MAILHUB_TEST_MODE=1 npx playwright test --workers=1",
     "security:scan": "node scripts/security-scan.mjs",
-    "qa:strict": "npm run verify && npm run smoke && npm run lint && npm run test:coverage && npm run security:scan && npm run e2e"
+    "security:scan-artifacts": "node scripts/scan-ops-artifacts.mjs",
+    "qa:strict": "npm run verify && npm run smoke && npm run lint && npm run test:coverage && npm run security:scan && npm run security:scan-artifacts && npm run e2e"
   },
   "dependencies": {
     "dompurify": "^3.3.1",

@@ -24,6 +24,7 @@ export default defineConfig({
         "**/scripts/**",
         // Gmail API依存ファイル（テストモードではモック）
         "**/lib/gmail.ts",
+        "**/lib/gmail-error.ts",
         "**/lib/labelRegistryStore.ts",
         "**/lib/mailhub-labels.ts",
         // 環境変数定義のみ
@@ -46,4 +47,3 @@ export default defineConfig({
     },
   },
 });
-
