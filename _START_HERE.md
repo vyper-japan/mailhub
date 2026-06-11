@@ -1,7 +1,15 @@
 # 🚀 MailHub プロジェクト - 新しいセッション開始ガイド
 
-**最終更新**: 2026-06-11（vision-gap偵察完了・ロードマップのび太承認済み）
-**現在地**: シールドV2.5走行#1〜#4 sign-off済み + 走行#5（ビジョン・ギャップ偵察）完了。**次=T1 mailhub-prod-rollout**
+**最終更新**: 2026-06-11夜（T1 mailhub-prod-rollout sign-off済み）
+**現在地**: シールドV2.5走行#1〜#6 sign-off済み。**次=T2 mailhub-inapp-send（ビジョンの心臓部）**
+
+## ✅ T1完了サマリ（2026-06-11、コミット 1af393c/ce4aa7b/66c8686/cf05f86）
+- 17実店舗チャンネル稼働（正本=GWS41グループ実取得、`~/.claude/instructions/mailhub-prod-rollout/phase05/pm-channel-list.md`）。TEST fixture(store-a/b/c)は不変でE2E互換維持
+- config import assignees対応 / team GET認証穴修正 / slug正規化5箇所 / RMS prefixのtestMode分離 / list・activity routeのPRODチャンネル解決
+- **🔑Vercel発見**: リポ設定なしだが**Vercel Git連携が現役**（push毎にProduction自動デプロイ、SSO保護401・env未投入の真っ暗状態、のび太個人アカウント）。デプロイ選定は不要、「既存projectの掌握」が次の前提。**SSO保護下のGHA cronは401→Protection Bypass for Automation設計が必須**
+- ops成果物4点: `instructions/mailhub-prod-rollout/phase1/ops/`（env台帳・rollout runbook・schedule-enable.patch・Vercel掌握brief）
+- **destructive 5項目は未実行・のび太承認後の別アクション**: ①schedule有効化push ②本番secrets投入 ③ConfigAssignees seed ④Protection/bypass変更 ⑤公開化
+- accepted-risks: push→Vercel自動deploy（AR-1承認済み）/ AP-002偽陽性（AR-2承認済み）。gopro_mp@=Amazonマーケットプレイス（確認済み）
 
 ---
 
