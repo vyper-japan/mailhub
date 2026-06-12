@@ -41,6 +41,40 @@ import { buildMailhubLabelName } from "@/lib/mailhub-labels";
 
 type DebugLabels = { labelIds: string[]; labelNames: Array<string | null> };
 type DetailWithDebug = MessageDetail & { debugLabels?: DebugLabels };
+type GmailSendBlockedReason =
+  | null
+  | "read_only"
+  | "send_disabled"
+  | "missing_scope"
+  | "send_as_unaccepted"
+  | "send_as_check_failed";
+type GmailSendHealthState = {
+  gmailSendReady: boolean;
+  blockedReason: GmailSendBlockedReason;
+  acceptedAliases: string[];
+  missingAliases: string[];
+  checkedAt: string | null;
+};
+
+const DETAIL_CACHE_TTL_MS = 60_000;
+
+function stringArray(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((v): v is string => typeof v === "string") : [];
+}
+
+function coerceGmailSendBlockedReason(value: unknown): GmailSendBlockedReason {
+  if (
+    value === null ||
+    value === "read_only" ||
+    value === "send_disabled" ||
+    value === "missing_scope" ||
+    value === "send_as_unaccepted" ||
+    value === "send_as_check_failed"
+  ) {
+    return value;
+  }
+  return "send_disabled";
+}
 
 type Props = {
   initialLabelId: string;
@@ -174,21 +208,20 @@ export default function InboxShell({
   const [selectedMessage, setSelectedMessage] = useState<InboxListMessage | null>(
     initialSelectedMessage,
   );
+  const [selectedDetail, setSelectedDetail] = useState<MessageDetail | null>(initialDetail);
   // Step 50拡張: initialDetailをキャッシュに保存（即座に表示できるように）
   useEffect(() => {
     if (initialDetail && initialSelectedId) {
-      const message = initialMessages.find((m) => m.id === initialSelectedId) ?? initialSelectedMessage;
       detailCacheRef.current.set(initialSelectedId, {
-        plainTextBody: initialDetail.plainTextBody,
-        htmlBody: initialDetail.htmlBody,
-        bodyNotice: initialDetail.bodyNotice,
-        subject: initialDetail.subject ?? message?.subject ?? "",
-        from: initialDetail.from ?? message?.from ?? "",
+        detail: initialDetail,
         fetchedAt: Date.now(),
-        debugLabels: (initialDetail as DetailWithDebug).debugLabels,
       });
     }
-  }, [initialDetail, initialSelectedId, initialMessages, initialSelectedMessage]);
+  }, [initialDetail, initialSelectedId]);
+
+  useEffect(() => {
+    setSelectedDetail((prev) => (prev && prev.id !== selectedMessage?.id ? null : prev));
+  }, [selectedMessage?.id]);
 
   const [detailBody, setDetailBody] = useState<{
     plainTextBody: string | null;
@@ -662,6 +695,21 @@ export default function InboxShell({
   const [canOpenSettings, setCanOpenSettings] = useState<boolean>(testMode);
   const [readOnlyMode, setReadOnlyMode] = useState<boolean>(false);
   const [writeBlockedReason, setWriteBlockedReason] = useState<null | "read_only" | "insufficient_permissions">(null);
+  const [gmailSendHealth, setGmailSendHealth] = useState<GmailSendHealthState>({
+    gmailSendReady: false,
+    blockedReason: "send_disabled",
+    acceptedAliases: [],
+    missingAliases: [],
+    checkedAt: null,
+  });
+  const sendEnabledFromHealth = gmailSendHealth.gmailSendReady;
+  const sendAsAcceptedByAlias = useMemo(() => {
+    const accepted: Record<string, true> = {};
+    for (const alias of gmailSendHealth.acceptedAliases) {
+      accepted[alias.toLowerCase()] = true;
+    }
+    return accepted;
+  }, [gmailSendHealth.acceptedAliases]);
   const [activityLogs, setActivityLogs] = useState<Array<{
     timestamp: string;
     actorEmail: string;
@@ -749,15 +797,10 @@ export default function InboxShell({
   const hoverPrefetchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hoverPrefetchAbortRef = useRef<AbortController | null>(null);
   
-  // Step 50: Detailキャッシュ（LRU、最大20件、TTL 5分）
+  // Step 50: Detailキャッシュ（LRU、最大20件、TTL 60秒）
   type DetailCacheEntry = {
-    plainTextBody: string | null;
-    htmlBody: string | null;
-    bodyNotice: string | null;
-    subject: string;
-    from: string;
+    detail: MessageDetail;
     fetchedAt: number;
-    debugLabels?: { labelIds: string[]; labelNames: Array<string | null> };
   };
   const detailCacheRef = useRef<Map<string, DetailCacheEntry>>(new Map());
   const DETAIL_CACHE_MAX_SIZE = 20;
@@ -1499,11 +1542,10 @@ export default function InboxShell({
     const cache = detailCacheRef.current;
     const now = Date.now();
     const entriesToDelete: string[] = [];
-    const TTL_MS = 5 * 60 * 1000; // 5分
     
     // TTL超過を削除
     for (const [key, entry] of cache.entries()) {
-      if (now - entry.fetchedAt > TTL_MS) {
+      if (now - entry.fetchedAt > DETAIL_CACHE_TTL_MS) {
         entriesToDelete.push(key);
       }
     }
@@ -1539,17 +1581,17 @@ export default function InboxShell({
       const cached = detailCacheRef.current.get(id);
       if (cached) {
         const now = Date.now();
-        const TTL_MS = 5 * 60 * 1000; // 5分
-        if (now - cached.fetchedAt < TTL_MS) {
+        if (now - cached.fetchedAt < DETAIL_CACHE_TTL_MS) {
           // キャッシュヒット：即座に反映（inFlightIdRefと一致する時だけ）
           if (inFlightIdRef.current === id) {
             setDetailError(null);
+            setSelectedDetail(cached.detail);
             setDetailBody({
-              plainTextBody: cached.plainTextBody,
-              htmlBody: cached.htmlBody,
-              bodyNotice: cached.bodyNotice,
+              plainTextBody: cached.detail.plainTextBody,
+              htmlBody: cached.detail.htmlBody,
+              bodyNotice: cached.detail.bodyNotice,
               isLoading: false,
-              debugLabels: cached.debugLabels,
+              debugLabels: (cached.detail as DetailWithDebug).debugLabels,
             });
           }
           return;
@@ -1583,20 +1625,15 @@ export default function InboxShell({
       
       // キャッシュに保存（常に実行）
       evictOldCacheEntries();
-      const message = messages.find((m) => m.id === id) ?? selectedMessage;
       detailCacheRef.current.set(id, {
-        plainTextBody: data.detail.plainTextBody,
-        htmlBody: data.detail.htmlBody,
-        bodyNotice: data.detail.bodyNotice,
-        subject: data.detail.subject ?? message?.subject ?? "",
-        from: data.detail.from ?? message?.from ?? "",
+        detail: data.detail,
         fetchedAt: Date.now(),
-        debugLabels: (data.detail as DetailWithDebug).debugLabels,
       });
 
       // inFlightIdRef.currentと一致する時だけUIを更新（連続クリック対策）
       // selectedIdはstate更新の遅延があるためinFlightIdRefを使用
       if (inFlightIdRef.current === id) {
+        setSelectedDetail(data.detail);
         setDetailBody({
           plainTextBody: data.detail.plainTextBody,
           htmlBody: data.detail.htmlBody,
@@ -1632,7 +1669,7 @@ export default function InboxShell({
         setDetailBody((b) => ({ ...b, isLoading: false }));
       }
     }
-  }, [messages, selectedMessage, evictOldCacheEntries, selectedId]);
+  }, [evictOldCacheEntries, selectedId]);
 
   const loadThreadSummary = useCallback(async (messageId: string) => {
     threadInFlightRef.current = messageId;
@@ -1710,27 +1747,10 @@ export default function InboxShell({
 
   // 返信ルートを判定
   const replyRoute = useMemo(() => {
-    if (!selectedMessage || !detailBody.plainTextBody) return null;
-    const detail: MessageDetail = {
-      ...selectedMessage,
-      plainTextBody: detailBody.plainTextBody,
-      htmlBody: detailBody.htmlBody,
-      bodySource: detailBody.htmlBody ? "html" : "plain",
-      bodyNotice: detailBody.bodyNotice,
-      // W1暫定: 返信解決ヘッダーはW2-T2aでselectedDetailから供給する（契約§1.3）
-      to: null,
-      cc: null,
-      bcc: null,
-      replyTo: null,
-      deliveredTo: [],
-      xOriginalTo: null,
-      references: null,
-      inReplyTo: null,
-      listId: null,
-      listPost: null,
-    };
-    return routeReply(detail, channelId, testMode);
-  }, [selectedMessage, detailBody.plainTextBody, detailBody.htmlBody, detailBody.bodyNotice, channelId, testMode]);
+    if (!selectedMessage || !selectedDetail || selectedDetail.id !== selectedMessage.id) return null;
+    if (!selectedDetail.plainTextBody) return null;
+    return routeReply(selectedDetail, channelId, testMode);
+  }, [selectedMessage, selectedDetail, channelId, testMode]);
 
   // 問い合わせ番号を自動抽出（Step55: replyRouteから取得）
   useEffect(() => {
@@ -1762,8 +1782,7 @@ export default function InboxShell({
     
     // キャッシュに無ければプリフェッチ（useCache=falseで強制フェッチ）
     const cached = detailCacheRef.current.get(nextId);
-    const TTL_MS = 5 * 60 * 1000; // 5分
-    if (!cached || Date.now() - cached.fetchedAt > TTL_MS) {
+    if (!cached || Date.now() - cached.fetchedAt > DETAIL_CACHE_TTL_MS) {
       void loadDetailBodyOnly(nextId, false); // バックグラウンドでフェッチ（useCache=false）
     }
   }, [loadDetailBodyOnly]);
@@ -1775,8 +1794,7 @@ export default function InboxShell({
     
     // キャッシュに新鮮なデータがあればprefetch不要
     const cached = detailCacheRef.current.get(id);
-    const TTL_MS = 5 * 60 * 1000; // 5分
-    if (cached && Date.now() - cached.fetchedAt < TTL_MS) return;
+    if (cached && Date.now() - cached.fetchedAt < DETAIL_CACHE_TTL_MS) return;
     
     // 前のタイマーをキャンセル
     if (hoverPrefetchTimerRef.current) {
@@ -1794,7 +1812,7 @@ export default function InboxShell({
     hoverPrefetchTimerRef.current = setTimeout(async () => {
       // 再度キャッシュをチェック（タイマー中に取得された可能性）
       const cachedNow = detailCacheRef.current.get(id);
-      if (cachedNow && Date.now() - cachedNow.fetchedAt < TTL_MS) return;
+      if (cachedNow && Date.now() - cachedNow.fetchedAt < DETAIL_CACHE_TTL_MS) return;
       
       // AbortControllerを作成
       const controller = new AbortController();
@@ -1811,15 +1829,9 @@ export default function InboxShell({
         
         // キャッシュに保存
         evictOldCacheEntries();
-        const message = messages.find((m) => m.id === id);
         detailCacheRef.current.set(id, {
-          plainTextBody: data.detail.plainTextBody,
-          htmlBody: data.detail.htmlBody,
-          bodyNotice: data.detail.bodyNotice,
-          subject: data.detail.subject ?? message?.subject ?? "",
-          from: data.detail.from ?? message?.from ?? "",
+          detail: data.detail,
           fetchedAt: Date.now(),
-          debugLabels: (data.detail as DetailWithDebug).debugLabels,
         });
       } catch {
         // AbortErrorやネットワークエラーは無視（prefetchなので）
@@ -1845,8 +1857,7 @@ export default function InboxShell({
     
     // Step 50: キャッシュから即座に表示を試みる
     const cached = detailCacheRef.current.get(id);
-    const TTL_MS = 5 * 60 * 1000; // 5分
-    const hasFreshCache = cached && Date.now() - cached.fetchedAt < TTL_MS;
+    const hasFreshCache = cached && Date.now() - cached.fetchedAt < DETAIL_CACHE_TTL_MS;
     
     // flushSyncを使って、選択メッセージとタイトルと本文の更新を同期的に行う
     // これにより、連続クリック時にタイトルと本文がずれる問題を防ぐ
@@ -1858,15 +1869,17 @@ export default function InboxShell({
       setLastAppliedTemplate(null); // テンプレ適用状態をリセット
       setBodyCollapsed(false); // 本文の折りたたみをリセット
       setDetailError(null);
+      setSelectedDetail(null);
       
       if (hasFreshCache && cached) {
         // キャッシュヒット：即座に表示
+        setSelectedDetail(cached.detail);
         setDetailBody({
-          plainTextBody: cached.plainTextBody,
-          htmlBody: cached.htmlBody,
-          bodyNotice: cached.bodyNotice,
+          plainTextBody: cached.detail.plainTextBody,
+          htmlBody: cached.detail.htmlBody,
+          bodyNotice: cached.detail.bodyNotice,
           isLoading: false,
-          debugLabels: cached.debugLabels,
+          debugLabels: (cached.detail as DetailWithDebug).debugLabels,
         });
       } else {
         // キャッシュがない場合：ローディング状態を表示
@@ -1986,6 +1999,7 @@ export default function InboxShell({
         preferredSelectedId && data.messages.some((m) => m.id === preferredSelectedId)
           ? preferredSelectedId
           : data.messages[0]?.id ?? null;
+      setSelectedDetail(null);
       setSelectedId(nextSelected);
       setSelectedMessage(
         nextSelected ? data.messages.find((m) => m.id === nextSelected) ?? null : null,
@@ -2000,14 +2014,14 @@ export default function InboxShell({
         void loadDetailBodyOnly(nextSelected);
         // Step 50拡張: 表示されている最初の5件のメールの詳細をバックグラウンドでプリフェッチ
         const prefetchIds = data.messages.slice(0, 5).map((m) => m.id).filter((id) => id !== nextSelected);
-        const TTL_MS = 5 * 60 * 1000; // 5分
         for (const id of prefetchIds) {
           const cached = detailCacheRef.current.get(id);
-          if (!cached || Date.now() - cached.fetchedAt > TTL_MS) {
+          if (!cached || Date.now() - cached.fetchedAt > DETAIL_CACHE_TTL_MS) {
             void loadDetailBodyOnly(id, false); // バックグラウンドでフェッチ
           }
         }
       } else {
+        setSelectedDetail(null);
         setDetailBody({ plainTextBody: null, htmlBody: null, bodyNotice: null, isLoading: false });
       }
     } catch (e) {
@@ -2092,10 +2106,24 @@ export default function InboxShell({
           isAdmin?: boolean;
           readOnly?: boolean;
           gmailModifyEnabled?: boolean | null;
+          gmailSendReady?: boolean;
+          gmailSendBlockedReason?: GmailSendBlockedReason;
+          sendAs?: {
+            acceptedAliases?: unknown;
+            missingAliases?: unknown;
+            checkedAt?: string | null;
+          };
         };
         const admin = testMode ? true : json.isAdmin === true;
         setCanOpenSettings(admin);
         setIsAdmin(admin);
+        setGmailSendHealth({
+          gmailSendReady: json.gmailSendReady === true,
+          blockedReason: coerceGmailSendBlockedReason(json.gmailSendBlockedReason ?? (json.gmailSendReady === true ? null : "send_disabled")),
+          acceptedAliases: stringArray(json.sendAs?.acceptedAliases),
+          missingAliases: stringArray(json.sendAs?.missingAliases),
+          checkedAt: typeof json.sendAs?.checkedAt === "string" ? json.sendAs.checkedAt : null,
+        });
         const blocked =
           json.readOnly === true
             ? ("read_only" as const)
