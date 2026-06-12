@@ -409,6 +409,31 @@ function createGmailClient() {
   return { gmail, sharedInboxEmail };
 }
 
+export async function sendGmailReply(input: {
+  raw: string;
+  threadId: string;
+}): Promise<{ sentMessageId: string; threadId: string }> {
+  const { gmail, sharedInboxEmail } = createGmailClient();
+
+  const res = await gmail.users.messages.send({
+    userId: sharedInboxEmail,
+    requestBody: {
+      raw: input.raw,
+      threadId: input.threadId,
+    },
+  });
+
+  const sentMessageId = res.data.id;
+  if (!sentMessageId) {
+    throw new Error("Gmail send response did not include message id");
+  }
+
+  return {
+    sentMessageId,
+    threadId: res.data.threadId ?? input.threadId,
+  };
+}
+
 function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
   return Promise.race([
     p,
