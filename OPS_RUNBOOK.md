@@ -4,6 +4,10 @@ MailHubの日常運用とトラブルシューティングの手順書です。
 
 本番rolloutの正本手順は `~/.claude/instructions/mailhub-prod-rollout/phase1/ops/prod-rollout-runbook.md`、本番env台帳は `~/.claude/instructions/mailhub-prod-rollout/phase1/ops/prod-env-ledger.md` を参照します。本番secret値はrunbookやログに書かず、secret_refで管理します。
 
+## T2 inapp-send ops成果物
+
+T2 Gmail in-app send の運用成果物は `~/.claude/instructions/mailhub-inapp-send/phase1/ops/send-as-ledger.md`、`~/.claude/instructions/mailhub-inapp-send/phase1/ops/send-as-registration-runbook.md`、`~/.claude/instructions/mailhub-inapp-send/phase1/ops/gmail-token-rotation-runbook.md`、`~/.claude/instructions/mailhub-inapp-send/phase1/ops/prod-send-enable-runbook.md` を正本参照します。secret値・token値は記載せず、必要な場合は `secret_ref: vyper/...` のみを記録します。
+
 ## 📋 目次
 
 1. [オンボーディング](#オンボーディング)
