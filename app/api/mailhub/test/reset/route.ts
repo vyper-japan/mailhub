@@ -7,6 +7,7 @@ import { resetRegisteredLabelsForTest } from "@/lib/labelRegistryStore";
 import { resetAssigneeRulesForTest } from "@/lib/assigneeRulesStore";
 import { clearActivityLogs, type AuditLogEntry } from "@/lib/audit-log";
 import { setTestReadOnlyMode } from "@/lib/read-only";
+import { resetTestSendAsOverride, setTestSendAsOverride, type TestSendAsOverride } from "@/lib/mailhub-send-as";
 import { getTeamStore } from "@/lib/teamStore";
 import { getAssigneeRegistryStore } from "@/lib/assigneeRegistryStore";
 import { getRosterStore } from "@/lib/rosterStore";
@@ -40,6 +41,8 @@ export async function POST(req: Request) {
     let seedActivityLogs: AuditLogEntry[] | null = null;
     let actionDelayMs: number | null = null;
     let readOnly: boolean | null = null;
+    let sendAsOverride: TestSendAsOverride | null = null;
+    let hasSendAsOverride = false;
     try {
       const body = await req.json();
       if (body.fail) {
@@ -65,6 +68,14 @@ export async function POST(req: Request) {
       }
       if (typeof body.readOnly === "boolean") {
         readOnly = body.readOnly;
+      }
+      if (body.sendAsOverride && Array.isArray(body.sendAsOverride.unaccepted)) {
+        hasSendAsOverride = true;
+        sendAsOverride = {
+          unaccepted: body.sendAsOverride.unaccepted.filter(
+            (alias: unknown): alias is string => typeof alias === "string",
+          ),
+        };
       }
     } catch {
       // ボディがない場合は無視
@@ -125,6 +136,13 @@ export async function POST(req: Request) {
 
     // READ ONLY（TEST_MODE限定の上書き）
     setTestReadOnlyMode(readOnly);
+
+    // send-as override（TEST_MODE限定の上書き）
+    if (hasSendAsOverride && sendAsOverride) {
+      setTestSendAsOverride(sendAsOverride);
+    } else {
+      resetTestSendAsOverride();
+    }
     
     return NextResponse.json({ ok: true }, { headers: { "cache-control": "no-store" } });
   } catch (e) {
