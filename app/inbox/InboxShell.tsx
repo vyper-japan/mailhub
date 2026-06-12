@@ -8,6 +8,7 @@ import type { ChannelCounts, InboxListMessage, MessageDetail, StatusCounts } fro
 import type { LabelGroup, LabelItem } from "@/lib/labels";
 import type { ThreadMessageSummary } from "@/lib/thread";
 import { routeReply } from "@/lib/replyRouter";
+import { getSendResolverChannels, resolveReplyContext } from "@/lib/mailhub-send-resolver";
 import { extractInquiryNumber } from "@/lib/rakuten/extract";
 import { coerceChannelId, getChannels, type ChannelId } from "@/lib/channels";
 import { getTriageCandidates, type TriageContext } from "@/lib/triageRules";
@@ -23,6 +24,7 @@ import { HandoffDrawer } from "./components/HandoffDrawer";
 import { ExplainDrawer } from "./components/ExplainDrawer";
 import { OnboardingModal, shouldShowOnboarding } from "./components/OnboardingModal";
 import { InternalOpsPane } from "./components/InternalOpsPane";
+import { GmailComposePanel, type GmailComposePanelProps } from "./components/GmailComposePanel";
 import { ViewsCommandPalette } from "./components/ViewsCommandPalette";
 import { CommandPalette, type Command } from "./components/CommandPalette";
 import { AssigneeSelector } from "./components/AssigneeSelector";
@@ -41,6 +43,31 @@ import { buildMailhubLabelName } from "@/lib/mailhub-labels";
 
 type DebugLabels = { labelIds: string[]; labelNames: Array<string | null> };
 type DetailWithDebug = MessageDetail & { debugLabels?: DebugLabels };
+type GmailSentStatus = "idle" | "sent" | "sent_and_done" | "sent_but_not_done" | "maybe_sent";
+type PostSendAction = "none" | "done";
+type MailhubSendSuccessResponse = {
+  ok: true;
+  status: Exclude<GmailSentStatus, "idle" | "maybe_sent">;
+  action: "reply_send";
+  messageId: string;
+  threadId: string;
+  sentMessageId: string;
+  clientRequestId: string;
+  fromAlias: string;
+  fromChannelId: ChannelId;
+  to: string;
+  postSendAction: PostSendAction;
+  done?: { ok: true; action: "archive"; undoable: true } | { ok: false; error: "gmail_api_error"; error_code: string; message: string };
+  auditWarning?: true;
+};
+type MailhubSendErrorResponse = {
+  ok: false;
+  error?: string;
+  message?: string;
+  messageId?: string;
+  clientRequestId?: string;
+  duplicateKey?: "clientRequestId" | "bodyHash";
+};
 type GmailSendBlockedReason =
   | null
   | "read_only"
@@ -57,6 +84,29 @@ type GmailSendHealthState = {
 };
 
 const DETAIL_CACHE_TTL_MS = 60_000;
+const MAYBE_SENT_MESSAGE =
+  "すでに同じ送信が処理されています。送信済みの可能性があるため、受信トレイ/送信済みを確認してください";
+const UNRESOLVED_TEMPLATE_VAR_RE = /{{\s*[\w.-]+\s*}}/g;
+
+function createClientRequestId(): string {
+  return crypto.randomUUID();
+}
+
+function extractUnresolvedTemplateVars(value: string): string[] {
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const match of value.matchAll(UNRESOLVED_TEMPLATE_VAR_RE)) {
+    const key = match[0].replace(/^{{\s*/, "").replace(/\s*}}$/, "");
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(key);
+  }
+  return result;
+}
+
+function bodyContainsUnresolvedTemplateVar(value: string): boolean {
+  return /{{\s*[\w.-]+\s*}}/.test(value);
+}
 
 function stringArray(value: unknown): string[] {
   return Array.isArray(value) ? value.filter((v): v is string => typeof v === "string") : [];
@@ -642,6 +692,10 @@ export default function InboxShell({
   const [replyInquiryNumber, setReplyInquiryNumber] = useState("");
   const [replyMessage, setReplyMessage] = useState("");
   const [isSendingReply, setIsSendingReply] = useState(false);
+  const [isSendingGmailReply, setIsSendingGmailReply] = useState(false);
+  const [gmailSendError, setGmailSendError] = useState<string | null>(null);
+  const [gmailSentStatus, setGmailSentStatus] = useState<GmailSentStatus>("idle");
+  const [gmailClientRequestId, setGmailClientRequestId] = useState<string | null>(null);
   const [lastAppliedTemplate, setLastAppliedTemplate] = useState<{
     id: string;
     title: string;
@@ -654,6 +708,9 @@ export default function InboxShell({
     //  Settingsドロワー等の操作中stateとレースする — Step80-1 flaky化の教訓)
     setReplyMessage((prev) => (prev ? "" : prev));
     setLastAppliedTemplate((prev) => (prev ? null : prev));
+    setGmailSendError((prev) => (prev ? null : prev));
+    setGmailSentStatus((prev) => (prev === "idle" ? prev : "idle"));
+    setGmailClientRequestId(selectedMessage?.id ? createClientRequestId() : null);
   }, [selectedMessage?.id]);
   
   // 本文の折りたたみ状態
@@ -1752,6 +1809,54 @@ export default function InboxShell({
     return routeReply(selectedDetail, channelId, testMode);
   }, [selectedMessage, selectedDetail, channelId, testMode]);
 
+  const gmailResolvedContext = useMemo(() => {
+    if (replyRoute?.kind !== "gmail" || !selectedMessage || !selectedDetail || selectedDetail.id !== selectedMessage.id) {
+      return null;
+    }
+    return resolveReplyContext(selectedDetail, getSendResolverChannels(testMode), {
+      sharedInboxEmail: user.email,
+    });
+  }, [replyRoute?.kind, selectedMessage, selectedDetail, testMode, user.email]);
+
+  const showGmailComposePanel = Boolean(
+    replyRoute?.kind === "gmail" &&
+      selectedMessage &&
+      selectedDetail &&
+      selectedDetail.id === selectedMessage.id &&
+      !(gmailResolvedContext?.ok === false && gmailResolvedContext.error === "rakuten_reply_blocked"),
+  );
+
+  const gmailUnresolvedVars = useMemo(() => {
+    return Array.from(new Set([...(lastAppliedTemplate?.unresolvedVars ?? []), ...extractUnresolvedTemplateVars(replyMessage)]));
+  }, [lastAppliedTemplate?.unresolvedVars, replyMessage]);
+
+  const gmailSendDisabledReason = useMemo<GmailComposePanelProps["sendDisabledReason"]>(() => {
+    if (readOnlyMode) return "read_only";
+    if (gmailSentStatus === "maybe_sent") return "maybe_sent";
+    if (!replyMessage.trim()) return "empty_body";
+    if ((lastAppliedTemplate?.unresolvedVars.length ?? 0) > 0 || bodyContainsUnresolvedTemplateVar(replyMessage)) {
+      return "unresolved_template_vars";
+    }
+    if (!gmailResolvedContext) return "resolve_failed";
+    if (!gmailResolvedContext.ok) return "resolve_failed";
+    if (!sendEnabledFromHealth) return "send_disabled";
+    if (sendAsAcceptedByAlias[gmailResolvedContext.context.fromAlias.toLowerCase()] !== true) {
+      return "send_as_unaccepted";
+    }
+    return null;
+  }, [
+    gmailResolvedContext,
+    gmailSentStatus,
+    lastAppliedTemplate?.unresolvedVars.length,
+    readOnlyMode,
+    replyMessage,
+    sendAsAcceptedByAlias,
+    sendEnabledFromHealth,
+  ]);
+
+  const gmailResolveErrorMessage =
+    gmailResolvedContext && !gmailResolvedContext.ok ? gmailResolvedContext.message : null;
+
   // 問い合わせ番号を自動抽出（Step55: replyRouteから取得）
   useEffect(() => {
     if (replyRoute?.kind === "rakuten_rms") {
@@ -2770,6 +2875,119 @@ export default function InboxShell({
       }
     })();
   }, [messages, activeLabel?.statusType, bumpCounts, labelId, onSelectMessage, replaceUrl, showToast, fetchCountsDebounced, addToUndoStack, viewTab, actionInProgress]);
+
+  const markDoneWithUndo = useCallback(async (
+    id: string,
+    options: { skipApi: boolean },
+  ): Promise<{ ok: true } | { ok: false; message: string }> => {
+    if (actionInProgress.has(id)) return { ok: false, message: "処理中です" };
+    setActionInProgress((prev) => new Set(prev).add(id));
+
+    const targetMessage = messages.find((m) => m.id === id);
+    if (!targetMessage) {
+      setActionInProgress((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+      return { ok: false, message: "メールが見つかりませんでした" };
+    }
+
+    const fromStatus = activeLabel?.statusType ?? "todo";
+    const delta: Partial<{ todo: number; waiting: number; done: number; muted: number }> =
+      fromStatus === "waiting"
+        ? { waiting: -1, done: +1 }
+        : fromStatus === "muted"
+          ? { muted: -1, done: +1 }
+          : { todo: -1, done: +1 };
+    const inverseDelta: Partial<{ todo: number; waiting: number; done: number; muted: number }> =
+      fromStatus === "waiting"
+        ? { waiting: +1, done: -1 }
+        : fromStatus === "muted"
+          ? { muted: +1, done: -1 }
+          : { todo: +1, done: -1 };
+    const previousMessages = [...messages];
+    const previousSelectedMessage = selectedMessage;
+    const shouldRemoveFromCurrentList = viewTab !== "assigned";
+
+    bumpCounts(delta);
+    setFlashingIds((prev) => new Set(prev).add(id));
+    setTimeout(() => {
+      setFlashingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    }, 100);
+    if (shouldRemoveFromCurrentList) {
+      setRemovingIds((prev) => new Set(prev).add(id));
+    }
+    setGlowTab("done");
+    setTimeout(() => setGlowTab(null), 1000);
+
+    if (shouldRemoveFromCurrentList) {
+      const currentIndex = previousMessages.findIndex((m) => m.id === id);
+      const newMessages = previousMessages.filter((m) => m.id !== id);
+      setMessages(newMessages);
+      const nextMessage = newMessages[currentIndex] ?? newMessages[currentIndex - 1] ?? newMessages[0] ?? null;
+      if (nextMessage) {
+        onSelectMessage(nextMessage.id);
+      } else {
+        setSelectedId(null);
+        setSelectedMessage(null);
+        setSelectedDetail(null);
+        setDetailBody({ plainTextBody: null, htmlBody: null, bodyNotice: null, isLoading: false });
+        replaceUrl(labelId, null);
+      }
+    }
+
+    setTimeout(() => {
+      setRemovingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    }, 200);
+
+    try {
+      if (!options.skipApi) {
+        await postJsonOrThrow("/api/mailhub/archive", { id, action: "archive" });
+      }
+      addToUndoStack({ id, message: targetMessage, action: "archive" });
+      void fetchCountsDebounced();
+      return { ok: true };
+    } catch (e) {
+      bumpCounts(inverseDelta);
+      setRemovingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+      setMessages(previousMessages);
+      setSelectedId(id);
+      setSelectedMessage(previousSelectedMessage ?? targetMessage);
+      const errorMessage = e instanceof Error ? e.message : String(e);
+      return { ok: false, message: errorMessage };
+    } finally {
+      setActionInProgress((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    }
+  }, [
+    actionInProgress,
+    activeLabel?.statusType,
+    addToUndoStack,
+    bumpCounts,
+    fetchCountsDebounced,
+    labelId,
+    messages,
+    onSelectMessage,
+    replaceUrl,
+    selectedMessage,
+    viewTab,
+  ]);
 
   const handleSetWaiting = useCallback(async (id: string) => {
     // Step 59: 二重押し防止
@@ -4864,6 +5082,126 @@ export default function InboxShell({
       setIsSendingReply(false);
     }
   }, [selectedMessage, replyRoute, replyInquiryNumber, replyMessage, showToast, handleSetWaiting]);
+
+  const handleGmailCancel = useCallback(() => {
+    setReplyMessage("");
+    setGmailSendError(null);
+    setGmailSentStatus("idle");
+    setGmailClientRequestId(selectedMessage?.id ? createClientRequestId() : null);
+  }, [selectedMessage?.id]);
+
+  const handleGmailSend = useCallback(async (postSendAction: PostSendAction) => {
+    if (!selectedMessage || !selectedDetail || replyRoute?.kind !== "gmail") return;
+
+    if (readOnlyMode) {
+      showToast("READ ONLYのため送信できません", "error");
+      return;
+    }
+    if ((lastAppliedTemplate?.unresolvedVars.length ?? 0) > 0 || bodyContainsUnresolvedTemplateVar(replyMessage)) {
+      setGmailSendError("未解決の変数があります");
+      showToast("未解決の変数があります", "error");
+      return;
+    }
+    if (!replyMessage.trim()) {
+      setGmailSendError("本文を入力してください");
+      return;
+    }
+    if (!gmailResolvedContext?.ok) {
+      const message = gmailResolvedContext?.message ?? "返信先を解決できませんでした";
+      setGmailSendError(message);
+      return;
+    }
+    if (!sendEnabledFromHealth) {
+      setGmailSendError("Gmail送信はまだ有効化されていません");
+      return;
+    }
+    if (sendAsAcceptedByAlias[gmailResolvedContext.context.fromAlias.toLowerCase()] !== true) {
+      setGmailSendError("このFromはGmail send-asで未承認です");
+      return;
+    }
+    if (isSendingGmailReply || gmailSentStatus !== "idle") return;
+
+    const requestId = gmailClientRequestId ?? createClientRequestId();
+    setGmailClientRequestId(requestId);
+    setIsSendingGmailReply(true);
+    setGmailSendError(null);
+
+    try {
+      const res = await fetch("/api/mailhub/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messageId: selectedMessage.id,
+          bodyText: replyMessage,
+          clientRequestId: requestId,
+          postSendAction,
+        }),
+      });
+      const data = (await res.json().catch(() => ({}))) as MailhubSendSuccessResponse | MailhubSendErrorResponse;
+      if (!res.ok || data.ok !== true) {
+        const errorData = data as MailhubSendErrorResponse;
+        const message = errorData.message || errorData.error || `${res.status} ${res.statusText}`;
+        if (res.status === 409 && errorData.error === "duplicate_send") {
+          setGmailSentStatus("maybe_sent");
+          setGmailSendError(MAYBE_SENT_MESSAGE);
+          showToast(MAYBE_SENT_MESSAGE, "info");
+          return;
+        }
+        throw new Error(message);
+      }
+
+      if (data.auditWarning === true) {
+        console.warn("mailhub send audit warning", {
+          messageId: data.messageId,
+          clientRequestId: data.clientRequestId,
+          status: data.status,
+        });
+      }
+
+      setGmailSentStatus(data.status);
+      setGmailClientRequestId(null);
+
+      if (data.status === "sent_and_done") {
+        const doneResult = await markDoneWithUndo(selectedMessage.id, { skipApi: true });
+        if (doneResult.ok) {
+          showToast("送信しました。Doneは元に戻せます", "success");
+        } else {
+          setGmailSentStatus("sent_but_not_done");
+          showToast("送信しましたがDoneにできませんでした。手動で完了してください", "error");
+        }
+        return;
+      }
+
+      if (data.status === "sent_but_not_done") {
+        showToast("送信しましたがDoneにできませんでした。手動で完了してください", "error");
+        return;
+      }
+
+      showToast("送信しました（送信は取り消せません）", "success");
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      setGmailSendError(message);
+      showToast(`送信できませんでした: ${message}`, "error");
+      setGmailClientRequestId(requestId);
+    } finally {
+      setIsSendingGmailReply(false);
+    }
+  }, [
+    gmailClientRequestId,
+    gmailResolvedContext,
+    gmailSentStatus,
+    isSendingGmailReply,
+    lastAppliedTemplate?.unresolvedVars.length,
+    markDoneWithUndo,
+    readOnlyMode,
+    replyMessage,
+    replyRoute?.kind,
+    selectedDetail,
+    selectedMessage,
+    sendAsAcceptedByAlias,
+    sendEnabledFromHealth,
+    showToast,
+  ]);
 
   // 返信内容をコピー
   const handleCopyReply = useCallback(async () => {
@@ -7207,7 +7545,7 @@ export default function InboxShell({
                         })()}
 
                         {/* Replyブロック（Step55: 返信導線の最短化） */}
-                        {replyRoute && (
+                        {replyRoute?.kind === "rakuten_rms" && (
                           <div id="section-reply" className="mt-8 pt-8 border-t border-gray-200" data-testid="reply-panel">
                             <div className={`rounded-xl p-6 border ${replyRoute.kind === "rakuten_rms" ? "bg-gray-50 border-gray-200" : "bg-blue-50 border-blue-200"}`}>
                               <div className="flex items-center gap-2 mb-4">
@@ -7369,17 +7707,6 @@ export default function InboxShell({
                                     )}
                                   </>
                                 )}
-                                {replyRoute.kind === "gmail" && (
-                                  <a
-                                    href={buildGmailReplyLink(selectedMessage.gmailLink, selectedMessage.threadId)}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="px-4 py-2 bg-blue-600 text-white hover:bg-blue-500 rounded-md text-sm font-medium transition-colors flex items-center gap-2"
-                                  >
-                                    <ExternalLink size={14} />
-                                    Gmailで返信
-                                  </a>
-                                )}
                                 <button
                                   onClick={handleCopyReply}
                                   disabled={!replyMessage.trim()}
@@ -7421,6 +7748,46 @@ export default function InboxShell({
                                 </div>
                               </div>
                             </div>
+                          </div>
+                        )}
+
+                        {showGmailComposePanel && selectedMessage && (
+                          <div id="section-reply" className="mt-8 pt-8 border-t border-gray-200" data-testid="reply-panel">
+                            <div className="flex items-center justify-between gap-3 mb-2">
+                              <span className="text-xs text-gray-500" data-testid="reply-route">gmail</span>
+                              <a
+                                href={buildGmailReplyLink(selectedMessage.gmailLink, selectedMessage.threadId)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="px-3 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-md text-xs font-medium transition-colors flex items-center gap-1"
+                              >
+                                <ExternalLink size={14} />
+                                Gmailで返信
+                              </a>
+                            </div>
+                            <GmailComposePanel
+                              messageId={selectedMessage.id}
+                              fromAlias={gmailResolvedContext?.ok ? gmailResolvedContext.context.fromAlias : null}
+                              fromLabel={gmailResolvedContext?.ok ? gmailResolvedContext.context.fromChannelLabel : null}
+                              to={gmailResolvedContext?.ok ? gmailResolvedContext.context.to : null}
+                              subject={gmailResolvedContext?.ok ? gmailResolvedContext.context.subject : (selectedMessage.subject ?? "(no subject)")}
+                              bodyText={replyMessage}
+                              unresolvedVars={gmailUnresolvedVars}
+                              readOnly={readOnlyMode}
+                              sendEnabled={sendEnabledFromHealth}
+                              sendDisabledReason={gmailSendDisabledReason}
+                              isSendingGmailReply={isSendingGmailReply}
+                              sentStatus={gmailSentStatus}
+                              errorMessage={gmailSendError ?? gmailResolveErrorMessage}
+                              onBodyChange={(value) => {
+                                setReplyMessage(value);
+                                setGmailSendError(null);
+                              }}
+                              onSend={(postSendAction) => {
+                                void handleGmailSend(postSendAction);
+                              }}
+                              onCancel={handleGmailCancel}
+                            />
                           </div>
                         )}
                         
