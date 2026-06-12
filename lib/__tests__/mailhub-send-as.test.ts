@@ -44,6 +44,15 @@ import {
   getTestSendAsOverride,
   resetTestSendAsOverride,
 } from "@/lib/mailhub-send-as";
+import {
+  clearMailhubSendDuplicateGuard,
+  reserveMailhubSendDuplicateGuard,
+} from "@/lib/mailhub-send-duplicate-guard";
+import {
+  clearTestSentReplyCaptures,
+  listTestSentReplyCaptures,
+  recordTestSentReplyCapture,
+} from "@/lib/mailhub-send-test-capture";
 
 describe("mailhub-send-as", () => {
   const originalEnv = { ...process.env };
@@ -59,6 +68,8 @@ describe("mailhub-send-as", () => {
     process.env = { ...originalEnv };
     delete g.window;
     delete globalThis.__mailhubSendAsCache;
+    clearMailhubSendDuplicateGuard();
+    clearTestSentReplyCaptures();
     resetTestSendAsOverride();
     gmailMockState.listCalls = [];
     gmailMockState.sendAs = [];
@@ -69,6 +80,8 @@ describe("mailhub-send-as", () => {
     process.env = { ...originalEnv };
     delete g.window;
     delete globalThis.__mailhubSendAsCache;
+    clearMailhubSendDuplicateGuard();
+    clearTestSentReplyCaptures();
     resetTestSendAsOverride();
   });
 
@@ -204,6 +217,62 @@ describe("mailhub-send-as", () => {
 
     expect(response.status).toBe(200);
     expect(getTestSendAsOverride()).toBeNull();
+  });
+
+  it("clears duplicate guard and sent capture state from test/reset", async () => {
+    process.env.MAILHUB_TEST_MODE = "1";
+
+    const firstReservation = reserveMailhubSendDuplicateGuard({
+      actorEmail: "staff@vtj.co.jp",
+      messageId: "msg-001",
+      clientRequestId: "client-001",
+      bodyText: "Reply body",
+      nowMs: 1_000,
+    });
+    expect(firstReservation.ok).toBe(true);
+
+    recordTestSentReplyCapture({
+      id: "capture-001",
+      timestamp: "2026-06-12T00:00:00.000Z",
+      actorEmail: "staff@vtj.co.jp",
+      messageId: "msg-001",
+      threadId: "thread-001",
+      originalMessageId: "<original@example.com>",
+      sentMessageId: "sent-client-001",
+      clientRequestId: "client-001",
+      fromAlias: "vyper_sc@vtj.co.jp",
+      fromChannelId: "vyper-amazon",
+      to: "buyer@example.com",
+      subject: "Re: Order",
+      bodyText: "Reply body",
+      raw: "UmVwbHkgYm9keQ",
+      decodedHeaders: {
+        "In-Reply-To": "<original@example.com>",
+        References: "<original@example.com>",
+      },
+      postSendAction: "done",
+      status: "sent_and_done",
+    });
+    expect(listTestSentReplyCaptures()).toHaveLength(1);
+
+    const response = await resetTestStateRoute(
+      new Request("http://localhost/api/mailhub/test/reset", {
+        method: "POST",
+        body: JSON.stringify({}),
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(listTestSentReplyCaptures()).toEqual([]);
+    expect(
+      reserveMailhubSendDuplicateGuard({
+        actorEmail: "staff@vtj.co.jp",
+        messageId: "msg-001",
+        clientRequestId: "client-001",
+        bodyText: "Reply body",
+        nowMs: 2_000,
+      }).ok,
+    ).toBe(true);
   });
 
   it("caches non-TEST_MODE sendAs.list results and bypasses cache on forceRefresh", async () => {

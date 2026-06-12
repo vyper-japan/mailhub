@@ -6796,3 +6796,213 @@ test("Step113-4) Maki担当をYukaへtakeoverすると理由モーダル後force
   ).toContain("bg-gray-400");
   await expect(detailPane.getByTestId("assignee-pill")).toContainText("Yuka", { timeout: 5000 });
 });
+
+// ----- W2-T3a: mailhub in-app Gmail send happy/thread/activity -----
+const w2T3aMessageId = "msg-001";
+const w2T3aThreadId = "thread-001";
+const w2T3aOriginalMessageId = "<msg001@amazon.co.jp>";
+const w2T3aRootReference = "<root001@amazon.co.jp>";
+
+type W2T3aCapture = {
+  actorEmail?: unknown;
+  messageId?: unknown;
+  threadId?: unknown;
+  originalMessageId?: unknown;
+  sentMessageId?: unknown;
+  clientRequestId?: unknown;
+  fromAlias?: unknown;
+  fromChannelId?: unknown;
+  to?: unknown;
+  subject?: unknown;
+  bodyText?: unknown;
+  decodedHeaders?: Record<string, unknown>;
+  postSendAction?: unknown;
+  status?: unknown;
+};
+
+type W2T3aSendResponse = {
+  ok?: unknown;
+  status?: unknown;
+  action?: unknown;
+  messageId?: unknown;
+  threadId?: unknown;
+  sentMessageId?: unknown;
+  clientRequestId?: unknown;
+  fromAlias?: unknown;
+  fromChannelId?: unknown;
+  to?: unknown;
+  postSendAction?: unknown;
+};
+
+type W2T3aActivityLog = {
+  action?: unknown;
+  messageId?: unknown;
+  metadata?: Record<string, unknown> | null;
+};
+
+async function w2T3aResetAndOpen(page: Page) {
+  const resetResp = await page.request.post("/api/mailhub/test/reset", { data: { readOnly: false } });
+  expect(resetResp.status()).toBe(200);
+
+  await page.addInitScript(() => {
+    localStorage.setItem("mailhub-onboarding-shown", "true");
+  });
+
+  const detailRespP = page
+    .waitForResponse(
+      (r) => {
+        const url = new URL(r.url());
+        return (
+          url.pathname.endsWith("/api/mailhub/detail") &&
+          url.searchParams.get("id") === w2T3aMessageId &&
+          r.request().method() === "GET" &&
+          r.status() === 200
+        );
+      },
+      { timeout: 15000 },
+    )
+    .catch(() => null);
+
+  await page.goto(`/?id=${w2T3aMessageId}`);
+  await detailRespP;
+
+  const panel = page.getByTestId("gmail-compose-panel");
+  await expect(panel).toBeVisible({ timeout: 15000 });
+  await expect(panel.getByTestId("gmail-compose-from")).toContainText("vyper_sc@vtj.co.jp", { timeout: 10000 });
+  await expect(panel.getByTestId("gmail-compose-to")).toContainText("buyer-support@amazon.co.jp", { timeout: 10000 });
+  return panel;
+}
+
+async function w2T3aSendAndDone(page: Page, bodyText: string): Promise<W2T3aSendResponse> {
+  const panel = page.getByTestId("gmail-compose-panel");
+  await panel.getByTestId("gmail-compose-body").fill(bodyText);
+
+  const sendAndDoneButton = panel.getByTestId("gmail-compose-send-and-done");
+  await expect(sendAndDoneButton).toBeEnabled({ timeout: 10000 });
+
+  const sendRespP = page.waitForResponse(
+    (r) => r.url().includes("/api/mailhub/send") && r.request().method() === "POST" && r.status() === 200,
+    { timeout: 15000 },
+  );
+  const [sendResp] = await Promise.all([sendRespP, sendAndDoneButton.click()]);
+  const sendJson = (await sendResp.json()) as W2T3aSendResponse;
+
+  expect(sendJson).toMatchObject({
+    ok: true,
+    status: "sent_and_done",
+    action: "reply_send",
+    messageId: w2T3aMessageId,
+    threadId: w2T3aThreadId,
+    fromAlias: "vyper_sc@vtj.co.jp",
+    fromChannelId: "vyper-amazon",
+    postSendAction: "done",
+  });
+  expect(sendJson.to).toBe("buyer-support@amazon.co.jp");
+  expect(sendJson.clientRequestId).toEqual(expect.any(String));
+  return sendJson;
+}
+
+async function w2T3aGetCapture(page: Page, clientRequestId: string): Promise<W2T3aCapture> {
+  return await expect
+    .poll(
+      async () => {
+        const res = await page.request.get(`/api/mailhub/test/sent?clientRequestId=${encodeURIComponent(clientRequestId)}`);
+        if (res.status() !== 200) return null;
+        const json = (await res.json()) as { captures?: W2T3aCapture[]; sent?: W2T3aCapture[] };
+        const captures = json.captures ?? json.sent ?? [];
+        return captures.find((capture) => capture.messageId === w2T3aMessageId) ?? null;
+      },
+      { timeout: 10000, intervals: [250, 500, 1000] },
+    )
+    .not.toBeNull()
+    .then(async () => {
+      const res = await page.request.get(`/api/mailhub/test/sent?clientRequestId=${encodeURIComponent(clientRequestId)}`);
+      const json = (await res.json()) as { captures?: W2T3aCapture[]; sent?: W2T3aCapture[] };
+      const capture = (json.captures ?? json.sent ?? []).find((item) => item.messageId === w2T3aMessageId);
+      expect(capture).toBeTruthy();
+      return capture!;
+    });
+}
+
+async function w2T3aExpectDoneReflected(page: Page) {
+  await expect
+    .poll(
+      async () => {
+        const res = await page.request.get("/api/mailhub/list?max=50");
+        if (res.status() !== 200) return true;
+        const json = (await res.json()) as { messages?: Array<{ id?: unknown }> };
+        return (json.messages ?? []).some((message) => message.id === w2T3aMessageId);
+      },
+      { timeout: 10000, intervals: [250, 500, 1000] },
+    )
+    .toBe(false);
+}
+
+async function w2T3aExpectReplySendActivity(page: Page) {
+  await expect
+    .poll(
+      async () => {
+        const res = await page.request.get(
+          `/api/mailhub/activity?action=reply_send&messageId=${encodeURIComponent(w2T3aMessageId)}&limit=20`,
+        );
+        if (res.status() !== 200) return false;
+        const json = (await res.json()) as { logs?: W2T3aActivityLog[] };
+        return (json.logs ?? []).some((log) => {
+          const metadata = log.metadata ?? {};
+          return (
+            log.action === "reply_send" &&
+            log.messageId === w2T3aMessageId &&
+            metadata.status === "sent_and_done" &&
+            metadata.threadId === w2T3aThreadId &&
+            metadata.fromAlias === "vyper_sc@vtj.co.jp" &&
+            metadata.postSendAction === "done"
+          );
+        });
+      },
+      { timeout: 10000, intervals: [250, 500, 1000] },
+    )
+    .toBe(true);
+}
+
+test.describe("W2-T3a Gmail compose send E2E", () => {
+  test("E2E #1) compose→送信→capture→Done→activity", async ({ page }) => {
+    const bodyText = "W2-T3a happy send body";
+
+    await w2T3aResetAndOpen(page);
+    const sendJson = await w2T3aSendAndDone(page, bodyText);
+    const capture = await w2T3aGetCapture(page, String(sendJson.clientRequestId));
+
+    expect(capture).toMatchObject({
+      messageId: w2T3aMessageId,
+      threadId: w2T3aThreadId,
+      originalMessageId: w2T3aOriginalMessageId,
+      sentMessageId: sendJson.sentMessageId,
+      clientRequestId: sendJson.clientRequestId,
+      fromAlias: "vyper_sc@vtj.co.jp",
+      fromChannelId: "vyper-amazon",
+      to: "buyer-support@amazon.co.jp",
+      bodyText,
+      postSendAction: "done",
+      status: "sent_and_done",
+    });
+
+    await expect(page.getByTestId("toast")).toContainText("送信しました。Doneは元に戻せます", { timeout: 10000 });
+    await w2T3aExpectDoneReflected(page);
+    await w2T3aExpectReplySendActivity(page);
+  });
+
+  test("E2E #2) sent captureでIn-Reply-To/References/threadIdを検証", async ({ page }) => {
+    const bodyText = "W2-T3a thread header body";
+
+    await w2T3aResetAndOpen(page);
+    const sendJson = await w2T3aSendAndDone(page, bodyText);
+    const capture = await w2T3aGetCapture(page, String(sendJson.clientRequestId));
+    const decodedHeaders = capture.decodedHeaders ?? {};
+
+    expect(capture.threadId).toBe(w2T3aThreadId);
+    expect(decodedHeaders.threadId).toBe(w2T3aThreadId);
+    expect(decodedHeaders["In-Reply-To"]).toBe(w2T3aOriginalMessageId);
+    expect(decodedHeaders.References).toContain(w2T3aRootReference);
+    expect(decodedHeaders.References).toContain(w2T3aOriginalMessageId);
+  });
+});

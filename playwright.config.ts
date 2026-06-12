@@ -50,7 +50,8 @@ export default defineConfig({
     // 既存の手動devサーバを掴むと、TEST_MODEやビルド状態がズレてE2Eが壊れやすい。
     // qa:strictの「2回連続PASS」を安定させるため、常にPlaywrightがサーバを起動する。
     reuseExistingServer: false,
-    timeout: 120 * 1000,
+    // メモリ逼迫時にnext devのcold startが50秒超になる実測あり（2026-06-12）。
+    timeout: 300 * 1000,
     env: {
       MAILHUB_TEST_MODE: "1",
       NEXTAUTH_SECRET: "test-secret-for-e2e",

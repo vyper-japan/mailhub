@@ -8,6 +8,8 @@ import { resetAssigneeRulesForTest } from "@/lib/assigneeRulesStore";
 import { clearActivityLogs, type AuditLogEntry } from "@/lib/audit-log";
 import { setTestReadOnlyMode } from "@/lib/read-only";
 import { resetTestSendAsOverride, setTestSendAsOverride, type TestSendAsOverride } from "@/lib/mailhub-send-as";
+import { clearMailhubSendDuplicateGuard } from "@/lib/mailhub-send-duplicate-guard";
+import { clearTestSentReplyCaptures } from "@/lib/mailhub-send-test-capture";
 import { getTeamStore } from "@/lib/teamStore";
 import { getAssigneeRegistryStore } from "@/lib/assigneeRegistryStore";
 import { getRosterStore } from "@/lib/rosterStore";
@@ -82,6 +84,9 @@ export async function POST(req: Request) {
     }
     
     await resetTestState();
+    clearTestSentReplyCaptures();
+    clearMailhubSendDuplicateGuard();
+
     // Step 23: ラベル/ルールも初期化（E2Eで毎回同じ状態）
     await resetRegisteredLabelsForTest();
     await resetLabelRulesForTest();
