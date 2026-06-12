@@ -8,6 +8,7 @@ export type ActivityStoreType = "memory" | "file" | "sheets";
 
 export interface ActivityStore {
   append(entry: AuditLogEntry): Promise<void>;
+  appendWithResult?(entry: AuditLogEntry): Promise<{ ok: boolean; error: string | null }>;
   list(options?: { limit?: number; actorEmail?: string; action?: string }): Promise<AuditLogEntry[]>;
   clear(): Promise<void>;
 }
@@ -21,6 +22,15 @@ export class MemoryStore implements ActivityStore {
     memoryBuffer.push(entry);
     if (memoryBuffer.length > MAX_LOG_ENTRIES) {
       memoryBuffer = memoryBuffer.slice(-MAX_LOG_ENTRIES);
+    }
+  }
+
+  async appendWithResult(entry: AuditLogEntry): Promise<{ ok: boolean; error: string | null }> {
+    try {
+      await this.append(entry);
+      return { ok: true, error: null };
+    } catch (e) {
+      return { ok: false, error: e instanceof Error ? e.message : String(e) };
     }
   }
 
@@ -58,6 +68,15 @@ export class FileStore implements ActivityStore {
     await this.ensureDir();
     const line = JSON.stringify(entry) + "\n";
     await writeFile(FILE_STORE_PATH, line, { flag: "a" });
+  }
+
+  async appendWithResult(entry: AuditLogEntry): Promise<{ ok: boolean; error: string | null }> {
+    try {
+      await this.append(entry);
+      return { ok: true, error: null };
+    } catch (e) {
+      return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    }
   }
 
   async list(options?: { limit?: number; actorEmail?: string; action?: string }): Promise<AuditLogEntry[]> {
@@ -129,73 +148,87 @@ export class SheetsStore implements ActivityStore {
     return google.sheets({ version: "v4", auth });
   }
 
-  async append(entry: AuditLogEntry): Promise<void> {
-    try {
-      const sheets = await this.getSheetsClient();
+  private async appendStrict(entry: AuditLogEntry): Promise<void> {
+    const sheets = await this.getSheetsClient();
       
-      // タイムアウト付きでbest-effort
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error("Sheets append timeout")), 3000)
-      );
+    // タイムアウト付きでbest-effort
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error("Sheets append timeout")), 3000)
+    );
 
-      // ヘッダー行の初期化（初回のみ）
-      try {
-        const headerCheck = await sheets.spreadsheets.values.get({
+    // ヘッダー行の初期化（初回のみ）
+    try {
+      const headerCheck = await sheets.spreadsheets.values.get({
+        spreadsheetId: this.spreadsheetId,
+        range: `${this.sheetName}!A1:J1`,
+      });
+      const header = headerCheck.data.values?.[0] || [];
+      if (header.length === 0 || header[9] !== "reason") {
+        await sheets.spreadsheets.values.update({
           spreadsheetId: this.spreadsheetId,
           range: `${this.sheetName}!A1:J1`,
-        });
-        const header = headerCheck.data.values?.[0] || [];
-        if (header.length === 0 || header[9] !== "reason") {
-          await sheets.spreadsheets.values.update({
-            spreadsheetId: this.spreadsheetId,
-            range: `${this.sheetName}!A1:J1`,
-            valueInputOption: "RAW",
-            requestBody: {
-              values: [[
-                "timeISO",
-                "actor",
-                "action",
-                "messageId",
-                "subject",
-                "channel",
-                "status",
-                "label",
-                "metaJSON",
-                "reason",
-              ]],
-            },
-          });
-        }
-      } catch {
-        // ヘッダー初期化失敗は無視
-      }
-
-      await Promise.race([
-        sheets.spreadsheets.values.append({
-          spreadsheetId: this.spreadsheetId,
-          range: `${this.sheetName}!A:J`,
           valueInputOption: "RAW",
-          insertDataOption: "INSERT_ROW",
           requestBody: {
             values: [[
-              entry.timestamp,
-              entry.actorEmail,
-              entry.action,
-              entry.messageId,
-              "", // subject (後でenrich)
-              "", // channel (後でenrich)
-              "", // status (後でenrich)
-              entry.label || "",
-              JSON.stringify(entry.metadata || {}),
-              entry.reason || "",
+              "timeISO",
+              "actor",
+              "action",
+              "messageId",
+              "subject",
+              "channel",
+              "status",
+              "label",
+              "metaJSON",
+              "reason",
             ]],
           },
-        }),
-        timeoutPromise,
-      ]);
+        });
+      }
+    } catch {
+      // ヘッダー初期化失敗は無視
+    }
+
+    await Promise.race([
+      sheets.spreadsheets.values.append({
+        spreadsheetId: this.spreadsheetId,
+        range: `${this.sheetName}!A:J`,
+        valueInputOption: "RAW",
+        insertDataOption: "INSERT_ROW",
+        requestBody: {
+          values: [[
+            entry.timestamp,
+            entry.actorEmail,
+            entry.action,
+            entry.messageId,
+            "", // subject (後でenrich)
+            "", // channel (後でenrich)
+            "", // status (後でenrich)
+            entry.label || "",
+            JSON.stringify(entry.metadata || {}),
+            entry.reason || "",
+          ]],
+        },
+      }),
+      timeoutPromise,
+    ]);
+  }
+
+  async append(entry: AuditLogEntry): Promise<void> {
+    try {
+      await this.appendStrict(entry);
     } catch (e) {
       // append失敗しても本体アクションは失敗させない（ログだけ落ちるのは許容）
       console.error("[SheetsStore] Failed to append:", e);
+    }
+  }
+
+  async appendWithResult(entry: AuditLogEntry): Promise<{ ok: boolean; error: string | null }> {
+    try {
+      await this.appendStrict(entry);
+      return { ok: true, error: null };
+    } catch (e) {
+      console.error("[SheetsStore] Failed to append:", e);
+      return { ok: false, error: e instanceof Error ? e.message : String(e) };
     }
   }
 

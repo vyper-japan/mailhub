@@ -51,7 +51,8 @@ export type AuditAction =
   | "reply_note_insert"
   | "reply_mark_done"
   | "reply_mark_waiting"
-  | "reply_mark_muted";
+  | "reply_mark_muted"
+  | "reply_send";
 
 export function isAuditAction(v: string): v is AuditAction {
   const allowed: AuditAction[] = [
@@ -105,6 +106,7 @@ export function isAuditAction(v: string): v is AuditAction {
     "reply_mark_done",
     "reply_mark_waiting",
     "reply_mark_muted",
+    "reply_send",
   ];
   return allowed.includes(v as AuditAction);
 }
@@ -119,12 +121,18 @@ export type AuditLogEntry = {
   reason?: string; // Step 91: 理由入力（takeover/bulk assign/危険ルール適用）
 };
 
+export type AuditLogResult = {
+  consoleLogged: true;
+  storeAppendOk: boolean;
+  storeAppendError: string | null;
+};
+
 /**
  * 操作ログを出力する
  * Vercel logs で追跡可能な形式で console.log に出力
  * 同時にActivityStoreにも保存（永続化対応）
  */
-export async function logAction(entry: Omit<AuditLogEntry, "timestamp">): Promise<void> {
+export async function logAction(entry: Omit<AuditLogEntry, "timestamp">): Promise<AuditLogResult> {
   const logEntry: AuditLogEntry = {
     timestamp: new Date().toISOString(),
     ...entry,
@@ -140,10 +148,25 @@ export async function logAction(entry: Omit<AuditLogEntry, "timestamp">): Promis
 
   // ActivityStoreに追加（E2E/即時反映のため await する。エラーは握りつぶす）
   const store = getActivityStore();
+  if (store.appendWithResult) {
+    const result = await store.appendWithResult(logEntry);
+    return {
+      consoleLogged: true,
+      storeAppendOk: result.ok,
+      storeAppendError: result.error,
+    };
+  }
+
   try {
     await store.append(logEntry);
+    return { consoleLogged: true, storeAppendOk: true, storeAppendError: null };
   } catch (e) {
     console.error("[logAction] Failed to append to store:", e);
+    return {
+      consoleLogged: true,
+      storeAppendOk: false,
+      storeAppendError: e instanceof Error ? e.message : String(e),
+    };
   }
 }
 
@@ -182,4 +205,3 @@ export async function clearActivityLogs(): Promise<void> {
   const store = getActivityStore();
   await store.clear();
 }
-
