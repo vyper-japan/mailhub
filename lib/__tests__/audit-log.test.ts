@@ -66,7 +66,7 @@ describe("audit-log", () => {
 
     await expect(
       logAction({ actorEmail: "test@vtj.co.jp", action: "assign", messageId: "msg-1", metadata: {} }),
-    ).resolves.toBeUndefined();
+    ).resolves.toMatchObject({ storeAppendOk: false, storeAppendError: "append failed" });
 
     expect(errSpy).toHaveBeenCalled();
   });

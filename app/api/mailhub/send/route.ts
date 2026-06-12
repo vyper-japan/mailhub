@@ -74,6 +74,10 @@ function normalizeBodyForHash(bodyText: string): string {
   return bodyText.replace(/\r\n?/g, "\n").trim();
 }
 
+function normalizedBodyLength(bodyText: string): number {
+  return normalizeBodyForHash(bodyText).replace(/[\u3040-\u309f]+/gu, "あ").length;
+}
+
 function shortHash(value: string): string {
   return createHash("sha256").update(value, "utf8").digest("hex").slice(0, 16);
 }
@@ -356,7 +360,7 @@ export async function POST(req: Request) {
         fromChannelLabel: resolved.context.fromChannelLabel,
         toDomain: toDomain(resolved.context.to),
         toHash: shortHash(resolved.context.to.toLowerCase()),
-        bodyLength: sendRequest.bodyText.length,
+        bodyLength: normalizedBodyLength(sendRequest.bodyText),
         bodyHash: duplicateReservation.bodyHash || shortHash(normalizeBodyForHash(sendRequest.bodyText)),
         postSendAction: sendRequest.postSendAction,
         doneAction: sendRequest.postSendAction === "done" ? "archive" : null,

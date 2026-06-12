@@ -36,6 +36,7 @@ type MailComposerOptions = {
   subject: string;
   text: string;
   textEncoding: "base64";
+  encoding: "base64";
   date?: Date;
   headers: Record<string, string>;
 };
@@ -86,6 +87,7 @@ export async function buildReplyMime(
     subject,
     text: normalizeBodyText(input.bodyText),
     textEncoding: "base64",
+    encoding: "base64",
     date: input.date,
     headers: {
       "In-Reply-To": input.originalMessageId,
