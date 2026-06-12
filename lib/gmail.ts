@@ -12,23 +12,38 @@ import { MAILHUB_USER_LABEL_PREFIX } from "@/lib/mailhub-labels";
 import type { ThreadMessageSummary } from "@/lib/thread";
 import { extractMailhubUserLabels, receivedAtToMs, statusTypeFromLabelNames } from "@/lib/thread";
 
+type MessageDetailHeaderKeys =
+  | "to"
+  | "cc"
+  | "bcc"
+  | "replyTo"
+  | "deliveredTo"
+  | "xOriginalTo"
+  | "references"
+  | "inReplyTo"
+  | "listId"
+  | "listPost";
+
+type MessageDetailHeaderDefaultsInput = Omit<MessageDetail, MessageDetailHeaderKeys> &
+  Partial<Pick<MessageDetail, MessageDetailHeaderKeys>>;
+
 // テストモード用のモックデータ読み込み
 async function getMockDetail(id: string): Promise<MessageDetail | null> {
   try {
     // 動的インポートでfixtureを読み込む
     const detail = await import(`@/fixtures/details/${id}.json`);
-    return detail.default as MessageDetail;
+    return fillMessageDetailHeaderDefaults(detail.default as MessageDetailHeaderDefaultsInput);
   } catch {
     // ファイルがない場合はデフォルト生成
     const msg = (messagesFixture as InboxListMessage[]).find((m) => m.id === id);
     if (!msg) return null;
-    return {
+    return fillMessageDetailHeaderDefaults({
       ...msg,
       plainTextBody: `これは ${msg.subject} のテスト本文です。\n\nテストモードで表示しています。`,
       htmlBody: null,
       bodySource: "plain" as const,
       bodyNotice: null,
-    };
+    });
   }
 }
 
@@ -180,6 +195,34 @@ function headerValue(
 ): string | null {
   const hit = headers?.find((h) => h.name?.toLowerCase() === name.toLowerCase());
   return hit?.value ?? null;
+}
+
+export function headerValues(
+  headers: Array<{ name?: string | null; value?: string | null }> | undefined,
+  name: string,
+): string[] {
+  return (headers ?? [])
+    .filter((h) => h.name?.toLowerCase() === name.toLowerCase())
+    .map((h) => h.value)
+    .filter((v): v is string => typeof v === "string");
+}
+
+export function fillMessageDetailHeaderDefaults(
+  detail: MessageDetailHeaderDefaultsInput,
+): MessageDetail {
+  return {
+    ...detail,
+    to: detail.to ?? null,
+    cc: detail.cc ?? null,
+    bcc: detail.bcc ?? null,
+    replyTo: detail.replyTo ?? null,
+    deliveredTo: detail.deliveredTo ?? [],
+    xOriginalTo: detail.xOriginalTo ?? null,
+    references: detail.references ?? null,
+    inReplyTo: detail.inReplyTo ?? null,
+    listId: detail.listId ?? null,
+    listPost: detail.listPost ?? null,
+  };
 }
 
 function formatReceivedAt(internalDateMs: number): string {
@@ -815,6 +858,16 @@ export async function getMessageDetail(id: string): Promise<MessageDetail> {
       assigneeSlug: assigneeSlugValue,
       userLabels: userLabels.length ? userLabels : undefined,
       snoozeUntil: snoozeUntil || undefined,
+      to: headerValue(headers, "To"),
+      cc: headerValue(headers, "Cc"),
+      bcc: headerValue(headers, "Bcc"),
+      replyTo: headerValue(headers, "Reply-To"),
+      deliveredTo: headerValues(headers, "Delivered-To"),
+      xOriginalTo: headerValue(headers, "X-Original-To"),
+      references: headerValue(headers, "References"),
+      inReplyTo: headerValue(headers, "In-Reply-To"),
+      listId: headerValue(headers, "List-Id"),
+      listPost: headerValue(headers, "List-Post"),
     };
 
     // dev限定: 「ラベルが消えているのか？」を判定するための可視化情報
@@ -2359,5 +2412,4 @@ export async function releaseSnoozed(untilDate: string): Promise<{
     truncated,
   };
 }
-
 

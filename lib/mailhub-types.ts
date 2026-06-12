@@ -51,6 +51,17 @@ export type MessageDetail = {
    * - labelNames: labelIdsをlabelsMapで復元した結果（不明なIDはnullになる）
    */
   debugLabels?: { labelIds: string[]; labelNames: Array<string | null> };
+
+  to: string | null;
+  cc: string | null;
+  bcc: string | null;
+  replyTo: string | null;
+  deliveredTo: string[];
+  xOriginalTo: string | null;
+  references: string | null;
+  inReplyTo: string | null;
+  listId: string | null;
+  listPost: string | null;
 };
 
 /**
@@ -74,5 +85,4 @@ export type StatusCounts = {
  * Channels（All/StoreA/B/C）の件数キャッシュ（UI側）
  */
 export type ChannelCounts = Record<string, number>;
-
 

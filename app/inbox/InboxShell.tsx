@@ -1717,6 +1717,17 @@ export default function InboxShell({
       htmlBody: detailBody.htmlBody,
       bodySource: detailBody.htmlBody ? "html" : "plain",
       bodyNotice: detailBody.bodyNotice,
+      // W1暫定: 返信解決ヘッダーはW2-T2aでselectedDetailから供給する（契約§1.3）
+      to: null,
+      cc: null,
+      bcc: null,
+      replyTo: null,
+      deliveredTo: [],
+      xOriginalTo: null,
+      references: null,
+      inReplyTo: null,
+      listId: null,
+      listPost: null,
     };
     return routeReply(detail, channelId, testMode);
   }, [selectedMessage, detailBody.plainTextBody, detailBody.htmlBody, detailBody.bodyNotice, channelId, testMode]);

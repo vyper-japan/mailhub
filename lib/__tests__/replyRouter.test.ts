@@ -18,6 +18,16 @@ describe("routeReply", () => {
     bodySource: "plain",
     bodyNotice: null,
     assigneeSlug: null,
+    to: null,
+    cc: null,
+    bcc: null,
+    replyTo: null,
+    deliveredTo: [],
+    xOriginalTo: null,
+    references: null,
+    inReplyTo: null,
+    listId: null,
+    listPost: null,
     ...overrides,
   });
 
