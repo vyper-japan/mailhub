@@ -5,8 +5,18 @@ import { requireUser, authErrorResponse } from "@/lib/require-user";
 import { isAdminEmail } from "@/lib/admin";
 import { getViewsStore } from "@/lib/viewsStore";
 import { isReadOnlyMode } from "@/lib/read-only";
+import { getLabelById } from "@/lib/labels";
+import { isTestMode } from "@/lib/test-mode";
 
 export const dynamic = "force-dynamic";
+
+function parseViewLabelId(value: unknown): string {
+  const labelId = typeof value === "string" ? value : "all";
+  if (!getLabelById(labelId, isTestMode())) {
+    throw new Error(`invalid_label_id:${labelId}`);
+  }
+  return labelId;
+}
 
 export async function GET(): Promise<NextResponse> {
   // 全員OK（READ ONLYでも閲覧可）
@@ -53,7 +63,7 @@ export async function POST(req: Request): Promise<NextResponse> {
       id: typeof body.id === "string" ? body.id : undefined,
       name: typeof body.name === "string" ? body.name : "",
       icon: typeof body.icon === "string" ? body.icon : undefined,
-      labelId: typeof body.labelId === "string" ? body.labelId : "all",
+      labelId: parseViewLabelId(body.labelId),
       q: typeof body.q === "string" ? body.q : undefined,
       assignee: body.assignee === "mine" || body.assignee === "unassigned" ? body.assignee : null,
       statusType: body.statusType === "todo" || body.statusType === "waiting" || body.statusType === "muted" ? body.statusType : null,

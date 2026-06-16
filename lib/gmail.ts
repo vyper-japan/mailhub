@@ -199,6 +199,57 @@ function filterUserLabels(labelNames: string[], registered: Set<string>): string
   return out;
 }
 
+function extractAddressQueryTerms(q: string): string[] {
+  const out = new Set<string>();
+  for (const match of q.matchAll(/\b(?:deliveredto|to|cc):([^\s)]+)/gi)) {
+    const value = match[1]?.trim().replace(/^"|"$/g, "").toLowerCase();
+    if (value) out.add(value);
+  }
+  return [...out];
+}
+
+async function testMessageMatchesQuery(m: InboxListMessage, q: string): Promise<boolean> {
+  const addressTerms = extractAddressQueryTerms(q);
+  if (addressTerms.length > 0) {
+    const detail = await getMockDetail(m.id);
+    const values = [
+      m.from,
+      detail?.to,
+      detail?.cc,
+      detail?.bcc,
+      detail?.replyTo,
+      detail?.xOriginalTo,
+      ...(detail?.deliveredTo ?? []),
+    ]
+      .filter((v): v is string => typeof v === "string")
+      .map((v) => v.toLowerCase());
+    return addressTerms.some((term) => values.some((value) => value.includes(term)));
+  }
+
+  const subjectMatch = q.match(/subject:\s*"([^"]+)"/i) || q.match(/subject:\s*([^\s]+)/i);
+  if (subjectMatch) {
+    const subjectQuery = subjectMatch[1].toLowerCase();
+    return m.subject?.toLowerCase().includes(subjectQuery) ?? false;
+  }
+
+  const fromMatch = q.match(/from:\s*"([^"]+)"/i) || q.match(/from:\s*([^\s]+)/i);
+  if (fromMatch) {
+    const fromQuery = fromMatch[1].toLowerCase();
+    return m.from?.toLowerCase().includes(fromQuery) ?? false;
+  }
+
+  const lowerQ = q.toLowerCase();
+  return Boolean(
+    m.subject?.toLowerCase().includes(lowerQ) ||
+      m.from?.toLowerCase().includes(lowerQ) ||
+      m.snippet?.toLowerCase().includes(lowerQ) ||
+    // StoreA/B/Cチャンネルの場合、楽天メールも含める（テスト用の後方互換）
+      (q.includes("store-a") && (m.from?.includes("rakuten") || m.subject?.includes("楽天"))) ||
+      (q.includes("store-b") && (m.from?.includes("rakuten") || m.subject?.includes("楽天"))) ||
+      (q.includes("store-c") && (m.from?.includes("rakuten") || m.subject?.includes("楽天"))),
+  );
+}
+
 function getTestStatus(id: string): TestMessageStatus {
   return getTestMessageStatus().get(id) ?? "todo";
 }
@@ -227,6 +278,12 @@ function invalidateLabelsMapCache() {
   // 現状 getCache().labels を labelName->labelId と labelsMapキャッシュの両方に使っているため、
   // ここでは labelsMap のキーだけを狙って消す。
   getCache().labels.delete("labelsMap");
+}
+
+function isGmailConflictError(e: unknown): boolean {
+  if (!e || typeof e !== "object") return false;
+  const error = e as { code?: unknown; status?: unknown; response?: { status?: unknown } };
+  return error.code === 409 || error.status === 409 || error.response?.status === 409;
 }
 
 function getCached<T>(map: Map<string, CacheEntry<T>>, key: string): T | null {
@@ -645,36 +702,14 @@ export async function listLatestInboxMessages(
     // Step 51: qがあればフィルタ（Gmail検索式を簡易パース）
     // ただし、pinnedメッセージは常に含める（QA Gate: msg-021を確実に表示）
     let filtered = q
-      ? all.filter((m) => {
-          if (m.pinned === true) return true; // pinnedは常に含める
-          
-          // Step 51: Gmail検索式を簡易パース（テストモード用）
-          // subject:"..." 形式を抽出
-          const subjectMatch = q.match(/subject:\s*"([^"]+)"/i) || q.match(/subject:\s*([^\s]+)/i);
-          if (subjectMatch) {
-            const subjectQuery = subjectMatch[1].toLowerCase();
-            return m.subject?.toLowerCase().includes(subjectQuery) ?? false;
-          }
-          
-          // from:"..." 形式を抽出
-          const fromMatch = q.match(/from:\s*"([^"]+)"/i) || q.match(/from:\s*([^\s]+)/i);
-          if (fromMatch) {
-            const fromQuery = fromMatch[1].toLowerCase();
-            return m.from?.toLowerCase().includes(fromQuery) ?? false;
-          }
-          
-          // 通常の文字列マッチ（後方互換）
-          const lowerQ = q.toLowerCase();
-          return (
-            m.subject?.toLowerCase().includes(lowerQ) ||
-            m.from?.toLowerCase().includes(lowerQ) ||
-            m.snippet?.toLowerCase().includes(lowerQ) ||
-            // StoreA/B/Cチャンネルの場合、楽天メールも含める（テスト用）
-            (q.includes("store-a") && (m.from?.includes("rakuten") || m.subject?.includes("楽天"))) ||
-            (q.includes("store-b") && (m.from?.includes("rakuten") || m.subject?.includes("楽天"))) ||
-            (q.includes("store-c") && (m.from?.includes("rakuten") || m.subject?.includes("楽天")))
-          );
-        })
+      ? (
+          await Promise.all(
+            all.map(async (m) => {
+              const matches = await testMessageMatchesQuery(m, q);
+              return matches ? m : null;
+            }),
+          )
+        ).filter((m): m is InboxListMessage => m !== null)
       : all;
     // statusType でフィルタ（メモリ上の状態に基づく）
     const effectiveTestStatusType = statusType ?? (labelIds?.includes("INBOX") ? "todo" : undefined);
@@ -1428,15 +1463,24 @@ export async function ensureLabelId(labelName: string): Promise<string | null> {
 
   const { gmail, sharedInboxEmail } = createGmailClient();
 
-  // キャッシュに無い場合は作成
-  const createRes = await gmail.users.labels.create({
-    userId: sharedInboxEmail,
-    requestBody: {
-      name: labelName,
-      labelListVisibility: "labelShow",
-      messageListVisibility: "show",
-    },
-  });
+  // キャッシュに無い場合は作成。同時リクエストや古いキャッシュで既存ラベル作成が
+  // 409になった場合は、ラベル一覧を強制再取得して同名IDを採用する。
+  const createRes = await gmail.users.labels
+    .create({
+      userId: sharedInboxEmail,
+      requestBody: {
+        name: labelName,
+        labelListVisibility: "labelShow",
+        messageListVisibility: "show",
+      },
+    })
+    .catch(async (e: unknown) => {
+      if (!isGmailConflictError(e)) throw e;
+      const refreshed = await listLabelsMap({ force: true });
+      const conflictedId = refreshed.nameToId.get(labelName);
+      if (!conflictedId) throw e;
+      return { data: { id: conflictedId } };
+    });
   const newId = createRes.data.id;
   if (newId) {
     getCache().labels.set(labelName, newId);

@@ -5,8 +5,16 @@ import { requireUser, authErrorResponse } from "@/lib/require-user";
 import { isAdminEmail } from "@/lib/admin";
 import { getViewsStore } from "@/lib/viewsStore";
 import { isReadOnlyMode } from "@/lib/read-only";
+import { getLabelById } from "@/lib/labels";
+import { isTestMode } from "@/lib/test-mode";
 
 export const dynamic = "force-dynamic";
+
+function assertValidViewLabelId(labelId: string): void {
+  if (!getLabelById(labelId, isTestMode())) {
+    throw new Error(`invalid_label_id:${labelId}`);
+  }
+}
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }): Promise<NextResponse> {
   // adminのみ、READ ONLYは403
@@ -37,7 +45,10 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     }> = {};
     if (typeof body.name === "string") updates.name = body.name;
     if (body.icon === null || typeof body.icon === "string") updates.icon = body.icon ?? undefined;
-    if (typeof body.labelId === "string") updates.labelId = body.labelId;
+    if (typeof body.labelId === "string") {
+      assertValidViewLabelId(body.labelId);
+      updates.labelId = body.labelId;
+    }
     if (body.q === null || typeof body.q === "string") updates.q = body.q ?? undefined;
     if (body.assignee === "mine" || body.assignee === "unassigned" || body.assignee === null) updates.assignee = body.assignee;
     if (body.statusType === "todo" || body.statusType === "waiting" || body.statusType === "muted" || body.statusType === null)
