@@ -5981,6 +5981,15 @@ test("Step93-4) Channel scope bar: 専用宛先と関連候補検索を分けて
   await page.addInitScript(() => {
     localStorage.setItem("mailhub-onboarding-shown", "true");
   });
+
+  await page.goto("/?label=stores&max=20");
+  await page.waitForSelector('[data-testid="message-row"]', { timeout: 10000 });
+  const aggregateScopeBar = page.getByTestId("channel-scope-bar");
+  await expect(aggregateScopeBar).toBeVisible({ timeout: 5000 });
+  await expect(aggregateScopeBar).toContainText("ストア全部");
+  await expect(aggregateScopeBar).toContainText("3店舗 / 3宛先");
+  await expect(aggregateScopeBar).toContainText("含む店舗: StoreA / StoreB / StoreC");
+
   await page.goto("/?label=store-a&max=20");
   await page.waitForSelector('[data-testid="message-row"]', { timeout: 10000 });
 

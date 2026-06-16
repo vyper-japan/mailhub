@@ -984,10 +984,23 @@ export default function InboxShell({
     return labelGroups[0]?.items[0] ?? null;
   }, [labelId, labelGroups]);
 
-  const activeChannelDef = useMemo(() => {
+  const activeChannelScope = useMemo(() => {
     if (activeLabel?.type !== "channel") return null;
-    if (activeLabel.id === "all" || activeLabel.id === "stores") return null;
-    return getChannels(testMode).find((channel) => channel.id === activeLabel.id) ?? null;
+    if (activeLabel.id === "all") return null;
+    const channels = getChannels(testMode);
+    const channel = channels.find((item) => item.id === activeLabel.id);
+    if (!channel) return null;
+    const sourceChannels =
+      channel.id === "stores"
+        ? channels.filter((item) => item.id !== "all" && item.id !== "stores")
+        : [channel];
+    const sourceAddresses = sourceChannels.flatMap((item) => item.addresses);
+    return {
+      channel,
+      sourceChannels,
+      sourceAddresses,
+      isAggregate: channel.id === "stores",
+    };
   }, [activeLabel?.id, activeLabel?.type, testMode]);
 
   // Step 81: slug→displayNameのMapを作成（team名簿から）
@@ -6710,7 +6723,7 @@ export default function InboxShell({
               style={{ width: `${listWidth}px`, minWidth: '280px', maxWidth: '720px' }}
             >
               <div className="flex-1 overflow-y-auto custom-scrollbar">
-                {activeChannelDef && (
+                {activeChannelScope && (
                   <div
                     data-testid="channel-scope-bar"
                     className="sticky top-0 z-10 border-b border-[#e8eaed] bg-[#f8fbff] px-3 py-2"
@@ -6719,9 +6732,14 @@ export default function InboxShell({
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 text-[12px] font-medium text-[#202124]">
                           <span className="h-2 w-2 rounded-full bg-[#1a73e8]" />
-                          <span className="truncate">{activeChannelDef.label}</span>
+                          <span className="truncate">{activeChannelScope.channel.label}</span>
                           <span className="shrink-0 rounded-full border border-[#d2e3fc] bg-white px-1.5 py-0.5 text-[11px] text-[#1a73e8]">
                             {messages.length}件表示
+                          </span>
+                          <span className="shrink-0 rounded-full border border-[#dadce0] bg-white px-1.5 py-0.5 text-[11px] text-[#5f6368]">
+                            {activeChannelScope.isAggregate
+                              ? `${activeChannelScope.sourceChannels.length}店舗 / ${activeChannelScope.sourceAddresses.length}宛先`
+                              : `${activeChannelScope.sourceAddresses.length}宛先`}
                           </span>
                           {nextPageToken && (
                             <span className="shrink-0 rounded-full border border-[#fde68a] bg-[#fffbeb] px-1.5 py-0.5 text-[11px] text-[#92400e]">
@@ -6729,17 +6747,26 @@ export default function InboxShell({
                             </span>
                           )}
                         </div>
-                        <div className="mt-1 truncate text-[11px] text-[#5f6368]" title={activeChannelDef.addresses.join(", ")}>
-                          専用宛先: {activeChannelDef.addresses.join(", ")}
+                        <div
+                          className="mt-1 truncate text-[11px] text-[#5f6368]"
+                          title={
+                            activeChannelScope.isAggregate
+                              ? activeChannelScope.sourceAddresses.join(", ")
+                              : activeChannelScope.sourceAddresses.join(", ")
+                          }
+                        >
+                          {activeChannelScope.isAggregate
+                            ? `含む店舗: ${activeChannelScope.sourceChannels.map((item) => item.label).join(" / ")}`
+                            : `専用宛先: ${activeChannelScope.sourceAddresses.join(", ")}`}
                         </div>
                       </div>
-                      {activeChannelDef.relatedQ && (
+                      {activeChannelScope.channel.relatedQ && (
                         <button
                           type="button"
                           data-testid="channel-related-search"
-                          onClick={() => handleRelatedChannelSearch(activeChannelDef.relatedQ!)}
+                          onClick={() => handleRelatedChannelSearch(activeChannelScope.channel.relatedQ!)}
                           className="shrink-0 inline-flex items-center gap-1 rounded border border-[#dadce0] bg-white px-2 py-1 text-[12px] font-medium text-[#3c4043] hover:bg-[#f1f3f4]"
-                          title={`すべてのメールから検索: ${activeChannelDef.relatedQ}`}
+                          title={`すべてのメールから検索: ${activeChannelScope.channel.relatedQ}`}
                         >
                           <Search size={13} className="text-[#5f6368]" />
                           関連候補
