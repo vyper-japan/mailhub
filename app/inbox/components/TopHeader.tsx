@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Activity, Command, ExternalLink, HelpCircle, Info, RefreshCw, RotateCcw, Search, Settings, TrendingUp, Handshake, X, List, Zap } from "lucide-react";
+import { Activity, Command, ExternalLink, HelpCircle, Info, MoreVertical, RefreshCw, RotateCcw, Search, Settings, TrendingUp, Handshake, X, List, Zap } from "lucide-react";
 import { t } from "../inbox-ui";
 
 export type MacroType = "take-waiting" | "take-done";
@@ -66,7 +66,9 @@ export function TopHeader({
   onOpenCommandPalette,
 }: Props) {
   const [showMacroPopover, setShowMacroPopover] = useState(false);
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
   const macroRef = useRef<HTMLDivElement>(null);
+  const moreRef = useRef<HTMLDivElement>(null);
 
   // 外側クリックでポップオーバーを閉じる
   useEffect(() => {
@@ -79,6 +81,25 @@ export function TopHeader({
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
   }, [showMacroPopover]);
+
+  useEffect(() => {
+    if (!showMoreMenu) return;
+    const handleClick = (e: MouseEvent) => {
+      if (moreRef.current && !moreRef.current.contains(e.target as Node)) {
+        setShowMoreMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [showMoreMenu]);
+
+  const secondaryActions = [
+    { id: "more-ops", label: "Ops Board", icon: TrendingUp, onClick: onOpenOps },
+    { id: "more-handoff", label: "引き継ぎ", icon: Handshake, onClick: onOpenHandoff },
+    { id: "more-activity", label: "操作ログ", icon: Activity, onClick: () => onOpenActivity?.() },
+    { id: "more-help", label: "ヘルプ", icon: HelpCircle, onClick: onOpenHelp },
+    { id: "more-diagnostics", label: "診断", icon: Info, onClick: onOpenDiagnostics },
+  ] as const;
   const envLabel = mailhubEnv === "production" ? "PROD" : mailhubEnv === "staging" ? "STAGING" : "LOCAL";
   const envClass =
     mailhubEnv === "production"
@@ -86,6 +107,8 @@ export function TopHeader({
       : mailhubEnv === "staging"
         ? "bg-amber-50 text-amber-800 border-amber-200"
         : "bg-gray-50 text-gray-700 border-gray-200";
+  const topIconButton =
+    "relative h-8 w-8 shrink-0 items-center justify-center rounded-full text-[#3c4043] hover:bg-[#f1f3f4] transition-[background-color,color,box-shadow,border-color] duration-75";
 
   return (
     <header className={t.header} data-testid="header">
@@ -141,7 +164,7 @@ export function TopHeader({
           </button>
         </div>
       </div>
-      <div className="flex items-center gap-2 flex-shrink-0">
+      <div className="flex max-w-full flex-shrink-0 items-center gap-1 overflow-x-auto">
         <span
           data-testid="env-badge"
           className={`hidden sm:inline-flex items-center px-2 h-6 text-[11px] font-semibold rounded border ${envClass}`}
@@ -163,7 +186,7 @@ export function TopHeader({
             type="button"
             data-testid="action-settings"
             onClick={onOpenSettings}
-            className={t.toolbarButton}
+            className={`inline-flex ${topIconButton}`}
             title="設定（ラベル/ルール）"
           >
             <Settings size={20} className="text-[#5f6368]" />
@@ -175,7 +198,7 @@ export function TopHeader({
             ref={queuesButtonRef}
             data-testid="action-queues"
             onClick={onOpenQueues}
-            className={t.toolbarButton}
+            className={`inline-flex ${topIconButton}`}
             title="よく見る一覧"
           >
             <List size={20} className="text-[#5f6368]" />
@@ -188,7 +211,7 @@ export function TopHeader({
             data-testid="action-take-next"
             onClick={onTakeNext}
             disabled={readOnlyMode}
-            className={`${t.toolbarButton} ${readOnlyMode ? "opacity-40 cursor-not-allowed" : ""}`}
+            className={`inline-flex ${topIconButton} ${readOnlyMode ? "opacity-40 cursor-not-allowed" : ""}`}
             title={readOnlyMode ? "READ ONLYモードでは実行できません" : "未割当を取る N"}
           >
             <span className="text-[#5f6368] font-semibold">N</span>
@@ -201,7 +224,7 @@ export function TopHeader({
             data-testid="action-macro"
             onClick={() => !macroDisabled && setShowMacroPopover((prev) => !prev)}
             disabled={macroDisabled}
-            className={`${t.toolbarButton} ${macroDisabled ? "opacity-40 cursor-not-allowed" : ""}`}
+            className={`inline-flex ${topIconButton} ${macroDisabled ? "opacity-40 cursor-not-allowed" : ""}`}
             title={macroDisabled ? "READ ONLYモードでは複合アクションは実行できません" : "複合アクション"}
           >
             <Zap size={20} className="text-[#5f6368]" />
@@ -243,7 +266,7 @@ export function TopHeader({
         <button
           data-testid="action-ops"
           onClick={onOpenOps}
-          className={t.toolbarButton}
+          className={`${topIconButton} hidden xl:inline-flex`}
           title="Ops Board（朝会ビュー/滞留ゼロ）"
         >
           <TrendingUp size={20} className="text-[#5f6368]" />
@@ -251,7 +274,7 @@ export function TopHeader({
         <button
           data-testid="action-handoff"
           onClick={onOpenHandoff}
-          className={t.toolbarButton}
+          className={`${topIconButton} hidden xl:inline-flex`}
           title="Handoff（引き継ぎサマリ）"
         >
           <Handshake size={20} className="text-[#5f6368]" />
@@ -259,7 +282,7 @@ export function TopHeader({
         <button
           data-testid="topbar-activity"
             onClick={() => onOpenActivity?.()}
-          className={t.toolbarButton}
+          className={`${topIconButton} hidden xl:inline-flex`}
           title="Activity（操作ログ）"
         >
           <Activity size={20} className="text-[#5f6368]" />
@@ -267,7 +290,7 @@ export function TopHeader({
         <button
           data-testid="action-help"
           onClick={onOpenHelp}
-          className={t.toolbarButton}
+          className={`${topIconButton} hidden xl:inline-flex`}
           title="Help（Quick Start / Shortcuts / Diagnostics）"
         >
           <HelpCircle size={20} className="text-[#5f6368]" />
@@ -275,15 +298,52 @@ export function TopHeader({
         <button
           data-testid="topbar-diagnostics"
           onClick={onOpenDiagnostics}
-          className={t.toolbarButton}
+          className={`${topIconButton} hidden xl:inline-flex`}
           title="Diagnostics（診断情報のみ）"
         >
           <Info size={20} className="text-[#5f6368]" />
         </button>
+        <div ref={moreRef} className="relative xl:hidden">
+          <button
+            type="button"
+            data-testid="action-more"
+            onClick={() => setShowMoreMenu((prev) => !prev)}
+            className={`inline-flex ${topIconButton}`}
+            title="その他"
+            aria-expanded={showMoreMenu}
+          >
+            <MoreVertical size={20} className="text-[#5f6368]" />
+          </button>
+          {showMoreMenu && (
+            <div
+              data-testid="more-menu"
+              className="absolute right-0 top-full z-50 mt-1 w-44 overflow-hidden rounded-lg border border-[#dadce0] bg-white py-1 shadow-lg"
+            >
+              {secondaryActions.map((action) => {
+                const Icon = action.icon;
+                return (
+                  <button
+                    key={action.id}
+                    type="button"
+                    data-testid={action.id}
+                    onClick={() => {
+                      setShowMoreMenu(false);
+                      action.onClick();
+                    }}
+                    className="flex h-9 w-full items-center gap-3 px-3 text-left text-[13px] text-[#3c4043] hover:bg-[#f1f3f4]"
+                  >
+                    <Icon size={16} className="text-[#5f6368]" />
+                    <span>{action.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
         <button
           data-testid="header-refresh"
           onClick={onRefresh}
-          className={t.toolbarButton}
+          className={`inline-flex ${topIconButton}`}
           title="更新"
         >
           <RefreshCw size={20} className={`text-[#5f6368] ${isPending ? "animate-spin" : ""}`} />
@@ -292,7 +352,7 @@ export function TopHeader({
           href={gmailLink ?? "#"}
           target="_blank"
           rel="noopener noreferrer"
-          className={t.toolbarButton}
+          className={`inline-flex ${topIconButton}`}
           title="Gmailで開く"
         >
           <ExternalLink size={20} className="text-[#5f6368]" />
@@ -313,4 +373,3 @@ export function TopHeader({
     </header>
   );
 }
-

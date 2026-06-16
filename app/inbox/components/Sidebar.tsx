@@ -4,7 +4,7 @@ import type { ChannelCounts, StatusCounts } from "@/lib/mailhub-types";
 import type { LabelGroup, LabelItem } from "@/lib/labels";
 import type { View } from "@/lib/views";
 import { assigneeSlug } from "@/lib/assignee";
-import { Inbox, Clock, VolumeX, User, UserCheck, LogOut, Timer } from "lucide-react";
+import { Inbox, Clock, VolumeX, User, UserCheck, LogOut, Timer, ChevronRight } from "lucide-react";
 import { t } from "../inbox-ui";
 
 type TeamMember = { email: string; name: string | null };
@@ -59,73 +59,72 @@ export function Sidebar({
 }: Props) {
   const pinnedViews = views.filter((v) => v.pinned).sort((a, b) => a.order - b.order);
   const otherViews = views.filter((v) => !v.pinned).sort((a, b) => a.order - b.order);
+  const activeView = activeViewId ? views.find((v) => v.id === activeViewId) : null;
   return (
     <aside
       className={t.sidebar}
       style={{ width: `${sidebarWidth}px`, minWidth: "200px", maxWidth: "320px" }}
     >
-      <div className="p-4 h-14 flex items-center">
-        <div className="flex items-center gap-2 font-bold text-lg tracking-tight text-gray-900">
-          <Inbox size={20} className="text-blue-600" />
+      <div className="px-4 py-2 h-12 flex items-center">
+        <div className="flex items-center gap-2 font-bold text-base tracking-tight text-gray-900">
+          <Inbox size={18} className="text-blue-600" />
           <span>MailHub</span>
         </div>
       </div>
 
       <div className="flex-1 overflow-y-auto py-2">
-        {/* Work Queue（保存ビュー） */}
+        {/* Work Queue（保存ビュー）: Gmailの「もっと見る」相当として通常は畳む */}
         {views.length > 0 && (
-          <div className="mb-4" data-testid="nav-views">
-            <div className={t.sidebarHeader}>固定ラベル</div>
-            <div className="space-y-0.5">
-              {pinnedViews.map((v) => {
-                const isActive = v.id === activeViewId;
-                return (
-                  <div
-                    key={v.id}
-                    data-testid={`view-item-${v.id}`}
-                    onClick={() => onSelectView(v.id)}
-                    className={`${t.sidebarItem} ${isActive ? t.sidebarItemActive : ""}`}
-                    title={v.id}
-                  >
-                    <span className="flex items-center gap-2 min-w-0">
-                      <span className={`w-1.5 h-1.5 rounded-full ${isActive ? "bg-[#1a73e8]" : "bg-[#dadce0]"}`} />
-                      <span className="truncate">{v.icon ? `${v.icon} ` : ""}{v.name}</span>
-                    </span>
-                  </div>
-                );
-              })}
-              {otherViews.length > 0 && (
-                <details className="mt-2">
-                  <summary className="cursor-pointer text-[12px] text-[#5f6368] px-3 py-2 hover:bg-[#f1f3f4] rounded">
-                    もっと表示（{otherViews.length}）
-                  </summary>
-                  <div className="space-y-0.5 mt-1">
-                    {otherViews.map((v) => {
-                      const isActive = v.id === activeViewId;
-                      return (
-                        <div
-                          key={v.id}
-                          data-testid={`view-item-${v.id}`}
-                          onClick={() => onSelectView(v.id)}
-                          className={`${t.sidebarItem} ${isActive ? t.sidebarItemActive : ""}`}
-                          title={v.id}
-                        >
-                          <span className="flex items-center gap-2 min-w-0">
-                            <span className={`w-1.5 h-1.5 rounded-full ${isActive ? "bg-[#1a73e8]" : "bg-[#dadce0]"}`} />
-                            <span className="truncate">{v.icon ? `${v.icon} ` : ""}{v.name}</span>
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </details>
-              )}
-            </div>
+          <div className="mb-1" data-testid="nav-views">
+            <details className="group">
+              <summary className="mx-1 flex min-h-[25px] cursor-pointer items-center rounded-r-full px-3 py-0.5 text-[12px] leading-4 text-[#5f6368] hover:bg-[#f1f3f4]">
+                <ChevronRight size={14} className="mr-1 shrink-0 transition-transform group-open:rotate-90" />
+                <span className="truncate">
+                  {activeView ? `保存ビュー: ${activeView.name}` : `保存ビュー（${views.length}）`}
+                </span>
+              </summary>
+              <div className="mt-1 space-y-0.5">
+                {pinnedViews.map((v) => {
+                  const isActive = v.id === activeViewId;
+                  return (
+                    <div
+                      key={v.id}
+                      data-testid={`view-item-${v.id}`}
+                      onClick={() => onSelectView(v.id)}
+                      className={`${t.sidebarItem} ${isActive ? t.sidebarItemActive : ""}`}
+                      title={v.id}
+                    >
+                      <span className="flex items-center gap-2 min-w-0">
+                        <span className={`w-1.5 h-1.5 rounded-full ${isActive ? "bg-[#1a73e8]" : "bg-[#dadce0]"}`} />
+                        <span className="truncate">{v.icon ? `${v.icon} ` : ""}{v.name}</span>
+                      </span>
+                    </div>
+                  );
+                })}
+                {otherViews.map((v) => {
+                  const isActive = v.id === activeViewId;
+                  return (
+                    <div
+                      key={v.id}
+                      data-testid={`view-item-${v.id}`}
+                      onClick={() => onSelectView(v.id)}
+                      className={`${t.sidebarItem} ${isActive ? t.sidebarItemActive : ""}`}
+                      title={v.id}
+                    >
+                      <span className="flex items-center gap-2 min-w-0">
+                        <span className={`w-1.5 h-1.5 rounded-full ${isActive ? "bg-[#1a73e8]" : "bg-[#dadce0]"}`} />
+                        <span className="truncate">{v.icon ? `${v.icon} ` : ""}{v.name}</span>
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </details>
           </div>
         )}
 
         {/* Statusセクション: 返答・処理する、担当、返事待ち、処理不要（Doneを除外） */}
-        <div className="mb-4" data-testid="label-status">
+        <div className="mb-1" data-testid="label-status">
           <div className={t.sidebarHeader}>メールボックス</div>
           <div className="space-y-0.5">
             {/* 今返す（Todo） */}
@@ -147,7 +146,7 @@ export function Sidebar({
                 >
                   <span className="flex items-center gap-2">
                     <Inbox
-                      size={20}
+                      size={17}
                       className={`${isActive ? "text-[#1a73e8]" : "text-[#5f6368]"} ${
                         glowTab === item.statusType ? "drop-shadow-[0_0_10px_rgba(26,115,232,0.55)]" : ""
                       }`}
@@ -188,7 +187,7 @@ export function Sidebar({
                 >
                   <span className="flex items-center gap-2">
                     <UserCheck
-                      size={20}
+                      size={17}
                       className={`${isActive ? "text-[#1a73e8]" : "text-[#5f6368]"} ${
                         glowTab === "assigned" ? "drop-shadow-[0_0_10px_rgba(26,115,232,0.55)]" : ""
                       }`}
@@ -229,7 +228,7 @@ export function Sidebar({
                 >
                   <span className="flex items-center gap-2">
                     <Clock
-                      size={20}
+                      size={17}
                       className={`${isActive ? "text-[#1a73e8]" : "text-[#5f6368]"} ${
                         glowTab === item.statusType ? "drop-shadow-[0_0_10px_rgba(26,115,232,0.55)]" : ""
                       }`}
@@ -272,7 +271,7 @@ export function Sidebar({
                 >
                   <span className="flex items-center gap-2">
                     <VolumeX
-                      size={20}
+                      size={17}
                       className={`${isActive ? "text-[#1a73e8]" : "text-[#5f6368]"} ${
                         glowTab === item.statusType ? "drop-shadow-[0_0_10px_rgba(26,115,232,0.55)]" : ""
                       }`}
@@ -315,7 +314,7 @@ export function Sidebar({
                 >
                   <span className="flex items-center gap-2">
                     <Timer
-                      size={20}
+                      size={17}
                       className={`${isActive ? "text-[#1a73e8]" : "text-[#5f6368]"} ${
                         glowTab === item.statusType ? "drop-shadow-[0_0_10px_rgba(26,115,232,0.55)]" : ""
                       }`}
@@ -345,7 +344,7 @@ export function Sidebar({
         {labelGroups
           .filter((g) => g.id === "channels")
           .map((group) => (
-              <div key={group.id} className="mb-6" data-testid="label-channels">
+              <div key={group.id} className="mb-1" data-testid="label-channels">
                 <div className={t.sidebarHeader}>ストアラベル</div>
                 <div className="space-y-0.5">
                   {group.items.map((item) => {
@@ -391,7 +390,7 @@ export function Sidebar({
             const myAssignee = team.find((m) => m.email.toLowerCase() === user.email.toLowerCase());
             const myDisplayName = myAssignee?.name || user.name?.split(" ")[0] || user.email.split("@")[0];
             return (
-            <div key={group.id} className="mb-6" data-testid="label-assignee">
+            <div key={group.id} className="mb-1" data-testid="label-assignee">
               <div className={t.sidebarHeader}>担当者</div>
               <div className="space-y-0.5">
                 {/* Mine / Unassigned */}
@@ -410,7 +409,7 @@ export function Sidebar({
                       className={`${t.sidebarItem} ${isActive ? t.sidebarItemActive : ""}`}
                     >
                       <span className="flex items-center gap-2">
-                        <User size={20} className={isActive ? "text-[#1a73e8]" : "text-[#5f6368]"} />
+                        <User size={17} className={isActive ? "text-[#1a73e8]" : "text-[#5f6368]"} />
                         <span>{displayLabel}</span>
                       </span>
                       {count > 0 && countTestId && (
@@ -420,7 +419,7 @@ export function Sidebar({
                   );
                 })}
                 {/* Step 113: Team全メンバーをAssigneeセクションに追加 */}
-                {team.filter((m) => m.email.toLowerCase() !== user.email.toLowerCase()).map((member) => {
+                {(isAdmin || testMode) && team.filter((m) => m.email.toLowerCase() !== user.email.toLowerCase()).map((member) => {
                   const memberSlug = assigneeSlug(member.email);
                   const isActive = activeAssigneeSlug === memberSlug;
                   const displayName = member.name || member.email.split("@")[0];
@@ -433,7 +432,7 @@ export function Sidebar({
                       className={`${t.sidebarItem} ${isActive ? t.sidebarItemActive : ""}`}
                     >
                       <span className="flex items-center gap-2">
-                        <UserCheck size={20} className={isActive ? "text-[#1a73e8]" : "text-[#5f6368]"} />
+                        <UserCheck size={17} className={isActive ? "text-[#1a73e8]" : "text-[#5f6368]"} />
                         <span className="truncate">{displayName}</span>
                       </span>
                       {memberLoad > 0 && (
@@ -446,44 +445,11 @@ export function Sidebar({
             </div>
           );})}
 
-        {/* Step 64: Team セクション（admin only・自分以外のメンバーのみ表示） */}
-        {(isAdmin || testMode) && team.filter((m) => m.email.toLowerCase() !== user.email.toLowerCase()).length > 0 && (
-          <div className="mb-6" data-testid="sidebar-team">
-            <div className={t.sidebarHeader}>Team</div>
-            <div className="space-y-0.5">
-              {team
-                .filter((m) => m.email.toLowerCase() !== user.email.toLowerCase())
-                .map((member) => {
-                const memberSlug = assigneeSlug(member.email);
-                const isActive = activeAssigneeSlug === memberSlug;
-                const displayName = member.name || member.email.split("@")[0];
-                // Step 65: Team担当別の件数バッジ
-                const memberLoad = statusCounts?.assigneeLoadBySlug?.[memberSlug] ?? 0;
-                return (
-                  <div
-                    key={member.email}
-                    data-testid={`team-member-item-${member.email}`}
-                    onClick={() => onSelectTeamMember(member.email)}
-                    className={`${t.sidebarItem} ${isActive ? t.sidebarItemActive : ""}`}
-                  >
-                    <span className="flex items-center gap-2">
-                      <UserCheck size={20} className={isActive ? "text-[#1a73e8]" : "text-[#5f6368]"} />
-                      <span className="truncate">{displayName}</span>
-                    </span>
-                    {memberLoad > 0 && (
-                      <span data-testid={`assignee-count-${memberSlug}`} className={t.badge}>{memberLoad}</span>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
       </div>
 
-      <div className="p-4 border-t border-[#dadce0]">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-[#1a73e8] flex items-center justify-center text-[12px] font-medium text-white">
+      <div className="px-4 py-2 border-t border-[#dadce0]">
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-full bg-[#1a73e8] flex items-center justify-center text-[11px] font-medium text-white">
             {user.name.slice(0, 2).toUpperCase()}
           </div>
           <div className="min-w-0 flex-1">
@@ -497,13 +463,13 @@ export function Sidebar({
                 className="p-1 text-[#5f6368] hover:text-[#c5221f] transition-colors cursor-pointer"
                 title="ログアウト"
               >
-                <LogOut size={18} />
+                <LogOut size={16} />
               </button>
             </form>
           )}
         </div>
         {version && (
-          <div className="mt-2 pt-2 border-t border-[#dadce0]">
+          <div className="mt-1 pt-1 border-t border-[#dadce0]">
             <div
               className="text-[10px] text-[#5f6368] font-mono truncate font-normal"
               title={`Version: ${version}`}

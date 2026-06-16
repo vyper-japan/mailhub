@@ -56,7 +56,7 @@ export function ViewsCommandPalette({ open, views, activeViewId, onClose, onSele
       <button type="button" className="absolute inset-0 bg-black/20" aria-label="閉じる（背景）" onClick={onClose} />
       <div className="absolute left-4 right-4 top-20 max-w-[720px] mx-auto bg-white border border-[#dadce0] rounded-xl shadow-2xl overflow-hidden">
         <div className="px-4 py-3 border-b border-[#e8eaed] flex items-center justify-between gap-3">
-          <div className="text-[14px] font-semibold text-[#202124]">Views</div>
+          <div className="text-[14px] font-semibold text-[#202124]">保存ビュー</div>
           <button type="button" className="p-2 rounded hover:bg-[#f1f3f4]" onClick={onClose} aria-label="閉じる">
             <X size={18} className="text-[#5f6368]" />
           </button>
@@ -94,7 +94,7 @@ export function ViewsCommandPalette({ open, views, activeViewId, onClose, onSele
                             </div>
                             <div className="text-[11px] text-[#5f6368] font-mono truncate">{v.id}</div>
                           </div>
-                          {v.pinned && <span className="text-[11px] text-[#5f6368]">pinned</span>}
+                          {v.pinned && <span className="text-[11px] text-[#5f6368]">固定</span>}
                         </div>
                       </button>
                     </li>
@@ -104,7 +104,7 @@ export function ViewsCommandPalette({ open, views, activeViewId, onClose, onSele
             )}
           </div>
           <div className="mt-3 text-[11px] text-[#5f6368]">
-            Enter: 先頭を選択 / Esc: 閉じる
+            Enterで先頭を選択 / Escで閉じる
           </div>
         </div>
       </div>
@@ -112,4 +112,3 @@ export function ViewsCommandPalette({ open, views, activeViewId, onClose, onSele
     document.body,
   );
 }
-

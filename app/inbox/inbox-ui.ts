@@ -8,15 +8,15 @@ export const t = {
   sidebar:
     "mailhub-sidebar min-w-[200px] w-64 max-w-[320px] bg-white flex flex-col border-r border-[#dadce0] flex-shrink-0",
   sidebarItem:
-    "flex min-h-[36px] items-center justify-between px-3 py-1.5 mx-1 text-[14px] text-[#3c4043] rounded-r-full hover:bg-[#f1f3f4] transition-colors cursor-pointer font-normal group",
+    "flex min-h-[25px] items-center justify-between px-3 py-0.5 mx-1 text-[13px] leading-4 text-[#3c4043] rounded-r-full hover:bg-[#f1f3f4] transition-colors cursor-pointer font-normal group",
   sidebarItemActive: "bg-[#E8F0FE] text-[#1a73e8] font-medium",
   sidebarHeader:
-    "px-4 py-2 mt-4 text-[11px] font-medium text-[#5f6368] uppercase tracking-wider",
+    "px-4 py-0.5 mt-1 text-[10px] font-medium text-[#5f6368] uppercase tracking-wider",
 
   // ヘッダー（検索バー + レスポンシブ）
   header:
-    "h-14 border-b border-[#dadce0] flex items-center px-2 sm:px-4 bg-white gap-2 sm:gap-4",
-  headerSearchWrapper: "relative flex-1 max-w-2xl min-w-0",
+    "min-h-14 border-b border-[#dadce0] flex flex-wrap sm:flex-nowrap items-center px-2 sm:px-4 py-2 sm:py-0 bg-white gap-2 sm:gap-4",
+  headerSearchWrapper: "relative order-2 basis-full min-w-[180px] flex-1 max-w-2xl sm:order-none sm:basis-auto",
   headerSearch:
     "w-full bg-[#f1f3f4] border border-transparent text-[#202124] text-[14px] rounded-full px-8 sm:px-12 py-2.5 focus:outline-none focus:bg-white focus:border-[#dadce0] focus:shadow-[0_2px_5px_1px_rgba(64,60,67,0.16)] transition-all placeholder-[#5f6368] font-normal",
 
@@ -31,7 +31,7 @@ export const t = {
 
   // タブナビゲーション（状態切替 + レスポンシブ）
   tabs:
-    "h-12 flex items-center justify-between border-b border-[#dadce0] bg-white px-1 sm:px-2 gap-1 sm:gap-2 overflow-x-auto",
+    "h-auto min-h-12 flex flex-col items-stretch justify-between border-b border-[#dadce0] bg-white px-1 sm:h-12 sm:flex-row sm:items-center sm:px-2 gap-1 sm:gap-2 overflow-x-auto",
   tab:
     "h-12 px-2 sm:px-4 text-[12px] sm:text-[13px] font-medium text-[#5f6368] border-b-2 border-transparent hover:text-[#202124] hover:border-[#dadce0] transition-colors cursor-pointer flex items-center flex-shrink-0",
   tabActive: "text-[#1a73e8] border-[#1a73e8] font-medium",
@@ -43,7 +43,7 @@ export const t = {
   listColumn:
     "mailhub-list-column min-w-[280px] w-96 max-w-[480px] flex flex-col bg-white border-r border-[#dadce0] overflow-hidden flex-shrink-0",
   listItem:
-    "min-h-[42px] px-2 sm:px-3 py-1.5 border-b border-[#e8eaed] hover:bg-[#f5f8ff] cursor-pointer group select-none flex items-center gap-2",
+    "min-h-[48px] px-2 sm:px-3 py-1.5 border-b border-[#e8eaed] hover:bg-[#f5f8ff] cursor-pointer group select-none flex items-center gap-2",
   listItemActive: "bg-[#d3e3fd] shadow-[inset_3px_0_0_#1a73e8,inset_0_-1px_0_#c6dafc]",
   listItemChecked: "bg-[#e8f0fe]",
   listItemUnread: "bg-white",
@@ -56,7 +56,7 @@ export const t = {
   buttonPrimary:
     "bg-[#1a73e8] text-white hover:bg-[#1557b0] px-4 py-2 rounded-md text-[14px] font-medium transition-all flex items-center gap-2",
   buttonIcon: "p-2 text-[#5f6368] hover:bg-[#f1f3f4] rounded-full transition-colors",
-  badge: "bg-[#e8eaed] text-[#3c4043] px-2 py-0.5 rounded-full text-[11px] font-medium",
+  badge: "bg-[#e8eaed] text-[#3c4043] px-1.5 py-0.5 rounded-full text-[10px] leading-3 font-medium",
 } as const;
 
 export function shortSnippet(s: string, max = 120): string {
@@ -109,4 +109,3 @@ export function buildGmailForwardLink(gmailLink: string, threadId: string): stri
   const base = hashIndex >= 0 ? gmailLink.substring(0, hashIndex) : gmailLink;
   return `${base}#inbox/${threadId}#forward`;
 }
-

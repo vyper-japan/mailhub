@@ -2,6 +2,7 @@ import "server-only";
 
 import { google } from "googleapis";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { Buffer } from "node:buffer";
 import { dirname, join } from "node:path";
 import { mustGetEnv } from "@/lib/env";
 import { isTestMode } from "@/lib/test-mode";
@@ -244,10 +245,18 @@ async function testMessageMatchesQuery(m: InboxListMessage, q: string): Promise<
   }
 
   const lowerQ = q.toLowerCase();
+  const haystack = [m.subject, m.from, m.snippet]
+    .filter((v): v is string => typeof v === "string")
+    .join(" ")
+    .toLowerCase();
+  const freeTextTerms = lowerQ
+    .replace(/[()]/g, " ")
+    .split(/\s+/)
+    .map((term) => cleanTestQueryToken(term))
+    .filter((term) => term && !term.includes(":") && term !== "and" && term !== "or");
   return Boolean(
-    m.subject?.toLowerCase().includes(lowerQ) ||
-      m.from?.toLowerCase().includes(lowerQ) ||
-      m.snippet?.toLowerCase().includes(lowerQ) ||
+    haystack.includes(lowerQ) ||
+      (freeTextTerms.length > 0 && freeTextTerms.every((term) => haystack.includes(term))) ||
     // StoreA/B/Cチャンネルの場合、楽天メールも含める（テスト用の後方互換）
       (q.includes("store-a") && (m.from?.includes("rakuten") || m.subject?.includes("楽天"))) ||
       (q.includes("store-b") && (m.from?.includes("rakuten") || m.subject?.includes("楽天"))) ||
@@ -549,6 +558,68 @@ function createGmailClient() {
 
   const gmail = google.gmail({ version: "v1", auth: oauth2Client });
   return { gmail, sharedInboxEmail };
+}
+
+function decodeBase64UrlToBuffer(data: string): Buffer {
+  const normalized = data.replace(/-/g, "+").replace(/_/g, "/");
+  const padding = (4 - (normalized.length % 4)) % 4;
+  return Buffer.from(`${normalized}${"=".repeat(padding)}`, "base64");
+}
+
+export async function getMessageAttachment(input: {
+  messageId: string;
+  attachmentId: string;
+}): Promise<{ data: Buffer; filename: string; mimeType: string | null; size: number | null }> {
+  if (isTestMode()) {
+    const detail = await getMessageDetail(input.messageId);
+    const attachment = detail.attachments.find((item) => item.id === input.attachmentId);
+    if (!attachment) {
+      const err = new Error("attachment_not_found");
+      (err as Error & { code?: number }).code = 404;
+      throw err;
+    }
+    const data = Buffer.from(
+      [
+        "MailHub test attachment",
+        `messageId: ${input.messageId}`,
+        `attachmentId: ${input.attachmentId}`,
+        `filename: ${attachment.filename}`,
+      ].join("\n"),
+      "utf8",
+    );
+    return {
+      data,
+      filename: attachment.filename,
+      mimeType: attachment.mimeType,
+      size: attachment.size,
+    };
+  }
+
+  const detail = await getMessageDetail(input.messageId);
+  const attachment = detail.attachments.find((item) => item.id === input.attachmentId);
+  if (!attachment) {
+    const err = new Error("attachment_not_found");
+    (err as Error & { code?: number }).code = 404;
+    throw err;
+  }
+
+  const { gmail, sharedInboxEmail } = createGmailClient();
+  const res = await gmail.users.messages.attachments.get({
+    userId: sharedInboxEmail,
+    messageId: input.messageId,
+    id: input.attachmentId,
+  });
+  const data = res.data.data;
+  if (!data) {
+    throw new Error("Gmail attachment response did not include data");
+  }
+
+  return {
+    data: decodeBase64UrlToBuffer(data),
+    filename: attachment.filename,
+    mimeType: attachment.mimeType,
+    size: attachment.size,
+  };
 }
 
 export async function sendGmailReply(input: {

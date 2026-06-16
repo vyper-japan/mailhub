@@ -35,7 +35,7 @@ import {
   ExternalLink, 
   ArrowUp, ArrowDown, CornerUpLeft,
   LogOut, Mail, Copy, Send, VolumeX, UserCheck, Square, Star, Tag, HelpCircle, Search, MessageSquare, Paperclip,
-  ChevronUp, ChevronDown, Users, X, AlertTriangle, RefreshCw, Activity, Settings, Zap
+  ChevronUp, ChevronDown, Users, X, AlertTriangle, RefreshCw, Activity, Settings, Zap, Download
 } from 'lucide-react';
 import { formatElapsedTime, getElapsedMs, getElapsedColorTodo, getElapsedColorWaiting, getSlaLevel } from "@/lib/time-utils";
 import { isBroadDomain } from "@/lib/ruleSafety";
@@ -6445,7 +6445,7 @@ export default function InboxShell({
 
           {/* タブナビゲーション */}
           <div className={t.tabs} data-testid="tabs">
-            <div className="flex items-center min-w-0">
+            <div className="flex min-w-0 items-center overflow-x-auto">
               {/* 表示中メールの一括選択チェック（タブの左） */}
               <div className="flex items-center pr-2 pl-1">
                 <input
@@ -6550,7 +6550,7 @@ export default function InboxShell({
             </div>
 
             {/* 右側: 選択中メールのナビゲーション/クイック操作（タブ行と同じ水平線に揃える） */}
-            <div className="flex items-center gap-1 flex-shrink-0 pr-1">
+            <div className="hidden items-center gap-1 flex-shrink-0 pr-1 sm:flex">
               {selectedMessage && (
                 <>
                   <button onClick={() => handleMoveSelection("up")} className={t.buttonIcon} title="上へ">
@@ -6662,9 +6662,9 @@ export default function InboxShell({
                               <div className="text-[11px] font-medium text-[#5f6368] mb-2 px-2 py-1">期限を選択</div>
                               <div className="space-y-1">
                                 {[
-                                  { label: "Tomorrow", days: 1 },
-                                  { label: "+3 days", days: 3 },
-                                  { label: "+1 week", days: 7 },
+                                  { label: "明日", days: 1 },
+                                  { label: "3日後", days: 3 },
+                                  { label: "1週間後", days: 7 },
                                 ].map((preset) => {
                                   const until = new Date();
                                   until.setDate(until.getDate() + preset.days);
@@ -6972,7 +6972,7 @@ export default function InboxShell({
                               />
                             )}
                             {/* 1行表示: checkbox / star / from / subject - snippet / date (レスポンシブ) */}
-                            <div className="grid grid-cols-[20px_20px_120px_1fr_auto] sm:grid-cols-[20px_20px_140px_1fr_auto] items-center gap-1 sm:gap-2 w-full min-w-0 whitespace-nowrap">
+                            <div className="grid grid-cols-[20px_20px_minmax(112px,140px)_1fr_auto] items-center gap-1 sm:gap-2 w-full min-w-0 whitespace-nowrap">
                             {/* チェックボックス */}
                             <div className="flex items-center justify-center">
                               <input
@@ -7259,7 +7259,7 @@ export default function InboxShell({
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2 min-w-0">
                               <span
-                                className="truncate text-[12px] font-medium leading-5 text-[#202124]"
+                                className="truncate text-[15px] font-semibold leading-6 text-[#202124]"
                                 data-testid="detail-subject"
                                 title={`${selectedMessage.subject ?? "(no subject)"} / ${selectedMessage.from ?? ""}`}
                               >
@@ -7435,16 +7435,46 @@ export default function InboxShell({
                           <div className="flex flex-wrap gap-2">
                             {detailBody.attachments.map((attachment) => {
                               const sizeLabel = formatAttachmentSize(attachment.size);
+                              const attachmentParams = new URLSearchParams({
+                                messageId: selectedMessage.id,
+                                attachmentId: attachment.id,
+                              });
+                              const openHref = `/api/mailhub/attachment?${attachmentParams.toString()}&disposition=inline`;
+                              const downloadHref = `/api/mailhub/attachment?${attachmentParams.toString()}&disposition=attachment`;
                               return (
                                 <div
                                   key={attachment.id}
-                                  className="inline-flex max-w-full items-center gap-2 rounded-md border border-[#dadce0] bg-white px-3 py-2 text-[13px] text-[#202124] shadow-[0_1px_2px_rgba(60,64,67,0.08)] transition-colors hover:bg-[#f8fafd]"
+                                  className="inline-flex h-9 max-w-full items-center overflow-hidden rounded-md border border-[#dadce0] bg-white text-[13px] text-[#202124] shadow-[0_1px_2px_rgba(60,64,67,0.08)] transition-colors hover:bg-[#f8fafd]"
                                   data-testid="attachment-chip"
                                   title={attachment.filename}
                                 >
-                                  <Paperclip size={15} className="shrink-0 text-[#5f6368]" />
-                                  <span className="max-w-[260px] truncate font-medium">{attachment.filename}</span>
-                                  {sizeLabel && <span className="shrink-0 text-[11px] text-[#5f6368]">{sizeLabel}</span>}
+                                  <a
+                                    href={openHref}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex h-full min-w-0 items-center gap-2 px-3 hover:bg-[#f1f3f4] focus:outline-none focus:ring-2 focus:ring-[#1a73e8]/30"
+                                    data-testid="attachment-open"
+                                    aria-label={`${attachment.filename}を開く${sizeLabel ? `、${sizeLabel}` : ""}`}
+                                    title={`${attachment.filename}を開く`}
+                                  >
+                                    <Paperclip size={15} className="shrink-0 text-[#5f6368]" />
+                                    <span className="truncate font-medium" style={{ maxWidth: "min(260px, calc(100vw - 168px))" }}>
+                                      {attachment.filename}
+                                    </span>
+                                    {sizeLabel && <span className="ml-1 shrink-0 text-[11px] text-[#5f6368]">{sizeLabel}</span>}
+                                  </a>
+                                  <a
+                                    href={downloadHref}
+                                    download={attachment.filename}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex h-full w-8 shrink-0 items-center justify-center border-l border-[#e8eaed] text-[#5f6368] hover:bg-[#f1f3f4] hover:text-[#202124] focus:outline-none focus:ring-2 focus:ring-[#1a73e8]/30"
+                                    data-testid="attachment-download"
+                                    aria-label={`${attachment.filename}をダウンロード`}
+                                    title="ダウンロード"
+                                  >
+                                    <Download size={15} />
+                                  </a>
                                 </div>
                               );
                             })}
