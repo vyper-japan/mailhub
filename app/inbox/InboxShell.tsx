@@ -976,6 +976,12 @@ export default function InboxShell({
     return labelGroups[0]?.items[0] ?? null;
   }, [labelId, labelGroups]);
 
+  const activeChannelDef = useMemo(() => {
+    if (activeLabel?.type !== "channel") return null;
+    if (activeLabel.id === "all" || activeLabel.id === "stores") return null;
+    return getChannels(testMode).find((channel) => channel.id === activeLabel.id) ?? null;
+  }, [activeLabel?.id, activeLabel?.type, testMode]);
+
   // Step 81: slug→displayNameのMapを作成（team名簿から）
   const assigneeDisplayNameMap = useMemo(() => {
     const map = new Map<string, string>();
@@ -2152,6 +2158,24 @@ export default function InboxShell({
       setListError(errorMessage);
     }
   }, [labelGroups, loadDetailBodyOnly, replaceUrl, replaceUrlWithView, testMode, myAssigneeSlug, listMax]);
+
+  const handleRelatedChannelSearch = useCallback((query: string) => {
+    const allLabel = labelGroups.flatMap((g) => g.items).find((item) => item.id === "all");
+    const nextLabelId = allLabel?.id ?? "all";
+    setSearchTerm(query);
+    setServerSearchQuery(query);
+    setLabelId(nextLabelId);
+    setChannelId("all");
+    setViewTab("inbox");
+    startTransition(async () => {
+      try {
+        await loadList(nextLabelId, null, { q: query, keepView: false });
+        listRef.current?.scrollTo({ top: 0 });
+      } catch (e) {
+        setListError(e instanceof Error ? e.message : String(e));
+      }
+    });
+  }, [labelGroups, loadList]);
 
   // Step 103: Load more（次ページ読み込み）
   const handleLoadMore = useCallback(async () => {
@@ -6595,6 +6619,39 @@ export default function InboxShell({
               style={{ width: `${listWidth}px`, minWidth: '280px', maxWidth: '720px' }}
             >
               <div className="flex-1 overflow-y-auto custom-scrollbar">
+                {activeChannelDef && (
+                  <div
+                    data-testid="channel-scope-bar"
+                    className="sticky top-0 z-10 border-b border-[#e8eaed] bg-[#f8fbff] px-3 py-2"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 text-[12px] font-medium text-[#202124]">
+                          <span className="h-2 w-2 rounded-full bg-[#1a73e8]" />
+                          <span className="truncate">{activeChannelDef.label}</span>
+                          <span className="shrink-0 rounded-full border border-[#d2e3fc] bg-white px-1.5 py-0.5 text-[11px] text-[#1a73e8]">
+                            {messages.length}件表示
+                          </span>
+                        </div>
+                        <div className="mt-1 truncate text-[11px] text-[#5f6368]" title={activeChannelDef.addresses.join(", ")}>
+                          専用宛先: {activeChannelDef.addresses.join(", ")}
+                        </div>
+                      </div>
+                      {activeChannelDef.relatedQ && (
+                        <button
+                          type="button"
+                          data-testid="channel-related-search"
+                          onClick={() => handleRelatedChannelSearch(activeChannelDef.relatedQ!)}
+                          className="shrink-0 inline-flex items-center gap-1 rounded border border-[#dadce0] bg-white px-2 py-1 text-[12px] font-medium text-[#3c4043] hover:bg-[#f1f3f4]"
+                          title={`すべてのメールから検索: ${activeChannelDef.relatedQ}`}
+                        >
+                          <Search size={13} className="text-[#5f6368]" />
+                          関連候補
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
                 {listError ? (
                   <div className="p-8 text-center space-y-3">
                     <div className="text-red-600 text-sm font-medium">リストを取得できませんでした</div>

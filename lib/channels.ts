@@ -29,6 +29,7 @@ export type ChannelDef = {
   label: string;
   addresses: string[];
   q?: string;
+  relatedQ?: string;
   replyKind: "gmail" | "rakuten_rms";
   rmsEnvPrefix?: RmsEnvPrefix;
 };
@@ -53,6 +54,7 @@ const TEST_STORE_CHANNELS: ChannelDef[] = ([
     id: "store-a",
     label: "StoreA",
     addresses: ["shop-a@vtj.co.jp"],
+    relatedQ: "store-a",
     replyKind: "rakuten_rms",
     rmsEnvPrefix: "RMS_STORE_A",
   },
@@ -89,6 +91,7 @@ const PROD_STORE_CHANNELS: ChannelDef[] = ([
     id: "cricut-rakuten",
     label: "Cricut 楽天",
     addresses: ["cricut_r@vtj.co.jp"],
+    relatedQ: "from:rakuten cricut",
     replyKind: "rakuten_rms",
     rmsEnvPrefix: "RMS_STORE_A",
   },

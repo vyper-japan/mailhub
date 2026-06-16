@@ -22,6 +22,7 @@ const testChannels: ChannelDef[] = [
     label: "StoreA",
     addresses: ["shop-a@vtj.co.jp"],
     q: "(deliveredto:shop-a@vtj.co.jp OR to:shop-a@vtj.co.jp OR cc:shop-a@vtj.co.jp)",
+    relatedQ: "store-a",
     replyKind: "rakuten_rms",
     rmsEnvPrefix: "RMS_STORE_A",
   },
@@ -220,6 +221,7 @@ describe("channels", () => {
       type: "channel",
       q: "(deliveredto:cricut_r@vtj.co.jp OR to:cricut_r@vtj.co.jp OR cc:cricut_r@vtj.co.jp)",
     });
+    expect(getChannels(false).find((item) => item.id === "cricut-rakuten")?.relatedQ).toBe("from:rakuten cricut");
     expect(channels.find((item) => item.id === "gopro-rakuten")).toEqual({
       id: "gopro-rakuten",
       label: "GoPro 楽天",
