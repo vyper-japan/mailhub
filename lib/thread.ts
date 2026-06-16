@@ -13,6 +13,7 @@ export type ThreadMessageSummary = {
    */
   date: string;
   snippet: string;
+  attachmentCount?: number;
   statusType: StatusType;
   assigneeSlug: string | null;
   /**
@@ -52,4 +53,3 @@ export function receivedAtToMs(receivedAt: string): number {
   const ms = Date.UTC(Number(y), Number(mo) - 1, Number(d), Number(h), Number(mi), Number(s));
   return Number.isFinite(ms) ? ms : 0;
 }
-

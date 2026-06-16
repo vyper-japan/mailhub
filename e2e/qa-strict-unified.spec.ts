@@ -6069,6 +6069,33 @@ test("Step93-6) Gmail-like density: 詳細本文を上寄せし、hover行が明
   expect(metrics.detailText).not.toContain("labelIds:");
 });
 
+test("Step93-7) Gmail-like attachments: 一覧と詳細末尾に添付ファイルが自然に出る", async ({ page }) => {
+  await page.request.post("/api/mailhub/test/reset").catch(() => {});
+  await page.addInitScript(() => {
+    localStorage.setItem("mailhub-onboarding-shown", "true");
+  });
+  await page.goto("/?label=all&id=msg-001&max=20");
+  await page.waitForSelector('[data-testid="message-row"]', { timeout: 10000 });
+
+  await expect(page.locator('[data-message-id="msg-001"]').getByTestId("message-attachment-indicator")).toBeVisible({
+    timeout: 5000,
+  });
+  await expect(page.getByTestId("detail-attachments")).toBeVisible({ timeout: 10000 });
+  await expect(page.getByTestId("attachment-chip")).toContainText("注文確認書_123-4567890.pdf");
+  await expect(page.getByTestId("attachment-chip")).toContainText("180 KB");
+
+  const positions = await page.evaluate(() => {
+    const attachments = document.querySelector('[data-testid="detail-attachments"]')?.getBoundingClientRect();
+    const thread = document.querySelector('[data-testid="thread-pane"]')?.getBoundingClientRect();
+    return {
+      attachmentsTop: attachments?.top ?? 0,
+      threadTop: thread?.top ?? 0,
+    };
+  });
+  expect(positions.attachmentsTop).toBeGreaterThan(0);
+  expect(positions.threadTop).toBeGreaterThan(positions.attachmentsTop);
+});
+
 // =====================================================================
 // Step94) Action UX統一（即時反映/失敗時のみrollback）＋連打耐性
 // =====================================================================

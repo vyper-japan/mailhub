@@ -67,6 +67,7 @@ function createDetail(overrides: Partial<MessageDetail> = {}): MessageDetail {
     listId: null,
     listPost: null,
     ...overrides,
+    attachments: overrides.attachments ?? [],
   };
 }
 

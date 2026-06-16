@@ -1,3 +1,10 @@
+export type MailAttachment = {
+  id: string;
+  filename: string;
+  mimeType: string | null;
+  size: number | null;
+};
+
 export type InboxListMessage = {
   id: string;
   threadId: string;
@@ -10,6 +17,7 @@ export type InboxListMessage = {
   pinned?: boolean; // テストモード用: 先頭に表示する
   isUnread?: boolean; // GmailのUNREAD相当（未指定の場合は不明）
   isStarred?: boolean; // GmailのSTARRED相当（未指定の場合は不明）
+  attachmentCount?: number;
   assigneeSlug: string | null; // 担当者のslug（例: "tanaka_at_vtj_co_jp"）
   /**
    * 登録済みラベル（ユーザーラベル）だけを返す。
@@ -35,6 +43,7 @@ export type MessageDetail = {
   htmlBody: string | null; // サニタイズ済みHTML（利用可能な場合）
   bodySource: "plain" | "html" | null; // 本文の元ソース
   bodyNotice: string | null;
+  attachments: MailAttachment[];
   isInProgress?: boolean;
   assigneeSlug: string | null; // 担当者のslug（例: "tanaka_at_vtj_co_jp"）
   /**
@@ -85,4 +94,3 @@ export type StatusCounts = {
  * Channels（All/StoreA/B/C）の件数キャッシュ（UI側）
  */
 export type ChannelCounts = Record<string, number>;
-

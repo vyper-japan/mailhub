@@ -26,8 +26,8 @@ type MessageDetailHeaderKeys =
   | "listId"
   | "listPost";
 
-type MessageDetailHeaderDefaultsInput = Omit<MessageDetail, MessageDetailHeaderKeys> &
-  Partial<Pick<MessageDetail, MessageDetailHeaderKeys>>;
+type MessageDetailHeaderDefaultsInput = Omit<MessageDetail, MessageDetailHeaderKeys | "attachments"> &
+  Partial<Pick<MessageDetail, MessageDetailHeaderKeys | "attachments">>;
 
 // テストモード用のモックデータ読み込み
 async function getMockDetail(id: string): Promise<MessageDetail | null> {
@@ -328,6 +328,7 @@ export function fillMessageDetailHeaderDefaults(
 ): MessageDetail {
   return {
     ...detail,
+    attachments: detail.attachments ?? [],
     to: detail.to ?? null,
     cc: detail.cc ?? null,
     bcc: detail.bcc ?? null,
@@ -381,8 +382,10 @@ export function decodeBase64Url(data: string): string {
 }
 
 type GmailMessagePart = {
+  partId?: string | null;
+  filename?: string | null;
   mimeType?: string | null;
-  body?: { data?: string | null } | null;
+  body?: { data?: string | null; attachmentId?: string | null; size?: number | null } | null;
   parts?: GmailMessagePart[] | null;
 };
 
@@ -502,6 +505,29 @@ function findMessageBody(part: GmailMessagePart | null | undefined): BodyResult 
   }
 
   return null;
+}
+
+function collectAttachments(
+  part: GmailMessagePart | null | undefined,
+  out: MessageDetail["attachments"] = [],
+): MessageDetail["attachments"] {
+  if (!part) return out;
+
+  const filename = part.filename?.trim();
+  const attachmentId = part.body?.attachmentId?.trim();
+  if (filename && attachmentId) {
+    out.push({
+      id: attachmentId,
+      filename,
+      mimeType: part.mimeType ?? null,
+      size: typeof part.body?.size === "number" ? part.body.size : null,
+    });
+  }
+
+  for (const child of part.parts ?? []) {
+    collectAttachments(child, out);
+  }
+  return out;
 }
 
 function createOAuth2Client() {
@@ -857,6 +883,7 @@ export async function listLatestInboxMessages(
       gmailLink: buildGmailLink(sharedInboxEmail, messageId, m.threadId),
       isUnread: labelIds.includes("UNREAD"),
       isStarred: labelIds.includes("STARRED"),
+      attachmentCount: collectAttachments(msgRes.data.payload as GmailMessagePart | undefined).length || undefined,
       assigneeSlug: assignee?.slug || null,
       userLabels: userLabels.length ? userLabels : undefined,
       snoozeUntil: snoozeUntil || undefined,
@@ -920,6 +947,7 @@ export async function getMessageDetail(id: string): Promise<MessageDetail> {
     const bodyResult = findMessageBody(
       (msgRes.data.payload as GmailMessagePart | undefined) ?? undefined,
     );
+    const attachments = collectAttachments(msgRes.data.payload as GmailMessagePart | undefined);
 
     const plainTextBody = bodyResult?.body ?? null;
     const htmlBody = bodyResult?.rawHtml ?? null;
@@ -974,6 +1002,7 @@ export async function getMessageDetail(id: string): Promise<MessageDetail> {
       htmlBody,
       bodySource,
       bodyNotice,
+      attachments,
       isInProgress,
       assigneeSlug: assigneeSlugValue,
       userLabels: userLabels.length ? userLabels : undefined,
@@ -1052,6 +1081,7 @@ export async function getThreadSummaryByMessageId(
           from: m.from ?? null,
           date: m.receivedAt,
           snippet: m.snippet ?? "",
+          attachmentCount: m.attachmentCount,
           statusType,
           assigneeSlug: testAssigneeMap.get(m.id) || null,
           labels: labelNames,
@@ -1124,6 +1154,7 @@ export async function getThreadSummaryByMessageId(
       from,
       date: receivedAt,
       snippet: m.snippet ?? "",
+      attachmentCount: collectAttachments(m.payload as GmailMessagePart | undefined).length || undefined,
       statusType,
       assigneeSlug: assignee?.slug ?? null,
       labels: extractMailhubUserLabels(userLabels, 2),

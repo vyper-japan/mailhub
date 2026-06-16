@@ -9,7 +9,8 @@
     "snippet": "ご注文ありがとうございます。注文番号: 123-4567890-1234567",
     "gmailLink": "https://mail.google.com/mail/u/0/#inbox/msg-001",
     "isUnread": true,
-    "isStarred": true
+    "isStarred": true,
+    "attachmentCount": 1
   },
   {
     "id": "msg-002",
@@ -374,4 +375,3 @@
     "gmailLink": "https://mail.google.com/mail/u/0/#inbox/msg-dup-003"
   }
 ]
-

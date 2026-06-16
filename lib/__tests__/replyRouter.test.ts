@@ -29,6 +29,7 @@ describe("routeReply", () => {
     listId: null,
     listPost: null,
     ...overrides,
+    attachments: overrides.attachments ?? [],
   });
 
   describe("Allチャンネル", () => {

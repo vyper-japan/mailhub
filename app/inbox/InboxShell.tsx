@@ -34,7 +34,7 @@ import {
   CheckCircle, Clock, Undo2, 
   ExternalLink, 
   ArrowUp, ArrowDown, CornerUpLeft,
-  LogOut, Mail, Copy, Send, VolumeX, UserCheck, Square, Star, Tag, HelpCircle, Search, MessageSquare,
+  LogOut, Mail, Copy, Send, VolumeX, UserCheck, Square, Star, Tag, HelpCircle, Search, MessageSquare, Paperclip,
   ChevronUp, ChevronDown, Users, X, AlertTriangle, RefreshCw, Activity, Settings, Zap
 } from 'lucide-react';
 import { formatElapsedTime, getElapsedMs, getElapsedColorTodo, getElapsedColorWaiting, getSlaLevel } from "@/lib/time-utils";
@@ -43,6 +43,14 @@ import { buildMailhubLabelName } from "@/lib/mailhub-labels";
 
 type DebugLabels = { labelIds: string[]; labelNames: Array<string | null> };
 type DetailWithDebug = MessageDetail & { debugLabels?: DebugLabels };
+type DetailBodyState = {
+  plainTextBody: string | null;
+  htmlBody: string | null;
+  bodyNotice: string | null;
+  attachments: MessageDetail["attachments"];
+  isLoading: boolean;
+  debugLabels?: { labelIds: string[]; labelNames: Array<string | null> };
+};
 type GmailSentStatus = "idle" | "sent" | "sent_and_done" | "sent_but_not_done" | "maybe_sent";
 type PostSendAction = "none" | "done";
 type MailhubSendSuccessResponse = {
@@ -90,6 +98,14 @@ const THREAD_LOAD_DELAY_MS = 260;
 const MAYBE_SENT_MESSAGE =
   "すでに同じ送信が処理されています。送信済みの可能性があるため、受信トレイ/送信済みを確認してください";
 const UNRESOLVED_TEMPLATE_VAR_RE = /{{\s*[\w.-]+\s*}}/g;
+
+function formatAttachmentSize(size: number | null): string | null {
+  if (typeof size !== "number" || !Number.isFinite(size) || size <= 0) return null;
+  if (size < 1024) return `${size} B`;
+  const kb = size / 1024;
+  if (kb < 1024) return `${Math.round(kb)} KB`;
+  return `${(kb / 1024).toFixed(1)} MB`;
+}
 
 function createClientRequestId(): string {
   return crypto.randomUUID();
@@ -285,16 +301,11 @@ export default function InboxShell({
     setSelectedDetail((prev) => (prev && prev.id !== selectedMessage?.id ? null : prev));
   }, [selectedMessage?.id]);
 
-  const [detailBody, setDetailBody] = useState<{
-    plainTextBody: string | null;
-    htmlBody: string | null;
-    bodyNotice: string | null;
-    isLoading: boolean;
-    debugLabels?: { labelIds: string[]; labelNames: Array<string | null> };
-  }>(() => ({
+  const [detailBody, setDetailBody] = useState<DetailBodyState>(() => ({
     plainTextBody: initialDetail?.plainTextBody ?? null,
     htmlBody: initialDetail?.htmlBody ?? null,
     bodyNotice: initialDetail?.bodyNotice ?? null,
+    attachments: initialDetail?.attachments ?? [],
     isLoading: false,
     debugLabels: (initialDetail as DetailWithDebug | null)?.debugLabels,
   }));
@@ -1693,6 +1704,7 @@ export default function InboxShell({
               plainTextBody: cached.detail.plainTextBody,
               htmlBody: cached.detail.htmlBody,
               bodyNotice: cached.detail.bodyNotice,
+              attachments: cached.detail.attachments ?? [],
               isLoading: false,
               debugLabels: (cached.detail as DetailWithDebug).debugLabels,
             });
@@ -1741,6 +1753,7 @@ export default function InboxShell({
           plainTextBody: data.detail.plainTextBody,
           htmlBody: data.detail.htmlBody,
           bodyNotice: data.detail.bodyNotice,
+          attachments: data.detail.attachments ?? [],
           isLoading: false,
           debugLabels: (data.detail as DetailWithDebug).debugLabels,
         });
@@ -2036,12 +2049,13 @@ export default function InboxShell({
           plainTextBody: cached.detail.plainTextBody,
           htmlBody: cached.detail.htmlBody,
           bodyNotice: cached.detail.bodyNotice,
+          attachments: cached.detail.attachments ?? [],
           isLoading: false,
           debugLabels: (cached.detail as DetailWithDebug).debugLabels,
         });
       } else {
         // キャッシュがない場合：ローディング状態を表示
-        setDetailBody({ plainTextBody: null, htmlBody: null, bodyNotice: null, isLoading: true });
+        setDetailBody({ plainTextBody: null, htmlBody: null, bodyNotice: null, attachments: [], isLoading: true });
       }
     });
     
@@ -2169,7 +2183,7 @@ export default function InboxShell({
         void loadDetailBodyOnly(nextSelected);
       } else {
         setSelectedDetail(null);
-        setDetailBody({ plainTextBody: null, htmlBody: null, bodyNotice: null, isLoading: false });
+        setDetailBody({ plainTextBody: null, htmlBody: null, bodyNotice: null, attachments: [], isLoading: false });
       }
     } catch (e) {
       // リクエストIDが変わっていたら無視
@@ -2898,7 +2912,7 @@ export default function InboxShell({
       } else {
         setSelectedId(null);
         setSelectedMessage(null);
-        setDetailBody({ plainTextBody: null, htmlBody: null, bodyNotice: null, isLoading: false });
+        setDetailBody({ plainTextBody: null, htmlBody: null, bodyNotice: null, attachments: [], isLoading: false });
         replaceUrl(labelId, null);
       }
     }
@@ -3003,7 +3017,7 @@ export default function InboxShell({
         setSelectedId(null);
         setSelectedMessage(null);
         setSelectedDetail(null);
-        setDetailBody({ plainTextBody: null, htmlBody: null, bodyNotice: null, isLoading: false });
+        setDetailBody({ plainTextBody: null, htmlBody: null, bodyNotice: null, attachments: [], isLoading: false });
         replaceUrl(labelId, null);
       }
     }
@@ -3115,7 +3129,7 @@ export default function InboxShell({
       } else {
         setSelectedId(null);
         setSelectedMessage(null);
-        setDetailBody({ plainTextBody: null, htmlBody: null, bodyNotice: null, isLoading: false });
+        setDetailBody({ plainTextBody: null, htmlBody: null, bodyNotice: null, attachments: [], isLoading: false });
         replaceUrl(labelId, null);
       }
     }
@@ -3253,7 +3267,7 @@ export default function InboxShell({
       } else {
         setSelectedId(null);
         setSelectedMessage(null);
-        setDetailBody({ plainTextBody: null, htmlBody: null, bodyNotice: null, isLoading: false });
+        setDetailBody({ plainTextBody: null, htmlBody: null, bodyNotice: null, attachments: [], isLoading: false });
         replaceUrl(labelId, null);
       }
 
@@ -3521,7 +3535,7 @@ export default function InboxShell({
       } else {
         setSelectedId(null);
         setSelectedMessage(null);
-        setDetailBody({ plainTextBody: null, htmlBody: null, bodyNotice: null, isLoading: false });
+        setDetailBody({ plainTextBody: null, htmlBody: null, bodyNotice: null, attachments: [], isLoading: false });
         replaceUrl(labelId, null);
       }
     }
@@ -3614,7 +3628,7 @@ export default function InboxShell({
       } else {
         setSelectedId(null);
         setSelectedMessage(null);
-        setDetailBody({ plainTextBody: null, htmlBody: null, bodyNotice: null, isLoading: false });
+        setDetailBody({ plainTextBody: null, htmlBody: null, bodyNotice: null, attachments: [], isLoading: false });
         replaceUrl(labelId, null);
       }
     }
@@ -4276,7 +4290,7 @@ export default function InboxShell({
         } else {
           setSelectedId(null);
           setSelectedMessage(null);
-          setDetailBody({ plainTextBody: null, htmlBody: null, bodyNotice: null, isLoading: false });
+          setDetailBody({ plainTextBody: null, htmlBody: null, bodyNotice: null, attachments: [], isLoading: false });
           replaceUrl(labelId, null);
         }
       }
@@ -4441,7 +4455,7 @@ export default function InboxShell({
             } else {
               setSelectedId(null);
               setSelectedMessage(null);
-              setDetailBody({ plainTextBody: null, htmlBody: null, bodyNotice: null, isLoading: false });
+              setDetailBody({ plainTextBody: null, htmlBody: null, bodyNotice: null, attachments: [], isLoading: false });
               replaceUrl(labelId, null);
             }
           }
@@ -4546,7 +4560,7 @@ export default function InboxShell({
               // ここでは安全に先頭へフォールバックする（クラッシュ防止）。
               setSelectedId(null);
               setSelectedMessage(null);
-              setDetailBody({ plainTextBody: null, htmlBody: null, bodyNotice: null, isLoading: false });
+              setDetailBody({ plainTextBody: null, htmlBody: null, bodyNotice: null, attachments: [], isLoading: false });
               replaceUrl(labelId, null);
             }
           }, 500);
@@ -4879,7 +4893,7 @@ export default function InboxShell({
       } else {
         setSelectedId(null);
         setSelectedMessage(null);
-        setDetailBody({ plainTextBody: null, htmlBody: null, bodyNotice: null, isLoading: false });
+        setDetailBody({ plainTextBody: null, htmlBody: null, bodyNotice: null, attachments: [], isLoading: false });
         replaceUrl(labelId, null);
       }
     }, 500);
@@ -4970,7 +4984,7 @@ export default function InboxShell({
           } else {
             setSelectedId(null);
             setSelectedMessage(null);
-            setDetailBody({ plainTextBody: null, htmlBody: null, bodyNotice: null, isLoading: false });
+            setDetailBody({ plainTextBody: null, htmlBody: null, bodyNotice: null, attachments: [], isLoading: false });
             replaceUrl(labelId, null);
           }
         }
@@ -5168,7 +5182,7 @@ export default function InboxShell({
           setLastAppliedTemplate(null);
           setBodyCollapsed(false);
           setDetailError(null);
-          setDetailBody({ plainTextBody: null, htmlBody: null, bodyNotice: null, isLoading: true });
+          setDetailBody({ plainTextBody: null, htmlBody: null, bodyNotice: null, attachments: [], isLoading: true });
         });
         replaceUrl(labelId, id);
         void loadDetailBodyOnly(id);
@@ -7110,6 +7124,16 @@ export default function InboxShell({
 
                             {/* 日時 + 経過 */}
                             <div className="flex items-center gap-1.5 flex-shrink-0">
+                              {mail.attachmentCount ? (
+                                <span
+                                  className="inline-flex items-center gap-0.5 text-[11px] text-[#5f6368]"
+                                  title={`添付 ${mail.attachmentCount}件`}
+                                  data-testid="message-attachment-indicator"
+                                >
+                                  <Paperclip size={13} />
+                                  {mail.attachmentCount > 1 && <span>{mail.attachmentCount}</span>}
+                                </span>
+                              ) : null}
                               <span className={`text-[12px] font-normal ${isActive ? 'text-[#3c4043]' : 'text-[#5f6368]'}`}>
                                 {mail.receivedAt.split(' ')[1]}
                               </span>
@@ -7184,7 +7208,7 @@ export default function InboxShell({
                         selectedIdRef.current = null;
                         setSelectedMessage(null);
                         setSelectedDetail(null);
-                        setDetailBody({ plainTextBody: null, htmlBody: null, bodyNotice: null, isLoading: false });
+                        setDetailBody({ plainTextBody: null, htmlBody: null, bodyNotice: null, attachments: [], isLoading: false });
                         replaceUrl(labelId, null, true, serverSearchQuery || undefined);
                       }}
                     >
@@ -7363,6 +7387,32 @@ export default function InboxShell({
                           </>
                         )}
                       </div>
+                      )}
+
+                      {detailBody.attachments.length > 0 && !detailBody.isLoading && !detailError && (
+                        <div className="mt-5" data-testid="detail-attachments">
+                          <div className="mb-2 flex items-center gap-2 text-[12px] font-medium text-[#3c4043]">
+                            <Paperclip size={14} className="text-[#5f6368]" />
+                            添付ファイル {detailBody.attachments.length}件
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            {detailBody.attachments.map((attachment) => {
+                              const sizeLabel = formatAttachmentSize(attachment.size);
+                              return (
+                                <div
+                                  key={attachment.id}
+                                  className="inline-flex max-w-full items-center gap-2 rounded-md border border-[#dadce0] bg-white px-3 py-2 text-[13px] text-[#202124] shadow-[0_1px_2px_rgba(60,64,67,0.08)] transition-colors hover:bg-[#f8fafd]"
+                                  data-testid="attachment-chip"
+                                  title={attachment.filename}
+                                >
+                                  <Paperclip size={15} className="shrink-0 text-[#5f6368]" />
+                                  <span className="max-w-[260px] truncate font-medium">{attachment.filename}</span>
+                                  {sizeLabel && <span className="shrink-0 text-[11px] text-[#5f6368]">{sizeLabel}</span>}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
                       )}
 
                       {/* Conversation (thread) */}
@@ -7595,6 +7645,15 @@ export default function InboxShell({
                                         <span className="min-w-0 flex-1 truncate text-[#3c4043]">
                                           {m.snippet || "(no snippet)"}
                                         </span>
+                                        {m.attachmentCount ? (
+                                          <span
+                                            className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-[#f1f3f4] px-2 py-0.5 text-[10px] font-medium text-[#5f6368]"
+                                            title={`添付 ${m.attachmentCount}件`}
+                                          >
+                                            <Paperclip size={11} />
+                                            {m.attachmentCount}
+                                          </span>
+                                        ) : null}
                                         <span className="shrink-0 rounded-full bg-[#f1f3f4] px-2 py-0.5 text-[10px] font-medium text-[#5f6368]">
                                           {statusLabel}
                                         </span>
