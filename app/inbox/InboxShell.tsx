@@ -293,6 +293,7 @@ export default function InboxShell({
 
   const sanitizedHtmlBody = useMemo(() => {
     if (!detailBody.htmlBody) return "";
+    if (typeof window === "undefined") return "";
     return DOMPurify.sanitize(detailBody.htmlBody, {
       ALLOWED_TAGS: [
         "p",
