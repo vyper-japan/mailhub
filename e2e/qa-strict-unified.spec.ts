@@ -267,7 +267,7 @@ test.describe("QA-Strict Unified E2E Tests", () => {
     const threadActions = pane.getByTestId("thread-actions");
     await expect(threadActions).toBeVisible({ timeout: 5000 });
     
-    // 会話一括選択 → チェック件数が増える（>=2）
+    // 会話一括選択 → 対象はthread-021の2件
     await threadActions.getByTestId("thread-action-select").click();
     await expect(page.getByTestId("bulk-selection-count")).toHaveText(/2件選択中/, { timeout: 5000 });
   });
@@ -286,7 +286,7 @@ test.describe("QA-Strict Unified E2E Tests", () => {
     // Thread Actionsバーが表示される
     const threadActions = pane.getByTestId("thread-actions");
     await expect(threadActions).toBeVisible({ timeout: 5000 });
-    await expect(threadActions.getByText(/Thread: \d+ messages/)).toBeVisible({ timeout: 5000 });
+    await expect(threadActions.getByText(/\d+件のやりとり/)).toBeVisible({ timeout: 5000 });
 
     // Thread Select → チェック件数が増える（>=2）
     await threadActions.getByTestId("thread-action-select").click();

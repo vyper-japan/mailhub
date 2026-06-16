@@ -7335,7 +7335,7 @@ export default function InboxShell({
                       )}
 
                       {/* Conversation (thread) */}
-                      <div id="section-conversation" className="mt-10 pt-10 border-t border-gray-200" data-testid="thread-pane">
+                      <div id="section-conversation" className="mt-6 pt-5 border-t border-[#e8eaed]" data-testid="thread-pane">
                         {/* Thread Actions Bar */}
                         {threadSummary && threadSummary.messages.length > 0 && (() => {
                           const threadMessageIds = threadSummary.messages.map((m) => m.id);
@@ -7360,226 +7360,265 @@ export default function InboxShell({
                             {} as { mine?: number; others?: number; unassigned?: number },
                           );
                           const summaryText = [
-                            `今返す ${statusCounts.todo ?? 0}`,
-                            `返事待ち ${statusCounts.waiting ?? 0}`,
-                            `Done ${statusCounts.done ?? 0}`,
-                            `Muted ${statusCounts.muted ?? 0}`,
-                          ]
-                            .filter((s) => !s.endsWith(" 0"))
-                            .join(" / ");
-                          const assigneeText = [
-                            assigneeCounts.mine ? `mine ${assigneeCounts.mine}` : null,
-                            assigneeCounts.others ? `others ${assigneeCounts.others}` : null,
-                            assigneeCounts.unassigned ? `unassigned ${assigneeCounts.unassigned}` : null,
+                            statusCounts.todo ? `今返す ${statusCounts.todo}` : null,
+                            statusCounts.waiting ? `返事待ち ${statusCounts.waiting}` : null,
+                            statusCounts.done ? `完了 ${statusCounts.done}` : null,
+                            statusCounts.muted ? `処理不要 ${statusCounts.muted}` : null,
                           ]
                             .filter(Boolean)
                             .join(" / ");
+                          const assigneeText = [
+                            assigneeCounts.mine ? `自分 ${assigneeCounts.mine}` : null,
+                            assigneeCounts.others ? `他担当 ${assigneeCounts.others}` : null,
+                            assigneeCounts.unassigned ? `未担当 ${assigneeCounts.unassigned}` : null,
+                          ]
+                            .filter(Boolean)
+                            .join(" / ");
+                          const actionButtonClass =
+                            "inline-flex h-8 items-center gap-1.5 rounded-full border border-transparent px-2.5 text-[12px] font-medium text-[#3c4043] transition-colors hover:border-[#dadce0] hover:bg-[#f1f3f4] active:bg-[#e8eaed] disabled:cursor-not-allowed disabled:opacity-40";
                           return (
-                            <div className="mb-4 space-y-2" data-testid="thread-actions">
-                              <div className="flex items-center justify-between gap-3">
-                                <div className="text-[13px] font-bold text-[#202124]">
-                                  Thread: {threadSummary.messages.length} messages
+                            <div className="mb-3 border-b border-[#f1f3f4] pb-2" data-testid="thread-actions">
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-2 text-[13px] font-semibold text-[#202124]">
+                                  <MessageSquare size={15} className="shrink-0 text-[#5f6368]" />
+                                  <span className="whitespace-nowrap">{threadSummary.messages.length}件のやりとり</span>
+                                  <span className="sr-only">Thread: {threadSummary.messages.length} messages</span>
                                 </div>
-                                <div className="flex items-center gap-2 flex-wrap">
-                                  <button
-                                    type="button"
-                                    data-testid="thread-action-done"
-                                    className="px-2 py-1 text-[11px] font-medium rounded border border-[#dadce0] bg-white hover:bg-[#f1f3f4] disabled:opacity-40 disabled:cursor-not-allowed"
-                                    disabled={readOnlyMode || bulkProgress !== null || threadMessageIds.length === 0}
-                                    title={readOnlyMode ? (getWriteBlockedTitle() ?? "実行できません") : "Thread Done"}
-                                    onClick={() => {
-                                      if (readOnlyMode || bulkProgress !== null) return;
-                                      void handleBulkArchive(threadMessageIds);
-                                    }}
-                                  >
-                                    Thread Done
-                                  </button>
-                                  <button
-                                    type="button"
-                                    data-testid="thread-action-waiting"
-                                    className="px-2 py-1 text-[11px] font-medium rounded border border-[#dadce0] bg-white hover:bg-[#f1f3f4] disabled:opacity-40 disabled:cursor-not-allowed"
-                                    disabled={readOnlyMode || bulkProgress !== null || threadMessageIds.length === 0}
-                                    title={readOnlyMode ? (getWriteBlockedTitle() ?? "実行できません") : "スレッドを返事待ちにする"}
-                                    onClick={() => {
-                                      if (readOnlyMode || bulkProgress !== null) return;
-                                      void handleBulkWaiting(threadMessageIds);
-                                    }}
-                                  >
-                                    スレッドを返事待ち
-                                  </button>
-                                  <button
-                                    type="button"
-                                    data-testid="thread-action-mute"
-                                    className="px-2 py-1 text-[11px] font-medium rounded border border-[#dadce0] bg-white hover:bg-[#f1f3f4] disabled:opacity-40 disabled:cursor-not-allowed"
-                                    disabled={readOnlyMode || bulkProgress !== null || threadMessageIds.length === 0}
-                                    title={readOnlyMode ? (getWriteBlockedTitle() ?? "実行できません") : "Thread Mute"}
-                                    onClick={() => {
-                                      if (readOnlyMode || bulkProgress !== null) return;
-                                      void handleBulkMuteSelected(threadMessageIds);
-                                    }}
-                                  >
-                                    Thread Mute
-                                  </button>
-                                  <button
-                                    type="button"
-                                    data-testid="thread-action-assign"
-                                    className="px-2 py-1 text-[11px] font-medium rounded border border-[#dadce0] bg-white hover:bg-[#f1f3f4] disabled:opacity-40 disabled:cursor-not-allowed"
-                                    disabled={readOnlyMode || bulkProgress !== null || threadMessageIds.length === 0}
-                                    title={readOnlyMode ? (getWriteBlockedTitle() ?? "実行できません") : "Thread Assign Me"}
-                                    onClick={() => {
-                                      if (readOnlyMode || bulkProgress !== null) return;
-                                      void handleBulkAssign(threadMessageIds);
-                                    }}
-                                  >
-                                    Thread Assign Me
-                                  </button>
-                                  <button
-                                    type="button"
-                                    data-testid="thread-action-label"
-                                    className="px-2 py-1 text-[11px] font-medium rounded border border-[#dadce0] bg-white hover:bg-[#f1f3f4] disabled:opacity-40 disabled:cursor-not-allowed"
-                                    disabled={readOnlyMode || bulkProgress !== null || threadMessageIds.length === 0}
-                                    title={readOnlyMode ? (getWriteBlockedTitle() ?? "実行できません") : "Thread Label…"}
-                                    onClick={() => {
-                                      if (readOnlyMode || bulkProgress !== null) return;
-                                      // 会話内の全messageIdをcheckedIdsに設定してからLabel Popoverを開く
-                                      setCheckedIds(new Set(threadMessageIds));
-                                      openLabelPopover();
-                                    }}
-                                  >
-                                    Thread Label…
-                                  </button>
-                                  <button
-                                    type="button"
-                                    data-testid="thread-action-select"
-                                    className="px-2 py-1 text-[11px] font-medium rounded border border-[#dadce0] bg-white hover:bg-[#f1f3f4] disabled:opacity-40 disabled:cursor-not-allowed"
-                                    disabled={threadMessageIds.length === 0}
-                                    title="この会話をまとめて選択（既存の一括アクションに接続）"
-                                    onClick={() => {
-                                      setCheckedIds((prev) => {
-                                        const next = new Set(prev);
-                                        for (const m of threadSummary.messages) next.add(m.id);
-                                        return next;
-                                      });
-                                    }}
-                                  >
-                                    Thread Select
-                                  </button>
-                                  {checkedIds.size > 0 && (
-                                    <button
-                                      type="button"
-                                      data-testid="thread-action-clear"
-                                      className="px-2 py-1 text-[11px] font-medium rounded border border-[#dadce0] bg-white hover:bg-[#f1f3f4]"
-                                      onClick={() => setCheckedIds(new Set())}
-                                      title="選択をクリア"
-                                    >
-                                      Clear Selection
-                                    </button>
-                                  )}
-                                </div>
+                                {(summaryText || assigneeText) && (
+                                  <div className="mt-0.5 truncate text-[11px] text-[#5f6368]">
+                                    {[summaryText, assigneeText].filter(Boolean).join(" / ")}
+                                  </div>
+                                )}
                               </div>
-                              {(summaryText || assigneeText) && (
-                                <div className="text-[11px] text-[#5f6368] space-y-1">
-                                  {summaryText && <div>Status: {summaryText}</div>}
-                                  {assigneeText && <div>Assigned: {assigneeText}</div>}
-                                </div>
-                              )}
+                              <div className="mt-2 flex items-center gap-1 overflow-x-auto whitespace-nowrap pb-1">
+                                <button
+                                  type="button"
+                                  data-testid="thread-action-done"
+                                  className={actionButtonClass}
+                                  disabled={readOnlyMode || bulkProgress !== null || threadMessageIds.length === 0}
+                                  title={readOnlyMode ? (getWriteBlockedTitle() ?? "実行できません") : "会話を完了"}
+                                  onClick={() => {
+                                    if (readOnlyMode || bulkProgress !== null) return;
+                                    void handleBulkArchive(threadMessageIds);
+                                  }}
+                                >
+                                  <CheckCircle size={15} className="text-[#34a853]" />
+                                  完了
+                                </button>
+                                <button
+                                  type="button"
+                                  data-testid="thread-action-waiting"
+                                  className={actionButtonClass}
+                                  disabled={readOnlyMode || bulkProgress !== null || threadMessageIds.length === 0}
+                                  title={readOnlyMode ? (getWriteBlockedTitle() ?? "実行できません") : "会話を返事待ちにする"}
+                                  onClick={() => {
+                                    if (readOnlyMode || bulkProgress !== null) return;
+                                    void handleBulkWaiting(threadMessageIds);
+                                  }}
+                                >
+                                  <Clock size={15} className="text-[#ea8600]" />
+                                  返事待ち
+                                </button>
+                                <button
+                                  type="button"
+                                  data-testid="thread-action-mute"
+                                  className={actionButtonClass}
+                                  disabled={readOnlyMode || bulkProgress !== null || threadMessageIds.length === 0}
+                                  title={readOnlyMode ? (getWriteBlockedTitle() ?? "実行できません") : "会話を処理不要"}
+                                  onClick={() => {
+                                    if (readOnlyMode || bulkProgress !== null) return;
+                                    void handleBulkMuteSelected(threadMessageIds);
+                                  }}
+                                >
+                                  <VolumeX size={15} className="text-[#5f6368]" />
+                                  処理不要
+                                </button>
+                                <button
+                                  type="button"
+                                  data-testid="thread-action-assign"
+                                  className={actionButtonClass}
+                                  disabled={readOnlyMode || bulkProgress !== null || threadMessageIds.length === 0}
+                                  title={readOnlyMode ? (getWriteBlockedTitle() ?? "実行できません") : "会話を自分に割り当て"}
+                                  onClick={() => {
+                                    if (readOnlyMode || bulkProgress !== null) return;
+                                    void handleBulkAssign(threadMessageIds);
+                                  }}
+                                >
+                                  <UserCheck size={15} className="text-[#1a73e8]" />
+                                  自分
+                                </button>
+                                <button
+                                  type="button"
+                                  data-testid="thread-action-label"
+                                  className={actionButtonClass}
+                                  disabled={readOnlyMode || bulkProgress !== null || threadMessageIds.length === 0}
+                                  title={readOnlyMode ? (getWriteBlockedTitle() ?? "実行できません") : "会話にラベル"}
+                                  onClick={() => {
+                                    if (readOnlyMode || bulkProgress !== null) return;
+                                    // 会話内の全messageIdをcheckedIdsに設定してからLabel Popoverを開く
+                                    setCheckedIds(new Set(threadMessageIds));
+                                    openLabelPopover();
+                                  }}
+                                >
+                                  <Tag size={15} className="text-[#7b1fa2]" />
+                                  ラベル
+                                </button>
+                                <button
+                                  type="button"
+                                  data-testid="thread-action-select"
+                                  className={actionButtonClass}
+                                  disabled={threadMessageIds.length === 0}
+                                  title="この会話だけをまとめて選択"
+                                  onClick={() => {
+                                    setCheckedIds(new Set(threadMessageIds));
+                                  }}
+                                >
+                                  <Square size={15} className="text-[#5f6368]" />
+                                  選択
+                                </button>
+                                {checkedIds.size > 0 && (
+                                  <button
+                                    type="button"
+                                    data-testid="thread-action-clear"
+                                    className={actionButtonClass}
+                                    onClick={() => setCheckedIds(new Set())}
+                                    title="選択をクリア"
+                                  >
+                                    <X size={15} className="text-[#5f6368]" />
+                                    解除
+                                  </button>
+                                )}
+                              </div>
                             </div>
                           );
                         })()}
-                        
-                        <div className="flex items-center justify-between gap-3 mb-4">
-                          <div className="text-[13px] font-bold text-[#202124]">
-                            Conversation（{threadSummary?.messages?.length ?? 0}）
+
+                        <div className="mb-2 flex items-center justify-between gap-3">
+                          <div className="text-[12px] font-semibold text-[#202124]">
+                            過去のやりとり
                           </div>
+                          {threadSummary && threadSummary.messages.length > 1 && (
+                            <div className="text-[11px] text-[#5f6368]">
+                              クリックしたメールだけ本文を開きます
+                            </div>
+                          )}
                         </div>
 
                         {threadLoading ? (
                           <div className="text-[12px] text-[#5f6368]">読み込み中...</div>
                         ) : threadError ? (
-                          <div className="text-[12px] text-[#c5221f] bg-[#fce8e6] border border-[#f28b82] rounded p-3">
+                          <div className="rounded-md border border-[#f28b82] bg-[#fce8e6] p-3 text-[12px] text-[#c5221f]">
                             Conversationの取得に失敗しました: {threadError}
                           </div>
                         ) : !threadSummary || threadSummary.messages.length === 0 ? (
                           <div className="text-[12px] text-[#5f6368]">No messages</div>
                         ) : (
-                          <div className="space-y-2">
-                            {threadSummary.messages.map((m) => {
+                          <div className="overflow-hidden rounded-lg border border-[#dadce0] bg-white shadow-[0_1px_2px_rgba(60,64,67,0.08)]">
+                            {threadSummary.messages.map((m, index) => {
                               const isSelected = m.id === selectedMessage.id;
                               const expanded = threadExpandedIds.has(m.id);
+                              const showBody = expanded || isSelected;
                               const bodyState = threadBodies[m.id];
+                              const statusLabel =
+                                m.statusType === "todo"
+                                  ? "今返す"
+                                  : m.statusType === "waiting"
+                                    ? "返事待ち"
+                                    : m.statusType === "done"
+                                      ? "完了"
+                                      : m.statusType === "muted"
+                                        ? "処理不要"
+                                        : m.statusType;
                               return (
                                 <div
                                   key={m.id}
                                   data-testid="thread-item"
-                                  className={`rounded-lg border p-3 ${isSelected ? "border-blue-300 bg-blue-50" : "border-[#dadce0] bg-white"}`}
+                                  className={`group border-t border-[#e8eaed] transition-colors first:border-t-0 ${
+                                    isSelected ? "bg-[#f8fbff]" : "bg-white hover:bg-[#f8fafd]"
+                                  }`}
                                 >
-                                  <div className="flex items-start gap-3">
-                                    <div className="flex-1 min-w-0">
-                                      <div className="flex items-center gap-2 flex-wrap">
-                                        <span className="text-[12px] font-medium text-[#202124] truncate">
-                                          {m.from?.split("<")[0].trim() ?? "(unknown)"}
-                                        </span>
-                                        <span className="text-[11px] text-[#5f6368]">{m.date}</span>
-                                        <span className="text-[10px] px-2 py-0.5 rounded border border-[#dadce0] bg-[#f1f3f4] text-[#3c4043]">
-                                          {m.statusType}
-                                        </span>
-                                        {m.assigneeSlug && (
-                                          <span className="text-[10px] px-2 py-0.5 rounded border border-[#dadce0] bg-[#f1f3f4] text-[#3c4043]">
-                                            担当: {getAssigneeDisplayName(m.assigneeSlug)}
-                                          </span>
-                                        )}
-                                        {Array.isArray(m.labels) && m.labels.length > 0 && (
-                                          <span className="flex items-center gap-1">
-                                            {m.labels.map((ln) => (
-                                              <span
-                                                key={ln}
-                                                className="text-[10px] font-medium px-2 py-0.5 rounded border border-purple-200 bg-purple-50 text-purple-700"
-                                                title={ln}
-                                              >
-                                                {displayUserLabel(ln)}
-                                              </span>
-                                            ))}
-                                          </span>
-                                        )}
-                                      </div>
-                                      <div className="mt-2 text-[12px] text-[#3c4043]">
-                                        {m.snippet || "(no snippet)"}
-                                      </div>
-                                    </div>
+                                  <div className={`flex min-h-[48px] items-start gap-3 px-3 py-2.5 ${isSelected ? "border-l-4 border-[#1a73e8] pl-2" : "border-l-4 border-transparent pl-2"}`}>
                                     <button
                                       type="button"
                                       data-testid="thread-expand"
-                                      className="px-2 py-1 text-[11px] rounded border border-[#dadce0] bg-white hover:bg-[#f1f3f4]"
+                                      className="mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[#5f6368] transition-colors hover:bg-[#f1f3f4] hover:text-[#202124] focus:outline-none focus:ring-2 focus:ring-[#1a73e8]/40"
                                       onClick={() => void toggleThreadExpand(m.id)}
+                                      aria-label={showBody ? "会話を閉じる" : "会話を開く"}
+                                      title={showBody ? "閉じる" : "開く"}
                                     >
-                                      {expanded ? "Hide" : "Expand"}
+                                      {showBody ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                                     </button>
-                                  </div>
-
-                                  {expanded && (
-                                    <div className="mt-3 pt-3 border-t border-[#e8eaed]" data-testid="thread-body">
-                                      {m.id === selectedMessage.id ? (
-                                        // 選択中のメールは上部に本文が表示されているため、ここでは「上部を参照」と表示
-                                        <div className="text-[12px] text-[#5f6368] italic">
-                                          このメールの本文は上部に表示されています
-                                        </div>
-                                      ) : bodyState?.isLoading ? (
-                                        <div className="text-[12px] text-[#5f6368]">本文を読み込み中...</div>
-                                      ) : bodyState?.error ? (
-                                        <div className="text-[12px] text-[#c5221f]">本文取得エラー: {bodyState.error}</div>
-                                      ) : (
-                                        <>
-                                          {bodyState?.bodyNotice && (
-                                            <div className="mb-2 text-[12px] text-[#ea8600] bg-[#fef7e0] p-2 rounded border border-[#fdd663]">
-                                              {bodyState.bodyNotice}
-                                            </div>
+                                    <div className="min-w-0 flex-1">
+                                      <div className="flex min-w-0 items-center gap-2">
+                                        <span className={`truncate text-[13px] ${isSelected ? "font-semibold text-[#202124]" : "font-medium text-[#3c4043]"}`}>
+                                          {m.from?.split("<")[0].trim() ?? "(unknown)"}
+                                        </span>
+                                        {isSelected && (
+                                          <span className="shrink-0 rounded-full bg-[#e8f0fe] px-2 py-0.5 text-[10px] font-semibold text-[#1a73e8]">
+                                            表示中
+                                          </span>
+                                        )}
+                                        <span className="ml-auto shrink-0 text-[11px] text-[#5f6368]">{m.date}</span>
+                                      </div>
+                                      <div className="mt-1 flex min-w-0 items-center gap-2 text-[12px] text-[#5f6368]">
+                                        <span className="min-w-0 flex-1 truncate text-[#3c4043]">
+                                          {m.snippet || "(no snippet)"}
+                                        </span>
+                                        <span className="shrink-0 rounded-full bg-[#f1f3f4] px-2 py-0.5 text-[10px] font-medium text-[#5f6368]">
+                                          {statusLabel}
+                                        </span>
+                                        {m.assigneeSlug && (
+                                          <span className="hidden shrink-0 rounded-full bg-[#f1f3f4] px-2 py-0.5 text-[10px] font-medium text-[#5f6368] sm:inline">
+                                            {getAssigneeDisplayName(m.assigneeSlug)}
+                                          </span>
+                                        )}
+                                      </div>
+                                      {Array.isArray(m.labels) && m.labels.length > 0 && (
+                                        <div className="mt-2 flex flex-wrap gap-1">
+                                          {m.labels.slice(0, 4).map((ln) => (
+                                            <span
+                                              key={ln}
+                                              className="rounded-full border border-[#eadcf8] bg-[#f7f2fb] px-2 py-0.5 text-[10px] font-medium text-[#681da8]"
+                                              title={ln}
+                                            >
+                                              {displayUserLabel(ln)}
+                                            </span>
+                                          ))}
+                                          {m.labels.length > 4 && (
+                                            <span className="rounded-full bg-[#f1f3f4] px-2 py-0.5 text-[10px] font-medium text-[#5f6368]">
+                                              +{m.labels.length - 4}
+                                            </span>
                                           )}
-                                          <div className="text-[13px] leading-[19px] whitespace-pre-wrap text-[#202124]">
-                                            {bodyState?.plainTextBody || "本文がありません"}
-                                          </div>
-                                        </>
+                                        </div>
+                                      )}
+                                      {showBody && (
+                                        <div className="mt-3 border-t border-[#f1f3f4] pt-3" data-testid="thread-body">
+                                          {m.id === selectedMessage.id ? (
+                                            <div className="text-[12px] text-[#5f6368]">
+                                              このメールの本文は上に表示中
+                                            </div>
+                                          ) : bodyState?.isLoading ? (
+                                            <div className="text-[12px] text-[#5f6368]">本文を読み込み中...</div>
+                                          ) : bodyState?.error ? (
+                                            <div className="text-[12px] text-[#c5221f]">本文取得エラー: {bodyState.error}</div>
+                                          ) : (
+                                            <>
+                                              {bodyState?.bodyNotice && (
+                                                <div className="mb-2 rounded border border-[#fdd663] bg-[#fef7e0] p-2 text-[12px] text-[#ea8600]">
+                                                  {bodyState.bodyNotice}
+                                                </div>
+                                              )}
+                                              <div className="max-h-[420px] overflow-auto whitespace-pre-wrap pr-1 text-[13px] leading-[19px] text-[#202124]">
+                                                {bodyState?.plainTextBody || "本文がありません"}
+                                              </div>
+                                            </>
+                                          )}
+                                        </div>
                                       )}
                                     </div>
+                                  </div>
+                                  {index < threadSummary.messages.length - 1 && (
+                                    <div className="ml-12 h-px bg-[#f1f3f4]" aria-hidden="true" />
                                   )}
                                 </div>
                               );
