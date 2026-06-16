@@ -105,6 +105,11 @@ const prodChannels = [
     addresses: ["vyper_sc@vtj.co.jp"],
   },
   {
+    id: "ams-vyper",
+    label: "Amazon Ads (AMS)",
+    addresses: ["ams_vyper@vtj.co.jp"],
+  },
+  {
     id: "datacolor",
     label: "Datacolor Shopify",
     addresses: ["datacolor_shopify@vtj.co.jp"],
@@ -262,7 +267,7 @@ describe("channels", () => {
     expect(getLabelById("cricut-rakuten", true)).toBeNull();
   });
 
-  test("getChannels(false) exposes the aggregate stores channel and 17 production store channels", () => {
+  test("getChannels(false) exposes the aggregate stores channel and 18 production source channels", () => {
     const channels = getChannels(false);
 
     expect(channels[0]).toMatchObject({
@@ -276,6 +281,7 @@ describe("channels", () => {
       addresses: [],
     });
     expect(channels[1].q).toContain("deliveredto:cricut_r@vtj.co.jp");
+    expect(channels[1].q).toContain("deliveredto:ams_vyper@vtj.co.jp");
     expect(channels[1].q).toContain("deliveredto:ebay@vtj.co.jp");
     expect(channels.slice(2).map(({ id, label, addresses }) => ({ id, label, addresses }))).toEqual(
       prodChannels,

@@ -16,7 +16,7 @@ describe("settings view label options", () => {
     expect(channelIdsFromSelect(options.editView)).toEqual(["stores", "store-a", "store-b", "store-c"]);
   });
 
-  test("testMode=false returns the aggregate stores channel and 17 production channels for both View option selects", () => {
+  test("testMode=false returns the aggregate stores channel and 18 production channels for both View option selects", () => {
     const options = buildViewLabelSelectOptions(false);
     const expected = [
       "stores",
@@ -31,6 +31,7 @@ describe("settings view label options", () => {
       "vyperglobal-yahoo",
       "vyperglobal-amazon",
       "vyper-amazon",
+      "ams-vyper",
       "datacolor",
       "akg",
       "sbd",
@@ -41,7 +42,7 @@ describe("settings view label options", () => {
 
     expect(channelIdsFromSelect(options.newView)).toEqual(expected);
     expect(channelIdsFromSelect(options.editView)).toEqual(expected);
-    expect(channelIdsFromSelect(options.newView)).toHaveLength(18);
-    expect(channelIdsFromSelect(options.editView)).toHaveLength(18);
+    expect(channelIdsFromSelect(options.newView)).toHaveLength(19);
+    expect(channelIdsFromSelect(options.editView)).toHaveLength(19);
   });
 });

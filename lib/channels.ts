@@ -17,6 +17,7 @@ export type ChannelId =
   | "vyperglobal-yahoo"
   | "vyperglobal-amazon"
   | "vyper-amazon"
+  | "ams-vyper"
   | "datacolor"
   | "akg"
   | "sbd"
@@ -165,6 +166,13 @@ const PROD_STORE_CHANNELS: ChannelDef[] = ([
     id: "vyper-amazon",
     label: "VYPER SC",
     addresses: ["vyper_sc@vtj.co.jp"],
+    replyKind: "gmail",
+  },
+  {
+    id: "ams-vyper",
+    label: "Amazon Ads (AMS)",
+    addresses: ["ams_vyper@vtj.co.jp"],
+    relatedQ: "amazon ads ams invoice",
     replyKind: "gmail",
   },
   {

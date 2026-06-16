@@ -11,6 +11,7 @@ const state = vi.hoisted(() => {
     "vyperglobal_y@vtj.co.jp",
     "vyperglobal_sc@vtj.co.jp",
     "vyper_sc@vtj.co.jp",
+    "ams_vyper@vtj.co.jp",
     "datacolor_shopify@vtj.co.jp",
     "akgstore@vtj.co.jp",
     "sbd@vtj.co.jp",
@@ -171,8 +172,8 @@ describe("mailhub config health Gmail send", () => {
     expect(health.gmailSendCapable).toBe(true);
     expect(health.gmailSendReady).toBe(true);
     expect(health.gmailSendBlockedReason).toBeNull();
-    expect(health.sendAs.requiredCount).toBe(15);
-    expect(health.sendAs.acceptedCount).toBe(15);
+    expect(health.sendAs.requiredCount).toBe(16);
+    expect(health.sendAs.acceptedCount).toBe(16);
   });
 
   it("returns fixed TEST_MODE health when no send-as override is missing", async () => {
