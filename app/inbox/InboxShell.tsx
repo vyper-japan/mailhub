@@ -7142,15 +7142,16 @@ export default function InboxShell({
                     })}
                     {/* Step 103: Load more button */}
                     {nextPageToken && (
-                      <div className="flex justify-center py-4 border-t border-gray-200">
+                      <div className="flex justify-center border-t border-[#e8eaed] py-3">
                         <button
                           type="button"
                           data-testid="action-load-more"
                           onClick={() => void handleLoadMore()}
                           disabled={isLoadingMore}
-                          className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          className="inline-flex h-9 items-center gap-2 rounded-full border border-[#dadce0] bg-white px-4 text-[13px] font-medium text-[#3c4043] transition-colors hover:bg-[#f1f3f4] active:bg-[#e8eaed] disabled:cursor-not-allowed disabled:opacity-50"
                         >
-                          {isLoadingMore ? "読み込み中..." : "さらに読み込む"}
+                          <ChevronDown size={16} className="text-[#5f6368]" />
+                          {isLoadingMore ? "読み込み中..." : "さらに表示"}
                         </button>
                       </div>
                     )}

@@ -2,6 +2,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const gmailMockState = vi.hoisted(() => ({
   listCalls: [] as Array<{ userId?: string }>,
+  messageListCalls: [] as Array<{ userId?: string; maxResults?: number; q?: string; pageToken?: string }>,
+  messageGetCalls: [] as Array<{ userId?: string; id?: string }>,
   createCalls: [] as Array<{
     userId?: string;
     requestBody?: {
@@ -11,6 +13,10 @@ const gmailMockState = vi.hoisted(() => ({
     };
   }>,
   listResponses: [] as Array<Array<{ id: string; name: string }>>,
+  messageListResponses: [] as Array<{
+    messages?: Array<{ id?: string; threadId?: string }>;
+    nextPageToken?: string;
+  }>,
   createConflict: false,
 }));
 
@@ -26,6 +32,32 @@ vi.mock("googleapis", () => {
     },
     gmail: () => ({
       users: {
+        messages: {
+          list: async (args: { userId?: string; maxResults?: number; q?: string; pageToken?: string }) => {
+            gmailMockState.messageListCalls.push(args);
+            const response = gmailMockState.messageListResponses.shift() ?? { messages: [] };
+            return { data: response };
+          },
+          get: async (args: { userId?: string; id?: string }) => {
+            gmailMockState.messageGetCalls.push(args);
+            return {
+              data: {
+                id: args.id,
+                threadId: `thread-${args.id}`,
+                internalDate: "1767139200000",
+                snippet: `snippet-${args.id}`,
+                labelIds: [],
+                payload: {
+                  headers: [
+                    { name: "Subject", value: `Subject ${args.id}` },
+                    { name: "From", value: "Customer <customer@example.com>" },
+                    { name: "Message-ID", value: `<${args.id}@example.com>` },
+                  ],
+                },
+              },
+            };
+          },
+        },
         labels: {
           list: async (args: { userId?: string }) => {
             gmailMockState.listCalls.push(args);
@@ -73,8 +105,11 @@ describe("ensureLabelId", () => {
     process.env.GOOGLE_CLIENT_SECRET = "client-secret";
     delete globalThis.__mailhubGmailCache;
     gmailMockState.listCalls = [];
+    gmailMockState.messageListCalls = [];
+    gmailMockState.messageGetCalls = [];
     gmailMockState.createCalls = [];
     gmailMockState.listResponses = [];
+    gmailMockState.messageListResponses = [];
     gmailMockState.createConflict = false;
   });
 
@@ -114,5 +149,22 @@ describe("ensureLabelId", () => {
 
     expect(result.messages.some((m) => m.id === "msg-021")).toBe(true);
     expect(result.messages.every((m) => m.id !== "msg-012")).toBe(true);
+  });
+
+  it("preserves nextPageToken when a Gmail list response is served from cache", async () => {
+    gmailMockState.messageListResponses = [
+      {
+        messages: [{ id: "msg-cache-1", threadId: "thread-cache-1" }],
+        nextPageToken: "token-next-page",
+      },
+    ];
+
+    const first = await listLatestInboxMessages({ max: 1, q: "from:customer@example.com" });
+    const second = await listLatestInboxMessages({ max: 1, q: "from:customer@example.com" });
+
+    expect(first.nextPageToken).toBe("token-next-page");
+    expect(second.nextPageToken).toBe("token-next-page");
+    expect(second.messages.map((m) => m.id)).toEqual(["msg-cache-1"]);
+    expect(gmailMockState.messageListCalls).toHaveLength(1);
   });
 });

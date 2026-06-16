@@ -50,6 +50,7 @@ async function getMockDetail(id: string): Promise<MessageDetail | null> {
 }
 
 type CacheEntry<T> = { value: T; expiresAt: number };
+type ListCacheValue = { messages: InboxListMessage[]; nextPageToken?: string };
 
 // テストモード用: メールのStatus状態を保持
 type TestMessageStatus = "todo" | "waiting" | "done" | "muted" | "snoozed";
@@ -59,7 +60,7 @@ declare global {
   // eslint-disable-next-line no-var
   var __mailhubGmailCache:
     | {
-        list: Map<string, CacheEntry<InboxListMessage[]>>;
+        list: Map<string, CacheEntry<ListCacheValue>>;
         detail: Map<string, CacheEntry<MessageDetail>>;
         thread: Map<string, CacheEntry<{ threadId: string; messages: ThreadMessageSummary[] }>>;
         labels: Map<string, unknown>; // labelName -> labelId (string) ほか、内部キャッシュも保持
@@ -762,8 +763,8 @@ export async function listLatestInboxMessages(
   const labelKey = labelIds.join(",");
   const listCacheKey = `list:${sharedInboxEmail}:max=${max}:q=${q ?? ""}:labels=${labelKey}`;
   if (!pageToken) {
-    const cachedList = getCached<InboxListMessage[]>(getCache().list, listCacheKey);
-    if (cachedList) return { messages: cachedList, nextPageToken: undefined };
+    const cachedList = getCached<ListCacheValue>(getCache().list, listCacheKey);
+    if (cachedList) return cachedList;
   }
 
   // NOTE: Gmailのラベル付け直後は messages.list 側に反映が遅れることがあり、
@@ -868,8 +869,8 @@ export async function listLatestInboxMessages(
   }
 
   // Do not cache errors; we only set cache on success.
-  // Step 103: キャッシュはメッセージのみ（nextPageTokenはキャッシュしない）
-  setCached(getCache().list, listCacheKey, items, 10_000);
+  // Step 103: nextPageTokenも保持し、キャッシュ再利用時に「さらに読み込む」が消えないようにする。
+  setCached(getCache().list, listCacheKey, { messages: items, nextPageToken }, 10_000);
   return { messages: items, nextPageToken };
 }
 
