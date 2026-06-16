@@ -32,14 +32,16 @@ MailHub の次フェーズを開始してください。
    - `vyperglobal-yahoo`, `ebay`: active inbox 0 / all-mail fallback 0
 2. 新規 default views (`invoice-docs`, `customer-inquiries`, `noise-candidates`) は `todo` ベースに変更済み。実データ監査では `invoice-docs` は 552件、`customer-inquiries`/`noise-candidates` は 1000件下限かつ続きあり。現状は automation queue ではなく manual-review shortcut として扱い、チューニングは operator feedback 後に行う
 3. suppressive rule safety gate は explicit `messageIds` + `messageSummaries` 対応済み。summary 欠落時は fail closed。production auto-discard policy はまだ有効化せず、real-data validation 後に進める
-4. Brain suggestion は selected message に対する read-only deterministic UI/API まで追加済み。次は durable Brain decision ledger を Activity/rule suggestions から分離した append-only store として足す
-5. 任意: production/staging実データで stores pagination の手動ブラウザ確認。forced E2E は追加済み
+4. Brain suggestion は selected message に対する read-only deterministic UI/API まで追加済み
+5. Brain decision ledger は Activity/rule suggestions から分離した append-only memory/file store と `GET/POST /api/mailhub/brain/decisions` まで追加済み。次は production health/config visibility と、必要なら Sheets-backed storage
+6. 任意: production/staging実データで stores pagination の手動ブラウザ確認。forced E2E は追加済み
 
 直近の完了地点:
 
 - commit `5e0bead fix: verify MailHub pagination and Yahoo source coverage`
 - completion-push commit: `fix: harden MailHub rule safety and audit views`
 - brain suggestion commit: `feat: add read-only MailHub brain suggestions`
+- brain ledger commit: `feat: add MailHub brain decision ledger`
 - prior commit `16e703a fix: clarify MailHub source scope and rule safety`
 - source coverage commits already present:
   - `0e9f358 fix: include AMS source in MailHub coverage`
@@ -67,5 +69,14 @@ MailHub の次フェーズを開始してください。
   - `git diff --check` PASS
   - `npm run test` 55 files / 507 tests PASS
   - `npm run build` PASS
+- brain ledger wave verification:
+  - focused Vitest 4 files / 11 tests PASS
+  - `npm run typecheck` PASS
+  - `npm run lint` PASS
+  - `git diff --check` PASS
+  - `npm run test` 57 files / 513 tests PASS
+  - `npm run build` PASS
+  - post-fix focused Vitest 2 files / 6 tests PASS
+  - post-fix `npm run typecheck` PASS
 - build PASS
 - tunnel URL: `https://hansen-bangkok-magnetic-projected.trycloudflare.com`

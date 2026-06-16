@@ -34,4 +34,12 @@ Current outputs:
 
 ## Next Step
 
-The durable Brain decision ledger should be a separate append-only store, not Activity. It should store compact evidence and hashes, not full customer text.
+The durable Brain decision ledger is separate from Activity and rule suggestions.
+
+- Store: `.mailhub/brainDecisions.jsonl` when `MAILHUB_BRAIN_LEDGER_STORE=file`
+- Read API: `GET /api/mailhub/brain/decisions`
+- Worker write API: `POST /api/mailhub/brain/decisions` with `Authorization: Bearer $MAILHUB_BRAIN_SECRET`
+- Evidence policy: compact summaries and hashes only; do not persist full customer body/snippet text
+- Action policy: planned actions must be non-destructive and human-approved
+
+Sheets-backed ledger storage is still a future extension.

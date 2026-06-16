@@ -60,6 +60,12 @@
   - Added a detail-pane `AI判断` card that shows purpose, disposition, reply route, next action, confidence, and keyword-level evidence.
   - Kept the Brain surface separate from rule suggestions, Activity logs, and any write/executor paths.
   - Documented the current scope and safety rules in `docs/mailhub-brain-suggestions.md`.
+- 2026-06-17 Brain ledger wave completed:
+  - Added `lib/brainDecisionLedgerStore.ts` with memory/file append-only storage.
+  - Added `GET/POST /api/mailhub/brain/decisions`.
+  - POST requires `Authorization: Bearer $MAILHUB_BRAIN_SECRET`; normal users only read through GET.
+  - Ledger entries reject destructive planned actions and keep compact evidence summaries.
+  - Added env examples for `MAILHUB_BRAIN_LEDGER_STORE`, `MAILHUB_BRAIN_SECRET`, and future `MAILHUB_SHEETS_TAB_BRAIN_DECISIONS`.
 
 ## Not Done
 
@@ -68,7 +74,7 @@
 - Production pagination basic behavior is represented in API/UI metadata and forced E2E; real browser/manual production verification is still useful before staff rollout.
 - Auto-discard rules for marketing/noise are protected against obvious important/invoice/inquiry suppression and missing summary text, but a full production auto-discard policy is still intentionally not enabled.
 - Important/invoice/customer-inquiry folders exist as default saved views and are audited as manual-review shortcuts; further narrowing requires operator feedback.
-- Durable Brain decision ledger, AI reply drafting, and knowledge base integration are not implemented.
+- Brain decision ledger exists for memory/file; Sheets-backed ledger health/config integration, AI reply drafting, and knowledge base integration are not implemented.
 - Rakuten/Amazon/Yahoo API-based reply integration is not implemented.
 - Production staff workflow and permissions need real-data validation.
 

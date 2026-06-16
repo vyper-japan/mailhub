@@ -127,6 +127,30 @@ npm run build
 - `npm run test`: 55 files / 507 tests passed.
 - `npm run build`: passed.
 
+## Verification Commands Run On 2026-06-17 Brain Ledger Wave
+
+```bash
+npx vitest run lib/__tests__/brainDecisionLedgerStore.test.ts lib/__tests__/brain-decisions-route.test.ts lib/__tests__/brainDecision.test.ts lib/__tests__/mailhub-brain-route.test.ts
+npm run typecheck
+npm run lint
+git diff --check
+npm run test
+npm run build
+npx vitest run lib/__tests__/brainDecisionLedgerStore.test.ts lib/__tests__/brain-decisions-route.test.ts
+npm run typecheck
+```
+
+## 2026-06-17 Brain Ledger Wave Results
+
+- Focused Vitest: 4 files / 11 tests passed.
+- `npm run typecheck`: passed.
+- `npm run lint`: passed.
+- `git diff --check`: passed.
+- `npm run test`: 57 files / 513 tests passed.
+- `npm run build`: passed.
+- Post-fix focused Vitest: 2 files / 6 tests passed.
+- Post-fix `npm run typecheck`: passed.
+
 ## Useful Runtime Commands
 
 Start dev server for tunnel:
