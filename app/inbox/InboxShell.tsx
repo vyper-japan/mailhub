@@ -663,6 +663,13 @@ export default function InboxShell({
 
   const [showShortcutHelp, setShowShortcutHelp] = useState(false);
   const [showBulkMuteConfirm, setShowBulkMuteConfirm] = useState(false);
+  const [senderMutePreview, setSenderMutePreview] = useState<{
+    fromEmail: string;
+    messages: InboxListMessage[];
+    isLoading: boolean;
+    isExecuting: boolean;
+    error: string | null;
+  } | null>(null);
   const [version, setVersion] = useState<string | null>(null);
 
   // Step 90: Safety Confirm（状況依存）
@@ -3288,6 +3295,77 @@ export default function InboxShell({
       setActionInProgress((prev) => { const next = new Set(prev); next.delete(id); return next; });
     }
   }, [messages, labelId, activeLabel?.statusType, bumpCounts, onSelectMessage, showToast, fetchCountsDebounced, addToUndoStack, user.email, replaceUrl, viewTab, actionInProgress]);
+
+  const openSenderMutePreview = useCallback(async () => {
+    if (readOnlyMode) {
+      showToast(getWriteBlockedTitle() ?? "実行できません", "error");
+      return;
+    }
+    if (!selectedMessage) return;
+    const fromEmail = extractFromEmail(selectedMessage.from);
+    if (!fromEmail) {
+      showToast("送信元メールアドレスを取得できません", "error");
+      return;
+    }
+
+    setSenderMutePreview({ fromEmail, messages: [], isLoading: true, isExecuting: false, error: null });
+    try {
+      const params = new URLSearchParams();
+      const scopeLabel = activeLabel?.type === "channel" ? labelId : "all";
+      const targetStatus = activeLabel?.statusType === "waiting" ? "waiting" : "todo";
+      params.set("label", scopeLabel);
+      params.set("max", "50");
+      params.set("statusType", targetStatus);
+      params.set("q", `from:${fromEmail}`);
+      const data = await fetchJson<{ messages: InboxListMessage[] }>(`/api/mailhub/list?${params.toString()}`);
+      const seen = new Set<string>();
+      const candidates = data.messages.filter((message) => {
+        if (seen.has(message.id)) return false;
+        seen.add(message.id);
+        return true;
+      });
+      setSenderMutePreview({ fromEmail, messages: candidates, isLoading: false, isExecuting: false, error: null });
+    } catch (e) {
+      setSenderMutePreview({
+        fromEmail,
+        messages: [],
+        isLoading: false,
+        isExecuting: false,
+        error: e instanceof Error ? e.message : String(e),
+      });
+    }
+  }, [activeLabel?.statusType, activeLabel?.type, getWriteBlockedTitle, labelId, readOnlyMode, selectedMessage, showToast]);
+
+  const executeSenderMutePreview = useCallback(async () => {
+    if (!senderMutePreview || senderMutePreview.isExecuting || senderMutePreview.messages.length === 0) return;
+    const ids = senderMutePreview.messages.map((message) => message.id);
+    setSenderMutePreview((prev) => (prev ? { ...prev, isExecuting: true, error: null } : prev));
+
+    const failed: string[] = [];
+    for (let i = 0; i < ids.length; i += 5) {
+      const batch = ids.slice(i, i + 5);
+      const results = await Promise.allSettled(
+        batch.map((id) => postJsonOrThrow("/api/mailhub/mute", { id, action: "mute" })),
+      );
+      results.forEach((result, index) => {
+        if (result.status === "rejected") failed.push(batch[index]);
+      });
+    }
+
+    if (failed.length > 0) {
+      setSenderMutePreview((prev) =>
+        prev ? { ...prev, isExecuting: false, error: `${failed.length}件を処理不要にできませんでした` } : prev,
+      );
+      showToast(`${failed.length}件を処理不要にできませんでした`, "error");
+      void fetchCountsDebounced();
+      return;
+    }
+
+    setSenderMutePreview(null);
+    showToast(`${ids.length}件を処理不要に移動しました`, "success");
+    void fetchCountsDebounced();
+    await loadList(labelId, null, { q: serverSearchQuery || undefined });
+  }, [fetchCountsDebounced, labelId, loadList, senderMutePreview, serverSearchQuery, showToast]);
 
   // Step56: 返信完了マクロ（返信→ステータス変更を一発で実行）
   const handleReplyComplete = useCallback(async (id: string, status: "done" | "waiting" | "muted") => {
@@ -6502,15 +6580,27 @@ export default function InboxShell({
                       </button>
 
                       {activeLabel?.statusType !== "muted" ? (
-                        <button
-                          data-testid="action-mute-detail"
-                          onClick={() => handleMute(selectedId)}
-                          className="px-2 py-1 rounded-md text-xs text-[#3c4043] hover:bg-[#f1f3f4] transition-colors font-medium flex items-center gap-1.5"
-                          title="処理不要にする"
-                        >
-                          <VolumeX size={14} className="text-[#5f6368]" />
-                          <span className="hidden sm:inline">処理不要</span>
-                        </button>
+                        <>
+                          <button
+                            data-testid="action-mute-detail"
+                            onClick={() => handleMute(selectedId)}
+                            className="px-2 py-1 rounded-md text-xs text-[#3c4043] hover:bg-[#f1f3f4] transition-colors font-medium flex items-center gap-1.5"
+                            title="処理不要にする"
+                          >
+                            <VolumeX size={14} className="text-[#5f6368]" />
+                            <span className="hidden sm:inline">処理不要</span>
+                          </button>
+                          <button
+                            data-testid="action-mute-sender"
+                            onClick={() => void openSenderMutePreview()}
+                            disabled={readOnlyMode}
+                            className="px-2 py-1 rounded-md text-xs text-[#3c4043] hover:bg-[#f1f3f4] transition-colors font-medium flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                            title={readOnlyMode ? (getWriteBlockedTitle() ?? "実行できません") : "同じ送信元の未処理メールをまとめて処理不要にする"}
+                          >
+                            <VolumeX size={14} className="text-[#5f6368]" />
+                            <span className="hidden sm:inline">同送信元</span>
+                          </button>
+                        </>
                       ) : (
                         <button
                           data-testid="action-unmute-detail"
@@ -8683,6 +8773,86 @@ export default function InboxShell({
                 }}
               >
                 実行
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {senderMutePreview && (
+        <div
+          className="fixed inset-0 z-[195] flex items-center justify-center bg-black/30 px-4"
+          data-testid="sender-mute-preview"
+          onClick={() => {
+            if (!senderMutePreview.isExecuting) setSenderMutePreview(null);
+          }}
+        >
+          <div
+            className="w-full max-w-lg bg-white rounded-xl shadow-2xl border border-gray-200 p-5"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="text-sm font-bold text-[#202124]">同じ送信元を処理不要へ</div>
+                <div className="mt-1 text-xs text-[#5f6368] truncate" title={senderMutePreview.fromEmail}>
+                  from:{senderMutePreview.fromEmail}
+                </div>
+              </div>
+              <button
+                type="button"
+                className="rounded p-1 text-[#5f6368] hover:bg-[#f1f3f4]"
+                onClick={() => setSenderMutePreview(null)}
+                disabled={senderMutePreview.isExecuting}
+                title="閉じる"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {senderMutePreview.isLoading ? (
+              <div className="py-8 text-center text-sm text-[#5f6368]">同じ送信元の未処理メールを探しています...</div>
+            ) : senderMutePreview.error ? (
+              <div className="mt-4 rounded border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+                {senderMutePreview.error}
+              </div>
+            ) : (
+              <>
+                <div className="mt-4 rounded border border-[#e8eaed] bg-[#f8fbff] px-3 py-2 text-xs text-[#3c4043]">
+                  {senderMutePreview.messages.length}件を処理不要へ移動します。実行後は現在の一覧を再読み込みします。
+                </div>
+                <div className="mt-3 max-h-56 overflow-auto rounded border border-[#e8eaed]">
+                  {senderMutePreview.messages.length === 0 ? (
+                    <div className="p-4 text-sm text-[#5f6368]">対象メールはありません</div>
+                  ) : (
+                    senderMutePreview.messages.slice(0, 12).map((message) => (
+                      <div key={message.id} className="border-b border-[#f1f3f4] px-3 py-2 last:border-b-0">
+                        <div className="truncate text-[13px] font-medium text-[#202124]">{message.subject ?? "(no subject)"}</div>
+                        <div className="mt-0.5 truncate text-[11px] text-[#5f6368]">{message.receivedAt}</div>
+                      </div>
+                    ))
+                  )}
+                </div>
+                {senderMutePreview.messages.length > 12 && (
+                  <div className="mt-2 text-[11px] text-[#5f6368]">ほか {senderMutePreview.messages.length - 12}件</div>
+                )}
+              </>
+            )}
+
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                className="px-3 py-2 text-xs font-bold rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50"
+                onClick={() => setSenderMutePreview(null)}
+                disabled={senderMutePreview.isExecuting}
+              >
+                キャンセル
+              </button>
+              <button
+                data-testid="sender-mute-execute"
+                className="px-3 py-2 text-xs font-bold rounded-md bg-yellow-600 text-white hover:bg-yellow-700 disabled:opacity-50"
+                onClick={() => void executeSenderMutePreview()}
+                disabled={senderMutePreview.isLoading || senderMutePreview.isExecuting || senderMutePreview.messages.length === 0}
+              >
+                {senderMutePreview.isExecuting ? "処理中..." : "まとめて処理不要"}
               </button>
             </div>
           </div>

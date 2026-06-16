@@ -5999,6 +5999,27 @@ test("Step93-4) Channel scope bar: 専用宛先と関連候補検索を分けて
   await expect(page.getByTestId("message-row").first()).toBeVisible({ timeout: 5000 });
 });
 
+test("Step93-5) Sender mute preview: 同じ送信元の未処理メールをまとめて処理不要にできる", async ({ page }) => {
+  await page.request.post("/api/mailhub/test/reset").catch(() => {});
+  await page.addInitScript(() => {
+    localStorage.setItem("mailhub-onboarding-shown", "true");
+  });
+  await page.goto("/?label=all&max=20&q=from:label-tester@example.com");
+  await page.waitForSelector('[data-testid="message-row"]', { timeout: 10000 });
+  const beforeCount = await page.getByTestId("message-row").count();
+  expect(beforeCount).toBeGreaterThan(1);
+
+  await page.getByTestId("action-mute-sender").click();
+  const preview = page.getByTestId("sender-mute-preview");
+  await expect(preview).toBeVisible({ timeout: 5000 });
+  await expect(preview).toContainText("label-tester@example.com");
+  await expect(preview).toContainText(`${beforeCount}件`);
+
+  await page.getByTestId("sender-mute-execute").click();
+  await expect(preview).not.toBeVisible({ timeout: 10000 });
+  await expect(page.getByText("この条件では0件です")).toBeVisible({ timeout: 10000 });
+});
+
 // =====================================================================
 // Step94) Action UX統一（即時反映/失敗時のみrollback）＋連打耐性
 // =====================================================================

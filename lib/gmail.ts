@@ -208,6 +208,10 @@ function extractAddressQueryTerms(q: string): string[] {
   return [...out];
 }
 
+function cleanTestQueryToken(value: string): string {
+  return value.trim().replace(/^"|"$/g, "").replace(/[)]+$/g, "").toLowerCase();
+}
+
 async function testMessageMatchesQuery(m: InboxListMessage, q: string): Promise<boolean> {
   const addressTerms = extractAddressQueryTerms(q);
   if (addressTerms.length > 0) {
@@ -228,13 +232,13 @@ async function testMessageMatchesQuery(m: InboxListMessage, q: string): Promise<
 
   const subjectMatch = q.match(/subject:\s*"([^"]+)"/i) || q.match(/subject:\s*([^\s]+)/i);
   if (subjectMatch) {
-    const subjectQuery = subjectMatch[1].toLowerCase();
+    const subjectQuery = cleanTestQueryToken(subjectMatch[1]);
     return m.subject?.toLowerCase().includes(subjectQuery) ?? false;
   }
 
   const fromMatch = q.match(/from:\s*"([^"]+)"/i) || q.match(/from:\s*([^\s]+)/i);
   if (fromMatch) {
-    const fromQuery = fromMatch[1].toLowerCase();
+    const fromQuery = cleanTestQueryToken(fromMatch[1]);
     return m.from?.toLowerCase().includes(fromQuery) ?? false;
   }
 
