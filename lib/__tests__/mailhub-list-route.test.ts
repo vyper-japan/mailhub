@@ -51,6 +51,7 @@ describe("mailhub list route label mode", () => {
     expect(res.status).toBe(200);
     expect(routeMocks.listLatestInboxMessages).toHaveBeenCalledWith(
       expect.objectContaining({
+        labelIds: [],
         q: "(deliveredto:cricut_r@vtj.co.jp OR to:cricut_r@vtj.co.jp OR cc:cricut_r@vtj.co.jp)",
       }),
     );
@@ -65,6 +66,7 @@ describe("mailhub list route label mode", () => {
     expect(res.status).toBe(200);
     expect(routeMocks.listLatestInboxMessages).toHaveBeenCalledWith(
       expect.objectContaining({
+        labelIds: [],
         q: expect.stringContaining("deliveredto:cricut_r@vtj.co.jp"),
       }),
     );

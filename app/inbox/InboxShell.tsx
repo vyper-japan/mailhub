@@ -1887,23 +1887,6 @@ export default function InboxShell({
     }
   }, [replyRoute, detailBody.plainTextBody]);
 
-  // Step 50: 次のメールをプリフェッチ（キャッシュに無い場合のみ）
-  const prefetchNextMessage = useCallback((currentId: string | null, messageList: InboxListMessage[]) => {
-    if (!currentId || messageList.length === 0) return;
-    const currentIndex = messageList.findIndex((m) => m.id === currentId);
-    if (currentIndex < 0) return;
-    
-    // 次の1件を優先、なければ前の1件
-    const nextId = messageList[currentIndex + 1]?.id ?? messageList[currentIndex - 1]?.id;
-    if (!nextId) return;
-    
-    // キャッシュに無ければプリフェッチ（useCache=falseで強制フェッチ）
-    const cached = detailCacheRef.current.get(nextId);
-    if (!cached || Date.now() - cached.fetchedAt > DETAIL_CACHE_TTL_MS) {
-      void loadDetailBodyOnly(nextId, false); // バックグラウンドでフェッチ（useCache=false）
-    }
-  }, [loadDetailBodyOnly]);
-
   // Step 93: Hover時のprefetch（150ms debounce、同時1件まで）
   const handleRowMouseEnter = useCallback((id: string) => {
     // 現在選択中のメールはprefetch不要
@@ -2013,12 +1996,9 @@ export default function InboxShell({
     // Step 51: 検索クエリをURLに保持（idだけ変える時もqが消えないように）
     replaceUrl(labelId, id, true, serverSearchQuery || undefined);
     
-    // Step 50: 次のメールをプリフェッチ
-    prefetchNextMessage(id, messages);
-    
     // Step 105: Seenとして記録
     markAsSeen(id);
-  }, [selectedId, messages, labelId, serverSearchQuery, replaceUrl, loadDetailBodyOnly, prefetchNextMessage, markAsSeen]);
+  }, [selectedId, messages, labelId, serverSearchQuery, replaceUrl, loadDetailBodyOnly, markAsSeen]);
 
   const handleMoveSelection = useCallback((direction: "up" | "down") => {
     if (slaFilteredMessages.length === 0) return;
@@ -2104,8 +2084,6 @@ export default function InboxShell({
       // 状態を更新
       setMessages(data.messages);
       setNextPageToken(data.nextPageToken ?? null); // Step 103
-      // Step 23: 一覧表示をブロックしない形で「自動ルール適用」を裏で走らせる（best-effort）
-      void applyRulesBestEffort(data.messages.map((m) => m.id));
       // Channels件数を更新（別画面へ移動しても消えない）
       const nextLabel = labelGroups.flatMap((g) => g.items).find((it) => it.id === nextLabelId);
       if (testMode && nextLabel?.type === "channel") {
@@ -2129,14 +2107,6 @@ export default function InboxShell({
       }
       if (nextSelected) {
         void loadDetailBodyOnly(nextSelected);
-        // Step 50拡張: 表示されている最初の5件のメールの詳細をバックグラウンドでプリフェッチ
-        const prefetchIds = data.messages.slice(0, 5).map((m) => m.id).filter((id) => id !== nextSelected);
-        for (const id of prefetchIds) {
-          const cached = detailCacheRef.current.get(id);
-          if (!cached || Date.now() - cached.fetchedAt > DETAIL_CACHE_TTL_MS) {
-            void loadDetailBodyOnly(id, false); // バックグラウンドでフェッチ
-          }
-        }
       } else {
         setSelectedDetail(null);
         setDetailBody({ plainTextBody: null, htmlBody: null, bodyNotice: null, isLoading: false });
@@ -2148,7 +2118,7 @@ export default function InboxShell({
       const errorMessage = e instanceof Error ? e.message : String(e);
       setListError(errorMessage);
     }
-  }, [labelGroups, loadDetailBodyOnly, replaceUrl, replaceUrlWithView, testMode, applyRulesBestEffort, myAssigneeSlug, listMax]);
+  }, [labelGroups, loadDetailBodyOnly, replaceUrl, replaceUrlWithView, testMode, myAssigneeSlug, listMax]);
 
   // Step 103: Load more（次ページ読み込み）
   const handleLoadMore = useCallback(async () => {

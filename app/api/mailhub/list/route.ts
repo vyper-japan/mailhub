@@ -74,6 +74,7 @@ export async function GET(req: Request) {
     const { messages, nextPageToken } = await listLatestInboxMessages({
       max: safeMax,
       q: query,
+      labelIds: label.type === "channel" && label.id !== "all" ? [] : undefined,
       statusType: statusTypeOverride ?? label.statusType,
       assigneeSlug: assigneeSlugParam || assigneeSlugForFilter,
       unassigned,

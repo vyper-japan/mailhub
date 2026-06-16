@@ -767,7 +767,7 @@ export async function listLatestInboxMessages(
   const listOnce = async () =>
     await gmail.users.messages.list({
       userId: sharedInboxEmail,
-      labelIds,
+      ...(labelIds.length > 0 ? { labelIds } : {}),
       maxResults: max,
       includeSpamTrash: false,
       q,
