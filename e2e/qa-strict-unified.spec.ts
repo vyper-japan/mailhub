@@ -254,14 +254,15 @@ test.describe("QA-Strict Unified E2E Tests", () => {
     const items = pane.getByTestId("thread-item");
     await expect(items).toHaveCount(2, { timeout: 5000 }); // fixtureでthread-021に2件
 
-    // 2件目をExpand（選択中以外の本文をlazy load）
-    const second = items.nth(1);
+    // 選択中メールではなく、過去メールをExpand（本文をlazy load）
+    const second = items.nth(0);
     const detailRespP = page.waitForResponse((r) =>
       r.url().includes("/api/mailhub/detail?id=") && r.request().method() === "GET" && r.status() === 200,
     );
     await second.getByTestId("thread-expand").click();
     await detailRespP;
     await expect(second.getByTestId("thread-body")).toBeVisible({ timeout: 5000 });
+    await expect(second.getByTestId("thread-body")).not.toContainText("このメールの本文は上に表示中");
 
     // Thread Actionsバーが表示される
     const threadActions = pane.getByTestId("thread-actions");

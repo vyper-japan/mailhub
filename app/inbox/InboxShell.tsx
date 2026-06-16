@@ -630,7 +630,7 @@ export default function InboxShell({
 
   // リサイズ機能の状態（レスポンシブ対応）
   const [sidebarWidth, setSidebarWidth] = useState(256); // w-64 = 256px
-  const [listWidth, setListWidth] = useState(572); // デフォルトを+30%（440px→約572px）
+  const [listWidth, setListWidth] = useState(440);
   const [resizing, setResizing] = useState<"sidebar" | "list" | null>(null);
 
   const [toast, setToast] = useState<{
@@ -6734,7 +6734,7 @@ export default function InboxShell({
             {/* メール一覧 */}
             <div 
               className={`${t.listColumn} ${selectedMessage ? "mailhub-list-selected" : ""}`}
-              style={{ width: `${listWidth}px`, minWidth: '280px', maxWidth: '720px' }}
+              style={{ width: `${listWidth}px`, minWidth: '280px', maxWidth: '560px' }}
             >
               <div className="flex-1 overflow-y-auto custom-scrollbar">
                 {activeChannelScope && (
@@ -6901,7 +6901,7 @@ export default function InboxShell({
                           data-group-count={groupCount > 1 ? groupCount : undefined}
                           role="option"
                           aria-selected={isActive}
-                          className="mailhub-message-row-shell"
+                          className="mailhub-message-row-shell cursor-pointer"
                           onClick={(e) => {
                             // Shift+Clickで範囲選択
                             if (e.shiftKey && lastCheckedId && lastCheckedId !== mail.id) {
@@ -7454,7 +7454,7 @@ export default function InboxShell({
 
                       {/* Conversation (thread) */}
                       {(threadLoading || threadError || (threadSummary?.messages.length ?? 0) > 1) && (
-                      <div id="section-conversation" className="mt-6 pt-5 border-t border-[#e8eaed]" data-testid="thread-pane">
+                      <div id="section-conversation" className="mt-4 pt-4 border-t border-[#e8eaed]" data-testid="thread-pane">
                         {/* Thread Actions Bar */}
                         {threadSummary && threadSummary.messages.length > 0 && (() => {
                           const threadMessageIds = threadSummary.messages.map((m) => m.id);
@@ -7493,26 +7493,26 @@ export default function InboxShell({
                           ]
                             .filter(Boolean)
                             .join(" / ");
-                          const actionButtonClass =
-                            "inline-flex h-8 items-center gap-1.5 rounded-full border border-transparent px-2.5 text-[12px] font-medium text-[#3c4043] transition-colors hover:border-[#dadce0] hover:bg-[#f1f3f4] active:bg-[#e8eaed] disabled:cursor-not-allowed disabled:opacity-40";
-                          return (
-                            <div className="mb-3 border-b border-[#f1f3f4] pb-2" data-testid="thread-actions">
-                              <div className="min-w-0">
-                                <div className="flex items-center gap-2 text-[13px] font-semibold text-[#202124]">
-                                  <MessageSquare size={15} className="shrink-0 text-[#5f6368]" />
-                                  <span className="whitespace-nowrap">{threadSummary.messages.length}件のやりとり</span>
-                                  <span className="sr-only">Thread: {threadSummary.messages.length} messages</span>
-                                </div>
+	                          const actionButtonClass =
+	                            "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-transparent text-[#5f6368] transition-colors hover:border-[#dadce0] hover:bg-[#f1f3f4] hover:text-[#202124] active:bg-[#e8eaed] disabled:cursor-not-allowed disabled:opacity-40";
+	                          return (
+	                            <div className="mb-2 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[#e8eaed] bg-[#f8fafd] px-3 py-2" data-testid="thread-actions">
+	                              <div className="min-w-0 flex-1">
+	                                <div className="flex items-center gap-2 text-[13px] font-medium text-[#202124]">
+	                                  <MessageSquare size={15} className="shrink-0 text-[#5f6368]" />
+	                                  <span className="whitespace-nowrap">{threadSummary.messages.length}件のやりとり</span>
+	                                  <span className="sr-only">Thread: {threadSummary.messages.length} messages</span>
+	                                </div>
                                 {(summaryText || assigneeText) && (
                                   <div className="mt-0.5 truncate text-[11px] text-[#5f6368]">
                                     {[summaryText, assigneeText].filter(Boolean).join(" / ")}
                                   </div>
                                 )}
                               </div>
-                              <div className="mt-2 flex items-center gap-1 overflow-x-auto whitespace-nowrap pb-1">
-                                <button
-                                  type="button"
-                                  data-testid="thread-action-done"
+	                              <div className="flex items-center gap-0.5 overflow-x-auto whitespace-nowrap">
+	                                <button
+	                                  type="button"
+	                                  data-testid="thread-action-done"
                                   className={actionButtonClass}
                                   disabled={readOnlyMode || bulkProgress !== null || threadMessageIds.length === 0}
                                   title={readOnlyMode ? (getWriteBlockedTitle() ?? "実行できません") : "会話を完了"}
@@ -7520,10 +7520,10 @@ export default function InboxShell({
                                     if (readOnlyMode || bulkProgress !== null) return;
                                     void handleBulkArchive(threadMessageIds);
                                   }}
-                                >
-                                  <CheckCircle size={15} className="text-[#34a853]" />
-                                  完了
-                                </button>
+	                                >
+	                                  <CheckCircle size={15} className="text-[#34a853]" />
+	                                  <span className="sr-only">完了</span>
+	                                </button>
                                 <button
                                   type="button"
                                   data-testid="thread-action-waiting"
@@ -7534,10 +7534,10 @@ export default function InboxShell({
                                     if (readOnlyMode || bulkProgress !== null) return;
                                     void handleBulkWaiting(threadMessageIds);
                                   }}
-                                >
-                                  <Clock size={15} className="text-[#ea8600]" />
-                                  返事待ち
-                                </button>
+	                                >
+	                                  <Clock size={15} className="text-[#ea8600]" />
+	                                  <span className="sr-only">返事待ち</span>
+	                                </button>
                                 <button
                                   type="button"
                                   data-testid="thread-action-mute"
@@ -7548,10 +7548,10 @@ export default function InboxShell({
                                     if (readOnlyMode || bulkProgress !== null) return;
                                     void handleBulkMuteSelected(threadMessageIds);
                                   }}
-                                >
-                                  <VolumeX size={15} className="text-[#5f6368]" />
-                                  処理不要
-                                </button>
+	                                >
+	                                  <VolumeX size={15} className="text-[#5f6368]" />
+	                                  <span className="sr-only">処理不要</span>
+	                                </button>
                                 <button
                                   type="button"
                                   data-testid="thread-action-assign"
@@ -7562,10 +7562,10 @@ export default function InboxShell({
                                     if (readOnlyMode || bulkProgress !== null) return;
                                     void handleBulkAssign(threadMessageIds);
                                   }}
-                                >
-                                  <UserCheck size={15} className="text-[#1a73e8]" />
-                                  自分
-                                </button>
+	                                >
+	                                  <UserCheck size={15} className="text-[#1a73e8]" />
+	                                  <span className="sr-only">自分</span>
+	                                </button>
                                 <button
                                   type="button"
                                   data-testid="thread-action-label"
@@ -7578,10 +7578,10 @@ export default function InboxShell({
                                     setCheckedIds(new Set(threadMessageIds));
                                     openLabelPopover();
                                   }}
-                                >
-                                  <Tag size={15} className="text-[#7b1fa2]" />
-                                  ラベル
-                                </button>
+	                                >
+	                                  <Tag size={15} className="text-[#7b1fa2]" />
+	                                  <span className="sr-only">ラベル</span>
+	                                </button>
                                 <button
                                   type="button"
                                   data-testid="thread-action-select"
@@ -7591,10 +7591,10 @@ export default function InboxShell({
                                   onClick={() => {
                                     setCheckedIds(new Set(threadMessageIds));
                                   }}
-                                >
-                                  <Square size={15} className="text-[#5f6368]" />
-                                  選択
-                                </button>
+	                                >
+	                                  <Square size={15} className="text-[#5f6368]" />
+	                                  <span className="sr-only">選択</span>
+	                                </button>
                                 {checkedIds.size > 0 && (
                                   <button
                                     type="button"
@@ -7602,28 +7602,17 @@ export default function InboxShell({
                                     className={actionButtonClass}
                                     onClick={() => setCheckedIds(new Set())}
                                     title="選択をクリア"
-                                  >
-                                    <X size={15} className="text-[#5f6368]" />
-                                    解除
-                                  </button>
-                                )}
-                              </div>
-                            </div>
-                          );
-                        })()}
+	                                  >
+	                                    <X size={15} className="text-[#5f6368]" />
+	                                    <span className="sr-only">解除</span>
+	                                  </button>
+	                                )}
+	                              </div>
+	                            </div>
+	                          );
+	                        })()}
 
-                        <div className="mb-2 flex items-center justify-between gap-3">
-                          <div className="text-[12px] font-semibold text-[#202124]">
-                            過去のやりとり
-                          </div>
-                          {threadSummary && threadSummary.messages.length > 1 && (
-                            <div className="text-[11px] text-[#5f6368]">
-                              クリックしたメールだけ本文を開きます
-                            </div>
-                          )}
-                        </div>
-
-                        {threadLoading ? (
+	                        {threadLoading ? (
                           <div className="text-[12px] text-[#5f6368]">読み込み中...</div>
                         ) : threadError ? (
                           <div className="rounded-md border border-[#f28b82] bg-[#fce8e6] p-3 text-[12px] text-[#c5221f]">
@@ -7635,8 +7624,8 @@ export default function InboxShell({
                           <div className="overflow-hidden rounded-lg border border-[#dadce0] bg-white shadow-[0_1px_2px_rgba(60,64,67,0.08)]">
                             {threadSummary.messages.map((m, index) => {
                               const isSelected = m.id === selectedMessage.id;
-                              const expanded = threadExpandedIds.has(m.id);
-                              const showBody = expanded || isSelected;
+	                              const expanded = threadExpandedIds.has(m.id);
+	                              const showBody = !isSelected && expanded;
                               const bodyState = threadBodies[m.id];
                               const statusLabel =
                                 m.statusType === "todo"
@@ -7657,16 +7646,20 @@ export default function InboxShell({
                                   }`}
                                 >
                                   <div className={`flex min-h-[48px] items-start gap-3 px-3 py-2.5 ${isSelected ? "border-l-4 border-[#1a73e8] pl-2" : "border-l-4 border-transparent pl-2"}`}>
-                                    <button
-                                      type="button"
-                                      data-testid="thread-expand"
-                                      className="mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[#5f6368] transition-colors hover:bg-[#f1f3f4] hover:text-[#202124] focus:outline-none focus:ring-2 focus:ring-[#1a73e8]/40"
-                                      onClick={() => void toggleThreadExpand(m.id)}
-                                      aria-label={showBody ? "会話を閉じる" : "会話を開く"}
-                                      title={showBody ? "閉じる" : "開く"}
-                                    >
-                                      {showBody ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                                    </button>
+	                                    {isSelected ? (
+	                                      <div className="mt-0.5 h-7 w-7 shrink-0" aria-hidden="true" />
+	                                    ) : (
+	                                      <button
+	                                        type="button"
+	                                        data-testid="thread-expand"
+	                                        className="mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[#5f6368] transition-colors hover:bg-[#f1f3f4] hover:text-[#202124] focus:outline-none focus:ring-2 focus:ring-[#1a73e8]/40"
+	                                        onClick={() => void toggleThreadExpand(m.id)}
+	                                        aria-label={showBody ? "会話を閉じる" : "会話を開く"}
+	                                        title={showBody ? "閉じる" : "開く"}
+	                                      >
+	                                        {showBody ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+	                                      </button>
+	                                    )}
                                     <div className="min-w-0 flex-1">
                                       <div className="flex min-w-0 items-center gap-2">
                                         <span className={`truncate text-[13px] ${isSelected ? "font-semibold text-[#202124]" : "font-medium text-[#3c4043]"}`}>
@@ -7721,12 +7714,8 @@ export default function InboxShell({
                                       )}
                                       {showBody && (
                                         <div className="mt-3 border-t border-[#f1f3f4] pt-3" data-testid="thread-body">
-                                          {m.id === selectedMessage.id ? (
-                                            <div className="text-[12px] text-[#5f6368]">
-                                              このメールの本文は上に表示中
-                                            </div>
-                                          ) : bodyState?.isLoading ? (
-                                            <div className="text-[12px] text-[#5f6368]">本文を読み込み中...</div>
+	                                          {bodyState?.isLoading ? (
+	                                            <div className="text-[12px] text-[#5f6368]">本文を読み込み中...</div>
                                           ) : bodyState?.error ? (
                                             <div className="text-[12px] text-[#c5221f]">本文取得エラー: {bodyState.error}</div>
                                           ) : (
