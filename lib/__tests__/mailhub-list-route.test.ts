@@ -82,6 +82,11 @@ describe("mailhub list route label mode", () => {
     );
     expect(routeMocks.listLatestInboxMessages).toHaveBeenCalledWith(
       expect.objectContaining({
+        q: expect.stringContaining("from:datacolor_shopify@vtj.co.jp"),
+      }),
+    );
+    expect(routeMocks.listLatestInboxMessages).toHaveBeenCalledWith(
+      expect.objectContaining({
         q: expect.stringContaining("deliveredto:ebay@vtj.co.jp"),
       }),
     );

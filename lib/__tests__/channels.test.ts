@@ -229,6 +229,7 @@ describe("channels", () => {
     expect(getChannels(false).find((item) => item.id === "cricut-rakuten")?.relatedQ).toBe("from:rakuten cricut");
     expect(getChannels(false).find((item) => item.id === "gopro-rakuten")?.relatedQ).toBe('from:rakuten.co.jp "gopro"');
     expect(getChannels(false).find((item) => item.id === "vyperglobal-rakuten")?.relatedQ).toBe('from:rakuten "VYPER GLOBAL"');
+    expect(getChannels(false).find((item) => item.id === "datacolor")?.relatedQ).toBe("datacolor shopify");
     expect(getChannels(false).find((item) => item.id === "ebay")?.relatedQ).toBeUndefined();
     expect(channels.find((item) => item.id === "gopro-rakuten")).toEqual({
       id: "gopro-rakuten",
@@ -295,6 +296,14 @@ describe("channels", () => {
     );
     expect(buildAddressQuery(["one@vtj.co.jp", "two@vtj.co.jp"])).toBe(
       "((deliveredto:one@vtj.co.jp OR to:one@vtj.co.jp OR cc:one@vtj.co.jp) OR (deliveredto:two@vtj.co.jp OR to:two@vtj.co.jp OR cc:two@vtj.co.jp))",
+    );
+  });
+
+  test("datacolor keeps the sender-side Shopify source in its production query", () => {
+    const datacolor = getChannels(false).find((channel) => channel.id === "datacolor");
+
+    expect(datacolor?.q).toBe(
+      "(deliveredto:datacolor_shopify@vtj.co.jp OR to:datacolor_shopify@vtj.co.jp OR cc:datacolor_shopify@vtj.co.jp) OR from:datacolor_shopify@vtj.co.jp",
     );
   });
 

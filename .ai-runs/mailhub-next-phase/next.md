@@ -8,12 +8,9 @@ Continue from the completed source coverage audit:
 2. Read `.ai-runs/mailhub-next-phase/*.md`.
 3. Check `git status -sb`.
 4. Confirm the latest source coverage commit is present.
-5. With production OAuth/shared inbox credentials available, compare real Gmail counts for:
-   - aggregate `stores`
-   - `ams_vyper@vtj.co.jp`
-   - representative Rakuten/Amazon/Yahoo/MakeShop aliases from `docs/mailhub-source-coverage-audit.md`
-6. Verify pagination on real data by loading beyond the first page for high-volume channels.
-7. If real count parity is acceptable, move to rule/folder design for noise, important, invoice, and customer inquiry views.
+5. Investigate real Gmail zero-estimate channels: `vyperglobal-yahoo`, `ebay`.
+6. Browser-check high-volume pagination for `stores` and at least one high-volume single channel.
+7. If browser pagination is acceptable, move to rule/folder design for noise, important, invoice, and customer inquiry views.
 
 ## Large-Team Wave Plan
 

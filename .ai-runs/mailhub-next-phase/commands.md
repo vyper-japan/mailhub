@@ -28,6 +28,8 @@ npm run test -- --run lib/__tests__/channels.test.ts lib/__tests__/settings-labe
 npm run typecheck
 npm run lint
 npm run test
+npm run audit:gmail-sources -- --out .ai-runs/mailhub-next-phase/gmail-source-coverage-audit.json --max-pages 3
+npm run build
 ```
 
 ## 2026-06-17 Results
@@ -36,6 +38,8 @@ npm run test
 - `npm run typecheck`: passed.
 - `npm run lint`: passed.
 - `npm run test`: 51 files / 488 tests passed.
+- `npm run audit:gmail-sources`: passed. `stores` aggregate fetched 3 pages / 150 unique message IDs lower bound and still has more pages. After Datacolor query fix, zero-estimate channels are `vyperglobal-yahoo` and `ebay`.
+- `npm run build`: passed.
 
 ## Useful Runtime Commands
 

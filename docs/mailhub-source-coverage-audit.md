@@ -46,4 +46,39 @@ MailHub's default production inbox uses the `stores` aggregate channel. That cha
 
 Each channel query is generated with `deliveredto:`, `to:`, and `cc:` for every channel address. This matches the app's current Gmail list search model and keeps the operator-visible channel filters aligned with the send-as alias inventory. Detail and reply resolution still inspect `Delivered-To`, `X-Original-To`, `To`, `Cc`, and `Bcc` after a message is loaded.
 
-The remaining real-data verification item is operational: after production OAuth is connected, compare Gmail counts for the `stores` aggregate against representative direct Gmail searches for the active source addresses above.
+## Real Gmail Audit
+
+Command:
+
+```bash
+npm run audit:gmail-sources -- --out .ai-runs/mailhub-next-phase/gmail-source-coverage-audit.json --max-pages 3
+```
+
+Latest result: 2026-06-17 JST.
+
+| Check | Result |
+|---|---|
+| Source channels | 18 |
+| Source addresses | 22 |
+| `stores` aggregate estimate | 201 |
+| `stores` first page | 50 messages |
+| `stores` pages fetched | 3 |
+| `stores` unique messages seen lower bound | 150 |
+| `stores` still has more after fetched pages | yes |
+
+Confirmed non-zero low-volume sources:
+
+- `cricut-rakuten`: 4
+- `cricut-makeshop`: 1
+- `vyperglobal-rakuten`: 3
+- `ams-vyper`: 4
+- `datacolor`: 23
+
+Channels with a current zero estimate:
+
+- `vyperglobal-yahoo`
+- `ebay`
+
+`datacolor` originally showed 0 with the standard recipient query. Follow-up probes showed mail under `from:datacolor_shopify@vtj.co.jp`, so `lib/channels.ts` now includes that sender-side source in the Datacolor query and in the aggregate `stores` query.
+
+The remaining zero estimates are not code coverage gaps because the channels and queries are present in `lib/channels.ts`, and the fallback probes also returned 0. They are operational follow-up items: confirm whether the shared inbox currently has no matching mail for those addresses, whether historical mail remains outside the shared inbox, or whether the source address is dormant.

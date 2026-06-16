@@ -50,6 +50,19 @@ export function buildAddressQuery(addresses: string[]): string | undefined {
   return parts.length === 1 ? parts[0] : `(${parts.join(" OR ")})`;
 }
 
+function wrapQueryPart(q: string): string {
+  return q.startsWith("(") && q.endsWith(")") ? q : `(${q})`;
+}
+
+function buildChannelsQuery(channels: ChannelDef[]): string | undefined {
+  const parts = channels
+    .map((channel) => channel.q ?? buildAddressQuery(channel.addresses))
+    .filter((q): q is string => Boolean(q))
+    .map(wrapQueryPart);
+  if (parts.length === 0) return undefined;
+  return parts.length === 1 ? parts[0] : `(${parts.join(" OR ")})`;
+}
+
 const TEST_STORE_CHANNELS: ChannelDef[] = ([
   {
     id: "store-a",
@@ -81,7 +94,7 @@ const TEST_CHANNELS: ChannelDef[] = [
     id: "stores",
     label: "ストア全部",
     addresses: [],
-    q: buildAddressQuery(TEST_STORE_CHANNELS.flatMap((channel) => channel.addresses)),
+    q: buildChannelsQuery(TEST_STORE_CHANNELS),
     replyKind: "gmail",
   },
   ...TEST_STORE_CHANNELS,
@@ -179,6 +192,11 @@ const PROD_STORE_CHANNELS: ChannelDef[] = ([
     id: "datacolor",
     label: "Datacolor Shopify",
     addresses: ["datacolor_shopify@vtj.co.jp"],
+    q: [
+      buildAddressQuery(["datacolor_shopify@vtj.co.jp"]),
+      "from:datacolor_shopify@vtj.co.jp",
+    ].filter(Boolean).join(" OR "),
+    relatedQ: "datacolor shopify",
     replyKind: "gmail",
   },
   {
@@ -216,6 +234,7 @@ const PROD_STORE_CHANNELS: ChannelDef[] = ([
     replyKind: "gmail",
   },
 ] satisfies ChannelDef[]).map((channel) => {
+  if (channel.q) return channel;
   const q = buildAddressQuery(channel.addresses);
   return q ? { ...channel, q } : channel;
 });
@@ -226,7 +245,7 @@ const PROD_CHANNELS: ChannelDef[] = [
     id: "stores",
     label: "ストア全部",
     addresses: [],
-    q: buildAddressQuery(PROD_STORE_CHANNELS.flatMap((channel) => channel.addresses)),
+    q: buildChannelsQuery(PROD_STORE_CHANNELS),
     replyKind: "gmail",
   },
   ...PROD_STORE_CHANNELS,

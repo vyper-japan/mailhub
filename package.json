@@ -11,6 +11,7 @@
     "lint": "next lint --dir app --dir lib --max-warnings 0",
     "verify": "npm run typecheck && npm run build",
     "smoke": "node scripts/smoke.mjs",
+    "audit:gmail-sources": "node scripts/audit-gmail-source-coverage.mjs",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:watch": "vitest",
