@@ -6795,14 +6795,51 @@ export default function InboxShell({
                     <div className="text-xs text-gray-500">{listError}</div>
                     <button onClick={reloadCurrentList} className="px-4 py-2 bg-blue-600 text-white rounded-md text-xs font-bold hover:bg-blue-700 transition-colors">再試行</button>
                   </div>
-                ) : messages.length === 0 && !isPending ? (
-                  <div className="flex-1 flex items-center justify-center p-8 text-gray-500 text-sm font-medium">
-                    <div className="text-center space-y-3 max-w-[280px]">
-                      <div className="text-gray-900 font-semibold">この条件では0件です</div>
-                      <div className="text-xs text-gray-500 leading-relaxed">
-                        {activeLabel?.label ? `現在の絞り込み: ${activeLabel.label}` : "現在の絞り込みではメールがありません"}
+                ) : messages.length === 0 ? (
+                  <div
+                    className="flex min-h-[320px] items-center justify-center p-8 text-gray-500 text-sm font-medium"
+                    data-testid="empty-list-state"
+                  >
+                    <div className="text-center space-y-3 max-w-[340px]">
+                      <div className="text-gray-900 font-semibold">
+                        {activeChannelScope ? `${activeChannelScope.channel.label} は0件です` : "この条件では0件です"}
                       </div>
+                      <div className="text-xs text-gray-500 leading-relaxed">
+                        {activeChannelScope
+                          ? activeChannelScope.isAggregate
+                            ? `対象: ${activeChannelScope.sourceChannels.map((item) => item.label).join(" / ")}`
+                            : `専用宛先: ${activeChannelScope.sourceAddresses.join(", ")}`
+                          : activeLabel?.label
+                            ? `現在の絞り込み: ${activeLabel.label}`
+                            : "現在の絞り込みではメールがありません"}
+                      </div>
+                      {activeChannelScope && (
+                        <div
+                          className="rounded-md border border-[#e8eaed] bg-white px-3 py-2 text-[11px] font-normal leading-relaxed text-[#5f6368]"
+                          data-testid="empty-channel-scope"
+                        >
+                          <span className="block text-[#3c4043]">
+                            確認対象: {activeChannelScope.sourceAddresses.join(", ")}
+                          </span>
+                          宛先違いの可能性がある場合は、すべてのメールか関連候補から探せます。
+                          {serverSearchQuery && (
+                            <span className="block mt-1">
+                              検索条件: <span className="font-mono">{serverSearchQuery}</span>
+                            </span>
+                          )}
+                        </div>
+                      )}
                       <div className="flex flex-wrap items-center justify-center gap-2">
+                        {activeChannelScope?.channel.relatedQ && (
+                          <button
+                            type="button"
+                            data-testid="empty-channel-related-search"
+                            onClick={() => handleRelatedChannelSearch(activeChannelScope.channel.relatedQ!)}
+                            className="px-3 py-2 border border-[#dadce0] bg-white text-[#3c4043] rounded-md text-xs font-bold hover:bg-[#f1f3f4] transition-colors"
+                          >
+                            関連候補
+                          </button>
+                        )}
                         <button
                           onClick={() => {
                             const stores = labelGroups.flatMap((g) => g.items).find((item) => item.id === "stores");
@@ -6827,7 +6864,7 @@ export default function InboxShell({
                   </div>
                 ) : slaFocus && slaFilteredMessages.length === 0 && !isPending ? (
                   // Step 66: SLA Focus ON で0件
-                  <div className="flex-1 flex items-center justify-center p-8 text-gray-500 text-sm font-medium" data-testid="sla-empty">
+                  <div className="flex min-h-[320px] items-center justify-center p-8 text-gray-500 text-sm font-medium" data-testid="sla-empty">
                     <div className="text-center space-y-2">
                       <AlertTriangle size={40} className="mx-auto text-[#34a853]" />
                       <div>長く残っているメールはありません</div>
@@ -6835,7 +6872,7 @@ export default function InboxShell({
                     </div>
                   </div>
                 ) : slaFilteredMessages.length === 0 && !isPending ? (
-                  <div className="flex-1 flex items-center justify-center p-8 text-gray-500 text-sm font-medium" data-testid={serverSearchQuery ? undefined : (searchTerm ? undefined : (activeLabel?.statusType === "todo" ? "zero-inbox" : undefined))}>
+                  <div className="flex min-h-[320px] items-center justify-center p-8 text-gray-500 text-sm font-medium" data-testid={serverSearchQuery ? undefined : (searchTerm ? undefined : (activeLabel?.statusType === "todo" ? "zero-inbox" : undefined))}>
                     {serverSearchQuery ? `検索結果が見つかりませんでした: ${serverSearchQuery}` : searchTerm ? "見つかりませんでした" : activeLabel?.statusType === "todo" ? "今返すメールはありません" : "メールはありません"}
                   </div>
                 ) : (

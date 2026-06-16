@@ -6001,6 +6001,12 @@ test("Step93-4) Channel scope bar: 専用宛先と関連候補検索を分けて
   const relatedButton = page.getByTestId("channel-related-search");
   await expect(relatedButton).toBeVisible();
 
+  await page.goto("/?label=store-b&max=20");
+  await expect(page.getByTestId("empty-list-state")).toContainText("StoreB は0件です", { timeout: 10000 });
+  await expect(page.getByTestId("empty-channel-scope")).toContainText("shop-b@vtj.co.jp");
+
+  await page.goto("/?label=store-a&max=20");
+  await page.waitForSelector('[data-testid="message-row"]', { timeout: 10000 });
   await relatedButton.click();
   await expect(page).toHaveURL(/label=all/, { timeout: 5000 });
   expect(new URL(page.url()).searchParams.get("q")).toBe("store-a");
