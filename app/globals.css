@@ -102,3 +102,39 @@ button:disabled .action-spinner {
     animation: none;
   }
 }
+
+@media (max-width: 767px) {
+  .mailhub-sidebar {
+    display: none !important;
+  }
+
+  .mailhub-main-area {
+    width: 100vw;
+    min-width: 0;
+  }
+
+  .mailhub-list-column {
+    width: 100vw !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    border-right: 0;
+  }
+
+  .mailhub-list-column.mailhub-list-selected {
+    display: none;
+  }
+
+  .mailhub-list-resizer {
+    display: none;
+  }
+
+  .mailhub-detail-column {
+    display: none;
+    width: 100vw;
+    min-width: 0 !important;
+  }
+
+  .mailhub-detail-column.mailhub-detail-selected {
+    display: flex;
+  }
+}

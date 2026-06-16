@@ -6591,7 +6591,7 @@ export default function InboxShell({
           <main className={t.mainArea}>
             {/* メール一覧 */}
             <div 
-              className={t.listColumn}
+              className={`${t.listColumn} ${selectedMessage ? "mailhub-list-selected" : ""}`}
               style={{ width: `${listWidth}px`, minWidth: '280px', maxWidth: '720px' }}
             >
               <div className="flex-1 overflow-y-auto custom-scrollbar">
@@ -6981,12 +6981,12 @@ export default function InboxShell({
 
             {/* リストリサイザー */}
             <div 
-              className="w-1 cursor-col-resize hover:bg-blue-500/30 transition-colors active:bg-blue-500/50 z-20 -mx-2"
+              className="mailhub-list-resizer w-1 cursor-col-resize hover:bg-blue-500/30 transition-colors active:bg-blue-500/50 z-20 -mx-2"
               onMouseDown={() => startResizing("list")}
             />
 
             {/* 詳細表示 */}
-            <div className={t.detailColumn} data-testid="detail-pane">
+            <div className={`${t.detailColumn} ${selectedMessage ? "mailhub-detail-selected" : ""}`} data-testid="detail-pane">
               {!selectedMessage ? (
                 <div className="flex-1 flex flex-col items-center justify-center text-[#5f6368] space-y-4">
                   <Mail className="w-12 h-12 opacity-10" />
@@ -6994,6 +6994,22 @@ export default function InboxShell({
                 </div>
               ) : (
                 <>
+                  <div className="md:hidden bg-white border-b border-[#e8eaed] px-3 py-2">
+                    <button
+                      type="button"
+                      className="text-[13px] font-medium text-[#1a73e8] px-2 py-1 rounded hover:bg-[#f1f3f4]"
+                      onClick={() => {
+                        setSelectedId(null);
+                        selectedIdRef.current = null;
+                        setSelectedMessage(null);
+                        setSelectedDetail(null);
+                        setDetailBody({ plainTextBody: null, htmlBody: null, bodyNotice: null, isLoading: false });
+                        replaceUrl(labelId, null, true, serverSearchQuery || undefined);
+                      }}
+                    >
+                      ← 一覧に戻る
+                    </button>
+                  </div>
                   <div className="flex-1 overflow-y-auto custom-scrollbar bg-white text-[#202124]">
                     {/* スティッキーヘッダー（件名、送信者、ジャンプボタン） */}
                     <div className="sticky top-0 z-10 bg-white border-b border-[#e8eaed] shadow-sm">

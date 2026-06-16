@@ -6,7 +6,7 @@ export const t = {
 
   // サイドバー（作業キュー優先 + レスポンシブ）
   sidebar:
-    "min-w-[200px] w-64 max-w-[320px] bg-white flex flex-col border-r border-[#dadce0] flex-shrink-0",
+    "mailhub-sidebar min-w-[200px] w-64 max-w-[320px] bg-white flex flex-col border-r border-[#dadce0] flex-shrink-0",
   sidebarItem:
     "flex min-h-[36px] items-center justify-between px-3 py-1.5 mx-1 text-[14px] text-[#3c4043] rounded-r-full hover:bg-[#f1f3f4] transition-colors cursor-pointer font-normal group",
   sidebarItemActive: "bg-[#E8F0FE] text-[#1a73e8] font-medium",
@@ -37,11 +37,11 @@ export const t = {
   tabActive: "text-[#1a73e8] border-[#1a73e8] font-medium",
 
   // メインエリア（レスポンシブ）
-  mainArea: "flex-1 flex bg-[#f6f8fc] overflow-hidden min-w-0",
+  mainArea: "mailhub-main-area flex-1 flex bg-[#f6f8fc] overflow-hidden min-w-0",
 
   // リストカラム（クリック即応 + レスポンシブ）
   listColumn:
-    "min-w-[280px] w-96 max-w-[480px] flex flex-col bg-white border-r border-[#dadce0] overflow-hidden flex-shrink-0",
+    "mailhub-list-column min-w-[280px] w-96 max-w-[480px] flex flex-col bg-white border-r border-[#dadce0] overflow-hidden flex-shrink-0",
   listItem:
     "min-h-[42px] px-2 sm:px-3 py-1.5 border-b border-[#e8eaed] hover:bg-[#f5f8ff] cursor-pointer group select-none flex items-center gap-2",
   listItemActive: "bg-[#d3e3fd] shadow-[inset_3px_0_0_#1a73e8,inset_0_-1px_0_#c6dafc]",
@@ -50,7 +50,7 @@ export const t = {
   listItemRead: "bg-[#F2F6FC]",
 
   // 詳細カラム（作業詳細 + レスポンシブ）
-  detailColumn: "flex-1 flex flex-col bg-white overflow-hidden min-w-[400px]",
+  detailColumn: "mailhub-detail-column flex-1 flex flex-col bg-white overflow-hidden min-w-[400px]",
 
   // ボタン・その他
   buttonPrimary:
@@ -109,6 +109,5 @@ export function buildGmailForwardLink(gmailLink: string, threadId: string): stri
   const base = hashIndex >= 0 ? gmailLink.substring(0, hashIndex) : gmailLink;
   return `${base}#inbox/${threadId}#forward`;
 }
-
 
 

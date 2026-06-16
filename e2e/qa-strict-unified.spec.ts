@@ -5897,6 +5897,85 @@ test("Step93-2) Hover Prefetch: 連続hoverで前のリクエストがキャン�
   await expect(detailPane.first()).toBeVisible({ timeout: 3000 });
 });
 
+test("Step93-3) Mobile layout: 一覧と詳細が全幅で切り替わり横スクロールしない", async ({ page }) => {
+  await page.request.post("/api/mailhub/test/reset").catch(() => {});
+  await page.addInitScript(() => {
+    localStorage.setItem("mailhub-onboarding-shown", "true");
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/?label=all&max=20");
+  await expect(page.getByText("← 一覧に戻る")).toBeVisible({ timeout: 10000 });
+
+  await expect
+    .poll(
+      async () =>
+        page.evaluate(() => ({
+          hasOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+          detailWidth: Math.round(document.querySelector(".mailhub-detail-column")?.getBoundingClientRect().width ?? 0),
+          listDisplay: document.querySelector(".mailhub-list-column")
+            ? getComputedStyle(document.querySelector(".mailhub-list-column") as Element).display
+            : null,
+          sidebarDisplay: document.querySelector(".mailhub-sidebar")
+            ? getComputedStyle(document.querySelector(".mailhub-sidebar") as Element).display
+            : null,
+        })),
+      { timeout: 5000 },
+    )
+    .toEqual({ hasOverflow: false, detailWidth: 390, listDisplay: "none", sidebarDisplay: "none" });
+
+  await page.getByText("← 一覧に戻る").click();
+  await expect(page.getByTestId("message-row").first()).toBeVisible({ timeout: 5000 });
+  await expect
+    .poll(
+      async () =>
+        page.evaluate(() => ({
+          hasOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+          listWidth: Math.round(document.querySelector(".mailhub-list-column")?.getBoundingClientRect().width ?? 0),
+          detailDisplay: document.querySelector(".mailhub-detail-column")
+            ? getComputedStyle(document.querySelector(".mailhub-detail-column") as Element).display
+            : null,
+        })),
+      { timeout: 5000 },
+    )
+    .toEqual({ hasOverflow: false, listWidth: 390, detailDisplay: "none" });
+
+  await page.getByTestId("message-row").first().click();
+  await expect(page.getByText("← 一覧に戻る")).toBeVisible({ timeout: 5000 });
+
+  await expect
+    .poll(
+      async () =>
+        page.evaluate(() => ({
+          hasOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+          detailWidth: Math.round(document.querySelector(".mailhub-detail-column")?.getBoundingClientRect().width ?? 0),
+          listDisplay: document.querySelector(".mailhub-list-column")
+            ? getComputedStyle(document.querySelector(".mailhub-list-column") as Element).display
+            : null,
+        })),
+      { timeout: 5000 },
+    )
+    .toEqual({ hasOverflow: false, detailWidth: 390, listDisplay: "none" });
+
+  await page.locator(".mailhub-detail-column .custom-scrollbar").first().evaluate((element) => {
+    element.scrollTop = 420;
+  });
+  await expect(page.locator('button[data-testid="assignee-pill"]').first()).toBeVisible({ timeout: 5000 });
+  await expect
+    .poll(
+      async () =>
+        page.evaluate(() => {
+          const backButton = Array.from(document.querySelectorAll("button")).find((button) =>
+            button.textContent?.includes("一覧に戻る"),
+          );
+          const assignee = document.querySelector('button[data-testid="assignee-pill"]');
+          if (!backButton || !assignee) return false;
+          return assignee.getBoundingClientRect().top >= backButton.getBoundingClientRect().bottom;
+        }),
+      { timeout: 5000 },
+    )
+    .toBe(true);
+});
+
 // =====================================================================
 // Step94) Action UX統一（即時反映/失敗時のみrollback）＋連打耐性
 // =====================================================================
