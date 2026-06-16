@@ -146,7 +146,7 @@ describe("channels", () => {
     expect(buildLabelGroups(true)).toEqual([
       {
         id: "channels",
-        label: "チャンネル",
+        label: "ストアラベル",
         collapsible: true,
         defaultCollapsed: false,
         items: [
@@ -179,7 +179,7 @@ describe("channels", () => {
       },
       {
         id: "status",
-        label: "ステータス",
+        label: "対応状況",
         collapsible: true,
         defaultCollapsed: false,
         items: [

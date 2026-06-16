@@ -33,7 +33,7 @@ export type LabelGroup = {
 
 const STATUS_GROUP: LabelGroup = {
   id: "status",
-  label: "ステータス",
+  label: "対応状況",
   collapsible: true,
   defaultCollapsed: false, // デフォルト展開
   items: [
@@ -67,7 +67,7 @@ export function buildLabelGroups(testMode: boolean): LabelGroup[] {
   return [
     {
       id: "channels",
-      label: "チャンネル",
+      label: "ストアラベル",
       collapsible: true,
       defaultCollapsed: false,
       items: getChannels(testMode).map((channel) => {

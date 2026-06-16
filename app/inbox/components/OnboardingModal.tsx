@@ -64,7 +64,7 @@ export function OnboardingModal({ onClose }: Props) {
                 <div className="grid grid-cols-3 gap-2 text-center text-[12px]">
                   <div className="bg-[#e3f2fd] rounded p-2">
                     <div className="font-medium text-[#1a73e8]">左: ラベル</div>
-                    <div className="text-[#5f6368]">よく見る一覧 / 店舗・宛先別 / 処理の行き先</div>
+                    <div className="text-[#5f6368]">固定ラベル / ストアラベル / メールボックス</div>
                   </div>
                   <div className="bg-[#e8f5e9] rounded p-2">
                     <div className="font-medium text-[#2e7d32]">中央: 一覧</div>

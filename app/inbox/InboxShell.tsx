@@ -85,7 +85,7 @@ type GmailSendHealthState = {
 
 const DETAIL_CACHE_TTL_MS = 60_000;
 const DETAIL_CACHE_REFRESH_DELAY_MS = 180;
-const HOVER_PREFETCH_DELAY_MS = 320;
+const HOVER_PREFETCH_DELAY_MS = 180;
 const THREAD_LOAD_DELAY_MS = 260;
 const MAYBE_SENT_MESSAGE =
   "すでに同じ送信が処理されています。送信済みの可能性があるため、受信トレイ/送信済みを確認してください";
@@ -7317,11 +7317,14 @@ export default function InboxShell({
                       ) : (
                       <div className="relative">
                         {detailBody.isLoading ? (
-                          <div className="space-y-4 py-2" data-testid="detail-skeleton" aria-busy="true">
-                             <div className="mailhub-detail-shimmer h-4 rounded w-3/4" />
-                             <div className="mailhub-detail-shimmer h-4 rounded w-1/2" />
-                             <div className="mailhub-detail-shimmer h-4 rounded w-2/3" />
-                             <div className="mailhub-detail-shimmer h-4 rounded w-5/6" />
+                          <div className="space-y-3 py-1" data-testid="detail-skeleton" aria-busy="true">
+                            <div className="mailhub-detail-shimmer h-3 rounded-full w-[88%]" />
+                            <div className="mailhub-detail-shimmer h-3 rounded-full w-[62%]" />
+                            <div className="pt-2 space-y-2">
+                              <div className="mailhub-detail-shimmer h-3 rounded-full w-full" />
+                              <div className="mailhub-detail-shimmer h-3 rounded-full w-[94%]" />
+                              <div className="mailhub-detail-shimmer h-3 rounded-full w-[76%]" />
+                            </div>
                           </div>
                         ) : detailError ? (
                           <div className="text-[#c5221f] text-[14px] font-normal bg-[#fce8e6] p-4 rounded-lg border border-[#f28b82]">

@@ -75,7 +75,7 @@ export function Sidebar({
         {/* Work Queue（保存ビュー） */}
         {views.length > 0 && (
           <div className="mb-4" data-testid="nav-views">
-            <div className={t.sidebarHeader}>よく見る一覧</div>
+            <div className={t.sidebarHeader}>固定ラベル</div>
             <div className="space-y-0.5">
               {pinnedViews.map((v) => {
                 const isActive = v.id === activeViewId;
@@ -126,7 +126,7 @@ export function Sidebar({
 
         {/* Statusセクション: 返答・処理する、担当、返事待ち、処理不要（Doneを除外） */}
         <div className="mb-4" data-testid="label-status">
-          <div className={t.sidebarHeader}>処理の行き先</div>
+          <div className={t.sidebarHeader}>メールボックス</div>
           <div className="space-y-0.5">
             {/* 今返す（Todo） */}
             {(() => {
@@ -346,7 +346,7 @@ export function Sidebar({
           .filter((g) => g.id === "channels")
           .map((group) => (
               <div key={group.id} className="mb-6" data-testid="label-channels">
-                <div className={t.sidebarHeader}>店舗・宛先別</div>
+                <div className={t.sidebarHeader}>ストアラベル</div>
                 <div className="space-y-0.5">
                   {group.items.map((item) => {
                     const isActive = item.id === labelId;
@@ -392,7 +392,7 @@ export function Sidebar({
             const myDisplayName = myAssignee?.name || user.name?.split(" ")[0] || user.email.split("@")[0];
             return (
             <div key={group.id} className="mb-6" data-testid="label-assignee">
-              <div className={t.sidebarHeader}>担当者別</div>
+              <div className={t.sidebarHeader}>担当者</div>
               <div className="space-y-0.5">
                 {/* Mine / Unassigned */}
                 {group.items.map((item) => {
