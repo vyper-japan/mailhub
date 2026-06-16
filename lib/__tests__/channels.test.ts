@@ -222,6 +222,9 @@ describe("channels", () => {
       q: "(deliveredto:cricut_r@vtj.co.jp OR to:cricut_r@vtj.co.jp OR cc:cricut_r@vtj.co.jp)",
     });
     expect(getChannels(false).find((item) => item.id === "cricut-rakuten")?.relatedQ).toBe("from:rakuten cricut");
+    expect(getChannels(false).find((item) => item.id === "gopro-rakuten")?.relatedQ).toBe('from:rakuten.co.jp "gopro"');
+    expect(getChannels(false).find((item) => item.id === "vyperglobal-rakuten")?.relatedQ).toBe('from:rakuten "VYPER GLOBAL"');
+    expect(getChannels(false).find((item) => item.id === "ebay")?.relatedQ).toBeUndefined();
     expect(channels.find((item) => item.id === "gopro-rakuten")).toEqual({
       id: "gopro-rakuten",
       label: "GoPro 楽天",

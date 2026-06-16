@@ -134,6 +134,7 @@ type Props = {
   initialChannelId: ChannelId;
   labelGroups: LabelGroup[];
   initialMessages: InboxListMessage[];
+  initialNextPageToken?: string | null;
   initialSelectedId: string | null;
   initialSelectedMessage: InboxListMessage | null;
   initialDetail: MessageDetail | null;
@@ -154,6 +155,7 @@ export default function InboxShell({
   initialChannelId,
   labelGroups,
   initialMessages,
+  initialNextPageToken = null,
   initialSelectedId,
   initialSelectedMessage,
   initialDetail,
@@ -199,7 +201,7 @@ export default function InboxShell({
   );
   const [messages, setMessages] = useState<InboxListMessage[]>(() => initialMessages);
   // Step 103: ページングトークン
-  const [nextPageToken, setNextPageToken] = useState<string | null>(null);
+  const [nextPageToken, setNextPageToken] = useState<string | null>(initialNextPageToken);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   // Step 104: URLからmax値を取得（デフォルト20、1-50の範囲）
   const listMax = useMemo(() => {
@@ -6632,6 +6634,11 @@ export default function InboxShell({
                           <span className="shrink-0 rounded-full border border-[#d2e3fc] bg-white px-1.5 py-0.5 text-[11px] text-[#1a73e8]">
                             {messages.length}件表示
                           </span>
+                          {nextPageToken && (
+                            <span className="shrink-0 rounded-full border border-[#fde68a] bg-[#fffbeb] px-1.5 py-0.5 text-[11px] text-[#92400e]">
+                              さらにあり
+                            </span>
+                          )}
                         </div>
                         <div className="mt-1 truncate text-[11px] text-[#5f6368]" title={activeChannelDef.addresses.join(", ")}>
                           専用宛先: {activeChannelDef.addresses.join(", ")}

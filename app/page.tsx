@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { auth, signOut } from "@/auth";
-import { getMessageDetail, listLatestInboxMessages } from "@/lib/gmail";
+import { getMessageDetail, listLatestInboxMessages, type ListMessagesResult } from "@/lib/gmail";
 import { buildLabelGroups, getLabelQuery } from "@/lib/labels";
 import { coerceChannelId, type ChannelId } from "@/lib/channels";
 import { isTestMode } from "@/lib/test-mode";
@@ -79,7 +79,7 @@ export default async function HomePage({
   })();
 
   let listError: string | null = null;
-  const messages = await (async () => {
+  const listResult = await (async (): Promise<ListMessagesResult> => {
     try {
       // statusTypeがundefinedの場合はフィルタリングしない（全メールを表示）
       // デフォルトラベル（all）やchannelタイプの場合はstatusTypeをundefinedにする
@@ -118,15 +118,16 @@ export default async function HomePage({
           statusType: undefined, // 全メールを表示
         });
         // デフォルトでも空の場合は空配列を返す
-        return defaultResult.messages.length > 0 ? defaultResult.messages : result.messages;
+        return defaultResult.messages.length > 0 ? defaultResult : result;
       }
-      return result.messages;
+      return result;
     } catch (e) {
       listError = e instanceof Error ? e.message : String(e);
       console.error(`[page.tsx] Error loading messages:`, e);
-      return [];
+      return { messages: [] };
     }
   })();
+  const messages = listResult.messages;
 
   const requestedId = getFirstString(sp?.id);
   const selectedId =
@@ -157,6 +158,7 @@ export default async function HomePage({
         initialChannelId={channelId}
         labelGroups={labelGroups}
         initialMessages={messages}
+        initialNextPageToken={listResult.nextPageToken ?? null}
         initialSelectedId={selectedId ?? null}
         initialSelectedMessage={selectedMessage}
         initialDetail={detailError ? null : detail}
