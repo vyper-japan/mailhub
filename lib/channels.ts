@@ -37,6 +37,13 @@ export type ChannelDef = {
 
 export type Channel = ChannelDef;
 
+export type ChannelSourceScope = {
+  channel: Pick<ChannelDef, "id" | "label" | "addresses" | "relatedQ">;
+  sourceChannels: Array<Pick<ChannelDef, "id" | "label" | "addresses">>;
+  sourceAddresses: string[];
+  isAggregate: boolean;
+};
+
 export const DEFAULT_CHANNEL_ID: ChannelId = "all";
 
 function makeDeliveredToQuery(address: string): string {
@@ -265,6 +272,31 @@ export function getChannels(testMode: boolean): ChannelDef[] {
 export function getChannelById(id: string | undefined, testMode: boolean): ChannelDef {
   const channels = getChannels(testMode);
   return channels.find((channel) => channel.id === id) ?? channels[0];
+}
+
+export function getChannelSourceScope(id: string | undefined, testMode: boolean): ChannelSourceScope | null {
+  const channels = getChannels(testMode);
+  const channel = channels.find((item) => item.id === id);
+  if (!channel || channel.id === "all") return null;
+  const sourceChannels =
+    channel.id === "stores"
+      ? channels.filter((item) => item.id !== "all" && item.id !== "stores")
+      : [channel];
+  return {
+    channel: {
+      id: channel.id,
+      label: channel.label,
+      addresses: channel.addresses,
+      relatedQ: channel.relatedQ,
+    },
+    sourceChannels: sourceChannels.map((item) => ({
+      id: item.id,
+      label: item.label,
+      addresses: item.addresses,
+    })),
+    sourceAddresses: sourceChannels.flatMap((item) => item.addresses),
+    isAggregate: channel.id === "stores",
+  };
 }
 
 export function coerceChannelId(

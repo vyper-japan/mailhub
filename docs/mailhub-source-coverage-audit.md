@@ -44,7 +44,9 @@ MailHub's default production inbox uses the `stores` aggregate channel. That cha
 
 ## Query Coverage Notes
 
-Each channel query is generated with `deliveredto:`, `to:`, and `cc:` for every channel address. This matches the app's current Gmail list search model and keeps the operator-visible channel filters aligned with the send-as alias inventory. Detail and reply resolution still inspect `Delivered-To`, `X-Original-To`, `To`, `Cc`, and `Bcc` after a message is loaded.
+Each channel query is generated with `deliveredto:`, `to:`, and `cc:` for every channel address unless a channel has a documented source-specific query. This matches the app's current Gmail list search model and keeps the operator-visible channel filters aligned with the send-as alias inventory. Detail and reply resolution still inspect `Delivered-To`, `X-Original-To`, `To`, `Cc`, and `Bcc` after a message is loaded.
+
+The operator workbench is the active inbox, not all historical shared-mailbox search results. Channel views and the real Gmail audit now keep the default Gmail `INBOX` label scope, so archived/handled mail does not inflate source coverage or re-enter the work queue.
 
 ## Real Gmail Audit
 
@@ -54,7 +56,7 @@ Command:
 npm run audit:gmail-sources -- --out .ai-runs/mailhub-next-phase/gmail-source-coverage-audit.json --max-pages 3
 ```
 
-Latest result: 2026-06-17 JST.
+Latest result: 2026-06-17 JST. This is an `INBOX`-scoped audit.
 
 | Check | Result |
 |---|---|
@@ -66,19 +68,30 @@ Latest result: 2026-06-17 JST.
 | `stores` unique messages seen lower bound | 150 |
 | `stores` still has more after fetched pages | yes |
 
-Confirmed non-zero low-volume sources:
+Confirmed non-zero source channels in the active inbox:
 
-- `cricut-rakuten`: 4
+- `cricut-rakuten`: 2
+- `cricut-amazon`: 41
 - `cricut-makeshop`: 1
-- `vyperglobal-rakuten`: 3
-- `ams-vyper`: 4
-- `datacolor`: 23
+- `gopro-rakuten`: 42
+- `gopro-mp`: estimate 201, paginated
+- `vyperglobal-amazon`: estimate 201, paginated
+- `vyper-amazon`: estimate 201, paginated
+- `akg`: estimate 201, paginated
+- `sbd`: estimate 201, paginated
+- `secondhand`: 20
+- `steiner`: estimate 201, paginated
 
 Channels with a current zero estimate:
 
+- `cricut-yahoo`
+- `gopro-yahoo`
+- `vyperglobal-rakuten`
 - `vyperglobal-yahoo`
+- `ams-vyper`
+- `datacolor`
 - `ebay`
 
-`datacolor` originally showed 0 with the standard recipient query. Follow-up probes showed mail under `from:datacolor_shopify@vtj.co.jp`, so `lib/channels.ts` now includes that sender-side source in the Datacolor query and in the aggregate `stores` query.
+`datacolor` previously showed historical mail under `from:datacolor_shopify@vtj.co.jp` when searching outside the active inbox. Under the corrected `INBOX` workbench scope it currently has zero active messages, so it remains included but is no longer counted as active-inbox evidence.
 
-The remaining zero estimates are not code coverage gaps because the channels and queries are present in `lib/channels.ts`, and the fallback probes also returned 0. They are operational follow-up items: confirm whether the shared inbox currently has no matching mail for those addresses, whether historical mail remains outside the shared inbox, or whether the source address is dormant.
+The remaining zero estimates are not code coverage gaps because the channels and queries are present in `lib/channels.ts`. They are operational follow-up items: confirm whether the shared inbox currently has no active inbox mail for those addresses, whether historical mail is archived/handled, or whether the source address is dormant.

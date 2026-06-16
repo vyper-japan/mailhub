@@ -2,10 +2,42 @@ import { describe, expect, test } from "vitest";
 import { DEFAULT_VIEWS, buildViewQuery, type View } from "@/lib/views";
 
 describe("views", () => {
-  test("DEFAULT_VIEWS has basic entries", () => {
-    expect(DEFAULT_VIEWS.length).toBeGreaterThan(0);
-    expect(DEFAULT_VIEWS.some((v) => v.id === "inbox")).toBe(true);
-    expect(DEFAULT_VIEWS.some((v) => v.id === "mine")).toBe(true);
+  test("DEFAULT_VIEWS has stable operational ordering", () => {
+    const ids = DEFAULT_VIEWS.map((v) => v.id);
+    expect(ids).toEqual([
+      "inbox",
+      "unassigned",
+      "mine",
+      "waiting",
+      "invoice-docs",
+      "customer-inquiries",
+      "noise-candidates",
+      "muted",
+      "overdue",
+    ]);
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(DEFAULT_VIEWS.map((v) => v.order)).toEqual(ids.map((_, index) => index));
+  });
+
+  test("DEFAULT_VIEWS includes operational category queries", () => {
+    expect(DEFAULT_VIEWS.find((v) => v.id === "invoice-docs")).toMatchObject({
+      name: "請求/書類",
+      labelId: "all",
+      q: "has:attachment (invoice OR receipt OR statement OR 請求書 OR 領収書 OR 見積書 OR 納品書 OR 支払明細)",
+      pinned: true,
+    });
+    expect(DEFAULT_VIEWS.find((v) => v.id === "customer-inquiries")).toMatchObject({
+      name: "問い合わせ",
+      labelId: "all",
+      q: "(問い合わせ OR お問い合わせ OR inquiry OR question OR 質問 OR 相談 OR 返品 OR 交換 OR キャンセル)",
+      pinned: true,
+    });
+    expect(DEFAULT_VIEWS.find((v) => v.id === "noise-candidates")).toMatchObject({
+      name: "処理不要候補",
+      labelId: "all",
+      q: "(from:no-reply OR from:noreply OR unsubscribe OR newsletter OR メルマガ OR 配信停止 OR 広告 OR セール) -問い合わせ -お問い合わせ -至急 -重要",
+      pinned: true,
+    });
   });
 
   test("buildViewQuery returns normalized fields", () => {
@@ -42,4 +74,3 @@ describe("views", () => {
     expect(q.statusType).toBeNull();
   });
 });
-

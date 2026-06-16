@@ -30,14 +30,24 @@
 - Real Gmail `stores` aggregate returned estimate 201, first page 50, 3 fetched pages / 150 unique IDs lower bound, and more pages still available.
 - Real Gmail audit found `datacolor` had mail under `from:datacolor_shopify@vtj.co.jp` but not under `to/cc/deliveredto`; fixed its channel query and aggregate `stores` query to include the sender-side source.
 - Current zero-estimate channels from real Gmail audit after fallback probes: `vyperglobal-yahoo`, `ebay`.
+- 2026-06-17 next-phase wave completed:
+  - Restored channel/stores listings and source audit to Gmail `INBOX` scope so archived/handled mail does not inflate the operator workbench.
+  - Added list response metadata for loaded count, page size, continuation state, and channel source scope.
+  - Updated the inbox source bar to say "読み込み済み" and explicitly warn when the list is partial.
+  - Added list/source/page diagnostics to Help and Diagnostics copy bundles.
+  - Added default operational saved views: `invoice-docs`, `customer-inquiries`, and `noise-candidates`.
+  - Added `mailhubClassification` and protected `MailHub/Muted`/noise-like rule application from suppressing invoice, inquiry, or important messages.
+  - Fixed rule inspector broad-match detection so sample-wide rules are flagged at >=80% of at least 20 inspected messages.
+- Latest INBOX-scoped real Gmail audit saved at `.ai-runs/mailhub-next-phase/gmail-source-coverage-audit.json`.
+- Latest INBOX-scoped zero-estimate channels: `cricut-yahoo`, `gopro-yahoo`, `vyperglobal-rakuten`, `vyperglobal-yahoo`, `ams-vyper`, `datacolor`, `ebay`.
 
 ## Not Done
 
-- Real Gmail shared inbox ingestion has not been proven across all store addresses.
-- Real OAuth/Gmail count parity is documented for all configured channels; `vyperglobal-yahoo` and `ebay` remain operational zero-data follow-ups.
-- Production pagination basic behavior is verified for `stores`; high-volume channel UX still needs browser/E2E confirmation.
-- Auto-discard rules for marketing/noise are not yet designed or implemented.
-- Important/invoice/customer-inquiry folders/rules are not yet finalized.
+- Real Gmail shared inbox ingestion has not been proven across all active source addresses with zero active-INBOX estimates.
+- Real OAuth/Gmail count parity is documented for all configured channels; `cricut-yahoo`, `gopro-yahoo`, `vyperglobal-rakuten`, `vyperglobal-yahoo`, `ams-vyper`, `datacolor`, and `ebay` remain operational zero-active-inbox follow-ups.
+- Production pagination basic behavior is represented in API/UI metadata; browser/E2E confirmation with forced high-volume pagination still needs to be added.
+- Auto-discard rules for marketing/noise are protected against obvious important/invoice/inquiry suppression but not yet fully designed or enabled as a production policy.
+- Important/invoice/customer-inquiry folders now exist as default saved views; final production rule policy still needs real-data validation.
 - AI reply drafting and knowledge base integration are not implemented.
 - Rakuten/Amazon/Yahoo API-based reply integration is not implemented.
 - Production staff workflow and permissions need real-data validation.

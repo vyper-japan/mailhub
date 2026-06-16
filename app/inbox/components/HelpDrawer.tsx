@@ -9,6 +9,7 @@ type Props = {
   onClose: () => void;
   readOnlyMode: boolean;
   isAdmin: boolean;
+  listDiagnostics?: unknown;
   onShowOnboarding?: () => void; // Step 92: オンボーディング再表示
 };
 
@@ -29,7 +30,7 @@ async function safeFetchJson<T>(url: string): Promise<FetchState<T>> {
 
 type TabId = "quickstart" | "shortcuts" | "diagnostics" | "support";
 
-export function HelpDrawer({ open, onClose, readOnlyMode, isAdmin, onShowOnboarding }: Props) {
+export function HelpDrawer({ open, onClose, readOnlyMode, isAdmin, listDiagnostics, onShowOnboarding }: Props) {
   const [activeTab, setActiveTab] = useState<TabId>("quickstart");
   const [health, setHealth] = useState<FetchState<unknown> | null>(null);
   const [version, setVersion] = useState<FetchState<unknown> | null>(null);
@@ -69,10 +70,11 @@ export function HelpDrawer({ open, onClose, readOnlyMode, isAdmin, onShowOnboard
         health: health.data,
         version: version.data,
         apiHealth: apiHealth.data,
+        listDiagnostics: listDiagnostics ?? null,
       };
       setSupportBundle(JSON.stringify(bundle, null, 2));
     }
-  }, [activeTab, health, version, apiHealth]);
+  }, [activeTab, apiHealth, health, listDiagnostics, version]);
 
   useEffect(() => {
     if (!open) return;
@@ -116,8 +118,9 @@ export function HelpDrawer({ open, onClose, readOnlyMode, isAdmin, onShowOnboard
       health,
       version,
       apiHealth,
+      listDiagnostics: listDiagnostics ?? null,
     };
-  }, [health, version, apiHealth]);
+  }, [apiHealth, health, listDiagnostics, version]);
 
   const prettyBundle = useMemo(() => JSON.stringify(diagnosticsBundle, null, 2), [diagnosticsBundle]);
   const prettyHealth = useMemo(() => JSON.stringify(health, null, 2), [health]);

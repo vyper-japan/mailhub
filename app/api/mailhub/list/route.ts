@@ -4,6 +4,7 @@ import { listLatestInboxMessages } from "@/lib/gmail";
 import { requireUser, authErrorResponse } from "@/lib/require-user";
 import { assigneeSlug } from "@/lib/assignee";
 import { isTestMode } from "@/lib/test-mode";
+import { getChannelSourceScope } from "@/lib/channels";
 
 export const dynamic = "force-dynamic";
 
@@ -74,14 +75,24 @@ export async function GET(req: Request) {
     const { messages, nextPageToken } = await listLatestInboxMessages({
       max: safeMax,
       q: query,
-      labelIds: label.type === "channel" && label.id !== "all" ? [] : undefined,
       statusType: statusTypeOverride ?? label.statusType,
       assigneeSlug: assigneeSlugParam || assigneeSlugForFilter,
       unassigned,
       pageToken, // Step 103: ページトークン
     });
     return NextResponse.json(
-      { label: label.id, messages, nextPageToken }, // Step 103: nextPageToken追加
+      {
+        label: label.id,
+        messages,
+        nextPageToken,
+        meta: {
+          loadedCount: messages.length,
+          max: safeMax,
+          hasMore: Boolean(nextPageToken),
+          pageTokenApplied: Boolean(pageToken),
+          sourceScope: label.type === "channel" ? getChannelSourceScope(label.id, testMode) : null,
+        },
+      },
       { headers: { "cache-control": "no-store" } },
     );
   } catch (e) {

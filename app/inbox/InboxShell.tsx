@@ -10,7 +10,7 @@ import type { ThreadMessageSummary } from "@/lib/thread";
 import { routeReply } from "@/lib/replyRouter";
 import { getSendResolverChannels, resolveReplyContext } from "@/lib/mailhub-send-resolver";
 import { extractInquiryNumber } from "@/lib/rakuten/extract";
-import { coerceChannelId, getChannels, type ChannelId } from "@/lib/channels";
+import { coerceChannelId, getChannelSourceScope, getChannels, type ChannelId, type ChannelSourceScope } from "@/lib/channels";
 import { getTriageCandidates, type TriageContext } from "@/lib/triageRules";
 import { assigneeSlug } from "@/lib/assignee";
 import { fetchJson, postJsonOrThrow } from "./client-api";
@@ -89,6 +89,19 @@ type GmailSendHealthState = {
   acceptedAliases: string[];
   missingAliases: string[];
   checkedAt: string | null;
+};
+type MailhubListMeta = {
+  loadedCount: number;
+  max: number;
+  hasMore: boolean;
+  pageTokenApplied: boolean;
+  sourceScope: ChannelSourceScope | null;
+};
+type MailhubListResponse = {
+  label: string;
+  messages: InboxListMessage[];
+  nextPageToken?: string;
+  meta?: MailhubListMeta;
 };
 
 const DETAIL_CACHE_TTL_MS = 60_000;
@@ -997,22 +1010,33 @@ export default function InboxShell({
 
   const activeChannelScope = useMemo(() => {
     if (activeLabel?.type !== "channel") return null;
-    if (activeLabel.id === "all") return null;
-    const channels = getChannels(testMode);
-    const channel = channels.find((item) => item.id === activeLabel.id);
-    if (!channel) return null;
-    const sourceChannels =
-      channel.id === "stores"
-        ? channels.filter((item) => item.id !== "all" && item.id !== "stores")
-        : [channel];
-    const sourceAddresses = sourceChannels.flatMap((item) => item.addresses);
-    return {
-      channel,
-      sourceChannels,
-      sourceAddresses,
-      isAggregate: channel.id === "stores",
-    };
+    return getChannelSourceScope(activeLabel.id, testMode);
   }, [activeLabel?.id, activeLabel?.type, testMode]);
+
+  const listDiagnostics = useMemo(() => {
+    return {
+      activeLabelId: labelId,
+      activeLabelName: activeLabel?.label ?? null,
+      activeLabelType: activeLabel?.type ?? null,
+      searchQuery: serverSearchQuery || null,
+      pageSize: listMax,
+      loadedCount: messages.length,
+      hasMore: Boolean(nextPageToken),
+      isPartial: Boolean(nextPageToken),
+      sourceScope: activeChannelScope,
+      listError,
+    };
+  }, [
+    activeChannelScope,
+    activeLabel?.label,
+    activeLabel?.type,
+    labelId,
+    listError,
+    listMax,
+    messages.length,
+    nextPageToken,
+    serverSearchQuery,
+  ]);
 
   // Step 81: slug→displayNameのMapを作成（team名簿から）
   const assigneeDisplayNameMap = useMemo(() => {
@@ -2150,7 +2174,7 @@ export default function InboxShell({
       else if (opts?.assignee === "mine") params.set("assigneeSlug", myAssigneeSlug);
       if (opts?.assignee === "unassigned") params.set("unassigned", "1");
       const url = `/api/mailhub/list?${params.toString()}`;
-      const data = await fetchJson<{ label: string; messages: InboxListMessage[]; nextPageToken?: string }>(url);
+      const data = await fetchJson<MailhubListResponse>(url);
       
       // リクエストIDが変わっていたら無視（レースコンディション対策）
       if (inFlightIdRef.current !== requestId) return;
@@ -2160,8 +2184,8 @@ export default function InboxShell({
       setNextPageToken(data.nextPageToken ?? null); // Step 103
       // Channels件数を更新（別画面へ移動しても消えない）
       const nextLabel = labelGroups.flatMap((g) => g.items).find((it) => it.id === nextLabelId);
-      if (testMode && nextLabel?.type === "channel") {
-        setChannelCounts((prev) => ({ ...prev, [nextLabelId]: data.messages.length }));
+      if (nextLabel?.type === "channel") {
+        setChannelCounts((prev) => ({ ...prev, [nextLabelId]: data.meta?.loadedCount ?? data.messages.length }));
       }
 
       const nextSelected =
@@ -2192,7 +2216,7 @@ export default function InboxShell({
       const errorMessage = e instanceof Error ? e.message : String(e);
       setListError(errorMessage);
     }
-  }, [labelGroups, loadDetailBodyOnly, replaceUrl, replaceUrlWithView, testMode, myAssigneeSlug, listMax]);
+  }, [labelGroups, loadDetailBodyOnly, replaceUrl, replaceUrlWithView, myAssigneeSlug, listMax]);
 
   const handleRelatedChannelSearch = useCallback((query: string) => {
     const allLabel = labelGroups.flatMap((g) => g.items).find((item) => item.id === "all");
@@ -2223,7 +2247,7 @@ export default function InboxShell({
       params.set("pageToken", nextPageToken);
       if (serverSearchQuery) params.set("q", serverSearchQuery);
       const url = `/api/mailhub/list?${params.toString()}`;
-      const data = await fetchJson<{ label: string; messages: InboxListMessage[]; nextPageToken?: string }>(url);
+      const data = await fetchJson<MailhubListResponse>(url);
       // 重複除外してappend
       setMessages((prev) => {
         const existingIds = new Set(prev.map((m) => m.id));
@@ -5943,6 +5967,7 @@ export default function InboxShell({
           <DiagnosticsDrawer
             open={showDiagnosticsDrawer}
             onClose={() => setShowDiagnosticsDrawer(false)}
+            listDiagnostics={listDiagnostics}
           />
 
           <HelpDrawer
@@ -5950,6 +5975,7 @@ export default function InboxShell({
             onClose={() => setShowHelpDrawer(false)}
             readOnlyMode={readOnlyMode}
             isAdmin={isAdmin}
+            listDiagnostics={listDiagnostics}
             onShowOnboarding={() => setShowOnboarding(true)}
           />
 
@@ -6748,7 +6774,7 @@ export default function InboxShell({
                           <span className="h-2 w-2 rounded-full bg-[#1a73e8]" />
                           <span className="truncate">{activeChannelScope.channel.label}</span>
                           <span className="shrink-0 rounded-full border border-[#d2e3fc] bg-white px-1.5 py-0.5 text-[11px] text-[#1a73e8]">
-                            {messages.length}件表示
+                            {messages.length}件読み込み済み
                           </span>
                           <span className="shrink-0 rounded-full border border-[#dadce0] bg-white px-1.5 py-0.5 text-[11px] text-[#5f6368]">
                             {activeChannelScope.isAggregate
@@ -6757,7 +6783,7 @@ export default function InboxShell({
                           </span>
                           {nextPageToken && (
                             <span className="shrink-0 rounded-full border border-[#fde68a] bg-[#fffbeb] px-1.5 py-0.5 text-[11px] text-[#92400e]">
-                              さらにあり
+                              続きあり
                             </span>
                           )}
                         </div>
@@ -6773,6 +6799,11 @@ export default function InboxShell({
                             ? `含む店舗: ${activeChannelScope.sourceChannels.map((item) => item.label).join(" / ")}`
                             : `専用宛先: ${activeChannelScope.sourceAddresses.join(", ")}`}
                         </div>
+                        {nextPageToken && (
+                          <div className="mt-1 text-[11px] text-[#92400e]">
+                            全件ではありません。下の「さらに表示」で続きを読み込めます。
+                          </div>
+                        )}
                       </div>
                       {activeChannelScope.channel.relatedQ && (
                         <button

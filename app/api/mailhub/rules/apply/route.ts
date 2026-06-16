@@ -8,6 +8,7 @@ import { isTestMode } from "@/lib/test-mode";
 import { logAction } from "@/lib/audit-log";
 import { isAdminEmail } from "@/lib/admin";
 import { isReadOnlyMode, writeForbiddenResponse } from "@/lib/read-only";
+import { classifyMailhubMessage, isSuppressiveLabelName, type MailhubClassification } from "@/lib/mailhubClassification";
 
 export const dynamic = "force-dynamic";
 
@@ -46,8 +47,8 @@ async function mapWithConcurrency<T, R>(
 }
 
 type ApplyItem =
-  | { id: string; status: "applied"; labels: string[]; assignedTo: string | null }
-  | { id: string; status: "skipped"; reason: string }
+  | { id: string; status: "applied"; labels: string[]; assignedTo: string | null; classification: MailhubClassification }
+  | { id: string; status: "skipped"; reason: string; classification?: MailhubClassification }
   | { id: string; status: "failed"; error: string };
 
 export async function POST(req: Request) {
@@ -77,7 +78,7 @@ export async function POST(req: Request) {
 
   const targetIds = sourceIds.slice(0, max);
   const idToSummary = new Map(
-    (listForPreview ?? []).map((m) => [m.id, { subject: m.subject ?? null, from: m.from ?? null }] as const),
+    (listForPreview ?? []).map((m) => [m.id, { subject: m.subject ?? null, from: m.from ?? null, snippet: m.snippet ?? null }] as const),
   );
 
   const [rules, registeredList] = await Promise.all([
@@ -128,10 +129,20 @@ export async function POST(req: Request) {
       const matchResult = matchRulesWithAssign(fromEmail, effectiveRules);
       const matchedLabels = matchResult.labels.filter((n) => registered.has(n));
       const assignToEmail = resolveAssigneeEmail(matchResult.assignTo);
+      const summary = idToSummary.get(id);
+      const classification = classifyMailhubMessage({
+        subject: summary?.subject ?? null,
+        from: summary?.from ?? fromEmail,
+        snippet: summary?.snippet ?? "",
+      });
 
       // labels も assignTo も無い場合はスキップ
       if (matchedLabels.length === 0 && !assignToEmail) {
-        return { id, status: "skipped", reason: "no_match" };
+        return { id, status: "skipped", reason: "no_match", classification };
+      }
+
+      if (matchedLabels.some(isSuppressiveLabelName) && !classification.suppressible) {
+        return { id, status: "skipped", reason: "protected_classification", classification };
       }
 
       // 既に付いているラベルはスキップ（冪等・API保護）
@@ -159,11 +170,11 @@ export async function POST(req: Request) {
       const hasLabelChange = toAdd.length > 0;
       const hasAssignChange = assignToEmail && !alreadyAssigned;
       if (!hasLabelChange && !hasAssignChange) {
-        return { id, status: "skipped", reason: "already_labeled" };
+        return { id, status: "skipped", reason: "already_labeled", classification };
       }
 
       if (dryRun) {
-        return { id, status: "applied", labels: toAdd, assignedTo: hasAssignChange ? assignToEmail : null };
+        return { id, status: "applied", labels: toAdd, assignedTo: hasAssignChange ? assignToEmail : null, classification };
       }
 
       // Labels適用
@@ -207,7 +218,7 @@ export async function POST(req: Request) {
         }
       }
       
-      return { id, status: "applied", labels: toAdd, assignedTo: assignedToFinal };
+      return { id, status: "applied", labels: toAdd, assignedTo: assignedToFinal, classification };
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       return { id, status: "failed", error: msg };
@@ -216,11 +227,15 @@ export async function POST(req: Request) {
 
   const appliedDetails = results
     .filter((r): r is Extract<ApplyItem, { status: "applied" }> => r.status === "applied")
-    .map((r) => ({ id: r.id, labels: r.labels, assignedTo: r.assignedTo }));
+    .map((r) => ({ id: r.id, labels: r.labels, assignedTo: r.assignedTo, classification: r.classification }));
   const applied = appliedDetails.map((x) => x.id);
   // Step 83: assign予定/実行件数
   const assignedCount = appliedDetails.filter((x) => x.assignedTo).length;
   const skipped = results.filter((r) => r.status === "skipped").map((r) => r.id);
+  const skippedDetails = results
+    .filter((r): r is Extract<ApplyItem, { status: "skipped" }> => r.status === "skipped")
+    .map((r) => ({ id: r.id, reason: r.reason, classification: r.classification ?? null }));
+  const protectedCount = skippedDetails.filter((r) => r.reason === "protected_classification").length;
   const failed = results
     .filter((r): r is Extract<ApplyItem, { status: "failed" }> => r.status === "failed")
     .map((r) => ({ id: r.id, error: r.error }));
@@ -228,8 +243,16 @@ export async function POST(req: Request) {
   const matchedIds = applied; // dryRun時は「would add」があるものをmatched扱い
   const samples = matchedIds.slice(0, 10).map((id) => {
     const s = idToSummary.get(id);
-    return { id, subject: s?.subject ?? null, from: s?.from ?? null };
+    const classification = appliedDetails.find((item) => item.id === id)?.classification ?? null;
+    return { id, subject: s?.subject ?? null, from: s?.from ?? null, classification };
   });
+  const protectedSamples = skippedDetails
+    .filter((item) => item.reason === "protected_classification")
+    .slice(0, 10)
+    .map((item) => {
+      const s = idToSummary.get(item.id);
+      return { id: item.id, subject: s?.subject ?? null, from: s?.from ?? null, classification: item.classification };
+    });
 
   const preview = dryRun
     ? {
@@ -239,6 +262,8 @@ export async function POST(req: Request) {
         max: targetIds.length,
         truncated: sourceIds.length > targetIds.length,
         assignedCount, // Step 83: assign予定件数
+        protectedCount,
+        protectedSamples,
       }
     : null;
 
@@ -256,6 +281,7 @@ export async function POST(req: Request) {
           ruleId,
           processed: targetIds.length,
           matched: matchedIds.length,
+          protected: protectedCount,
           truncated: sourceIds.length > targetIds.length,
           max,
         },
@@ -270,6 +296,7 @@ export async function POST(req: Request) {
       applied,
       appliedDetails,
       skipped,
+      skippedDetails,
       failed,
       truncated: sourceIds.length > targetIds.length,
       processed: targetIds.length,
@@ -279,5 +306,4 @@ export async function POST(req: Request) {
     { headers: { "cache-control": "no-store" } },
   );
 }
-
 

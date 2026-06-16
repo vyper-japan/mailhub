@@ -80,6 +80,7 @@ async function probeQuery(gmail, userId, q, opts = {}) {
   const first = await gmail.users.messages.list({
     userId,
     q,
+    labelIds: ["INBOX"],
     maxResults,
     includeSpamTrash: false,
   });
@@ -100,6 +101,7 @@ async function probeQuery(gmail, userId, q, opts = {}) {
     const response = await gmail.users.messages.list({
       userId,
       q,
+      labelIds: ["INBOX"],
       maxResults,
       includeSpamTrash: false,
       pageToken: nextPageToken,

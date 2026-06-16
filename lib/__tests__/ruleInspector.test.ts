@@ -1,6 +1,7 @@
 import { describe, expect, test, vi, beforeEach } from "vitest";
 import type { LabelRule } from "@/lib/labelRules";
 import type { AssigneeRule } from "@/lib/assigneeRules";
+import type { InboxListMessage } from "@/lib/mailhub-types";
 import { inspectRules, explainRulesForMessage } from "@/lib/ruleInspector";
 import { listLatestInboxMessages } from "@/lib/gmail";
 
@@ -8,6 +9,23 @@ import { listLatestInboxMessages } from "@/lib/gmail";
 vi.mock("@/lib/gmail", () => ({
   listLatestInboxMessages: vi.fn(),
 }));
+
+function makeMessages(total: number, matching: number, domain: string = "example.com"): InboxListMessage[] {
+  return Array.from({ length: total }, (_, i) => {
+    const isMatch = i < matching;
+    return {
+      id: `msg${i + 1}`,
+      threadId: `thread${i + 1}`,
+      from: isMatch ? `sender${i + 1}@${domain}` : `sender${i + 1}@other.test`,
+      subject: `Test ${i + 1}`,
+      messageId: `msg${i + 1}`,
+      receivedAt: new Date().toISOString(),
+      snippet: "",
+      gmailLink: "",
+      assigneeSlug: null,
+    };
+  });
+}
 
 describe("ruleInspector", () => {
   beforeEach(() => {
@@ -145,6 +163,90 @@ describe("ruleInspector", () => {
       expect(result.dangerous.length).toBeGreaterThan(0);
       expect(result.dangerous[0].ruleId).toBe("ar1");
       expect(result.dangerous[0].reason).toBe("broad_domain");
+    });
+
+    test("should detect label rules that match most of the inspected sample", async () => {
+      const labelRules: LabelRule[] = [
+        {
+          id: "r1",
+          match: { fromDomain: "example.com" },
+          labelName: "Broad",
+          enabled: true,
+          createdAt: new Date().toISOString(),
+        },
+      ];
+
+      vi.mocked(listLatestInboxMessages).mockResolvedValue({
+        messages: makeMessages(50, 40),
+        nextPageToken: undefined,
+      });
+
+      const result = await inspectRules(labelRules, [], 50);
+
+      expect(result.dangerous).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            ruleId: "r1",
+            ruleType: "label",
+            reason: "too_many_matches",
+            previewCount: 40,
+          }),
+        ]),
+      );
+    });
+
+    test("should not flag label rules below the broad-match ratio threshold", async () => {
+      const labelRules: LabelRule[] = [
+        {
+          id: "r1",
+          match: { fromDomain: "example.com" },
+          labelName: "Focused",
+          enabled: true,
+          createdAt: new Date().toISOString(),
+        },
+      ];
+
+      vi.mocked(listLatestInboxMessages).mockResolvedValue({
+        messages: makeMessages(50, 39),
+        nextPageToken: undefined,
+      });
+
+      const result = await inspectRules(labelRules, [], 50);
+
+      expect(result.dangerous.find((rule) => rule.ruleId === "r1" && rule.reason === "too_many_matches")).toBeUndefined();
+    });
+
+    test("should detect assignee rules that match most of the inspected unassigned sample", async () => {
+      const assigneeRules: AssigneeRule[] = [
+        {
+          id: "ar1",
+          match: { fromDomain: "example.com" },
+          assigneeEmail: "user@vtj.co.jp",
+          priority: 0,
+          enabled: true,
+          when: { unassignedOnly: true },
+          safety: { dangerousDomainConfirm: false },
+          createdAt: new Date().toISOString(),
+        },
+      ];
+
+      vi.mocked(listLatestInboxMessages).mockResolvedValue({
+        messages: makeMessages(50, 40),
+        nextPageToken: undefined,
+      });
+
+      const result = await inspectRules([], assigneeRules, 50);
+
+      expect(result.dangerous).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            ruleId: "ar1",
+            ruleType: "assignee",
+            reason: "too_many_matches",
+            previewCount: 40,
+          }),
+        ]),
+      );
     });
   });
 

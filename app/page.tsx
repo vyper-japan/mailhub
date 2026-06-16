@@ -104,7 +104,6 @@ export default async function HomePage({
       const result = await listLatestInboxMessages({
         max: listMax, // Step 104: URL指定のmaxを使用
         q: finalQuery,
-        labelIds: label.type === "channel" && label.id !== "all" ? [] : undefined,
         statusType,
         assigneeSlug: viewAssigneeSlug,
         unassigned: viewUnassigned,

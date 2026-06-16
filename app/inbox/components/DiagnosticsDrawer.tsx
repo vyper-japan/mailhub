@@ -7,6 +7,7 @@ import { Copy, RefreshCw, X } from "lucide-react";
 type Props = {
   open: boolean;
   onClose: () => void;
+  listDiagnostics?: unknown;
 };
 
 type FetchState<T> = { ok: true; data: T } | { ok: false; error: string };
@@ -24,7 +25,7 @@ async function safeFetchJson<T>(url: string): Promise<FetchState<T>> {
   }
 }
 
-export function DiagnosticsDrawer({ open, onClose }: Props) {
+export function DiagnosticsDrawer({ open, onClose, listDiagnostics }: Props) {
   const [health, setHealth] = useState<FetchState<unknown> | null>(null);
   const [version, setVersion] = useState<FetchState<unknown> | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -87,8 +88,9 @@ export function DiagnosticsDrawer({ open, onClose }: Props) {
       userAgent: typeof navigator !== "undefined" ? navigator.userAgent : "(unknown)",
       health,
       version,
+      listDiagnostics: listDiagnostics ?? null,
     };
-  }, [health, version]);
+  }, [health, listDiagnostics, version]);
 
   const prettyBundle = useMemo(() => JSON.stringify(bundle, null, 2), [bundle]);
   const prettyHealth = useMemo(() => JSON.stringify(health, null, 2), [health]);
@@ -214,4 +216,3 @@ export function DiagnosticsDrawer({ open, onClose }: Props) {
     document.body,
   );
 }
-

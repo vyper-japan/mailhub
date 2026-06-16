@@ -51,10 +51,10 @@ describe("mailhub list route label mode", () => {
     expect(res.status).toBe(200);
     expect(routeMocks.listLatestInboxMessages).toHaveBeenCalledWith(
       expect.objectContaining({
-        labelIds: [],
         q: "(deliveredto:cricut_r@vtj.co.jp OR to:cricut_r@vtj.co.jp OR cc:cricut_r@vtj.co.jp)",
       }),
     );
+    expect(routeMocks.listLatestInboxMessages.mock.calls[0]?.[0].labelIds).toBeUndefined();
     expect(await readJson(res)).toMatchObject({ label: "cricut-rakuten" });
   });
 
@@ -66,10 +66,10 @@ describe("mailhub list route label mode", () => {
     expect(res.status).toBe(200);
     expect(routeMocks.listLatestInboxMessages).toHaveBeenCalledWith(
       expect.objectContaining({
-        labelIds: [],
         q: expect.stringContaining("deliveredto:cricut_r@vtj.co.jp"),
       }),
     );
+    expect(routeMocks.listLatestInboxMessages.mock.calls[0]?.[0].labelIds).toBeUndefined();
     expect(routeMocks.listLatestInboxMessages).toHaveBeenCalledWith(
       expect.objectContaining({
         q: expect.stringContaining("deliveredto:gopro_order_yahoo@vtj.co.jp"),
@@ -90,7 +90,47 @@ describe("mailhub list route label mode", () => {
         q: expect.stringContaining("deliveredto:ebay@vtj.co.jp"),
       }),
     );
-    expect(await readJson(res)).toMatchObject({ label: "stores" });
+    expect(await readJson(res)).toMatchObject({
+      label: "stores",
+      meta: {
+        loadedCount: 0,
+        max: 20,
+        hasMore: false,
+        pageTokenApplied: false,
+        sourceScope: {
+          isAggregate: true,
+          sourceAddresses: expect.arrayContaining(["cricut_r@vtj.co.jp", "ams_vyper@vtj.co.jp", "ebay@vtj.co.jp"]),
+        },
+      },
+    });
+  });
+
+  it("returns pagination metadata without exposing the Gmail page token", async () => {
+    routeMocks.listLatestInboxMessages.mockResolvedValueOnce({
+      messages: [{ id: "m1" }],
+      nextPageToken: "secret-next-token",
+    });
+    const GET = await importGet();
+
+    const res = await GET(new Request("http://localhost/api/mailhub/list?label=cricut-rakuten&max=50&pageToken=secret-current-token"));
+    const json = await readJson(res);
+
+    expect(json).toMatchObject({
+      label: "cricut-rakuten",
+      nextPageToken: "secret-next-token",
+      meta: {
+        loadedCount: 1,
+        max: 50,
+        hasMore: true,
+        pageTokenApplied: true,
+        sourceScope: {
+          isAggregate: false,
+          sourceAddresses: ["cricut_r@vtj.co.jp"],
+        },
+      },
+    });
+    expect(JSON.stringify(json.meta)).not.toContain("secret-current-token");
+    expect(JSON.stringify(json.meta)).not.toContain("secret-next-token");
   });
 
   it("falls back to all when TEST store-a is requested in PROD mode", async () => {

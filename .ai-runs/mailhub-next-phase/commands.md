@@ -41,6 +41,27 @@ npm run build
 - `npm run audit:gmail-sources`: passed. `stores` aggregate fetched 3 pages / 150 unique message IDs lower bound and still has more pages. After Datacolor query fix, zero-estimate channels are `vyperglobal-yahoo` and `ebay`.
 - `npm run build`: passed.
 
+## Verification Commands Run On 2026-06-17 Next-Phase Wave
+
+```bash
+npx vitest run lib/__tests__/mailhub-rules-apply-route.test.ts lib/__tests__/mailhubClassification.test.ts lib/__tests__/ruleInspector.test.ts lib/__tests__/mailhub-list-route.test.ts lib/__tests__/views.test.ts lib/__tests__/viewsStore.test.ts
+npm run typecheck
+npm run lint
+npm run test
+npm run build
+npm run audit:gmail-sources -- --out .ai-runs/mailhub-next-phase/gmail-source-coverage-audit.json --max-pages 3
+```
+
+## 2026-06-17 Next-Phase Wave Results
+
+- Focused Vitest: 6 files / 38 tests passed.
+- `npm run typecheck`: passed.
+- `npm run lint`: passed.
+- `npm run test`: 53 files / 500 tests passed.
+- `npm run build`: passed.
+- `npm run audit:gmail-sources`: passed with corrected `INBOX` scope. `stores` aggregate estimate 201, first page 50, 3 fetched pages / 150 unique IDs lower bound, and still has more pages.
+- INBOX-scoped zero-estimate channels: `cricut-yahoo`, `gopro-yahoo`, `vyperglobal-rakuten`, `vyperglobal-yahoo`, `ams-vyper`, `datacolor`, `ebay`.
+
 ## Useful Runtime Commands
 
 Start dev server for tunnel:

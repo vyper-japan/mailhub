@@ -7,6 +7,9 @@ import { matchAssigneeRule, getFromDomain, normalizeFromEmail } from "@/lib/assi
 import { isBroadDomain } from "@/lib/ruleSafety";
 import { listLatestInboxMessages } from "@/lib/gmail";
 
+const TOO_MANY_MATCHES_RATIO = 0.8;
+const TOO_MANY_MATCHES_MIN_SAMPLE = 20;
+
 export type RuleConflict = {
   type: "label_label" | "assignee_assignee" | "cross_type";
   ruleIds: string[];
@@ -63,6 +66,11 @@ export type RuleExplainResult = {
     result: string | null; // assigneeEmail or null
   }>;
 };
+
+function hasTooManyMatches(hitCount: number, inspectedCount: number): boolean {
+  if (inspectedCount < TOO_MANY_MATCHES_MIN_SAMPLE) return false;
+  return hitCount >= Math.ceil(inspectedCount * TOO_MANY_MATCHES_RATIO);
+}
 
 /**
  * ラベルルール間の衝突を検知
@@ -253,13 +261,13 @@ async function detectDangerousRules(
         const matched = matchRules(fromEmail, [rule]);
         if (matched.length > 0) hitCount++;
       }
-      if (hitCount > 200) {
+      if (hasTooManyMatches(hitCount, sample.length)) {
         dangerous.push({
           ruleId: rule.id,
           ruleType: "label",
           reason: "too_many_matches",
           matchCondition: rule.match,
-          message: `サンプル${sampleSize}件中${hitCount}件にマッチします（誤爆の可能性）`,
+          message: `サンプル${sample.length}件中${hitCount}件にマッチします（誤爆の可能性）`,
           previewCount: hitCount,
         });
       }
@@ -296,13 +304,13 @@ async function detectDangerousRules(
         const matchResult = matchAssigneeRule(fromEmail, rule);
         if (matchResult.ok) hitCount++;
       }
-      if (hitCount > 200) {
+      if (hasTooManyMatches(hitCount, sample.length)) {
         dangerous.push({
           ruleId: rule.id,
           ruleType: "assignee",
           reason: "too_many_matches",
           matchCondition: rule.match,
-          message: `サンプル${sampleSize}件中${hitCount}件にマッチします（誤爆の可能性）`,
+          message: `サンプル${sample.length}件中${hitCount}件にマッチします（誤爆の可能性）`,
           previewCount: hitCount,
         });
       }
