@@ -64,7 +64,7 @@ export function OnboardingModal({ onClose }: Props) {
                 <div className="grid grid-cols-3 gap-2 text-center text-[12px]">
                   <div className="bg-[#e3f2fd] rounded p-2">
                     <div className="font-medium text-[#1a73e8]">左: ラベル</div>
-                    <div className="text-[#5f6368]">Views / Channels / Status</div>
+                    <div className="text-[#5f6368]">よく見る一覧 / 店舗・宛先別 / 処理の行き先</div>
                   </div>
                   <div className="bg-[#e8f5e9] rounded p-2">
                     <div className="font-medium text-[#2e7d32]">中央: 一覧</div>
@@ -84,23 +84,23 @@ export function OnboardingModal({ onClose }: Props) {
             <h2 className="text-[16px] font-semibold text-[#202124] mb-3">📬 基本操作</h2>
             <div className="text-[14px] text-[#5f6368] space-y-2">
               <div>
-                <strong className="text-[#202124]">完了:</strong> 処理が終わったら「完了」（<kbd className="px-1.5 py-0.5 bg-[#e8eaed] border border-[#dadce0] rounded text-[11px] font-mono">E</kbd>）でアーカイブ
+                <strong className="text-[#202124]">対応済み:</strong> 処理が終わったら「対応済み」（<kbd className="px-1.5 py-0.5 bg-[#e8eaed] border border-[#dadce0] rounded text-[11px] font-mono">E</kbd>）で閉じる
               </div>
               <div>
-                <strong className="text-[#202124]">保留:</strong> 後で確認したい場合は「保留」ボタンで待機状態に
+                <strong className="text-[#202124]">返事待ち:</strong> 相手の返信や社内確認を待つ場合は「返事待ち」に
               </div>
             </div>
           </section>
 
-          {/* 低優先と復帰 */}
+          {/* 処理不要と復帰 */}
           <section>
-            <h2 className="text-[16px] font-semibold text-[#202124] mb-3">🔇 低優先（Muted）と復帰</h2>
+            <h2 className="text-[16px] font-semibold text-[#202124] mb-3">🔇 処理不要と復帰</h2>
             <div className="text-[14px] text-[#5f6368] space-y-2">
               <div>
-                <strong className="text-[#202124]">低優先:</strong> 重要度が低いメールは「低優先」（<kbd className="px-1.5 py-0.5 bg-[#e8eaed] border border-[#dadce0] rounded text-[11px] font-mono">M</kbd>）で一覧から除外
+                <strong className="text-[#202124]">処理不要:</strong> 人が対応しない通知や広告は「処理不要」（<kbd className="px-1.5 py-0.5 bg-[#e8eaed] border border-[#dadce0] rounded text-[11px] font-mono">M</kbd>）で一覧から除外
               </div>
               <div>
-                <strong className="text-[#202124]">復帰:</strong> 左メニューの「低優先」タブから確認し、再び対応する場合はUndo（<kbd className="px-1.5 py-0.5 bg-[#e8eaed] border border-[#dadce0] rounded text-[11px] font-mono">U</kbd>）
+                <strong className="text-[#202124]">復帰:</strong> 左メニューの「処理不要」タブから確認し、再び対応する場合はUndo（<kbd className="px-1.5 py-0.5 bg-[#e8eaed] border border-[#dadce0] rounded text-[11px] font-mono">U</kbd>）
               </div>
             </div>
           </section>
@@ -131,7 +131,7 @@ export function OnboardingModal({ onClose }: Props) {
               </div>
               <div className="flex items-center justify-between py-1">
                 <kbd className="px-1.5 py-0.5 bg-[#e8eaed] border border-[#dadce0] rounded text-[11px] font-mono">E</kbd>
-                <span className="text-[#202124] ml-2">完了</span>
+                <span className="text-[#202124] ml-2">対応済み</span>
               </div>
               <div className="flex items-center justify-between py-1">
                 <kbd className="px-1.5 py-0.5 bg-[#e8eaed] border border-[#dadce0] rounded text-[11px] font-mono">U</kbd>
@@ -139,7 +139,7 @@ export function OnboardingModal({ onClose }: Props) {
               </div>
               <div className="flex items-center justify-between py-1">
                 <kbd className="px-1.5 py-0.5 bg-[#e8eaed] border border-[#dadce0] rounded text-[11px] font-mono">M</kbd>
-                <span className="text-[#202124] ml-2">低優先</span>
+                <span className="text-[#202124] ml-2">処理不要</span>
               </div>
               <div className="flex items-center justify-between py-1">
                 <kbd className="px-1.5 py-0.5 bg-[#e8eaed] border border-[#dadce0] rounded text-[11px] font-mono">?</kbd>

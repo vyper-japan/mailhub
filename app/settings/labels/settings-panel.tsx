@@ -1386,7 +1386,7 @@ export function SettingsPanel({ mode, testMode, onOpenActivity }: { mode: Settin
             tab === "queues" ? "bg-[#E8F0FE] border-blue-200 text-[#1a73e8]" : "bg-white border-[#dadce0] text-[#5f6368]"
           }`}
         >
-          Queues
+          よく見る一覧
         </button>
       </div>
 
@@ -3268,11 +3268,11 @@ export function SettingsPanel({ mode, testMode, onOpenActivity }: { mode: Settin
                   className="w-full border border-[#dadce0] rounded px-2 py-1.5 text-[13px]"
                 >
                   <option value="">現在のラベルを維持</option>
-                  <option value="all">All</option>
-                  <option value="todo">Todo</option>
-                  <option value="waiting">Waiting</option>
-                  <option value="mine">Mine</option>
-                  <option value="unassigned">Unassigned</option>
+                  <option value="all">すべて</option>
+                  <option value="todo">返答・処理する</option>
+                  <option value="waiting">返事待ち・確認待ち</option>
+                  <option value="mine">自分が対応</option>
+                  <option value="unassigned">誰かが取る</option>
                 </select>
                 <div className="flex gap-2">
                   <button

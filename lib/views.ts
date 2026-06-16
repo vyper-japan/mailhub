@@ -27,7 +27,7 @@ export type View = {
 export const DEFAULT_VIEWS: View[] = [
   {
     id: "inbox",
-    name: "受信箱",
+    name: "今返す",
     icon: "📧",
     labelId: "todo",
     pinned: true,
@@ -36,7 +36,7 @@ export const DEFAULT_VIEWS: View[] = [
   },
   {
     id: "unassigned",
-    name: "未割当",
+    name: "誰かが取る",
     icon: "👤",
     labelId: "unassigned",
     pinned: true,
@@ -45,7 +45,7 @@ export const DEFAULT_VIEWS: View[] = [
   },
   {
     id: "mine",
-    name: "自分担当",
+    name: "自分が対応",
     icon: "✅",
     labelId: "mine",
     pinned: true,
@@ -54,7 +54,7 @@ export const DEFAULT_VIEWS: View[] = [
   },
   {
     id: "waiting",
-    name: "保留",
+    name: "返事待ち",
     icon: "⏰",
     labelId: "waiting",
     pinned: true,
@@ -63,7 +63,7 @@ export const DEFAULT_VIEWS: View[] = [
   },
   {
     id: "muted",
-    name: "低優先",
+    name: "処理不要",
     icon: "🔇",
     labelId: "muted",
     pinned: true,
@@ -72,7 +72,7 @@ export const DEFAULT_VIEWS: View[] = [
   },
   {
     id: "overdue",
-    name: "期限超過",
+    name: "長く残っている",
     icon: "⚠️",
     labelId: "todo",
     q: "older_than:7d",

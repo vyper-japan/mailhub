@@ -176,7 +176,7 @@ export function TopHeader({
             data-testid="action-queues"
             onClick={onOpenQueues}
             className={t.toolbarButton}
-            title="Queues（作業キュー）"
+            title="よく見る一覧"
           >
             <List size={20} className="text-[#5f6368]" />
           </button>
@@ -189,7 +189,7 @@ export function TopHeader({
             onClick={onTakeNext}
             disabled={readOnlyMode}
             className={`${t.toolbarButton} ${readOnlyMode ? "opacity-40 cursor-not-allowed" : ""}`}
-            title={readOnlyMode ? "READ ONLYモードでは実行できません" : "Take Next（未割当を1件自動で自分に割当） N"}
+            title={readOnlyMode ? "READ ONLYモードでは実行できません" : "未割当を取る N"}
           >
             <span className="text-[#5f6368] font-semibold">N</span>
           </button>
@@ -202,7 +202,7 @@ export function TopHeader({
             onClick={() => !macroDisabled && setShowMacroPopover((prev) => !prev)}
             disabled={macroDisabled}
             className={`${t.toolbarButton} ${macroDisabled ? "opacity-40 cursor-not-allowed" : ""}`}
-            title={macroDisabled ? "READ ONLYモードではMacroは実行できません" : "Macro（複合アクション）"}
+            title={macroDisabled ? "READ ONLYモードでは複合アクションは実行できません" : "複合アクション"}
           >
             <Zap size={20} className="text-[#5f6368]" />
           </button>
@@ -221,8 +221,8 @@ export function TopHeader({
                 className="w-full px-4 py-2 text-left text-sm hover:bg-[#f1f3f4] flex items-center gap-2"
               >
                 <span className="text-[#1a73e8]">⚡</span>
-                <span>Take + Waiting</span>
-                <span className="ml-auto text-[10px] text-[#5f6368]">自分担当→保留</span>
+                <span>取って返事待ち</span>
+                <span className="ml-auto text-[10px] text-[#5f6368]">自分が対応→返事待ち</span>
               </button>
               <button
                 type="button"
@@ -234,8 +234,8 @@ export function TopHeader({
                 className="w-full px-4 py-2 text-left text-sm hover:bg-[#f1f3f4] flex items-center gap-2"
               >
                 <span className="text-[#34a853]">⚡</span>
-                <span>Take + Done</span>
-                <span className="ml-auto text-[10px] text-[#5f6368]">自分担当→完了</span>
+                <span>取って対応済み</span>
+                <span className="ml-auto text-[10px] text-[#5f6368]">自分が対応→対応済み</span>
               </button>
             </div>
           )}
@@ -313,6 +313,4 @@ export function TopHeader({
     </header>
   );
 }
-
-
 

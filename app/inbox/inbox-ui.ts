@@ -1,58 +1,58 @@
-// Gmail完全再現: 配色・デザイン要素を完璧にコピー
+// MailHub workbench: keep Gmail-like speed, but make work queues the primary surface.
 export const t = {
-  // Gmail base background (完全再現)
+  // Base background
   bg: "bg-[#f6f8fc] text-[#202124] font-normal",
   layout: "h-screen flex overflow-hidden",
 
-  // サイドバー（Gmail完全再現 + レスポンシブ）
+  // サイドバー（作業キュー優先 + レスポンシブ）
   sidebar:
     "min-w-[200px] w-64 max-w-[320px] bg-white flex flex-col border-r border-[#dadce0] flex-shrink-0",
   sidebarItem:
-    "flex items-center justify-between px-3 py-2 mx-1 text-[14px] text-[#3c4043] rounded-r-full hover:bg-[#f1f3f4] transition-colors cursor-pointer font-normal group",
+    "flex min-h-[36px] items-center justify-between px-3 py-1.5 mx-1 text-[14px] text-[#3c4043] rounded-r-full hover:bg-[#f1f3f4] transition-colors cursor-pointer font-normal group",
   sidebarItemActive: "bg-[#E8F0FE] text-[#1a73e8] font-medium",
   sidebarHeader:
     "px-4 py-2 mt-4 text-[11px] font-medium text-[#5f6368] uppercase tracking-wider",
 
-  // ヘッダー（検索バー - Gmail完全再現 + レスポンシブ）
+  // ヘッダー（検索バー + レスポンシブ）
   header:
     "h-14 border-b border-[#dadce0] flex items-center px-2 sm:px-4 bg-white gap-2 sm:gap-4",
   headerSearchWrapper: "relative flex-1 max-w-2xl min-w-0",
   headerSearch:
     "w-full bg-[#f1f3f4] border border-transparent text-[#202124] text-[14px] rounded-full px-8 sm:px-12 py-2.5 focus:outline-none focus:bg-white focus:border-[#dadce0] focus:shadow-[0_2px_5px_1px_rgba(64,60,67,0.16)] transition-all placeholder-[#5f6368] font-normal",
 
-  // ツールバー（アクションボタン群 - Gmail完全再現 + レスポンシブ）
+  // ツールバー（作業アクション優先 + レスポンシブ）
   toolbar:
     "h-12 border-b border-[#dadce0] flex items-center px-2 sm:px-4 bg-white overflow-x-auto",
   toolbarButton:
-    "relative flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 text-[#3c4043] hover:bg-[#f1f3f4] rounded-md transition-all text-[13px] sm:text-[14px] font-normal group flex-shrink-0",
+    "relative flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 text-[#3c4043] hover:bg-[#f1f3f4] rounded-md transition-[background-color,color,box-shadow,border-color] duration-75 text-[13px] sm:text-[14px] font-normal group flex-shrink-0",
   toolbarButtonActive: "bg-[#E8F0FE] text-[#1a73e8]",
   toolbarShortcut:
     "absolute -bottom-6 left-1/2 -translate-x-1/2 hidden group-hover:block text-[10px] text-gray-500 bg-gray-800 text-white border border-gray-700 px-1.5 py-0.5 rounded whitespace-nowrap pointer-events-none z-50",
 
-  // タブナビゲーション（Gmail完全再現 + レスポンシブ）
+  // タブナビゲーション（状態切替 + レスポンシブ）
   tabs:
     "h-12 flex items-center justify-between border-b border-[#dadce0] bg-white px-1 sm:px-2 gap-1 sm:gap-2 overflow-x-auto",
   tab:
     "h-12 px-2 sm:px-4 text-[12px] sm:text-[13px] font-medium text-[#5f6368] border-b-2 border-transparent hover:text-[#202124] hover:border-[#dadce0] transition-colors cursor-pointer flex items-center flex-shrink-0",
   tabActive: "text-[#1a73e8] border-[#1a73e8] font-medium",
 
-  // メインエリア（Gmail完全再現 + レスポンシブ）
+  // メインエリア（レスポンシブ）
   mainArea: "flex-1 flex bg-[#f6f8fc] overflow-hidden min-w-0",
 
-  // リストカラム（Gmail完全再現 + レスポンシブ）
+  // リストカラム（クリック即応 + レスポンシブ）
   listColumn:
     "min-w-[280px] w-96 max-w-[480px] flex flex-col bg-white border-r border-[#dadce0] overflow-hidden flex-shrink-0",
   listItem:
-    "px-2 sm:px-3 py-1.5 border-b border-[#e8eaed] hover:bg-[#f2f6fc] cursor-pointer transition-colors group select-none flex items-center gap-2",
-  listItemActive: "bg-[#E8F0FE] shadow-[inset_0_0_0_1px_#d2e3fc]",
-  listItemChecked: "bg-[#E8F0FE]",
+    "min-h-[42px] px-2 sm:px-3 py-1.5 border-b border-[#e8eaed] hover:bg-[#f5f8ff] cursor-pointer group select-none flex items-center gap-2",
+  listItemActive: "bg-[#d3e3fd] shadow-[inset_3px_0_0_#1a73e8,inset_0_-1px_0_#c6dafc]",
+  listItemChecked: "bg-[#e8f0fe]",
   listItemUnread: "bg-white",
   listItemRead: "bg-[#F2F6FC]",
 
-  // 詳細カラム（Gmail完全再現 + レスポンシブ）
+  // 詳細カラム（作業詳細 + レスポンシブ）
   detailColumn: "flex-1 flex flex-col bg-white overflow-hidden min-w-[400px]",
 
-  // ボタン・その他（Gmail完全再現）
+  // ボタン・その他
   buttonPrimary:
     "bg-[#1a73e8] text-white hover:bg-[#1557b0] px-4 py-2 rounded-md text-[14px] font-medium transition-all flex items-center gap-2",
   buttonIcon: "p-2 text-[#5f6368] hover:bg-[#f1f3f4] rounded-full transition-colors",
@@ -109,8 +109,6 @@ export function buildGmailForwardLink(gmailLink: string, threadId: string): stri
   const base = hashIndex >= 0 ? gmailLink.substring(0, hashIndex) : gmailLink;
   return `${base}#inbox/${threadId}#forward`;
 }
-
-
 
 
 

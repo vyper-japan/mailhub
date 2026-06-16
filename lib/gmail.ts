@@ -1940,7 +1940,7 @@ export async function getMessageCounts(userEmail: string): Promise<{
 }
 
 /**
- * メールを低優先（ミュート）に移動
+ * メールを処理不要（ミュート）に移動
  * - removeLabelIds: ["INBOX"]
  * - addLabelIds: ["MailHub/Muted"]
  * - 冪等性: すでにINBOXが無くても成功扱い（200）
@@ -2162,7 +2162,7 @@ export async function unassignMessage(id: string): Promise<void> {
 }
 
 /**
- * 低優先（ミュート）を解除してInboxに戻す
+ * 処理不要（ミュート）を解除してInboxに戻す
  * - addLabelIds: ["INBOX"]
  * - removeLabelIds: ["MailHub/Muted"]
  * - 冪等性: すでにMutedが無くても成功扱い（200）

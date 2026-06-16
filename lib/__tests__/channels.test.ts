@@ -182,11 +182,11 @@ describe("channels", () => {
         collapsible: true,
         defaultCollapsed: false,
         items: [
-          { id: "todo", label: "未対応", type: "status", statusType: "todo" },
-          { id: "waiting", label: "保留", type: "status", statusType: "waiting" },
-          { id: "done", label: "完了", type: "status", statusType: "done" },
-          { id: "muted", label: "低優先", type: "status", statusType: "muted" },
-          { id: "snoozed", label: "スヌーズ", type: "status", statusType: "snoozed" },
+          { id: "todo", label: "返答・処理する", type: "status", statusType: "todo" },
+          { id: "waiting", label: "返事待ち・確認待ち", type: "status", statusType: "waiting" },
+          { id: "done", label: "対応済み", type: "status", statusType: "done" },
+          { id: "muted", label: "処理不要", type: "status", statusType: "muted" },
+          { id: "snoozed", label: "日付を決めて戻す", type: "status", statusType: "snoozed" },
         ],
       },
       {

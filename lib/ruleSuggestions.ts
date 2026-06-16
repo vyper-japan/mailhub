@@ -284,7 +284,7 @@ async function generateAutoMuteSuggestions(
         ...(sender.fromEmail ? { fromEmail: sender.fromEmail } : {}),
         ...(sender.fromDomain ? { fromDomain: sender.fromDomain } : {}),
       },
-      reason: `${actorSet.size}人が合計${actions.length}回「低優先へ（ミュート）」を実行しました`,
+      reason: `${actorSet.size}人が合計${actions.length}回「処理不要へ」を実行しました`,
       evidenceCount: actions.length,
       actorCount: actorSet.size,
       actors: Array.from(actorSet).slice(0, 5),

@@ -73,7 +73,7 @@ function pickTopLinks(summary: OpsSummary, topN: number): Array<{ title: string;
       elapsed: x.elapsed,
       link: buildMailhubLink(x.id, "todo"),
     }));
-  if (todoItems.length) out.push({ title: "Todo（要対応）", items: todoItems });
+  if (todoItems.length) out.push({ title: "今返す", items: todoItems });
 
   const waitingItems = [...summary.waiting.critical.items, ...summary.waiting.warn.items]
     .slice(0, topN)
@@ -82,7 +82,7 @@ function pickTopLinks(summary: OpsSummary, topN: number): Array<{ title: string;
       elapsed: x.elapsed,
       link: buildMailhubLink(x.id, "waiting"),
     }));
-  if (waitingItems.length) out.push({ title: "Waiting（保留/滞留）", items: waitingItems });
+  if (waitingItems.length) out.push({ title: "返事待ち・長く残っている", items: waitingItems });
 
   const unassignedItems = [...summary.unassigned.critical.items, ...summary.unassigned.warn.items]
     .slice(0, topN)
@@ -91,7 +91,7 @@ function pickTopLinks(summary: OpsSummary, topN: number): Array<{ title: string;
       elapsed: x.elapsed,
       link: buildMailhubLink(x.id, "todo"),
     }));
-  if (unassignedItems.length) out.push({ title: "Unassigned（未割当）", items: unassignedItems });
+  if (unassignedItems.length) out.push({ title: "誰かが取る", items: unassignedItems });
 
   return out;
 }
@@ -145,10 +145,10 @@ export async function buildHandoffPreview(options: {
   mdLines.push(`- env: ${envLabel}`);
   mdLines.push(`- readOnly: ${readOnly ? "true" : "false"}`);
   mdLines.push(``);
-  mdLines.push(`## Ops（SLA / 未割当 / 保留滞留）`);
-  mdLines.push(`- Todo: 🔴${counts.todoCritical} / 🟡${counts.todoWarn}`);
-  mdLines.push(`- Waiting: 🔴${counts.waitingCritical} / 🟡${counts.waitingWarn}`);
-  mdLines.push(`- Unassigned: 🔴${counts.unassignedCritical} / 🟡${counts.unassignedWarn}`);
+  mdLines.push(`## 処理サマリー（長く残っているメール）`);
+  mdLines.push(`- 今返す: 🔴${counts.todoCritical} / 🟡${counts.todoWarn}`);
+  mdLines.push(`- 返事待ち: 🔴${counts.waitingCritical} / 🟡${counts.waitingWarn}`);
+  mdLines.push(`- 誰かが取る: 🔴${counts.unassignedCritical} / 🟡${counts.unassignedWarn}`);
   mdLines.push(``);
   for (const section of topLinks) {
     mdLines.push(`### ${section.title}（上位${section.items.length}）`);
@@ -158,7 +158,7 @@ export async function buildHandoffPreview(options: {
     mdLines.push(``);
   }
   mdLines.push(`## Activity（直近${hours}h / 上位${activityLimit}）`);
-  mdLines.push(`### All`);
+  mdLines.push(`### すべて`);
   if (all.length === 0) {
     mdLines.push(`- (no activity)`);
   } else {
@@ -169,7 +169,7 @@ export async function buildHandoffPreview(options: {
     }
   }
   mdLines.push(``);
-  mdLines.push(`### Mine`);
+  mdLines.push(`### 自分`);
   if (mine.length === 0) {
     mdLines.push(`- (no activity)`);
   } else {
@@ -192,4 +192,3 @@ export async function buildHandoffPreview(options: {
     markdown,
   };
 }
-

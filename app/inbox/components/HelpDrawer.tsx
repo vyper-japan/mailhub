@@ -231,7 +231,7 @@ export function HelpDrawer({ open, onClose, readOnlyMode, isAdmin, onShowOnboard
                 <h2 className="text-[15px] font-semibold text-[#202124] mb-2">はじめに</h2>
                 <div className="text-[13px] text-[#5f6368] space-y-2">
                   <p>MailHubは、共有受信箱のメールを効率的に管理するためのツールです。</p>
-                  <p>左サイドバーから「受信箱」「担当」「保留」「低優先」を切り替えて、メールを確認・操作できます。</p>
+                  <p>左サイドバーから「今返す」「自分が対応」「返事待ち」「処理不要」を切り替えて、メールを確認・操作できます。</p>
                 </div>
               </section>
 
@@ -242,13 +242,13 @@ export function HelpDrawer({ open, onClose, readOnlyMode, isAdmin, onShowOnboard
                     <strong className="text-[#202124]">メールを選択:</strong> 一覧からメールをクリックすると、右側に詳細が表示されます。
                   </div>
                   <div>
-                    <strong className="text-[#202124]">完了:</strong> メールを処理したら「完了」ボタン（Eキー）でアーカイブします。
+                    <strong className="text-[#202124]">対応済み:</strong> メールを処理したら「対応済み」ボタン（Eキー）で閉じます。
                   </div>
                   <div>
-                    <strong className="text-[#202124]">保留:</strong> 後で確認したい場合は「保留」ボタンで保留状態にします。
+                    <strong className="text-[#202124]">返事待ち:</strong> 相手の返信や社内確認を待つ場合は「返事待ち」にします。
                   </div>
                   <div>
-                    <strong className="text-[#202124]">低優先:</strong> 重要度が低いメールは「低優先」ボタンでミュートします。
+                    <strong className="text-[#202124]">処理不要:</strong> 人が対応しない通知や広告は「処理不要」ボタンで一覧から外します。
                   </div>
                   <div>
                     <strong className="text-[#202124]">担当:</strong> 自分が対応するメールは「担当」ボタンで自分に割り当てます。
@@ -260,7 +260,7 @@ export function HelpDrawer({ open, onClose, readOnlyMode, isAdmin, onShowOnboard
                 <section className="border rounded-md border-[#fdd663] bg-[#fef7e0] p-3">
                   <h2 className="text-[15px] font-semibold text-[#ea8600] mb-2">READ ONLY モード</h2>
                   <div className="text-[13px] text-[#5f6368] space-y-2">
-                    <p>現在、READ ONLYモードで動作しています。メールの閲覧・検索は可能ですが、変更系の操作（完了/保留/担当など）は実行できません。</p>
+                    <p>現在、READ ONLYモードで動作しています。メールの閲覧・検索は可能ですが、変更系の操作（対応済み/返事待ち/担当など）は実行できません。</p>
                     <p>変更系の操作を実行するには、管理者がREAD ONLYモードを解除する必要があります。</p>
                   </div>
                 </section>
@@ -289,7 +289,7 @@ export function HelpDrawer({ open, onClose, readOnlyMode, isAdmin, onShowOnboard
                   </div>
                   <div className="flex items-center justify-between py-1">
                     <span><kbd className="px-1.5 py-0.5 bg-[#e8eaed] border border-[#dadce0] rounded text-[11px] font-mono">E</kbd></span>
-                    <span className="text-[#202124]">完了（アーカイブ）</span>
+                    <span className="text-[#202124]">対応済み</span>
                   </div>
                   <div className="flex items-center justify-between py-1">
                     <span><kbd className="px-1.5 py-0.5 bg-[#e8eaed] border border-[#dadce0] rounded text-[11px] font-mono">U</kbd></span>
@@ -437,7 +437,7 @@ export function HelpDrawer({ open, onClose, readOnlyMode, isAdmin, onShowOnboard
                   <div>
                     <h3 className="text-[14px] font-medium text-[#202124] mb-1">2. READ ONLY モード</h3>
                     <p className="mb-2">
-                      画面上部に「READ ONLY」バッジが表示されている場合、変更系の操作（完了/保留/担当など）は実行できません。
+                      画面上部に「READ ONLY」バッジが表示されている場合、変更系の操作（対応済み/返事待ち/担当など）は実行できません。
                     </p>
                     <ul className="list-disc list-inside space-y-1 ml-2">
                       <li>これは意図的な安全設定です（本番環境の保護）</li>
@@ -475,7 +475,7 @@ MailHubで以下の権限設定をお願いいたします。
   → 「Open in Gmail」が開けるようにするため
 
 □ READ ONLY解除（変更操作が必要な場合）
-  → メールの完了/保留/担当などの操作を実行するため
+  → メールの対応済み/返事待ち/担当などの操作を実行するため
 
 □ 管理者権限（設定変更が必要な場合）
   → ラベル/ルールの作成・編集を行うため
@@ -503,7 +503,7 @@ MailHubで以下の権限設定をお願いいたします。
   → 「Open in Gmail」が開けるようにするため
 
 □ READ ONLY解除（変更操作が必要な場合）
-  → メールの完了/保留/担当などの操作を実行するため
+  → メールの対応済み/返事待ち/担当などの操作を実行するため
 
 □ 管理者権限（設定変更が必要な場合）
   → ラベル/ルールの作成・編集を行うため

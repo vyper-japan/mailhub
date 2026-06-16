@@ -84,6 +84,9 @@ type GmailSendHealthState = {
 };
 
 const DETAIL_CACHE_TTL_MS = 60_000;
+const DETAIL_CACHE_REFRESH_DELAY_MS = 180;
+const HOVER_PREFETCH_DELAY_MS = 320;
+const THREAD_LOAD_DELAY_MS = 260;
 const MAYBE_SENT_MESSAGE =
   "すでに同じ送信が処理されています。送信済みの可能性があるため、受信トレイ/送信済みを確認してください";
 const UNRESOLVED_TEMPLATE_VAR_RE = /{{\s*[\w.-]+\s*}}/g;
@@ -259,6 +262,10 @@ export default function InboxShell({
     return null;
   });
   const [selectedId, setSelectedId] = useState<string | null>(initialSelectedId);
+  const selectedIdRef = useRef<string | null>(initialSelectedId);
+  useEffect(() => {
+    selectedIdRef.current = selectedId;
+  }, [selectedId]);
   const [selectedMessage, setSelectedMessage] = useState<InboxListMessage | null>(
     initialSelectedMessage,
   );
@@ -572,7 +579,7 @@ export default function InboxShell({
     return "inbox"; // デフォルトは受信箱
   };
   
-  const [viewTab, setViewTab] = useState<"inbox" | "assigned" | "waiting" | "muted" | "snoozed">(() => getInitialViewTab()); // タブ切り替え（受信箱、担当、保留、低優先、期限付き保留）
+  const [viewTab, setViewTab] = useState<"inbox" | "assigned" | "waiting" | "muted" | "snoozed">(() => getInitialViewTab()); // タブ切り替え（今返す、自分が対応、返事待ち、処理不要、日付を決めて戻す）
   
   // Step 66: SLA Focus（危険メールのみ表示）
   // Step 67: URLから初期状態を読み取る
@@ -1110,9 +1117,9 @@ export default function InboxShell({
       }
       // それ以外のassigneeビューはサーバ取得結果をそのまま表示
     } else {
-      // タブフィルタ（受信箱/担当/保留/低優先）
+      // タブフィルタ（今返す/自分が対応/返事待ち/処理不要）
       if (viewTab === "inbox") {
-        // 受信箱タブ: activeLabelがtodoの場合、またはチャンネルラベルの場合は表示
+        // 今返すタブ: activeLabelがtodoの場合、またはチャンネルラベルの場合は表示
         // チャンネルラベル（all, store-a, store-b, store-c）の場合はstatusTypeチェックをスキップ
         if (activeLabel?.type !== "channel" && activeLabel?.statusType !== "todo") {
           filtered = [];
@@ -1121,12 +1128,12 @@ export default function InboxShell({
         // 担当タブ: 自分が担当になっているものだけ表示
         filtered = filtered.filter((m) => m.assigneeSlug === myAssigneeSlug);
       } else if (viewTab === "waiting") {
-        // 保留タブ: activeLabelがwaitingの場合のみ表示（loadListでwaitingラベルを読み込んでいるため）
+        // 返事待ちタブ: activeLabelがwaitingの場合のみ表示（loadListでwaitingラベルを読み込んでいるため）
         if (activeLabel?.statusType !== "waiting") {
           filtered = [];
         }
       } else if (viewTab === "muted") {
-        // 低優先タブ: activeLabelがmutedの場合のみ表示（loadListでmutedラベルを読み込んでいるため）
+        // 処理不要タブ: activeLabelがmutedの場合のみ表示（loadListでmutedラベルを読み込んでいるため）
         if (activeLabel?.statusType !== "muted") {
           filtered = [];
         }
@@ -1733,12 +1740,12 @@ export default function InboxShell({
         }
       }
       // Step 50: selectedIdと一致する時だけエラー表示（連続クリック対策）
-      if (selectedId === id && inFlightIdRef.current === id) {
+      if (selectedIdRef.current === id && inFlightIdRef.current === id) {
         setDetailError(errorMessage);
         setDetailBody((b) => ({ ...b, isLoading: false }));
       }
     }
-  }, [evictOldCacheEntries, selectedId]);
+  }, [evictOldCacheEntries]);
 
   const loadThreadSummary = useCallback(async (messageId: string) => {
     threadInFlightRef.current = messageId;
@@ -1811,8 +1818,20 @@ export default function InboxShell({
 
   useEffect(() => {
     if (!selectedMessage?.id) return;
-    void loadThreadSummary(selectedMessage.id);
-  }, [selectedMessage?.id, loadThreadSummary]);
+    const messageId = selectedMessage.id;
+    threadInFlightRef.current = messageId;
+    startTransition(() => {
+      setThreadSummary(null);
+      setThreadError(null);
+      setThreadLoading(false);
+      setThreadExpandedIds(new Set());
+      setThreadBodies({});
+    });
+    const timer = window.setTimeout(() => {
+      void loadThreadSummary(messageId);
+    }, THREAD_LOAD_DELAY_MS);
+    return () => window.clearTimeout(timer);
+  }, [selectedMessage?.id, loadThreadSummary, startTransition]);
 
   // 返信ルートを判定
   const replyRoute = useMemo(() => {
@@ -1908,7 +1927,7 @@ export default function InboxShell({
       hoverPrefetchAbortRef.current = null;
     }
     
-    // 150ms後にprefetch開始
+    // クリック直後の詳細取得と競合しないように、hover prefetch は少し遅らせる
     hoverPrefetchTimerRef.current = setTimeout(async () => {
       // 再度キャッシュをチェック（タイマー中に取得された可能性）
       const cachedNow = detailCacheRef.current.get(id);
@@ -1940,7 +1959,7 @@ export default function InboxShell({
           hoverPrefetchAbortRef.current = null;
         }
       }
-    }, 150);
+    }, HOVER_PREFETCH_DELAY_MS);
   }, [selectedId, evictOldCacheEntries]);
   
   // Step 93: マウス離脱時にタイマーをキャンセル
@@ -1954,10 +1973,22 @@ export default function InboxShell({
 
   const onSelectMessage = useCallback((id: string) => {
     if (id === selectedId) return;
+
+    if (hoverPrefetchTimerRef.current) {
+      clearTimeout(hoverPrefetchTimerRef.current);
+      hoverPrefetchTimerRef.current = null;
+    }
+    hoverPrefetchAbortRef.current?.abort();
+    hoverPrefetchAbortRef.current = null;
     
     // Step 50: キャッシュから即座に表示を試みる
     const cached = detailCacheRef.current.get(id);
     const hasFreshCache = cached && Date.now() - cached.fetchedAt < DETAIL_CACHE_TTL_MS;
+    if (hasFreshCache) {
+      abortRef.current?.abort();
+      inFlightIdRef.current = id;
+      selectedIdRef.current = id;
+    }
     
     // flushSyncを使って、選択メッセージとタイトルと本文の更新を同期的に行う
     // これにより、連続クリック時にタイトルと本文がずれる問題を防ぐ
@@ -1987,9 +2018,11 @@ export default function InboxShell({
       }
     });
     
-    // バックグラウンドで最新データを取得
+    // バックグラウンドで最新データを取得。キャッシュ表示時はクリック体感を優先して少し遅らせる。
     if (hasFreshCache) {
-      void loadDetailBodyOnly(id, false);
+      window.setTimeout(() => {
+        if (selectedIdRef.current === id) void loadDetailBodyOnly(id, false);
+      }, DETAIL_CACHE_REFRESH_DELAY_MS);
     } else {
       void loadDetailBodyOnly(id);
     }
@@ -2842,7 +2875,7 @@ export default function InboxShell({
       try {
         await postJsonOrThrow("/api/mailhub/archive", { id, action: "archive" });
         addToUndoStack({ id, message: targetMessage, action: "archive" });
-        showToast("完了しました", "success");
+      showToast("対応済みにしました", "success");
         // カウントは楽観的更新で既に反映済み。必要に応じてバックグラウンドで更新
         void fetchCountsDebounced();
       } catch (e) {
@@ -3072,7 +3105,7 @@ export default function InboxShell({
           message: targetMessage, 
           action: isCurrentlyWaiting ? "unsetWaiting" : "setWaiting" 
         });
-        showToast(isCurrentlyWaiting ? "Todoに戻しました" : "保留にしました", "success");
+        showToast(isCurrentlyWaiting ? "今返すに戻しました" : "返事待ちにしました", "success");
         // カウントは楽観的更新で既に反映済み。必要に応じてバックグラウンドで更新
         void fetchCountsDebounced();
       } catch (e) {
@@ -3159,7 +3192,7 @@ export default function InboxShell({
       });
     }, 100);
 
-    // 低優先に移動すると、基本的には一覧から消える（assignedビューのみ維持）
+    // 処理不要に移動すると、基本的には一覧から消える（assignedビューのみ維持）
     const shouldRemoveFromCurrentList = viewTab !== "assigned";
     if (shouldRemoveFromCurrentList) {
       setRemovingIds((prev) => new Set(prev).add(id));
@@ -3189,14 +3222,14 @@ export default function InboxShell({
       }, 200);
     }
     
-    // Glow effect（低優先タブ）
+    // Glow effect（処理不要タブ）
     setGlowTab("muted");
     setTimeout(() => setGlowTab(null), 1000);
 
     try {
       await postJsonOrThrow("/api/mailhub/mute", { id, action: "mute" });
       addToUndoStack({ id, message: targetMessage, action: "mute" });
-      showToast("低優先に移動しました", "success");
+      showToast("処理不要に移動しました", "success");
       // Activity表示を即時反映（サーバ取得が遅延/空でも最低1件は見える）
       setActivityLogs((prev) => [
         {
@@ -3302,7 +3335,7 @@ export default function InboxShell({
         }
       }
       
-      showToast(`返信完了（${status === "done" ? "完了" : status === "waiting" ? "保留" : "低優先"}）`, "success");
+      showToast(`返信完了（${status === "done" ? "対応済み" : status === "waiting" ? "返事待ち" : "処理不要"}）`, "success");
     } catch (e) {
       showToast(`エラー: ${e instanceof Error ? e.message : String(e)}`, "error");
     } finally {
@@ -3391,7 +3424,7 @@ export default function InboxShell({
       try {
         await postJsonOrThrow("/api/mailhub/snooze", { id, action: "snooze", until });
         addToUndoStack({ id, message: targetMessage, action: "snooze" });
-        showToast(`期限付き保留にしました（${until}まで）`, "success");
+        showToast(`指定日に戻す設定にしました（${until}まで）`, "success");
         // カウントは楽観的更新で既に反映済み。必要に応じてバックグラウンドで更新
         void fetchCountsDebounced();
       } catch (e) {
@@ -4198,7 +4231,7 @@ export default function InboxShell({
           });
           showToast(`${successIds.length}件処理完了。${failedIds.length}件失敗しました（再実行できます）`, "error");
         } else {
-          showToast(`${successIds.length}件を完了しました`, "success");
+          showToast(`${successIds.length}件を対応済みにしました`, "success");
         }
         
         // カウントは楽観的更新で既に反映済み。必要に応じてバックグラウンドで更新
@@ -4318,7 +4351,7 @@ export default function InboxShell({
       } else {
         // すべて成功した場合も選択状態を維持（要件4）
         // setCheckedIds(new Set());
-        showToast(`${successIds.length}件を低優先に移動しました`, "success");
+        showToast(`${successIds.length}件を処理不要に移動しました`, "success");
       }
     } catch (e) {
       setBulkProgress(null);
@@ -4423,7 +4456,7 @@ export default function InboxShell({
       } else {
         // 選択状態を維持（連続操作のため）
         // setCheckedIds(new Set());
-        showToast(isCurrentlyWaiting ? `${successIds.length}件を未対応に戻しました` : `${successIds.length}件を保留にしました`, "success");
+        showToast(isCurrentlyWaiting ? `${successIds.length}件を今返すに戻しました` : `${successIds.length}件を返事待ちにしました`, "success");
       }
     } catch (e) {
       setBulkProgress(null);
@@ -4833,7 +4866,7 @@ export default function InboxShell({
     if (failedIds.length > 0) {
       showToast(`${successIds.length}件処理完了。${failedIds.length}件失敗しました`, "error");
     } else {
-      showToast(`${successIds.length}件を低優先に移動しました`, "success");
+      showToast(`${successIds.length}件を処理不要に移動しました`, "success");
     }
   }, [triageCandidates, messages, selectedId, onSelectMessage, showToast, fetchCountsDebounced, addToUndoStack, labelId, replaceUrl]);
 
@@ -5363,7 +5396,7 @@ export default function InboxShell({
     },
     {
       id: "toggle-settings",
-      label: "Toggle Settings",
+      label: "設定を開く",
       icon: <Settings size={18} />,
       action: () => {
         if (!isAdmin && !readOnlyMode) {
@@ -5376,7 +5409,7 @@ export default function InboxShell({
     },
     {
       id: "take-next",
-      label: "Take Next",
+      label: "未割当を取る",
       icon: <Zap size={18} />,
       action: () => {
         void handleTakeNext();
@@ -5667,7 +5700,7 @@ export default function InboxShell({
         {/* --- 右側エリア (ヘッダー + ツールバー + タブ + メイン) --- */}
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
           
-          {/* ヘッダー（検索バー - Gmail完全再現） */}
+          {/* ヘッダー（検索バー） */}
           <TopHeader
             searchTerm={searchTerm}
             onChangeSearch={setSearchTerm}
@@ -5797,12 +5830,27 @@ export default function InboxShell({
           {/* ツールバー（アクションボタン群） */}
           <div className={t.toolbar} data-testid="toolbar">
             <div className="flex items-center gap-1 flex-1 min-w-0">
+              <button
+                data-testid="toolbar-take-next"
+                onClick={() => {
+                  void handleTakeNext();
+                }}
+                className={`${t.toolbarButton} min-w-[112px] justify-center bg-[#1a73e8] text-white hover:bg-[#1557b0] hover:text-white ${(isActionInProgress || bulkProgress) ? "opacity-60" : ""}`}
+                title={readOnlyMode ? (getWriteBlockedTitle() ?? "実行できません") : "誰かが取るメールを自分の対応にして開く"}
+                disabled={readOnlyMode || isActionInProgress || bulkProgress !== null}
+              >
+                <Zap size={18} className="text-white" />
+                <span className="hidden sm:inline">未割当を取る</span>
+              </button>
+
+              <div className="w-px h-5 bg-[#dadce0] mx-1"></div>
+
               {/* 選択状態表示（常にスペースを確保してボタンが動かないようにする） */}
               <span className="text-[13px] text-[#3c4043] mr-2 font-normal flex-shrink-0 min-w-[80px] text-right" data-testid="bulk-selection-count">
                 {checkedIds.size > 0 ? `${checkedIds.size}件選択中` : '\u00A0'}
               </span>
 
-              {/* アクションボタン（Gmail完全再現） */}
+              {/* 作業アクション */}
               <button 
                 data-testid="action-done"
                 onClick={() => {
@@ -5812,8 +5860,8 @@ export default function InboxShell({
                     handleArchive(selectedId);
                   }
                 }}
-                className={`${t.toolbarButton} ${(isActionInProgress || bulkProgress) ? "opacity-60" : ""}`} 
-                title={readOnlyMode ? (getWriteBlockedTitle() ?? "実行できません") : "完了"}
+                className={`${t.toolbarButton} min-w-[76px] justify-center ${(isActionInProgress || bulkProgress) ? "opacity-60" : ""}`}
+                title={readOnlyMode ? (getWriteBlockedTitle() ?? "実行できません") : "対応済みにする"}
                 disabled={readOnlyMode || (!selectedId && checkedIds.size === 0) || isActionInProgress || bulkProgress !== null}
               >
                 {(isActionInProgress || bulkProgress) ? (
@@ -5821,7 +5869,7 @@ export default function InboxShell({
                 ) : (
                   <CheckCircle size={20} className={checkedIds.size > 0 || selectedId ? "text-[#34a853]" : "text-[#5f6368]"} />
                 )}
-                <span className="hidden lg:inline">{(isActionInProgress || bulkProgress) ? "処理中" : "完了"}</span>
+                <span className="hidden sm:inline">{(isActionInProgress || bulkProgress) ? "処理中" : "対応済み"}</span>
                 {!(isActionInProgress || bulkProgress) && <span className={t.toolbarShortcut} title="ショートカット: E">E</span>}
               </button>
               
@@ -5834,12 +5882,12 @@ export default function InboxShell({
                     handleSetWaiting(selectedId);
                   }
                 }}
-                className={`${t.toolbarButton} ${(isActionInProgress || bulkProgress) ? "opacity-60" : ""}`} 
-                title={readOnlyMode ? (getWriteBlockedTitle() ?? "実行できません") : "保留"}
+                className={`${t.toolbarButton} min-w-[76px] justify-center ${(isActionInProgress || bulkProgress) ? "opacity-60" : ""}`}
+                title={readOnlyMode ? (getWriteBlockedTitle() ?? "実行できません") : "返事待ちにする"}
                 disabled={readOnlyMode || (!selectedId && checkedIds.size === 0) || isActionInProgress || bulkProgress !== null}
               >
                 <Clock size={20} className={checkedIds.size > 0 || selectedId ? "text-[#ea8600]" : "text-[#5f6368]"} />
-                <span className="hidden lg:inline">保留</span>
+                <span className="hidden sm:inline">返事待ち</span>
                 <span className={t.toolbarShortcut} title="ショートカット: W">W</span>
               </button>
 
@@ -5851,7 +5899,7 @@ export default function InboxShell({
                     ? (someSelectedOtherAssigned ? "action-takeover" : allSelectedMine ? "action-unassign" : "action-assign")
                     : (isSelectedOtherAssigned ? "action-takeover" : isSelectedMine ? "action-unassign" : "action-assign")
                 }
-                className={`${t.toolbarButton} ${(checkedIds.size > 0 ? someSelectedMine : isSelectedMine) ? t.toolbarButtonActive : ""} ${(isActionInProgress || bulkProgress) ? "opacity-60" : ""}`}
+                className={`${t.toolbarButton} min-w-[76px] justify-center ${(checkedIds.size > 0 ? someSelectedMine : isSelectedMine) ? t.toolbarButtonActive : ""} ${(isActionInProgress || bulkProgress) ? "opacity-60" : ""}`}
                 onClick={async () => {
                   // Step 114: 状態によって挙動を分岐
                   if (checkedIds.size > 0) {
@@ -5890,7 +5938,7 @@ export default function InboxShell({
                 disabled={readOnlyMode || selectedIds.length === 0 || bulkProgress !== null || isActionInProgress}
               >
                 <UserCheck size={20} className={(checkedIds.size > 0 ? someSelectedMine : isSelectedMine) ? "text-[#1a73e8]" : "text-[#5f6368]"} />
-                <span className="hidden lg:inline">
+                <span className="hidden sm:inline">
                   {checkedIds.size > 0
                     ? (someSelectedOtherAssigned ? "引き継ぎ" : allSelectedMine ? "担当解除" : "担当")
                     : (isSelectedOtherAssigned ? "引き継ぎ" : isSelectedMine ? "担当解除" : "担当")}
@@ -5898,7 +5946,7 @@ export default function InboxShell({
                 <span className={t.toolbarShortcut} title="ショートカット: C">C</span>
               </button>
 
-              {/* 低優先（常に表示 - 複数選択時は一括処理、単独選択時は単独処理） */}
+              {/* 処理不要（常に表示 - 複数選択時は一括処理、単独選択時は単独処理） */}
               <button 
                 data-testid={checkedIds.size > 0 ? "bulk-action-mute" : "action-mute"}
                 onClick={() => {
@@ -5908,12 +5956,12 @@ export default function InboxShell({
                     handleMute(selectedId);
                   }
                 }}
-                className={`${t.toolbarButton} ${(isActionInProgress || bulkProgress) ? "opacity-60" : ""}`}
-                title={readOnlyMode ? (getWriteBlockedTitle() ?? "実行できません") : (checkedIds.size > 0 ? "選択分を低優先へ" : "低優先へ")}
+                className={`${t.toolbarButton} min-w-[82px] justify-center ${(isActionInProgress || bulkProgress) ? "opacity-60" : ""}`}
+                title={readOnlyMode ? (getWriteBlockedTitle() ?? "実行できません") : (checkedIds.size > 0 ? "選択分を処理不要にする" : "処理不要にする")}
                 disabled={readOnlyMode || (!selectedId && checkedIds.size === 0) || isActionInProgress || bulkProgress !== null}
               >
                 <VolumeX size={20} className={checkedIds.size > 0 || selectedId ? "text-[#ea8600]" : "text-[#5f6368]"} />
-                <span className="hidden lg:inline">低優先</span>
+                <span className="hidden sm:inline">処理不要</span>
               </button>
 
               {/* Step 23: Gmail-like Labels */}
@@ -5938,7 +5986,7 @@ export default function InboxShell({
                 </button>
               </div>
 
-              {/* 一括操作ボタン（選択時のみ有効 - Gmail完全再現） */}
+              {/* 一括操作ボタン（選択時のみ有効） */}
               {checkedIds.size > 0 && (
                 <>
                   <div className="w-px h-5 bg-[#dadce0] mx-2"></div>
@@ -6048,10 +6096,10 @@ export default function InboxShell({
                   });
                 }}
                 className={`${t.toolbarButton} ${slaFocus ? "bg-[#fef7e0] border-[#f9ab00]" : ""} ${slaCriticalOnly ? "ring-2 ring-red-400" : ""}`} 
-                title={slaFocus ? (slaCriticalOnly ? "SLA Focus: Critical-only" : "SLA Focus: ON（危険メールのみ表示中）") : "SLA Focus: OFF（全メール表示）"}
+                title={slaFocus ? (slaCriticalOnly ? "特に長く残っているメールだけ表示中" : "長く残っているメールを表示中") : "長く残っているメールを表示"}
               >
                 <AlertTriangle size={20} className={slaFocus ? "text-[#f9ab00]" : "text-[#5f6368]"} />
-                <span className="hidden lg:inline">SLA</span>
+                <span className="hidden lg:inline">長く残っている</span>
               </button>
             </div>
           </div>
@@ -6068,7 +6116,7 @@ export default function InboxShell({
                 style={{ top: queuesPopoverPos.top, left: queuesPopoverPos.left }}
               >
                 <div className="flex items-center justify-between mb-2">
-                  <div className="text-[12px] font-medium text-[#202124]">Queues（作業キュー）</div>
+                  <div className="text-[12px] font-medium text-[#202124]">よく見る一覧</div>
                   <button
                     type="button"
                     className="px-2 py-1 text-[12px] text-[#5f6368] hover:bg-[#f1f3f4] rounded"
@@ -6268,7 +6316,7 @@ export default function InboxShell({
           {/* タブナビゲーション */}
           <div className={t.tabs} data-testid="tabs">
             <div className="flex items-center min-w-0">
-              {/* Gmail風: 一括選択チェック（タブの左） */}
+              {/* 表示中メールの一括選択チェック（タブの左） */}
               <div className="flex items-center pr-2 pl-1">
                 <input
                   ref={checkAllRef}
@@ -6284,11 +6332,11 @@ export default function InboxShell({
                 />
               </div>
 
-              {/* 受信箱タブ */}
+              {/* 今返すタブ */}
               <button
                 onClick={() => {
                   setViewTab("inbox");
-                  // 受信箱タブ: todoラベルで再読み込み
+                  // 今返すタブ: todoラベルで再読み込み
                   const todoLabel = labelGroups.flatMap((g) => g.items).find((item) => item.statusType === "todo");
                   if (todoLabel) {
                     onSelectLabel(todoLabel);
@@ -6298,13 +6346,13 @@ export default function InboxShell({
                 className={`${t.tab} ${viewTab === "inbox" ? t.tabActive : ""}`}
                 data-testid="tab-inbox"
               >
-                受信箱
+                今返す
               </button>
-              {/* 担当タブ */}
+              {/* 自分が対応タブ */}
               <button
                 onClick={() => {
                   setViewTab("assigned");
-                  // 担当タブ: 担当ラベルでフィルタリングしてメッセージを取得
+                  // 自分が対応タブ: 担当ラベルでフィルタリングしてメッセージを取得
                   const todoLabel = labelGroups.flatMap((g) => g.items).find((item) => item.statusType === "todo");
                   if (todoLabel) {
                     startTransition(async () => {
@@ -6335,13 +6383,13 @@ export default function InboxShell({
                 className={`${t.tab} ${viewTab === "assigned" ? t.tabActive : ""}`}
                 data-testid="tab-assigned"
               >
-                担当
+                自分が対応
               </button>
-              {/* 保留タブ */}
+              {/* 返事待ちタブ */}
               <button
                 onClick={() => {
                   setViewTab("waiting");
-                  // 保留タブ: waitingラベルで再読み込み
+                  // 返事待ちタブ: waitingラベルで再読み込み
                   const waitingLabel = labelGroups.flatMap((g) => g.items).find((item) => item.statusType === "waiting");
                   if (waitingLabel) {
                     onSelectLabel(waitingLabel);
@@ -6351,13 +6399,13 @@ export default function InboxShell({
                 className={`${t.tab} ${viewTab === "waiting" ? t.tabActive : ""}`}
                 data-testid="tab-waiting"
               >
-                保留
+                返事待ち
               </button>
-              {/* 低優先タブ */}
+              {/* 処理不要タブ */}
               <button
                 onClick={() => {
                   setViewTab("muted");
-                  // 低優先タブ: mutedラベルで再読み込み
+                  // 処理不要タブ: mutedラベルで再読み込み
                   const mutedLabel = labelGroups.flatMap((g) => g.items).find((item) => item.statusType === "muted");
                   if (mutedLabel) {
                     onSelectLabel(mutedLabel);
@@ -6367,11 +6415,11 @@ export default function InboxShell({
                 className={`${t.tab} ${viewTab === "muted" ? t.tabActive : ""}`}
                 data-testid="tab-muted"
               >
-                低優先
+                処理不要
               </button>
             </div>
 
-            {/* 右側: 選択中メールのナビゲーション/クイック操作（Gmail風：タブ行と同じ水平線に揃える） */}
+            {/* 右側: 選択中メールのナビゲーション/クイック操作（タブ行と同じ水平線に揃える） */}
             <div className="flex items-center gap-1 flex-shrink-0 pr-1">
               {selectedMessage && (
                 <>
@@ -6432,10 +6480,10 @@ export default function InboxShell({
                           data-testid="action-mute-detail"
                           onClick={() => handleMute(selectedId)}
                           className="px-2 py-1 rounded-md text-xs text-[#3c4043] hover:bg-[#f1f3f4] transition-colors font-medium flex items-center gap-1.5"
-                          title="低優先へ"
+                          title="処理不要にする"
                         >
                           <VolumeX size={14} className="text-[#5f6368]" />
-                          <span className="hidden sm:inline">低優先</span>
+                          <span className="hidden sm:inline">処理不要</span>
                         </button>
                       ) : (
                         <button
@@ -6457,10 +6505,10 @@ export default function InboxShell({
                             onClick={openSnoozePopover}
                             disabled={readOnlyMode}
                             className="px-2 py-1 rounded-md text-xs text-[#3c4043] hover:bg-[#f1f3f4] transition-colors font-medium flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
-                            title={readOnlyMode ? (getWriteBlockedTitle() ?? "実行できません") : "期限付き保留"}
+                            title={readOnlyMode ? (getWriteBlockedTitle() ?? "実行できません") : "指定日に戻す"}
                           >
                             <Clock size={14} className="text-[#5f6368]" />
-                            <span className="hidden sm:inline">期限付き保留</span>
+                            <span className="hidden sm:inline">指定日に戻す</span>
                           </button>
                           {snoozePopoverOpen && snoozePopoverPos && (
                             <div
@@ -6514,7 +6562,7 @@ export default function InboxShell({
                           onClick={() => selectedId && handleUnsnooze(selectedId)}
                           disabled={readOnlyMode}
                           className="px-2 py-1 rounded-md text-xs text-[#3c4043] hover:bg-[#f1f3f4] transition-colors font-medium flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
-                          title={readOnlyMode ? (getWriteBlockedTitle() ?? "実行できません") : "期限付き保留を解除"}
+                            title={readOnlyMode ? (getWriteBlockedTitle() ?? "実行できません") : "指定日戻しを解除"}
                         >
                           <Clock size={14} className="text-[#5f6368]" />
                           <span className="hidden sm:inline">解除</span>
@@ -6588,13 +6636,13 @@ export default function InboxShell({
                   <div className="flex-1 flex items-center justify-center p-8 text-gray-500 text-sm font-medium" data-testid="sla-empty">
                     <div className="text-center space-y-2">
                       <AlertTriangle size={40} className="mx-auto text-[#34a853]" />
-                      <div>SLA超過はありません</div>
+                      <div>長く残っているメールはありません</div>
                       <div className="text-xs text-gray-400">全てのメールが期限内です</div>
                     </div>
                   </div>
                 ) : slaFilteredMessages.length === 0 && !isPending ? (
                   <div className="flex-1 flex items-center justify-center p-8 text-gray-500 text-sm font-medium" data-testid={serverSearchQuery ? undefined : (searchTerm ? undefined : (activeLabel?.statusType === "todo" ? "zero-inbox" : undefined))}>
-                    {serverSearchQuery ? `検索結果が見つかりませんでした: ${serverSearchQuery}` : searchTerm ? "見つかりませんでした" : activeLabel?.statusType === "todo" ? "全て完了しました！お疲れさまです！" : "メールはありません"}
+                    {serverSearchQuery ? `検索結果が見つかりませんでした: ${serverSearchQuery}` : searchTerm ? "見つかりませんでした" : activeLabel?.statusType === "todo" ? "今返すメールはありません" : "メールはありません"}
                   </div>
                 ) : (
                   <div className="divide-y divide-gray-200" data-testid="message-list">
@@ -6616,9 +6664,13 @@ export default function InboxShell({
                           key={mail.id}
                           data-message-id={mail.id}
                           data-testid="message-row"
+                          data-active={isActive ? "true" : undefined}
                           data-is-group={isGroupHeader && groupCount > 1 ? "true" : undefined}
                           data-group-key={groupKey}
                           data-group-count={groupCount > 1 ? groupCount : undefined}
+                          role="option"
+                          aria-selected={isActive}
+                          className="mailhub-message-row-shell"
                           onClick={(e) => {
                             // Shift+Clickで範囲選択
                             if (e.shiftKey && lastCheckedId && lastCheckedId !== mail.id) {
@@ -6674,7 +6726,7 @@ export default function InboxShell({
                         >
                           <div
                             data-testid={isActive ? "message-row-selected" : undefined}
-                            className={`${t.listItem} ${rowTone} ${isActive ? t.listItemActive : ""} ${isChecked ? t.listItemChecked : ""} ${isTriageCandidate(mail.id) ? "bg-yellow-50" : ""} ${flashingIds.has(mail.id) ? "bg-blue-200 scale-[1.01] transition-all duration-200 shadow-md" : ""} ${removingIds.has(mail.id) ? "opacity-0 scale-95 -translate-x-8 transition-all duration-500 ease-out" : "transition-all duration-200"} relative`}
+                            className={`${t.listItem} ${rowTone} ${isActive ? t.listItemActive : ""} ${isChecked ? t.listItemChecked : ""} ${isTriageCandidate(mail.id) ? "bg-yellow-50" : ""} ${flashingIds.has(mail.id) ? "bg-blue-200 scale-[1.01] transition-all duration-200 shadow-md" : ""} ${removingIds.has(mail.id) ? "opacity-0 scale-95 -translate-x-8 transition-all duration-500 ease-out" : "transition-[background-color,box-shadow,border-color] duration-75"} relative`}
                           >
                             {/* Assignee カラーバー（左端） */}
                             {mail.assigneeSlug && (
@@ -6688,9 +6740,9 @@ export default function InboxShell({
                                 title={mail.assigneeSlug === myAssigneeSlug ? "自分が担当" : `担当: ${getAssigneeDisplayName(mail.assigneeSlug)}`}
                               />
                             )}
-                            {/* Gmail風 1行表示: checkbox / star / from / subject - snippet / date (レスポンシブ) */}
+                            {/* 1行表示: checkbox / star / from / subject - snippet / date (レスポンシブ) */}
                             <div className="grid grid-cols-[20px_20px_120px_1fr_auto] sm:grid-cols-[20px_20px_140px_1fr_auto] items-center gap-1 sm:gap-2 w-full min-w-0 whitespace-nowrap">
-                            {/* チェックボックス（Gmail完全再現） */}
+                            {/* チェックボックス */}
                             <div className="flex items-center justify-center">
                               <input
                                 type="checkbox"
@@ -6737,7 +6789,7 @@ export default function InboxShell({
                               />
                             </div>
 
-                            {/* スター（Gmail完全再現） */}
+                            {/* スター */}
                             <button
                               type="button"
                               aria-label="スター"
@@ -6757,7 +6809,7 @@ export default function InboxShell({
                               />
                             </button>
 
-                            {/* 送信者（Gmail完全再現） */}
+                            {/* 送信者 */}
                             <div className="min-w-0 flex items-center gap-1.5">
                               {isUnread && <span className="w-1.5 h-1.5 rounded-full bg-[#1a73e8] flex-shrink-0" title="未読" />}
                               {/* Step 105: 未確認（unseen）バッジ */}
@@ -6772,7 +6824,7 @@ export default function InboxShell({
                               </span>
                             </div>
 
-                            {/* 件名 - 本文抜粋（Gmail完全再現） */}
+                            {/* 件名 - 本文抜粋 */}
                             <div className={`min-w-0 truncate text-[13px] leading-[18px] ${isUnread ? "font-medium text-[#202124]" : "font-normal text-[#202124]"} ${isGroupChild ? "pl-4 border-l-2 border-blue-200" : ""}`}>
                               {/* Step 89: グループ展開/折りたたみボタン */}
                               {isGroupHeader && groupCount > 1 && (
@@ -6829,9 +6881,9 @@ export default function InboxShell({
                                 <span 
                                   data-testid="triage-badge-muted"
                                   className="ml-2 px-1 py-0.5 text-[9px] font-bold bg-yellow-100 text-yellow-700 border border-yellow-300 rounded uppercase tracking-wider"
-                                  title="低優先候補"
+                                  title="処理不要候補"
                                 >
-                                  低優先
+                                  処理不要
                                 </span>
                               )}
                               {/* E2E互換用 hidden pill */}
@@ -6846,7 +6898,7 @@ export default function InboxShell({
                                 <span
                                   data-testid="snooze-pill"
                                   className="ml-2 px-1 py-0.5 rounded text-[9px] font-bold bg-blue-50 text-blue-700 border border-blue-200"
-                                  title={`期限付き保留: ${mail.snoozeUntil}`}
+                                  title={`指定日に戻す: ${mail.snoozeUntil}`}
                                 >
                                   Snooze: {mail.snoozeUntil.split('-').slice(1).join('/')}
                                 </span>
@@ -6876,7 +6928,7 @@ export default function InboxShell({
                               )}
                             </div>
 
-                            {/* 日時 + 経過（Gmail完全再現） */}
+                            {/* 日時 + 経過 */}
                             <div className="flex items-center gap-1.5 flex-shrink-0">
                               <span className={`text-[12px] font-normal ${isActive ? 'text-[#3c4043]' : 'text-[#5f6368]'}`}>
                                 {mail.receivedAt.split(' ')[1]}
@@ -7128,10 +7180,11 @@ export default function InboxShell({
                       ) : (
                       <div className="relative">
                         {detailBody.isLoading ? (
-                          <div className="space-y-4" data-testid="detail-skeleton">
-                             <div className="h-4 bg-[#e8eaed] rounded w-3/4 animate-pulse" />
-                             <div className="h-4 bg-[#e8eaed] rounded w-1/2 animate-pulse" />
-                             <div className="h-4 bg-[#e8eaed] rounded w-2/3 animate-pulse" />
+                          <div className="space-y-4 py-2" data-testid="detail-skeleton" aria-busy="true">
+                             <div className="mailhub-detail-shimmer h-4 rounded w-3/4" />
+                             <div className="mailhub-detail-shimmer h-4 rounded w-1/2" />
+                             <div className="mailhub-detail-shimmer h-4 rounded w-2/3" />
+                             <div className="mailhub-detail-shimmer h-4 rounded w-5/6" />
                           </div>
                         ) : detailError ? (
                           <div className="text-[#c5221f] text-[14px] font-normal bg-[#fce8e6] p-4 rounded-lg border border-[#f28b82]">
@@ -7198,8 +7251,8 @@ export default function InboxShell({
                             {} as { mine?: number; others?: number; unassigned?: number },
                           );
                           const summaryText = [
-                            `Todo ${statusCounts.todo ?? 0}`,
-                            `Waiting ${statusCounts.waiting ?? 0}`,
+                            `今返す ${statusCounts.todo ?? 0}`,
+                            `返事待ち ${statusCounts.waiting ?? 0}`,
                             `Done ${statusCounts.done ?? 0}`,
                             `Muted ${statusCounts.muted ?? 0}`,
                           ]
@@ -7237,13 +7290,13 @@ export default function InboxShell({
                                     data-testid="thread-action-waiting"
                                     className="px-2 py-1 text-[11px] font-medium rounded border border-[#dadce0] bg-white hover:bg-[#f1f3f4] disabled:opacity-40 disabled:cursor-not-allowed"
                                     disabled={readOnlyMode || bulkProgress !== null || threadMessageIds.length === 0}
-                                    title={readOnlyMode ? (getWriteBlockedTitle() ?? "実行できません") : "Thread Waiting"}
+                                    title={readOnlyMode ? (getWriteBlockedTitle() ?? "実行できません") : "スレッドを返事待ちにする"}
                                     onClick={() => {
                                       if (readOnlyMode || bulkProgress !== null) return;
                                       void handleBulkWaiting(threadMessageIds);
                                     }}
                                   >
-                                    Thread Waiting
+                                    スレッドを返事待ち
                                   </button>
                                   <button
                                     type="button"
@@ -7742,7 +7795,7 @@ export default function InboxShell({
                                     disabled={readOnlyMode || isCompletingReply}
                                     data-testid="reply-mark-done"
                                     className="px-4 py-2 bg-green-600 text-white hover:bg-green-500 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed rounded-md text-sm font-medium transition-colors flex items-center gap-2"
-                                    title={readOnlyMode ? "READ ONLYのため実行できません" : "返信完了（Done）"}
+                                    title={readOnlyMode ? "READ ONLYのため実行できません" : "返信完了（対応済み）"}
                                   >
                                     <CheckCircle size={14} />
                                     {isCompletingReply && replyCompleteStatus === "done" ? "処理中..." : "返信完了"}
@@ -7755,10 +7808,10 @@ export default function InboxShell({
                                     disabled={readOnlyMode || isCompletingReply}
                                     data-testid="reply-mark-waiting"
                                     className="px-4 py-2 bg-yellow-600 text-white hover:bg-yellow-500 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed rounded-md text-sm font-medium transition-colors flex items-center gap-2"
-                                    title={readOnlyMode ? "READ ONLYのため実行できません" : "返信完了（保留）"}
+                                    title={readOnlyMode ? "READ ONLYのため実行できません" : "返信完了（返事待ち）"}
                                   >
                                     <Clock size={14} />
-                                    {isCompletingReply && replyCompleteStatus === "waiting" ? "処理中..." : "返信完了（保留）"}
+                                    {isCompletingReply && replyCompleteStatus === "waiting" ? "処理中..." : "返信完了（返事待ち）"}
                                   </button>
                                 </div>
                               </div>
@@ -7865,7 +7918,7 @@ export default function InboxShell({
                                 <div>
                                   <div className="text-xs font-medium text-gray-500 mb-1">実行する操作</div>
                                   <div className="text-sm font-bold text-gray-900">
-                                    {replyCompleteStatus === "done" ? "✅ Done（完了）" : replyCompleteStatus === "waiting" ? "🕗 Waiting（保留）" : "🧊 Muted（低優先）"}
+                                    {replyCompleteStatus === "done" ? "対応済み" : replyCompleteStatus === "waiting" ? "返事待ち" : "処理不要"}
                                   </div>
                                 </div>
                               </div>
@@ -7929,12 +7982,12 @@ export default function InboxShell({
             <div className="space-y-4">
               {[
                 { keys: ["↑", "↓"], desc: "一覧で上下移動" },
-                { keys: ["E"], desc: "完了（Done）" },
-                { keys: ["W"], desc: "保留（Later）" },
+                { keys: ["E"], desc: "対応済みにする" },
+                { keys: ["W"], desc: "返事待ちにする" },
                 { keys: ["C"], desc: "対応中（Claim）" },
                 { keys: ["A"], desc: "担当トグル（Assign/Unassign）" },
-                { keys: ["S"], desc: "SLA Focus ON/OFF" },
-                { keys: ["Shift", "S"], desc: "Critical-only切替（SLA ON時）" },
+                { keys: ["S"], desc: "長く残っているメールを表示" },
+                { keys: ["Shift", "S"], desc: "特に長く残っているメールだけ表示" },
                 { keys: ["U"], desc: "元に戻す（Undo）" },
                 { keys: ["?"], desc: "ヘルプを表示" },
                 { keys: ["Esc"], desc: "閉じる" },
@@ -8024,11 +8077,11 @@ export default function InboxShell({
                 <div className="text-center text-slate-500 text-sm py-8">読み込み中...</div>
               ) : (
                 <>
-                  {/* Todo Critical */}
+                  {/* 今返す: 特に長く残っている */}
                   {opsSummary.todo.critical.count > 0 && (
                     <div>
                       <div className="flex items-center gap-2 mb-2">
-                        <h4 className="text-sm font-bold text-red-400">Todo Critical ({opsSummary.todo.critical.count}件)</h4>
+                        <h4 className="text-sm font-bold text-red-400">今返す・特に長い ({opsSummary.todo.critical.count}件)</h4>
                       </div>
                       <div className="space-y-1">
                         {opsSummary.todo.critical.items.map((item) => (
@@ -8069,11 +8122,11 @@ export default function InboxShell({
                     </div>
                   )}
 
-                  {/* Todo Warn */}
+                  {/* 今返す: 長く残っている */}
                   {opsSummary.todo.warn.count > 0 && (
                     <div>
                       <div className="flex items-center gap-2 mb-2">
-                        <h4 className="text-sm font-bold text-yellow-400">Todo Warn ({opsSummary.todo.warn.count}件)</h4>
+                        <h4 className="text-sm font-bold text-yellow-400">今返す・長く残っている ({opsSummary.todo.warn.count}件)</h4>
                       </div>
                       <div className="space-y-1">
                         {opsSummary.todo.warn.items.map((item) => (
@@ -8114,11 +8167,11 @@ export default function InboxShell({
                     </div>
                   )}
 
-                  {/* Waiting Critical */}
+                  {/* 返事待ち: 特に長く残っている */}
                   {opsSummary.waiting.critical.count > 0 && (
                     <div>
                       <div className="flex items-center gap-2 mb-2">
-                        <h4 className="text-sm font-bold text-red-400">Waiting Critical ({opsSummary.waiting.critical.count}件)</h4>
+                        <h4 className="text-sm font-bold text-red-400">返事待ち・特に長い ({opsSummary.waiting.critical.count}件)</h4>
                       </div>
                       <div className="space-y-1">
                         {opsSummary.waiting.critical.items.map((item) => (
@@ -8159,11 +8212,11 @@ export default function InboxShell({
                     </div>
                   )}
 
-                  {/* Waiting Warn */}
+                  {/* 返事待ち: 長く残っている */}
                   {opsSummary.waiting.warn.count > 0 && (
                     <div>
                       <div className="flex items-center gap-2 mb-2">
-                        <h4 className="text-sm font-bold text-yellow-400">Waiting Warn ({opsSummary.waiting.warn.count}件)</h4>
+                        <h4 className="text-sm font-bold text-yellow-400">返事待ち・長く残っている ({opsSummary.waiting.warn.count}件)</h4>
                       </div>
                       <div className="space-y-1">
                         {opsSummary.waiting.warn.items.map((item) => (
@@ -8204,11 +8257,11 @@ export default function InboxShell({
                     </div>
                   )}
 
-                  {/* Unassigned Critical */}
+                  {/* 誰かが取る: 特に長く残っている */}
                   {opsSummary.unassigned.critical.count > 0 && (
                     <div>
                       <div className="flex items-center gap-2 mb-2">
-                        <h4 className="text-sm font-bold text-red-400">Unassigned Critical ({opsSummary.unassigned.critical.count}件)</h4>
+                        <h4 className="text-sm font-bold text-red-400">誰かが取る・特に長い ({opsSummary.unassigned.critical.count}件)</h4>
                       </div>
                       <div className="space-y-1">
                         {opsSummary.unassigned.critical.items.map((item) => (
@@ -8249,11 +8302,11 @@ export default function InboxShell({
                     </div>
                   )}
 
-                  {/* Unassigned Warn */}
+                  {/* 誰かが取る: 長く残っている */}
                   {opsSummary.unassigned.warn.count > 0 && (
                     <div>
                       <div className="flex items-center gap-2 mb-2">
-                        <h4 className="text-sm font-bold text-yellow-400">Unassigned Warn ({opsSummary.unassigned.warn.count}件)</h4>
+                        <h4 className="text-sm font-bold text-yellow-400">誰かが取る・長く残っている ({opsSummary.unassigned.warn.count}件)</h4>
                       </div>
                       <div className="space-y-1">
                         {opsSummary.unassigned.warn.items.map((item) => (
@@ -8519,7 +8572,7 @@ export default function InboxShell({
         </div>
       )}
 
-      {/* 候補の一括低優先（E2E互換: TEST_MODEでは確認UIを表示） */}
+      {/* 候補の一括処理不要（E2E互換: TEST_MODEでは確認UIを表示） */}
       {showBulkMuteConfirm && (
         <div
           className="fixed inset-0 z-[190] flex items-center justify-center bg-black/30"
@@ -8530,9 +8583,9 @@ export default function InboxShell({
             className="w-full max-w-sm bg-white rounded-xl shadow-2xl border border-gray-200 p-5"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="text-sm font-bold text-[#202124]">候補を一括で低優先へ</div>
+            <div className="text-sm font-bold text-[#202124]">候補を一括で処理不要へ</div>
             <div className="mt-1 text-xs text-gray-600">
-              {triageCandidates.length}件を低優先へ移動します。
+              {triageCandidates.length}件を処理不要へ移動します。
             </div>
             <div className="mt-4 flex justify-end gap-2">
               <button
@@ -8569,8 +8622,8 @@ export default function InboxShell({
           >
             <div className="text-sm font-medium text-gray-900 mb-3">⚠️ 確認</div>
             <div className="text-xs text-gray-600 mb-4">
-              {pendingBulkConfirm.action === "bulkDone" && `${pendingBulkConfirm.ids.length}件のメールを完了にします。よろしいですか？`}
-              {pendingBulkConfirm.action === "bulkMute" && `${pendingBulkConfirm.ids.length}件のメールを低優先にします。よろしいですか？`}
+              {pendingBulkConfirm.action === "bulkDone" && `${pendingBulkConfirm.ids.length}件のメールを対応済みにします。よろしいですか？`}
+              {pendingBulkConfirm.action === "bulkMute" && `${pendingBulkConfirm.ids.length}件のメールを処理不要にします。よろしいですか？`}
               {pendingBulkConfirm.action === "bulkAssign" && `${pendingBulkConfirm.ids.length}件のメールを自分に割り当てます。よろしいですか？`}
             </div>
             <div className="mt-4 flex justify-end gap-2">

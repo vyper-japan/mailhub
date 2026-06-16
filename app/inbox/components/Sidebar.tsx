@@ -72,10 +72,10 @@ export function Sidebar({
       </div>
 
       <div className="flex-1 overflow-y-auto py-2">
-        {/* Views（保存ビュー） */}
+        {/* Work Queue（保存ビュー） */}
         {views.length > 0 && (
-          <div className="mb-6" data-testid="nav-views">
-            <div className={t.sidebarHeader}>Views</div>
+          <div className="mb-4" data-testid="nav-views">
+            <div className={t.sidebarHeader}>よく見る一覧</div>
             <div className="space-y-0.5">
               {pinnedViews.map((v) => {
                 const isActive = v.id === activeViewId;
@@ -124,49 +124,11 @@ export function Sidebar({
           </div>
         )}
 
-        {/* Channelsセクション */}
-        {labelGroups
-          .filter((g) => g.id === "channels")
-          .map((group) => (
-              <div key={group.id} className="mb-6" data-testid="label-channels">
-                <div className={t.sidebarHeader}>{group.label}</div>
-                <div className="space-y-0.5">
-                  {group.items.map((item) => {
-                    const isActive = item.id === labelId;
-                    let count: number | null = null;
-                    if (item.type === "channel") {
-                      // 常に保持しているchannelCountsを表示（画面移動で消えない）
-                      count = typeof channelCounts[item.id] === "number" ? channelCounts[item.id] : null;
-                      // 初回など未取得の場合は、アクティブ時のみ現在のmessages長で補完
-                      if (count === null && isActive) count = messagesLength;
-                    }
-
-                    return (
-                      <div
-                        key={item.id}
-                        data-testid={`label-item-${item.id}`}
-                        onClick={() => onSelectLabel(item)}
-                        className={`${t.sidebarItem} ${isActive ? t.sidebarItemActive : ""}`}
-                      >
-                        <span className="flex items-center gap-2">
-                          <span
-                            className={`w-1.5 h-1.5 rounded-full ${isActive ? "bg-[#1a73e8]" : "bg-[#dadce0]"}`}
-                          ></span>
-                          <span>{item.label}</span>
-                        </span>
-                        {count !== null && count > 0 && <span className={t.badge}>{count}</span>}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
-
-        {/* Statusセクション: 受信箱、担当、保留、低優先（Doneを除外） */}
-        <div className="mb-6" data-testid="label-status">
-          <div className={t.sidebarHeader}>Status</div>
+        {/* Statusセクション: 返答・処理する、担当、返事待ち、処理不要（Doneを除外） */}
+        <div className="mb-4" data-testid="label-status">
+          <div className={t.sidebarHeader}>処理の行き先</div>
           <div className="space-y-0.5">
-            {/* 受信箱（Todo） */}
+            {/* 今返す（Todo） */}
             {(() => {
               const item = labelGroups.flatMap((g) => g.items).find((i) => i.statusType === "todo");
               if (!item) return null;
@@ -191,7 +153,7 @@ export function Sidebar({
                       }`}
                     />
                     <span className={glowTab === item.statusType ? "text-[#1a73e8] font-medium" : ""}>
-                      受信箱
+                      今返す
                     </span>
                   </span>
                   {count !== null && count > 0 && (
@@ -231,7 +193,7 @@ export function Sidebar({
                         glowTab === "assigned" ? "drop-shadow-[0_0_10px_rgba(26,115,232,0.55)]" : ""
                       }`}
                     />
-                    <span className={glowTab === "assigned" ? "text-[#1a73e8] font-medium" : ""}>担当</span>
+                    <span className={glowTab === "assigned" ? "text-[#1a73e8] font-medium" : ""}>自分が対応</span>
                   </span>
                   {count > 0 && (
                     <span
@@ -248,7 +210,7 @@ export function Sidebar({
               );
             })()}
 
-            {/* 保留（Waiting） */}
+            {/* 返事待ち（Waiting） */}
             {(() => {
               const item = labelGroups.flatMap((g) => g.items).find((i) => i.statusType === "waiting");
               if (!item) return null;
@@ -273,7 +235,7 @@ export function Sidebar({
                       }`}
                     />
                     <span className={glowTab === item.statusType ? "text-[#1a73e8] font-medium" : ""}>
-                      保留
+                      返事待ち
                     </span>
                   </span>
                   {count !== null && count > 0 && (
@@ -291,7 +253,7 @@ export function Sidebar({
               );
             })()}
 
-            {/* 低優先（Muted） */}
+            {/* 処理不要（Muted） */}
             {(() => {
               const item = labelGroups.flatMap((g) => g.items).find((i) => i.statusType === "muted");
               if (!item) return null;
@@ -316,7 +278,7 @@ export function Sidebar({
                       }`}
                     />
                     <span className={glowTab === item.statusType ? "text-[#1a73e8] font-medium" : ""}>
-                      低優先
+                      処理不要
                     </span>
                   </span>
                   {count !== null && count > 0 && (
@@ -359,7 +321,7 @@ export function Sidebar({
                       }`}
                     />
                     <span className={glowTab === item.statusType ? "text-[#1a73e8] font-medium" : ""}>
-                      期限付き保留
+                      日付を決めて戻す
                     </span>
                   </span>
                   {count !== null && count > 0 && (
@@ -379,6 +341,44 @@ export function Sidebar({
           </div>
         </div>
 
+        {/* Channelsセクション: ストア別は作業キュー後の調査軸 */}
+        {labelGroups
+          .filter((g) => g.id === "channels")
+          .map((group) => (
+              <div key={group.id} className="mb-6" data-testid="label-channels">
+                <div className={t.sidebarHeader}>店舗・宛先別</div>
+                <div className="space-y-0.5">
+                  {group.items.map((item) => {
+                    const isActive = item.id === labelId;
+                    let count: number | null = null;
+                    if (item.type === "channel") {
+                      // 常に保持しているchannelCountsを表示（画面移動で消えない）
+                      count = typeof channelCounts[item.id] === "number" ? channelCounts[item.id] : null;
+                      // 初回など未取得の場合は、アクティブ時のみ現在のmessages長で補完
+                      if (count === null && isActive) count = messagesLength;
+                    }
+
+                    return (
+                      <div
+                        key={item.id}
+                        data-testid={`label-item-${item.id}`}
+                        onClick={() => onSelectLabel(item)}
+                        className={`${t.sidebarItem} ${isActive ? t.sidebarItemActive : ""}`}
+                      >
+                        <span className="flex items-center gap-2 min-w-0">
+                          <span
+                            className={`w-1.5 h-1.5 rounded-full ${isActive ? "bg-[#1a73e8]" : "bg-[#dadce0]"}`}
+                          ></span>
+                          <span className="truncate">{item.label}</span>
+                        </span>
+                        {count !== null && count > 0 && <span className={t.badge}>{count}</span>}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+
         {/* Step 113: Assigneeセクション（Mine/Unassigned + 全メンバー） */}
         {labelGroups
           .filter((g) => g.id === "assignee")
@@ -392,7 +392,7 @@ export function Sidebar({
             const myDisplayName = myAssignee?.name || user.name?.split(" ")[0] || user.email.split("@")[0];
             return (
             <div key={group.id} className="mb-6" data-testid="label-assignee">
-              <div className={t.sidebarHeader}>{group.label}</div>
+              <div className={t.sidebarHeader}>担当者別</div>
               <div className="space-y-0.5">
                 {/* Mine / Unassigned */}
                 {group.items.map((item) => {
@@ -516,5 +516,3 @@ export function Sidebar({
     </aside>
   );
 }
-
-

@@ -145,18 +145,18 @@ export function HandoffDrawer({ open, onClose, isAdmin, showToast }: Props) {
           {preview && (
             <>
               <section>
-                <div className="text-sm font-bold text-white mb-2">Ops Summary</div>
+                <div className="text-sm font-bold text-white mb-2">処理サマリー</div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
                   <div className="bg-slate-800/50 rounded border border-slate-700/30 p-3">
-                    <div className="text-slate-300 font-semibold">Todo</div>
+                    <div className="text-slate-300 font-semibold">今返す</div>
                     <div className="mt-1 text-slate-400">🔴{preview.opsSummary.todo.critical.count} / 🟡{preview.opsSummary.todo.warn.count}</div>
                   </div>
                   <div className="bg-slate-800/50 rounded border border-slate-700/30 p-3">
-                    <div className="text-slate-300 font-semibold">Waiting</div>
+                    <div className="text-slate-300 font-semibold">返事待ち</div>
                     <div className="mt-1 text-slate-400">🔴{preview.opsSummary.waiting.critical.count} / 🟡{preview.opsSummary.waiting.warn.count}</div>
                   </div>
                   <div className="bg-slate-800/50 rounded border border-slate-700/30 p-3">
-                    <div className="text-slate-300 font-semibold">Unassigned</div>
+                    <div className="text-slate-300 font-semibold">誰かが取る</div>
                     <div className="mt-1 text-slate-400">🔴{preview.opsSummary.unassigned.critical.count} / 🟡{preview.opsSummary.unassigned.warn.count}</div>
                   </div>
                 </div>
@@ -172,7 +172,7 @@ export function HandoffDrawer({ open, onClose, isAdmin, showToast }: Props) {
                       className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${activityTab === "all" ? "bg-blue-600 text-white" : "bg-slate-800 text-slate-400 hover:bg-slate-700"}`}
                       data-testid="handoff-activity-all"
                     >
-                      All
+                      すべて
                     </button>
                     <button
                       type="button"
@@ -180,7 +180,7 @@ export function HandoffDrawer({ open, onClose, isAdmin, showToast }: Props) {
                       className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${activityTab === "mine" ? "bg-blue-600 text-white" : "bg-slate-800 text-slate-400 hover:bg-slate-700"}`}
                       data-testid="handoff-activity-mine"
                     >
-                      Mine
+                      自分
                     </button>
                   </div>
                 </div>
@@ -265,4 +265,3 @@ export function HandoffDrawer({ open, onClose, isAdmin, showToast }: Props) {
     document.body,
   );
 }
-

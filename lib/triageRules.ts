@@ -38,7 +38,7 @@ function hasImportantKeywords(text: string | null): boolean {
 export const TRIAGE_RULES: TriageRule[] = [
   {
     id: "rakuten_notice",
-    label: "低優先候補",
+    label: "処理不要候補",
     match: (message) => {
       // 重要キーワードが含まれる場合は除外
       if (hasImportantKeywords(message.subject) || hasImportantKeywords(message.snippet)) {
@@ -68,7 +68,7 @@ export const TRIAGE_RULES: TriageRule[] = [
   },
   {
     id: "generic_notice",
-    label: "低優先候補",
+    label: "処理不要候補",
     match: (message) => {
       // 重要キーワードが含まれる場合は除外
       if (hasImportantKeywords(message.subject) || hasImportantKeywords(message.snippet)) {
@@ -128,6 +128,4 @@ export function getTriageCandidates(
     return evaluateTriage(msg, context) === "suggest_muted";
   });
 }
-
-
 
