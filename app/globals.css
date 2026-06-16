@@ -47,11 +47,37 @@ body {
   content-visibility: auto;
   contain: layout paint style;
   contain-intrinsic-size: 42px;
+  position: relative;
+  transition: background-color 75ms ease, box-shadow 75ms ease;
 }
 
 .mailhub-message-row-shell[data-active="true"] {
   position: relative;
-  z-index: 1;
+  z-index: 2;
+}
+
+.mailhub-message-row-shell:hover {
+  z-index: 3;
+}
+
+.mailhub-message-row-shell:hover > div {
+  background-color: #f2f6fc;
+  box-shadow:
+    inset 0 1px 0 #dadce0,
+    inset 0 -1px 0 #dadce0,
+    0 1px 3px rgba(60, 64, 67, 0.18);
+}
+
+.mailhub-message-row-shell[data-active="true"] > div {
+  background-color: #d3e3fd;
+  box-shadow:
+    inset 3px 0 0 #1a73e8,
+    inset 0 1px 0 #c6dafc,
+    inset 0 -1px 0 #c6dafc;
+}
+
+.mailhub-message-row-shell[data-active="true"]:hover > div {
+  background-color: #c6dafc;
 }
 
 [data-testid="message-row"] input[type="checkbox"] {
@@ -84,6 +110,11 @@ body {
 /* 処理中ボタンのスタイル */
 button:disabled .action-spinner {
   opacity: 0.6;
+}
+
+.custom-scrollbar {
+  scrollbar-gutter: stable;
+  overscroll-behavior: contain;
 }
 
 .mailhub-detail-shimmer {

@@ -34,7 +34,7 @@ import {
   CheckCircle, Clock, Undo2, 
   ExternalLink, 
   ArrowUp, ArrowDown, CornerUpLeft,
-  LogOut, Mail, Copy, Send, VolumeX, UserCheck, Square, Star, Tag, HelpCircle, Search,
+  LogOut, Mail, Copy, Send, VolumeX, UserCheck, Square, Star, Tag, HelpCircle, Search, MessageSquare,
   ChevronUp, ChevronDown, Users, X, AlertTriangle, RefreshCw, Activity, Settings, Zap
 } from 'lucide-react';
 import { formatElapsedTime, getElapsedMs, getElapsedColorTodo, getElapsedColorWaiting, getSlaLevel } from "@/lib/time-utils";
@@ -164,7 +164,6 @@ export default function InboxShell({
   logoutAction,
   testMode,
   mailhubEnv,
-  debugMode,
   listError: serverListError,
 }: Props) {
   const getErrorStatus = (e: unknown): number | null => {
@@ -7165,19 +7164,28 @@ export default function InboxShell({
                     </button>
                   </div>
                   <div className="flex-1 overflow-y-auto custom-scrollbar bg-white text-[#202124]">
-                    {/* スティッキーヘッダー（件名、送信者、ジャンプボタン） */}
-                    <div className="sticky top-0 z-10 bg-white border-b border-[#e8eaed] shadow-sm">
-                      <div className="max-w-3xl mx-auto px-8 py-4">
-                        <div className="flex items-center gap-3 mb-3">
-                          <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-[#e8eaed] text-[#1a73e8] border border-[#dadce0] uppercase tracking-widest">MAIL</span>
-                          <span className="text-[12px] text-[#5f6368] font-normal">{selectedMessage.receivedAt}</span>
-                          {/* Step 114: 担当者pillをクリックでAssigneeSelectorを開く */}
-                          {selectedAssigneeSlug && (
+                    <div className="sticky top-0 z-10 border-b border-[#e8eaed] bg-white/95 backdrop-blur">
+                      <div className="px-3 py-1 sm:px-4">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span
+                                className="truncate text-[12px] font-medium leading-5 text-[#202124]"
+                                data-testid="detail-subject"
+                                title={`${selectedMessage.subject ?? "(no subject)"} / ${selectedMessage.from ?? ""}`}
+                              >
+                                {selectedMessage.subject ?? "(no subject)"}
+                              </span>
+                              <span className="hidden sm:inline shrink-0 text-[11px] text-[#5f6368]">{selectedMessage.receivedAt}</span>
+                            </div>
+                          </div>
+
+                          {selectedAssigneeSlug ? (
                             <button
                               data-testid="assignee-pill"
                               type="button"
                               onClick={() => handleAssignClick(selectedMessage?.id ?? selectedId)}
-                              className={`text-[11px] font-medium px-2 py-0.5 rounded flex items-center gap-1 cursor-pointer hover:opacity-80 ${
+                              className={`shrink-0 text-[11px] font-medium px-2 py-0.5 rounded flex items-center gap-1 cursor-pointer hover:opacity-80 ${
                                 selectedAssigneeSlug === myAssigneeSlug
                                   ? "bg-blue-50 text-blue-700 border border-blue-200"
                                   : "bg-gray-100 text-gray-600 border border-gray-300"
@@ -7185,159 +7193,90 @@ export default function InboxShell({
                               title={`担当: ${getAssigneeDisplayName(selectedAssigneeSlug)} (クリックで変更)`}
                             >
                               <UserCheck size={12} />
-                              {getAssigneeDisplayName(selectedAssigneeSlug)}
+                              <span className="hidden sm:inline">{getAssigneeDisplayName(selectedAssigneeSlug)}</span>
                             </button>
-                          )}
-                          {!selectedAssigneeSlug && (
+                          ) : (
                             <button
                               data-testid="assignee-pill"
                               type="button"
                               onClick={() => handleAssignClick(selectedMessage?.id ?? selectedId)}
-                              className="text-[11px] font-medium px-2 py-0.5 rounded flex items-center gap-1 cursor-pointer hover:opacity-80 bg-gray-100 text-gray-500 border border-gray-200"
+                              className="shrink-0 text-[11px] font-medium px-2 py-0.5 rounded flex items-center gap-1 cursor-pointer hover:opacity-80 bg-gray-100 text-gray-500 border border-gray-200"
                               title="未割当 (クリックで担当者を選択)"
                             >
                               <UserCheck size={12} />
-                              未割当
+                              <span className="hidden sm:inline">未割当</span>
                             </button>
                           )}
+
                           {(selectedMessage.userLabels ?? []).length > 0 && (
-                            <span className="flex items-center gap-1">
-                              {(selectedMessage.userLabels ?? []).slice(0, 2).map((ln) => (
+                            <span className="hidden lg:flex items-center gap-1 shrink-0">
+                              {(selectedMessage.userLabels ?? []).slice(0, 1).map((ln) => (
                                 <span
                                   key={ln}
                                   data-testid="user-label-pill"
-                                  className="text-[11px] font-medium px-2 py-0.5 rounded border border-purple-200 bg-purple-50 text-purple-700"
+                                  className="max-w-[110px] truncate text-[11px] font-medium px-2 py-0.5 rounded border border-purple-200 bg-purple-50 text-purple-700"
                                   title={ln}
                                 >
                                   {displayUserLabel(ln)}
                                 </span>
                               ))}
-                              {(selectedMessage.userLabels ?? []).length > 2 && (
+                              {(selectedMessage.userLabels ?? []).length > 1 && (
                                 <span
                                   data-testid="user-label-pill"
                                   className="text-[11px] font-medium px-2 py-0.5 rounded border border-purple-200 bg-purple-50 text-purple-700"
                                   title={(selectedMessage.userLabels ?? []).join(", ")}
                                 >
-                                  +{(selectedMessage.userLabels ?? []).length - 2}
+                                  +{(selectedMessage.userLabels ?? []).length - 1}
                                 </span>
                               )}
                             </span>
                           )}
-                          <div className="ml-auto">
-                            <button
-                              type="button"
-                              onClick={() => setShowExplainDrawer(true)}
-                              className="px-3 py-1.5 text-[12px] font-medium text-[#5f6368] hover:text-[#202124] hover:bg-[#f1f3f4] rounded border border-[#dadce0] flex items-center gap-1.5 transition-colors"
-                              data-testid="action-explain"
-                              title="このメッセージに適用されるルールを説明"
-                            >
-                              <HelpCircle size={14} />
-                              説明
-                            </button>
-                          </div>
-                        </div>
-                        {debugMode && detailBody.debugLabels && (
-                          <div
-                            className="mb-4 p-3 rounded-lg border border-[#dadce0] bg-[#f8f9fa] text-[#3c4043]"
-                            data-testid="debug-labels"
+
+                          <button
+                            type="button"
+                            onClick={() => document.getElementById("section-notes")?.scrollIntoView({ behavior: "smooth" })}
+                            className="shrink-0 p-1.5 text-[#5f6368] hover:text-[#202124] hover:bg-[#f1f3f4] rounded-full transition-colors"
+                            title="社内メモへ"
+                            data-testid="jump-to-notes"
                           >
-                            <div className="text-[11px] font-medium text-[#5f6368] mb-1">DEBUG: Gmail labelIds / labelNames</div>
-                            <div className="text-[10px] font-mono break-all">
-                              <span className="text-[#5f6368]">labelIds:</span>{" "}
-                              {detailBody.debugLabels.labelIds.join(", ")}
-                            </div>
-                            <div className="text-[10px] font-mono break-all mt-1">
-                              <span className="text-[#5f6368]">labelNames:</span>{" "}
-                              {detailBody.debugLabels.labelNames
-                                .map((n) => n ?? "<unknown>")
-                                .join(" | ")}
-                            </div>
-                          </div>
-                        )}
-                        <h1 className="text-[22px] font-normal mb-4 text-[#202124] leading-[28px]" data-testid="detail-subject">{selectedMessage.subject ?? "(no subject)"}</h1>
-                        <div className="flex items-center gap-3 text-[14px] border-y border-[#e8eaed] py-4">
-                          <div className="w-10 h-10 rounded-full bg-[#e8eaed] flex items-center justify-center font-medium text-[#3c4043] border border-[#dadce0]">
-                            {selectedMessage.from?.[0]?.toUpperCase() ?? "?"}
-                          </div>
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2">
-                              <span className="font-medium text-[#202124]">{selectedMessage.from?.split('<')[0].trim()}</span>
-                              <span className="text-[12px] text-[#5f6368] hidden sm:inline font-normal">&lt;{selectedMessage.from?.split('<')[1]}</span>
-                            </div>
-                            <div className="text-[12px] text-[#5f6368] font-normal">共用受信箱 宛</div>
-                            {selectedMessage.snoozeUntil && (
-                              <div className="mt-2 text-[12px] text-blue-700 font-medium flex items-center gap-1.5">
-                                <Clock size={12} className="text-blue-600" />
-                                <span>Snoozed until: {selectedMessage.snoozeUntil}</span>
-                              </div>
-                            )}
-                          </div>
-                          {/* ジャンプボタン＆本文折りたたみボタン */}
-                          <div className="ml-auto flex items-center gap-1">
-                            {/* ジャンプボタン */}
-                            <button
-                              type="button"
-                              onClick={() => document.getElementById("section-conversation")?.scrollIntoView({ behavior: "smooth" })}
-                              className="px-2 py-1 text-[11px] text-[#5f6368] hover:text-[#202124] hover:bg-[#f1f3f4] rounded transition-colors"
-                              title="会話履歴へ"
-                              data-testid="jump-to-conversation"
+                            <MessageSquare size={15} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setShowExplainDrawer(true)}
+                            className="shrink-0 p-1.5 text-[#5f6368] hover:text-[#202124] hover:bg-[#f1f3f4] rounded-full transition-colors"
+                            data-testid="action-explain"
+                            title="このメッセージに適用されるルールを説明"
+                          >
+                            <HelpCircle size={16} />
+                          </button>
+                          {selectedMessage?.gmailLink && (
+                            <a
+                              href={selectedMessage.gmailLink}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="shrink-0 p-1.5 text-[#1a73e8] hover:text-[#1557b0] hover:bg-[#e8f0fe] rounded-full transition-colors"
+                              title="Gmailで開く"
+                              data-testid="jump-to-gmail"
                             >
-                              会話
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => document.getElementById("section-notes")?.scrollIntoView({ behavior: "smooth" })}
-                              className="px-2 py-1 text-[11px] text-[#5f6368] hover:text-[#202124] hover:bg-[#f1f3f4] rounded transition-colors"
-                              title="社内メモへ"
-                              data-testid="jump-to-notes"
-                            >
-                              メモ
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => document.getElementById("section-reply")?.scrollIntoView({ behavior: "smooth" })}
-                              className="px-2 py-1 text-[11px] text-[#5f6368] hover:text-[#202124] hover:bg-[#f1f3f4] rounded transition-colors"
-                              title="返信へ"
-                              data-testid="jump-to-reply"
-                            >
-                              返信
-                            </button>
-                            {selectedMessage?.gmailLink && (
-                              <a
-                                href={selectedMessage.gmailLink}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="px-2 py-1 text-[11px] text-[#1a73e8] hover:text-[#1557b0] hover:bg-[#e8f0fe] rounded transition-colors flex items-center gap-1"
-                                title="Gmailで開く"
-                                data-testid="jump-to-gmail"
-                              >
-                                <ExternalLink size={12} />
-                                Gmail
-                              </a>
-                            )}
-                            <div className="w-px h-4 bg-[#dadce0] mx-1" />
-                            {/* 本文折りたたみボタン */}
-                            <button
-                              type="button"
-                              onClick={() => setBodyCollapsed(!bodyCollapsed)}
-                              className="p-2 text-[#5f6368] hover:text-[#202124] hover:bg-[#f1f3f4] rounded-full transition-colors"
-                              title={bodyCollapsed ? "本文を展開" : "本文を折りたたむ"}
-                              data-testid="toggle-body-collapse"
-                            >
-                              {bodyCollapsed ? (
-                                <ChevronDown size={18} />
-                              ) : (
-                                <ChevronUp size={18} />
-                              )}
-                            </button>
-                          </div>
+                              <ExternalLink size={15} />
+                            </a>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => setBodyCollapsed(!bodyCollapsed)}
+                            className="shrink-0 p-1.5 text-[#5f6368] hover:text-[#202124] hover:bg-[#f1f3f4] rounded-full transition-colors"
+                            title={bodyCollapsed ? "本文を展開" : "本文を折りたたむ"}
+                            data-testid="toggle-body-collapse"
+                          >
+                            {bodyCollapsed ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
+                          </button>
                         </div>
                       </div>
                     </div>
-                    {/* スティッキーヘッダーここまで */}
                     
                     {/* スクロール可能なコンテンツエリア */}
-                    <div className="max-w-3xl mx-auto px-8 pb-8">
+                    <div className="max-w-3xl mx-auto px-4 pt-2 pb-8 sm:px-6">
                       {/* 本文セクション（折りたたみ可能） */}
                       {bodyCollapsed ? (
                         <div 
