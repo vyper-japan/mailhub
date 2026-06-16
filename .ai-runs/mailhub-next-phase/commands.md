@@ -62,6 +62,25 @@ npm run audit:gmail-sources -- --out .ai-runs/mailhub-next-phase/gmail-source-co
 - `npm run audit:gmail-sources`: passed with corrected `INBOX` scope. `stores` aggregate estimate 201, first page 50, 3 fetched pages / 150 unique IDs lower bound, and still has more pages.
 - INBOX-scoped zero-estimate channels: `cricut-yahoo`, `gopro-yahoo`, `vyperglobal-rakuten`, `vyperglobal-yahoo`, `ams-vyper`, `datacolor`, `ebay`.
 
+## Verification Commands Run On 2026-06-17 Follow-On Wave
+
+```bash
+git diff --check
+npm run typecheck
+npx vitest run lib/__tests__/channels.test.ts lib/__tests__/mailhub-list-route.test.ts
+PW_OUTPUT_DIR=/tmp/mailhub-playwright-step104 MAILHUB_TEST_MODE=1 npx playwright test e2e/qa-strict-unified.spec.ts -g "Step104-1" --workers=1 --retries=0
+npm run audit:gmail-sources -- --out .ai-runs/mailhub-next-phase/gmail-source-coverage-audit.json --max-pages 3
+```
+
+## 2026-06-17 Follow-On Wave Results
+
+- `git diff --check`: passed.
+- `npm run typecheck`: passed.
+- Focused Vitest: 2 files / 15 tests passed.
+- Forced pagination E2E: 1 test passed.
+- `npm run audit:gmail-sources`: passed after Cricut Yahoo query fix.
+- Latest INBOX-scoped zero-estimate channels: `gopro-yahoo`, `vyperglobal-rakuten`, `vyperglobal-yahoo`, `ams-vyper`, `datacolor`, `ebay`.
+
 ## Useful Runtime Commands
 
 Start dev server for tunnel:

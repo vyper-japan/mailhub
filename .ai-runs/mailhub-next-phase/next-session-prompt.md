@@ -26,21 +26,24 @@ MailHub の次フェーズを開始してください。
 
 今回の next-phase wave のコミットを確認し、以下を続けてください:
 
-1. INBOX-scoped audit の zero-estimate channels を実運用観点で確認する:
-   `cricut-yahoo`, `gopro-yahoo`, `vyperglobal-rakuten`, `vyperglobal-yahoo`, `ams-vyper`, `datacolor`, `ebay`
-2. `stores` の強制ページングE2E/browser checkを追加する:
-   first page with `nextPageToken`, second page append, visible partial-list warning, support bundle list diagnostics
-3. 新規 default views (`invoice-docs`, `customer-inquiries`, `noise-candidates`) を実データでチューニングする
-4. suppressive rule safety gate は入ったが、production auto-discard policy はまだ有効化せず、real-data validation 後に進める
+1. 残り INBOX zero-estimate channels を実運用観点で確認する:
+   `gopro-yahoo`, `vyperglobal-rakuten`, `vyperglobal-yahoo`, `ams-vyper`, `datacolor`, `ebay`
+   - `gopro-yahoo`, `vyperglobal-rakuten`, `ams-vyper`, `datacolor`: active inbox 0 / all-mail historical hitsあり
+   - `vyperglobal-yahoo`, `ebay`: active inbox 0 / all-mail fallback 0
+2. 新規 default views (`invoice-docs`, `customer-inquiries`, `noise-candidates`) を実データでチューニングする
+3. suppressive rule safety gate は入ったが、production auto-discard policy はまだ有効化せず、real-data validation 後に進める
+4. 任意: production/staging実データで stores pagination の手動ブラウザ確認。forced E2E は追加済み
 
 直近の完了地点:
 
-- commit TBD: next-phase source visibility and rule safety wave
+- commit `16e703a fix: clarify MailHub source scope and rule safety`
+- follow-on commit TBD: forced pagination E2E + Cricut Yahoo active-inbox query fix
 - source coverage commits already present:
   - `0e9f358 fix: include AMS source in MailHub coverage`
   - `fdcd3ac fix: audit real Gmail source coverage`
 - latest wave verification:
   - focused Vitest 6 files / 38 tests PASS
+  - forced pagination E2E Step104-1 PASS
   - `npm run typecheck` PASS
   - `npm run lint` PASS
   - `npm run test` 53 files / 500 tests PASS

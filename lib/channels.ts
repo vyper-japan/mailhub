@@ -120,6 +120,10 @@ const PROD_STORE_CHANNELS: ChannelDef[] = ([
     id: "cricut-yahoo",
     label: "Cricut Yahoo",
     addresses: ["cricut_y@vtj.co.jp"],
+    q: [
+      buildAddressQuery(["cricut_y@vtj.co.jp"]),
+      "cricut_y@vtj.co.jp",
+    ].filter(Boolean).join(" OR "),
     relatedQ: "cricut yahoo",
     replyKind: "gmail",
   },

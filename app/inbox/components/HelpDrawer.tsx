@@ -604,7 +604,12 @@ MailHubで以下の権限設定をお願いいたします。
                     <div className="px-3 py-2 border-b border-[#e8eaed]">
                       <div className="text-[13px] font-semibold text-[#202124]">Bundle Preview（プレビュー）</div>
                     </div>
-                    <pre className="p-3 text-[11px] overflow-auto whitespace-pre-wrap break-words max-h-64">{supportBundle}</pre>
+                    <pre
+                      className="p-3 text-[11px] overflow-auto whitespace-pre-wrap break-words max-h-64"
+                      data-testid="support-bundle-preview"
+                    >
+                      {supportBundle}
+                    </pre>
                   </div>
                 )}
               </section>

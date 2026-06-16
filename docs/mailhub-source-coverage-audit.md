@@ -71,6 +71,7 @@ Latest result: 2026-06-17 JST. This is an `INBOX`-scoped audit.
 Confirmed non-zero source channels in the active inbox:
 
 - `cricut-rakuten`: 2
+- `cricut-yahoo`: 2
 - `cricut-amazon`: 41
 - `cricut-makeshop`: 1
 - `gopro-rakuten`: 42
@@ -84,7 +85,6 @@ Confirmed non-zero source channels in the active inbox:
 
 Channels with a current zero estimate:
 
-- `cricut-yahoo`
 - `gopro-yahoo`
 - `vyperglobal-rakuten`
 - `vyperglobal-yahoo`
@@ -92,6 +92,19 @@ Channels with a current zero estimate:
 - `datacolor`
 - `ebay`
 
+`cricut-yahoo` previously showed 0 under the recipient-only query while active inbox fallback probe `cricut_y@vtj.co.jp` returned 2. `lib/channels.ts` now includes that exact-address free-text term, so the channel and aggregate `stores` query include those active messages.
+
 `datacolor` previously showed historical mail under `from:datacolor_shopify@vtj.co.jp` when searching outside the active inbox. Under the corrected `INBOX` workbench scope it currently has zero active messages, so it remains included but is no longer counted as active-inbox evidence.
+
+Zero-estimate follow-up split:
+
+| Channel | Active inbox fallback | All-mail fallback |
+|---|---:|---:|
+| `gopro-yahoo` | 0 | historical hits found |
+| `vyperglobal-rakuten` | 0 | historical hits found |
+| `vyperglobal-yahoo` | 0 | 0 |
+| `ams-vyper` | 0 | historical hits found |
+| `datacolor` | 0 | historical hits found |
+| `ebay` | 0 | 0 |
 
 The remaining zero estimates are not code coverage gaps because the channels and queries are present in `lib/channels.ts`. They are operational follow-up items: confirm whether the shared inbox currently has no active inbox mail for those addresses, whether historical mail is archived/handled, or whether the source address is dormant.

@@ -39,13 +39,19 @@
   - Added `mailhubClassification` and protected `MailHub/Muted`/noise-like rule application from suppressing invoice, inquiry, or important messages.
   - Fixed rule inspector broad-match detection so sample-wide rules are flagged at >=80% of at least 20 inspected messages.
 - Latest INBOX-scoped real Gmail audit saved at `.ai-runs/mailhub-next-phase/gmail-source-coverage-audit.json`.
-- Latest INBOX-scoped zero-estimate channels: `cricut-yahoo`, `gopro-yahoo`, `vyperglobal-rakuten`, `vyperglobal-yahoo`, `ams-vyper`, `datacolor`, `ebay`.
+- 2026-06-17 follow-on wave completed:
+  - Added forced high-volume stores pagination E2E. It mocks `/api/mailhub/list` with a first page `nextPageToken`, verifies the partial-list warning, verifies Support Bundle list diagnostics, clicks Load more, and verifies rows append.
+  - Extended the real Gmail source audit with zero-estimate follow-up scopes: active `INBOX` vs all-mail fallback probes.
+  - Found a concrete active-inbox miss: `cricut-yahoo` had 2 active messages under free-text `cricut_y@vtj.co.jp` but 0 under recipient-only query.
+  - Fixed `cricut-yahoo` channel query to include exact address free-text, which also updates the aggregate `stores` query.
+  - Re-ran real Gmail audit; `cricut-yahoo` is no longer zero-estimate.
+- Latest INBOX-scoped zero-estimate channels: `gopro-yahoo`, `vyperglobal-rakuten`, `vyperglobal-yahoo`, `ams-vyper`, `datacolor`, `ebay`.
 
 ## Not Done
 
 - Real Gmail shared inbox ingestion has not been proven across all active source addresses with zero active-INBOX estimates.
-- Real OAuth/Gmail count parity is documented for all configured channels; `cricut-yahoo`, `gopro-yahoo`, `vyperglobal-rakuten`, `vyperglobal-yahoo`, `ams-vyper`, `datacolor`, and `ebay` remain operational zero-active-inbox follow-ups.
-- Production pagination basic behavior is represented in API/UI metadata; browser/E2E confirmation with forced high-volume pagination still needs to be added.
+- Real OAuth/Gmail count parity is documented for all configured channels; `gopro-yahoo`, `vyperglobal-rakuten`, `vyperglobal-yahoo`, `ams-vyper`, `datacolor`, and `ebay` remain operational zero-active-inbox follow-ups.
+- Production pagination basic behavior is represented in API/UI metadata and forced E2E; real browser/manual production verification is still useful before staff rollout.
 - Auto-discard rules for marketing/noise are protected against obvious important/invoice/inquiry suppression but not yet fully designed or enabled as a production policy.
 - Important/invoice/customer-inquiry folders now exist as default saved views; final production rule policy still needs real-data validation.
 - AI reply drafting and knowledge base integration are not implemented.

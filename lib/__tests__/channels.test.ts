@@ -226,6 +226,12 @@ describe("channels", () => {
       type: "channel",
       q: "(deliveredto:cricut_r@vtj.co.jp OR to:cricut_r@vtj.co.jp OR cc:cricut_r@vtj.co.jp)",
     });
+    expect(channels.find((item) => item.id === "cricut-yahoo")).toEqual({
+      id: "cricut-yahoo",
+      label: "Cricut Yahoo",
+      type: "channel",
+      q: "(deliveredto:cricut_y@vtj.co.jp OR to:cricut_y@vtj.co.jp OR cc:cricut_y@vtj.co.jp) OR cricut_y@vtj.co.jp",
+    });
     expect(getChannels(false).find((item) => item.id === "cricut-rakuten")?.relatedQ).toBe("from:rakuten cricut");
     expect(getChannels(false).find((item) => item.id === "gopro-rakuten")?.relatedQ).toBe('from:rakuten.co.jp "gopro"');
     expect(getChannels(false).find((item) => item.id === "vyperglobal-rakuten")?.relatedQ).toBe('from:rakuten "VYPER GLOBAL"');
@@ -282,6 +288,7 @@ describe("channels", () => {
       addresses: [],
     });
     expect(channels[1].q).toContain("deliveredto:cricut_r@vtj.co.jp");
+    expect(channels[1].q).toContain("cricut_y@vtj.co.jp");
     expect(channels[1].q).toContain("deliveredto:ams_vyper@vtj.co.jp");
     expect(channels[1].q).toContain("deliveredto:ebay@vtj.co.jp");
     expect(channels.slice(2).map(({ id, label, addresses }) => ({ id, label, addresses }))).toEqual(

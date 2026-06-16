@@ -77,10 +77,11 @@ function createGmailClient() {
 async function probeQuery(gmail, userId, q, opts = {}) {
   const maxResults = opts.maxResults ?? 50;
   const maxPages = Math.max(1, opts.maxPages ?? 3);
+  const labelIds = Object.hasOwn(opts, "labelIds") ? opts.labelIds : ["INBOX"];
   const first = await gmail.users.messages.list({
     userId,
     q,
-    labelIds: ["INBOX"],
+    ...(Array.isArray(labelIds) && labelIds.length > 0 ? { labelIds } : {}),
     maxResults,
     includeSpamTrash: false,
   });
@@ -101,7 +102,7 @@ async function probeQuery(gmail, userId, q, opts = {}) {
     const response = await gmail.users.messages.list({
       userId,
       q,
-      labelIds: ["INBOX"],
+      ...(Array.isArray(labelIds) && labelIds.length > 0 ? { labelIds } : {}),
       maxResults,
       includeSpamTrash: false,
       pageToken: nextPageToken,
@@ -159,10 +160,16 @@ async function buildZeroEstimateFollowups(gmail, userId, probes) {
   const followups = [];
   for (const channel of zeroChannels) {
     const probesForChannel = [];
+    const allMailProbesForChannel = [];
     for (const fallback of buildFallbackQueries(channel.addresses)) {
       const result = await probeQuery(gmail, userId, fallback.q, {
         maxResults: 10,
         maxPages: 1,
+      });
+      const allMailResult = await probeQuery(gmail, userId, fallback.q, {
+        maxResults: 10,
+        maxPages: 1,
+        labelIds: null,
       });
       probesForChannel.push({
         type: fallback.type,
@@ -171,12 +178,23 @@ async function buildZeroEstimateFollowups(gmail, userId, probes) {
         firstPageIdsReturned: result.firstPageIdsReturned,
         hasNextPageToken: result.hasNextPageToken,
       });
+      allMailProbesForChannel.push({
+        type: fallback.type,
+        query: fallback.q,
+        resultSizeEstimate: allMailResult.resultSizeEstimate,
+        firstPageIdsReturned: allMailResult.firstPageIdsReturned,
+        hasNextPageToken: allMailResult.hasNextPageToken,
+      });
     }
     followups.push({
       id: channel.id,
       label: channel.label,
       addresses: channel.addresses,
       probes: probesForChannel,
+      scopes: {
+        activeInbox: probesForChannel,
+        allMail: allMailProbesForChannel,
+      },
     });
   }
   return followups;

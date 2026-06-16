@@ -8,10 +8,12 @@ Continue from the completed INBOX-scoped source coverage and rule-safety wave:
 2. Read `.ai-runs/mailhub-next-phase/*.md`.
 3. Check `git status -sb`.
 4. Confirm the latest next-phase commit is present.
-5. Investigate real Gmail INBOX zero-estimate channels: `cricut-yahoo`, `gopro-yahoo`, `vyperglobal-rakuten`, `vyperglobal-yahoo`, `ams-vyper`, `datacolor`, `ebay`.
-6. Add a forced high-volume pagination E2E/browser check for `stores`: first page with `nextPageToken`, second page append, visible partial-list warning, support bundle list diagnostics.
-7. Validate the new default saved views (`invoice-docs`, `customer-inquiries`, `noise-candidates`) against real operator queries and tune Gmail syntax if needed.
-8. Expand the rule-safety gate only after real-data validation: current gate protects suppressive labels from invoice/inquiry/important-looking messages, but does not yet implement a full production auto-discard policy.
+5. Investigate remaining real Gmail INBOX zero-estimate channels: `gopro-yahoo`, `vyperglobal-rakuten`, `vyperglobal-yahoo`, `ams-vyper`, `datacolor`, `ebay`.
+   - `gopro-yahoo`, `vyperglobal-rakuten`, `ams-vyper`, `datacolor`: active inbox 0, all-mail historical hits found.
+   - `vyperglobal-yahoo`, `ebay`: active inbox 0 and all-mail fallback 0.
+6. Validate the new default saved views (`invoice-docs`, `customer-inquiries`, `noise-candidates`) against real operator queries and tune Gmail syntax if needed.
+7. Expand the rule-safety gate only after real-data validation: current gate protects suppressive labels from invoice/inquiry/important-looking messages, but does not yet implement a full production auto-discard policy.
+8. Optional: run a manual browser check on production/staging data for stores pagination. Forced E2E is now present and passing.
 
 ## Large-Team Wave Plan
 

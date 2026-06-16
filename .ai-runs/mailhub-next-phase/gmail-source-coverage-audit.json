@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-16T22:37:28.566Z",
+  "generatedAt": "2026-06-16T23:26:44.790Z",
   "sharedInboxEmailMasked": "inf***@vtj.co.jp",
   "sourceChannelCount": 18,
   "sourceAddressCount": 22,
@@ -14,7 +14,6 @@
   },
   "risks": {
     "zeroEstimateChannels": [
-      "cricut-yahoo",
       "gopro-yahoo",
       "vyperglobal-rakuten",
       "vyperglobal-yahoo",
@@ -32,50 +31,6 @@
     ]
   },
   "zeroEstimateFollowups": [
-    {
-      "id": "cricut-yahoo",
-      "label": "Cricut Yahoo",
-      "addresses": [
-        "cricut_y@vtj.co.jp"
-      ],
-      "probes": [
-        {
-          "type": "freeText",
-          "query": "cricut_y@vtj.co.jp",
-          "resultSizeEstimate": 2,
-          "firstPageIdsReturned": 2,
-          "hasNextPageToken": false
-        },
-        {
-          "type": "to",
-          "query": "to:cricut_y@vtj.co.jp",
-          "resultSizeEstimate": 0,
-          "firstPageIdsReturned": 0,
-          "hasNextPageToken": false
-        },
-        {
-          "type": "cc",
-          "query": "cc:cricut_y@vtj.co.jp",
-          "resultSizeEstimate": 0,
-          "firstPageIdsReturned": 0,
-          "hasNextPageToken": false
-        },
-        {
-          "type": "deliveredto",
-          "query": "deliveredto:cricut_y@vtj.co.jp",
-          "resultSizeEstimate": 0,
-          "firstPageIdsReturned": 0,
-          "hasNextPageToken": false
-        },
-        {
-          "type": "from",
-          "query": "from:cricut_y@vtj.co.jp",
-          "resultSizeEstimate": 0,
-          "firstPageIdsReturned": 0,
-          "hasNextPageToken": false
-        }
-      ]
-    },
     {
       "id": "gopro-yahoo",
       "label": "GoPro Yahoo",
@@ -154,7 +109,153 @@
           "firstPageIdsReturned": 0,
           "hasNextPageToken": false
         }
-      ]
+      ],
+      "scopes": {
+        "activeInbox": [
+          {
+            "type": "freeText",
+            "query": "gopro_y@vtj.co.jp",
+            "resultSizeEstimate": 0,
+            "firstPageIdsReturned": 0,
+            "hasNextPageToken": false
+          },
+          {
+            "type": "to",
+            "query": "to:gopro_y@vtj.co.jp",
+            "resultSizeEstimate": 0,
+            "firstPageIdsReturned": 0,
+            "hasNextPageToken": false
+          },
+          {
+            "type": "cc",
+            "query": "cc:gopro_y@vtj.co.jp",
+            "resultSizeEstimate": 0,
+            "firstPageIdsReturned": 0,
+            "hasNextPageToken": false
+          },
+          {
+            "type": "deliveredto",
+            "query": "deliveredto:gopro_y@vtj.co.jp",
+            "resultSizeEstimate": 0,
+            "firstPageIdsReturned": 0,
+            "hasNextPageToken": false
+          },
+          {
+            "type": "from",
+            "query": "from:gopro_y@vtj.co.jp",
+            "resultSizeEstimate": 0,
+            "firstPageIdsReturned": 0,
+            "hasNextPageToken": false
+          },
+          {
+            "type": "freeText",
+            "query": "gopro_order_yahoo@vtj.co.jp",
+            "resultSizeEstimate": 0,
+            "firstPageIdsReturned": 0,
+            "hasNextPageToken": false
+          },
+          {
+            "type": "to",
+            "query": "to:gopro_order_yahoo@vtj.co.jp",
+            "resultSizeEstimate": 0,
+            "firstPageIdsReturned": 0,
+            "hasNextPageToken": false
+          },
+          {
+            "type": "cc",
+            "query": "cc:gopro_order_yahoo@vtj.co.jp",
+            "resultSizeEstimate": 0,
+            "firstPageIdsReturned": 0,
+            "hasNextPageToken": false
+          },
+          {
+            "type": "deliveredto",
+            "query": "deliveredto:gopro_order_yahoo@vtj.co.jp",
+            "resultSizeEstimate": 0,
+            "firstPageIdsReturned": 0,
+            "hasNextPageToken": false
+          },
+          {
+            "type": "from",
+            "query": "from:gopro_order_yahoo@vtj.co.jp",
+            "resultSizeEstimate": 0,
+            "firstPageIdsReturned": 0,
+            "hasNextPageToken": false
+          }
+        ],
+        "allMail": [
+          {
+            "type": "freeText",
+            "query": "gopro_y@vtj.co.jp",
+            "resultSizeEstimate": 201,
+            "firstPageIdsReturned": 10,
+            "hasNextPageToken": true
+          },
+          {
+            "type": "to",
+            "query": "to:gopro_y@vtj.co.jp",
+            "resultSizeEstimate": 8,
+            "firstPageIdsReturned": 8,
+            "hasNextPageToken": false
+          },
+          {
+            "type": "cc",
+            "query": "cc:gopro_y@vtj.co.jp",
+            "resultSizeEstimate": 2,
+            "firstPageIdsReturned": 2,
+            "hasNextPageToken": false
+          },
+          {
+            "type": "deliveredto",
+            "query": "deliveredto:gopro_y@vtj.co.jp",
+            "resultSizeEstimate": 0,
+            "firstPageIdsReturned": 0,
+            "hasNextPageToken": false
+          },
+          {
+            "type": "from",
+            "query": "from:gopro_y@vtj.co.jp",
+            "resultSizeEstimate": 201,
+            "firstPageIdsReturned": 10,
+            "hasNextPageToken": true
+          },
+          {
+            "type": "freeText",
+            "query": "gopro_order_yahoo@vtj.co.jp",
+            "resultSizeEstimate": 201,
+            "firstPageIdsReturned": 10,
+            "hasNextPageToken": true
+          },
+          {
+            "type": "to",
+            "query": "to:gopro_order_yahoo@vtj.co.jp",
+            "resultSizeEstimate": 201,
+            "firstPageIdsReturned": 10,
+            "hasNextPageToken": true
+          },
+          {
+            "type": "cc",
+            "query": "cc:gopro_order_yahoo@vtj.co.jp",
+            "resultSizeEstimate": 0,
+            "firstPageIdsReturned": 0,
+            "hasNextPageToken": false
+          },
+          {
+            "type": "deliveredto",
+            "query": "deliveredto:gopro_order_yahoo@vtj.co.jp",
+            "resultSizeEstimate": 201,
+            "firstPageIdsReturned": 10,
+            "hasNextPageToken": true
+          },
+          {
+            "type": "from",
+            "query": "from:gopro_order_yahoo@vtj.co.jp",
+            "resultSizeEstimate": 1,
+            "firstPageIdsReturned": 1,
+            "hasNextPageToken": false
+          }
+        ]
+      }
     },
     {
       "id": "vyperglobal-rakuten",
@@ -234,7 +335,153 @@
           "firstPageIdsReturned": 0,
           "hasNextPageToken": false
         }
-      ]
+      ],
+      "scopes": {
+        "activeInbox": [
+          {
+            "type": "freeText",
+            "query": "vyper_r@vtj.co.jp",
+            "resultSizeEstimate": 0,
+            "firstPageIdsReturned": 0,
+            "hasNextPageToken": false
+          },
+          {
+            "type": "to",
+            "query": "to:vyper_r@vtj.co.jp",
+            "resultSizeEstimate": 0,
+            "firstPageIdsReturned": 0,
+            "hasNextPageToken": false
+          },
+          {
+            "type": "cc",
+            "query": "cc:vyper_r@vtj.co.jp",
+            "resultSizeEstimate": 0,
+            "firstPageIdsReturned": 0,
+            "hasNextPageToken": false
+          },
+          {
+            "type": "deliveredto",
+            "query": "deliveredto:vyper_r@vtj.co.jp",
+            "resultSizeEstimate": 0,
+            "firstPageIdsReturned": 0,
+            "hasNextPageToken": false
+          },
+          {
+            "type": "from",
+            "query": "from:vyper_r@vtj.co.jp",
+            "resultSizeEstimate": 0,
+            "firstPageIdsReturned": 0,
+            "hasNextPageToken": false
+          },
+          {
+            "type": "freeText",
+            "query": "vyper_rakuten@vtj.co.jp",
+            "resultSizeEstimate": 0,
+            "firstPageIdsReturned": 0,
+            "hasNextPageToken": false
+          },
+          {
+            "type": "to",
+            "query": "to:vyper_rakuten@vtj.co.jp",
+            "resultSizeEstimate": 0,
+            "firstPageIdsReturned": 0,
+            "hasNextPageToken": false
+          },
+          {
+            "type": "cc",
+            "query": "cc:vyper_rakuten@vtj.co.jp",
+            "resultSizeEstimate": 0,
+            "firstPageIdsReturned": 0,
+            "hasNextPageToken": false
+          },
+          {
+            "type": "deliveredto",
+            "query": "deliveredto:vyper_rakuten@vtj.co.jp",
+            "resultSizeEstimate": 0,
+            "firstPageIdsReturned": 0,
+            "hasNextPageToken": false
+          },
+          {
+            "type": "from",
+            "query": "from:vyper_rakuten@vtj.co.jp",
+            "resultSizeEstimate": 0,
+            "firstPageIdsReturned": 0,
+            "hasNextPageToken": false
+          }
+        ],
+        "allMail": [
+          {
+            "type": "freeText",
+            "query": "vyper_r@vtj.co.jp",
+            "resultSizeEstimate": 0,
+            "firstPageIdsReturned": 0,
+            "hasNextPageToken": false
+          },
+          {
+            "type": "to",
+            "query": "to:vyper_r@vtj.co.jp",
+            "resultSizeEstimate": 0,
+            "firstPageIdsReturned": 0,
+            "hasNextPageToken": false
+          },
+          {
+            "type": "cc",
+            "query": "cc:vyper_r@vtj.co.jp",
+            "resultSizeEstimate": 0,
+            "firstPageIdsReturned": 0,
+            "hasNextPageToken": false
+          },
+          {
+            "type": "deliveredto",
+            "query": "deliveredto:vyper_r@vtj.co.jp",
+            "resultSizeEstimate": 0,
+            "firstPageIdsReturned": 0,
+            "hasNextPageToken": false
+          },
+          {
+            "type": "from",
+            "query": "from:vyper_r@vtj.co.jp",
+            "resultSizeEstimate": 0,
+            "firstPageIdsReturned": 0,
+            "hasNextPageToken": false
+          },
+          {
+            "type": "freeText",
+            "query": "vyper_rakuten@vtj.co.jp",
+            "resultSizeEstimate": 201,
+            "firstPageIdsReturned": 10,
+            "hasNextPageToken": true
+          },
+          {
+            "type": "to",
+            "query": "to:vyper_rakuten@vtj.co.jp",
+            "resultSizeEstimate": 3,
+            "firstPageIdsReturned": 3,
+            "hasNextPageToken": false
+          },
+          {
+            "type": "cc",
+            "query": "cc:vyper_rakuten@vtj.co.jp",
+            "resultSizeEstimate": 0,
+            "firstPageIdsReturned": 0,
+            "hasNextPageToken": false
+          },
+          {
+            "type": "deliveredto",
+            "query": "deliveredto:vyper_rakuten@vtj.co.jp",
+            "resultSizeEstimate": 0,
+            "firstPageIdsReturned": 0,
+            "hasNextPageToken": false
+          },
+          {
+            "type": "from",
+            "query": "from:vyper_rakuten@vtj.co.jp",
+            "resultSizeEstimate": 1,
+            "firstPageIdsReturned": 1,
+            "hasNextPageToken": false
+          }
+        ]
+      }
     },
     {
       "id": "vyperglobal-yahoo",
@@ -278,7 +525,83 @@
           "firstPageIdsReturned": 0,
           "hasNextPageToken": false
         }
-      ]
+      ],
+      "scopes": {
+        "activeInbox": [
+          {
+            "type": "freeText",
+            "query": "vyperglobal_y@vtj.co.jp",
+            "resultSizeEstimate": 0,
+            "firstPageIdsReturned": 0,
+            "hasNextPageToken": false
+          },
+          {
+            "type": "to",
+            "query": "to:vyperglobal_y@vtj.co.jp",
+            "resultSizeEstimate": 0,
+            "firstPageIdsReturned": 0,
+            "hasNextPageToken": false
+          },
+          {
+            "type": "cc",
+            "query": "cc:vyperglobal_y@vtj.co.jp",
+            "resultSizeEstimate": 0,
+            "firstPageIdsReturned": 0,
+            "hasNextPageToken": false
+          },
+          {
+            "type": "deliveredto",
+            "query": "deliveredto:vyperglobal_y@vtj.co.jp",
+            "resultSizeEstimate": 0,
+            "firstPageIdsReturned": 0,
+            "hasNextPageToken": false
+          },
+          {
+            "type": "from",
+            "query": "from:vyperglobal_y@vtj.co.jp",
+            "resultSizeEstimate": 0,
+            "firstPageIdsReturned": 0,
+            "hasNextPageToken": false
+          }
+        ],
+        "allMail": [
+          {
+            "type": "freeText",
+            "query": "vyperglobal_y@vtj.co.jp",
+            "resultSizeEstimate": 0,
+            "firstPageIdsReturned": 0,
+            "hasNextPageToken": false
+          },
+          {
+            "type": "to",
+            "query": "to:vyperglobal_y@vtj.co.jp",
+            "resultSizeEstimate": 0,
+            "firstPageIdsReturned": 0,
+            "hasNextPageToken": false
+          },
+          {
+            "type": "cc",
+            "query": "cc:vyperglobal_y@vtj.co.jp",
+            "resultSizeEstimate": 0,
+            "firstPageIdsReturned": 0,
+            "hasNextPageToken": false
+          },
+          {
+            "type": "deliveredto",
+            "query": "deliveredto:vyperglobal_y@vtj.co.jp",
+            "resultSizeEstimate": 0,
+            "firstPageIdsReturned": 0,
+            "hasNextPageToken": false
+          },
+          {
+            "type": "from",
+            "query": "from:vyperglobal_y@vtj.co.jp",
+            "resultSizeEstimate": 0,
+            "firstPageIdsReturned": 0,
+            "hasNextPageToken": false
+          }
+        ]
+      }
     },
     {
       "id": "ams-vyper",
@@ -322,7 +645,83 @@
           "firstPageIdsReturned": 0,
           "hasNextPageToken": false
         }
-      ]
+      ],
+      "scopes": {
+        "activeInbox": [
+          {
+            "type": "freeText",
+            "query": "ams_vyper@vtj.co.jp",
+            "resultSizeEstimate": 0,
+            "firstPageIdsReturned": 0,
+            "hasNextPageToken": false
+          },
+          {
+            "type": "to",
+            "query": "to:ams_vyper@vtj.co.jp",
+            "resultSizeEstimate": 0,
+            "firstPageIdsReturned": 0,
+            "hasNextPageToken": false
+          },
+          {
+            "type": "cc",
+            "query": "cc:ams_vyper@vtj.co.jp",
+            "resultSizeEstimate": 0,
+            "firstPageIdsReturned": 0,
+            "hasNextPageToken": false
+          },
+          {
+            "type": "deliveredto",
+            "query": "deliveredto:ams_vyper@vtj.co.jp",
+            "resultSizeEstimate": 0,
+            "firstPageIdsReturned": 0,
+            "hasNextPageToken": false
+          },
+          {
+            "type": "from",
+            "query": "from:ams_vyper@vtj.co.jp",
+            "resultSizeEstimate": 0,
+            "firstPageIdsReturned": 0,
+            "hasNextPageToken": false
+          }
+        ],
+        "allMail": [
+          {
+            "type": "freeText",
+            "query": "ams_vyper@vtj.co.jp",
+            "resultSizeEstimate": 201,
+            "firstPageIdsReturned": 10,
+            "hasNextPageToken": true
+          },
+          {
+            "type": "to",
+            "query": "to:ams_vyper@vtj.co.jp",
+            "resultSizeEstimate": 4,
+            "firstPageIdsReturned": 4,
+            "hasNextPageToken": false
+          },
+          {
+            "type": "cc",
+            "query": "cc:ams_vyper@vtj.co.jp",
+            "resultSizeEstimate": 0,
+            "firstPageIdsReturned": 0,
+            "hasNextPageToken": false
+          },
+          {
+            "type": "deliveredto",
+            "query": "deliveredto:ams_vyper@vtj.co.jp",
+            "resultSizeEstimate": 0,
+            "firstPageIdsReturned": 0,
+            "hasNextPageToken": false
+          },
+          {
+            "type": "from",
+            "query": "from:ams_vyper@vtj.co.jp",
+            "resultSizeEstimate": 0,
+            "firstPageIdsReturned": 0,
+            "hasNextPageToken": false
+          }
+        ]
+      }
     },
     {
       "id": "datacolor",
@@ -366,7 +765,83 @@
           "firstPageIdsReturned": 0,
           "hasNextPageToken": false
         }
-      ]
+      ],
+      "scopes": {
+        "activeInbox": [
+          {
+            "type": "freeText",
+            "query": "datacolor_shopify@vtj.co.jp",
+            "resultSizeEstimate": 0,
+            "firstPageIdsReturned": 0,
+            "hasNextPageToken": false
+          },
+          {
+            "type": "to",
+            "query": "to:datacolor_shopify@vtj.co.jp",
+            "resultSizeEstimate": 0,
+            "firstPageIdsReturned": 0,
+            "hasNextPageToken": false
+          },
+          {
+            "type": "cc",
+            "query": "cc:datacolor_shopify@vtj.co.jp",
+            "resultSizeEstimate": 0,
+            "firstPageIdsReturned": 0,
+            "hasNextPageToken": false
+          },
+          {
+            "type": "deliveredto",
+            "query": "deliveredto:datacolor_shopify@vtj.co.jp",
+            "resultSizeEstimate": 0,
+            "firstPageIdsReturned": 0,
+            "hasNextPageToken": false
+          },
+          {
+            "type": "from",
+            "query": "from:datacolor_shopify@vtj.co.jp",
+            "resultSizeEstimate": 0,
+            "firstPageIdsReturned": 0,
+            "hasNextPageToken": false
+          }
+        ],
+        "allMail": [
+          {
+            "type": "freeText",
+            "query": "datacolor_shopify@vtj.co.jp",
+            "resultSizeEstimate": 201,
+            "firstPageIdsReturned": 10,
+            "hasNextPageToken": true
+          },
+          {
+            "type": "to",
+            "query": "to:datacolor_shopify@vtj.co.jp",
+            "resultSizeEstimate": 0,
+            "firstPageIdsReturned": 0,
+            "hasNextPageToken": false
+          },
+          {
+            "type": "cc",
+            "query": "cc:datacolor_shopify@vtj.co.jp",
+            "resultSizeEstimate": 0,
+            "firstPageIdsReturned": 0,
+            "hasNextPageToken": false
+          },
+          {
+            "type": "deliveredto",
+            "query": "deliveredto:datacolor_shopify@vtj.co.jp",
+            "resultSizeEstimate": 0,
+            "firstPageIdsReturned": 0,
+            "hasNextPageToken": false
+          },
+          {
+            "type": "from",
+            "query": "from:datacolor_shopify@vtj.co.jp",
+            "resultSizeEstimate": 201,
+            "firstPageIdsReturned": 10,
+            "hasNextPageToken": true
+          }
+        ]
+      }
     },
     {
       "id": "ebay",
@@ -410,7 +885,83 @@
           "firstPageIdsReturned": 0,
           "hasNextPageToken": false
         }
-      ]
+      ],
+      "scopes": {
+        "activeInbox": [
+          {
+            "type": "freeText",
+            "query": "ebay@vtj.co.jp",
+            "resultSizeEstimate": 0,
+            "firstPageIdsReturned": 0,
+            "hasNextPageToken": false
+          },
+          {
+            "type": "to",
+            "query": "to:ebay@vtj.co.jp",
+            "resultSizeEstimate": 0,
+            "firstPageIdsReturned": 0,
+            "hasNextPageToken": false
+          },
+          {
+            "type": "cc",
+            "query": "cc:ebay@vtj.co.jp",
+            "resultSizeEstimate": 0,
+            "firstPageIdsReturned": 0,
+            "hasNextPageToken": false
+          },
+          {
+            "type": "deliveredto",
+            "query": "deliveredto:ebay@vtj.co.jp",
+            "resultSizeEstimate": 0,
+            "firstPageIdsReturned": 0,
+            "hasNextPageToken": false
+          },
+          {
+            "type": "from",
+            "query": "from:ebay@vtj.co.jp",
+            "resultSizeEstimate": 0,
+            "firstPageIdsReturned": 0,
+            "hasNextPageToken": false
+          }
+        ],
+        "allMail": [
+          {
+            "type": "freeText",
+            "query": "ebay@vtj.co.jp",
+            "resultSizeEstimate": 0,
+            "firstPageIdsReturned": 0,
+            "hasNextPageToken": false
+          },
+          {
+            "type": "to",
+            "query": "to:ebay@vtj.co.jp",
+            "resultSizeEstimate": 0,
+            "firstPageIdsReturned": 0,
+            "hasNextPageToken": false
+          },
+          {
+            "type": "cc",
+            "query": "cc:ebay@vtj.co.jp",
+            "resultSizeEstimate": 0,
+            "firstPageIdsReturned": 0,
+            "hasNextPageToken": false
+          },
+          {
+            "type": "deliveredto",
+            "query": "deliveredto:ebay@vtj.co.jp",
+            "resultSizeEstimate": 0,
+            "firstPageIdsReturned": 0,
+            "hasNextPageToken": false
+          },
+          {
+            "type": "from",
+            "query": "from:ebay@vtj.co.jp",
+            "resultSizeEstimate": 0,
+            "firstPageIdsReturned": 0,
+            "hasNextPageToken": false
+          }
+        ]
+      }
     }
   ],
   "channels": [
@@ -419,7 +970,7 @@
       "label": "ストア全部",
       "addresses": [],
       "replyKind": "gmail",
-      "query": "((deliveredto:cricut_r@vtj.co.jp OR to:cricut_r@vtj.co.jp OR cc:cricut_r@vtj.co.jp) OR (deliveredto:cricut_y@vtj.co.jp OR to:cricut_y@vtj.co.jp OR cc:cricut_y@vtj.co.jp) OR (deliveredto:cricut_sc@vtj.co.jp OR to:cricut_sc@vtj.co.jp OR cc:cricut_sc@vtj.co.jp) OR (deliveredto:cricut_makeshop@vtj.co.jp OR to:cricut_makeshop@vtj.co.jp OR cc:cricut_makeshop@vtj.co.jp) OR ((deliveredto:gopro_r@vtj.co.jp OR to:gopro_r@vtj.co.jp OR cc:gopro_r@vtj.co.jp) OR (deliveredto:gopro_order_rakuten@vtj.co.jp OR to:gopro_order_rakuten@vtj.co.jp OR cc:gopro_order_rakuten@vtj.co.jp) OR (deliveredto:gopro_rakuten@vtj.co.jp OR to:gopro_rakuten@vtj.co.jp OR cc:gopro_rakuten@vtj.co.jp)) OR ((deliveredto:gopro_y@vtj.co.jp OR to:gopro_y@vtj.co.jp OR cc:gopro_y@vtj.co.jp) OR (deliveredto:gopro_order_yahoo@vtj.co.jp OR to:gopro_order_yahoo@vtj.co.jp OR cc:gopro_order_yahoo@vtj.co.jp)) OR (deliveredto:gopro_mp@vtj.co.jp OR to:gopro_mp@vtj.co.jp OR cc:gopro_mp@vtj.co.jp) OR ((deliveredto:vyper_r@vtj.co.jp OR to:vyper_r@vtj.co.jp OR cc:vyper_r@vtj.co.jp) OR (deliveredto:vyper_rakuten@vtj.co.jp OR to:vyper_rakuten@vtj.co.jp OR cc:vyper_rakuten@vtj.co.jp)) OR (deliveredto:vyperglobal_y@vtj.co.jp OR to:vyperglobal_y@vtj.co.jp OR cc:vyperglobal_y@vtj.co.jp) OR (deliveredto:vyperglobal_sc@vtj.co.jp OR to:vyperglobal_sc@vtj.co.jp OR cc:vyperglobal_sc@vtj.co.jp) OR (deliveredto:vyper_sc@vtj.co.jp OR to:vyper_sc@vtj.co.jp OR cc:vyper_sc@vtj.co.jp) OR (deliveredto:ams_vyper@vtj.co.jp OR to:ams_vyper@vtj.co.jp OR cc:ams_vyper@vtj.co.jp) OR ((deliveredto:datacolor_shopify@vtj.co.jp OR to:datacolor_shopify@vtj.co.jp OR cc:datacolor_shopify@vtj.co.jp) OR from:datacolor_shopify@vtj.co.jp) OR (deliveredto:akgstore@vtj.co.jp OR to:akgstore@vtj.co.jp OR cc:akgstore@vtj.co.jp) OR (deliveredto:sbd@vtj.co.jp OR to:sbd@vtj.co.jp OR cc:sbd@vtj.co.jp) OR (deliveredto:secondhand@vtj.co.jp OR to:secondhand@vtj.co.jp OR cc:secondhand@vtj.co.jp) OR (deliveredto:steiner-optics_sc@vtj.co.jp OR to:steiner-optics_sc@vtj.co.jp OR cc:steiner-optics_sc@vtj.co.jp) OR (deliveredto:ebay@vtj.co.jp OR to:ebay@vtj.co.jp OR cc:ebay@vtj.co.jp))",
+      "query": "((deliveredto:cricut_r@vtj.co.jp OR to:cricut_r@vtj.co.jp OR cc:cricut_r@vtj.co.jp) OR ((deliveredto:cricut_y@vtj.co.jp OR to:cricut_y@vtj.co.jp OR cc:cricut_y@vtj.co.jp) OR cricut_y@vtj.co.jp) OR (deliveredto:cricut_sc@vtj.co.jp OR to:cricut_sc@vtj.co.jp OR cc:cricut_sc@vtj.co.jp) OR (deliveredto:cricut_makeshop@vtj.co.jp OR to:cricut_makeshop@vtj.co.jp OR cc:cricut_makeshop@vtj.co.jp) OR ((deliveredto:gopro_r@vtj.co.jp OR to:gopro_r@vtj.co.jp OR cc:gopro_r@vtj.co.jp) OR (deliveredto:gopro_order_rakuten@vtj.co.jp OR to:gopro_order_rakuten@vtj.co.jp OR cc:gopro_order_rakuten@vtj.co.jp) OR (deliveredto:gopro_rakuten@vtj.co.jp OR to:gopro_rakuten@vtj.co.jp OR cc:gopro_rakuten@vtj.co.jp)) OR ((deliveredto:gopro_y@vtj.co.jp OR to:gopro_y@vtj.co.jp OR cc:gopro_y@vtj.co.jp) OR (deliveredto:gopro_order_yahoo@vtj.co.jp OR to:gopro_order_yahoo@vtj.co.jp OR cc:gopro_order_yahoo@vtj.co.jp)) OR (deliveredto:gopro_mp@vtj.co.jp OR to:gopro_mp@vtj.co.jp OR cc:gopro_mp@vtj.co.jp) OR ((deliveredto:vyper_r@vtj.co.jp OR to:vyper_r@vtj.co.jp OR cc:vyper_r@vtj.co.jp) OR (deliveredto:vyper_rakuten@vtj.co.jp OR to:vyper_rakuten@vtj.co.jp OR cc:vyper_rakuten@vtj.co.jp)) OR (deliveredto:vyperglobal_y@vtj.co.jp OR to:vyperglobal_y@vtj.co.jp OR cc:vyperglobal_y@vtj.co.jp) OR (deliveredto:vyperglobal_sc@vtj.co.jp OR to:vyperglobal_sc@vtj.co.jp OR cc:vyperglobal_sc@vtj.co.jp) OR (deliveredto:vyper_sc@vtj.co.jp OR to:vyper_sc@vtj.co.jp OR cc:vyper_sc@vtj.co.jp) OR (deliveredto:ams_vyper@vtj.co.jp OR to:ams_vyper@vtj.co.jp OR cc:ams_vyper@vtj.co.jp) OR ((deliveredto:datacolor_shopify@vtj.co.jp OR to:datacolor_shopify@vtj.co.jp OR cc:datacolor_shopify@vtj.co.jp) OR from:datacolor_shopify@vtj.co.jp) OR (deliveredto:akgstore@vtj.co.jp OR to:akgstore@vtj.co.jp OR cc:akgstore@vtj.co.jp) OR (deliveredto:sbd@vtj.co.jp OR to:sbd@vtj.co.jp OR cc:sbd@vtj.co.jp) OR (deliveredto:secondhand@vtj.co.jp OR to:secondhand@vtj.co.jp OR cc:secondhand@vtj.co.jp) OR (deliveredto:steiner-optics_sc@vtj.co.jp OR to:steiner-optics_sc@vtj.co.jp OR cc:steiner-optics_sc@vtj.co.jp) OR (deliveredto:ebay@vtj.co.jp OR to:ebay@vtj.co.jp OR cc:ebay@vtj.co.jp))",
       "resultSizeEstimate": 201,
       "firstPageIdsReturned": 50,
       "pagesFetched": 3,
@@ -477,18 +1028,18 @@
         "cricut_y@vtj.co.jp"
       ],
       "replyKind": "gmail",
-      "query": "(deliveredto:cricut_y@vtj.co.jp OR to:cricut_y@vtj.co.jp OR cc:cricut_y@vtj.co.jp)",
-      "resultSizeEstimate": 0,
-      "firstPageIdsReturned": 0,
+      "query": "(deliveredto:cricut_y@vtj.co.jp OR to:cricut_y@vtj.co.jp OR cc:cricut_y@vtj.co.jp) OR cricut_y@vtj.co.jp",
+      "resultSizeEstimate": 2,
+      "firstPageIdsReturned": 2,
       "pagesFetched": 1,
-      "uniqueIdsSeenLowerBound": 0,
+      "uniqueIdsSeenLowerBound": 2,
       "hasMoreAfterFetchedPages": false,
       "hasNextPageToken": false,
       "pageSummaries": [
         {
           "page": 1,
-          "idsReturned": 0,
-          "uniqueNewIds": 0,
+          "idsReturned": 2,
+          "uniqueNewIds": 2,
           "hasNextPageToken": false
         }
       ]
@@ -939,7 +1490,7 @@
       "label": "ストア全部",
       "addresses": [],
       "replyKind": "gmail",
-      "query": "((deliveredto:cricut_r@vtj.co.jp OR to:cricut_r@vtj.co.jp OR cc:cricut_r@vtj.co.jp) OR (deliveredto:cricut_y@vtj.co.jp OR to:cricut_y@vtj.co.jp OR cc:cricut_y@vtj.co.jp) OR (deliveredto:cricut_sc@vtj.co.jp OR to:cricut_sc@vtj.co.jp OR cc:cricut_sc@vtj.co.jp) OR (deliveredto:cricut_makeshop@vtj.co.jp OR to:cricut_makeshop@vtj.co.jp OR cc:cricut_makeshop@vtj.co.jp) OR ((deliveredto:gopro_r@vtj.co.jp OR to:gopro_r@vtj.co.jp OR cc:gopro_r@vtj.co.jp) OR (deliveredto:gopro_order_rakuten@vtj.co.jp OR to:gopro_order_rakuten@vtj.co.jp OR cc:gopro_order_rakuten@vtj.co.jp) OR (deliveredto:gopro_rakuten@vtj.co.jp OR to:gopro_rakuten@vtj.co.jp OR cc:gopro_rakuten@vtj.co.jp)) OR ((deliveredto:gopro_y@vtj.co.jp OR to:gopro_y@vtj.co.jp OR cc:gopro_y@vtj.co.jp) OR (deliveredto:gopro_order_yahoo@vtj.co.jp OR to:gopro_order_yahoo@vtj.co.jp OR cc:gopro_order_yahoo@vtj.co.jp)) OR (deliveredto:gopro_mp@vtj.co.jp OR to:gopro_mp@vtj.co.jp OR cc:gopro_mp@vtj.co.jp) OR ((deliveredto:vyper_r@vtj.co.jp OR to:vyper_r@vtj.co.jp OR cc:vyper_r@vtj.co.jp) OR (deliveredto:vyper_rakuten@vtj.co.jp OR to:vyper_rakuten@vtj.co.jp OR cc:vyper_rakuten@vtj.co.jp)) OR (deliveredto:vyperglobal_y@vtj.co.jp OR to:vyperglobal_y@vtj.co.jp OR cc:vyperglobal_y@vtj.co.jp) OR (deliveredto:vyperglobal_sc@vtj.co.jp OR to:vyperglobal_sc@vtj.co.jp OR cc:vyperglobal_sc@vtj.co.jp) OR (deliveredto:vyper_sc@vtj.co.jp OR to:vyper_sc@vtj.co.jp OR cc:vyper_sc@vtj.co.jp) OR (deliveredto:ams_vyper@vtj.co.jp OR to:ams_vyper@vtj.co.jp OR cc:ams_vyper@vtj.co.jp) OR ((deliveredto:datacolor_shopify@vtj.co.jp OR to:datacolor_shopify@vtj.co.jp OR cc:datacolor_shopify@vtj.co.jp) OR from:datacolor_shopify@vtj.co.jp) OR (deliveredto:akgstore@vtj.co.jp OR to:akgstore@vtj.co.jp OR cc:akgstore@vtj.co.jp) OR (deliveredto:sbd@vtj.co.jp OR to:sbd@vtj.co.jp OR cc:sbd@vtj.co.jp) OR (deliveredto:secondhand@vtj.co.jp OR to:secondhand@vtj.co.jp OR cc:secondhand@vtj.co.jp) OR (deliveredto:steiner-optics_sc@vtj.co.jp OR to:steiner-optics_sc@vtj.co.jp OR cc:steiner-optics_sc@vtj.co.jp) OR (deliveredto:ebay@vtj.co.jp OR to:ebay@vtj.co.jp OR cc:ebay@vtj.co.jp))"
+      "query": "((deliveredto:cricut_r@vtj.co.jp OR to:cricut_r@vtj.co.jp OR cc:cricut_r@vtj.co.jp) OR ((deliveredto:cricut_y@vtj.co.jp OR to:cricut_y@vtj.co.jp OR cc:cricut_y@vtj.co.jp) OR cricut_y@vtj.co.jp) OR (deliveredto:cricut_sc@vtj.co.jp OR to:cricut_sc@vtj.co.jp OR cc:cricut_sc@vtj.co.jp) OR (deliveredto:cricut_makeshop@vtj.co.jp OR to:cricut_makeshop@vtj.co.jp OR cc:cricut_makeshop@vtj.co.jp) OR ((deliveredto:gopro_r@vtj.co.jp OR to:gopro_r@vtj.co.jp OR cc:gopro_r@vtj.co.jp) OR (deliveredto:gopro_order_rakuten@vtj.co.jp OR to:gopro_order_rakuten@vtj.co.jp OR cc:gopro_order_rakuten@vtj.co.jp) OR (deliveredto:gopro_rakuten@vtj.co.jp OR to:gopro_rakuten@vtj.co.jp OR cc:gopro_rakuten@vtj.co.jp)) OR ((deliveredto:gopro_y@vtj.co.jp OR to:gopro_y@vtj.co.jp OR cc:gopro_y@vtj.co.jp) OR (deliveredto:gopro_order_yahoo@vtj.co.jp OR to:gopro_order_yahoo@vtj.co.jp OR cc:gopro_order_yahoo@vtj.co.jp)) OR (deliveredto:gopro_mp@vtj.co.jp OR to:gopro_mp@vtj.co.jp OR cc:gopro_mp@vtj.co.jp) OR ((deliveredto:vyper_r@vtj.co.jp OR to:vyper_r@vtj.co.jp OR cc:vyper_r@vtj.co.jp) OR (deliveredto:vyper_rakuten@vtj.co.jp OR to:vyper_rakuten@vtj.co.jp OR cc:vyper_rakuten@vtj.co.jp)) OR (deliveredto:vyperglobal_y@vtj.co.jp OR to:vyperglobal_y@vtj.co.jp OR cc:vyperglobal_y@vtj.co.jp) OR (deliveredto:vyperglobal_sc@vtj.co.jp OR to:vyperglobal_sc@vtj.co.jp OR cc:vyperglobal_sc@vtj.co.jp) OR (deliveredto:vyper_sc@vtj.co.jp OR to:vyper_sc@vtj.co.jp OR cc:vyper_sc@vtj.co.jp) OR (deliveredto:ams_vyper@vtj.co.jp OR to:ams_vyper@vtj.co.jp OR cc:ams_vyper@vtj.co.jp) OR ((deliveredto:datacolor_shopify@vtj.co.jp OR to:datacolor_shopify@vtj.co.jp OR cc:datacolor_shopify@vtj.co.jp) OR from:datacolor_shopify@vtj.co.jp) OR (deliveredto:akgstore@vtj.co.jp OR to:akgstore@vtj.co.jp OR cc:akgstore@vtj.co.jp) OR (deliveredto:sbd@vtj.co.jp OR to:sbd@vtj.co.jp OR cc:sbd@vtj.co.jp) OR (deliveredto:secondhand@vtj.co.jp OR to:secondhand@vtj.co.jp OR cc:secondhand@vtj.co.jp) OR (deliveredto:steiner-optics_sc@vtj.co.jp OR to:steiner-optics_sc@vtj.co.jp OR cc:steiner-optics_sc@vtj.co.jp) OR (deliveredto:ebay@vtj.co.jp OR to:ebay@vtj.co.jp OR cc:ebay@vtj.co.jp))"
     },
     {
       "id": "cricut-rakuten",
@@ -957,7 +1508,7 @@
         "cricut_y@vtj.co.jp"
       ],
       "replyKind": "gmail",
-      "query": "(deliveredto:cricut_y@vtj.co.jp OR to:cricut_y@vtj.co.jp OR cc:cricut_y@vtj.co.jp)"
+      "query": "(deliveredto:cricut_y@vtj.co.jp OR to:cricut_y@vtj.co.jp OR cc:cricut_y@vtj.co.jp) OR cricut_y@vtj.co.jp"
     },
     {
       "id": "cricut-amazon",
