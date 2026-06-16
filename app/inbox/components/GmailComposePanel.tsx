@@ -163,7 +163,7 @@ export function GmailComposePanel({
         </label>
         <textarea
           id={`gmail-compose-body-${messageId}`}
-          data-testid="gmail-compose-body"
+          data-testid="reply-body"
           value={bodyText}
           onChange={(e) => onBodyChange(e.target.value)}
           rows={8}

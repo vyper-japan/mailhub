@@ -125,7 +125,7 @@ describe("resolveReplyContext", () => {
     });
   });
 
-  it("chooses a deterministic alias when several addresses from the same channel hit", () => {
+  it("blocks several aliases from the same channel as ambiguous", () => {
     const result = resolveReplyContext(
       createDetail({
         deliveredTo: ["mailhub@vtj.co.jp", "GoPro Order <gopro_order_yahoo@vtj.co.jp>"],
@@ -134,11 +134,12 @@ describe("resolveReplyContext", () => {
       channels,
     );
 
-    expect(result.ok).toBe(true);
-    if (!result.ok) return;
-    expect(result.context.fromAlias).toBe("gopro_order_yahoo@vtj.co.jp");
-    expect(result.context.fromChannelId).toBe("gopro-yahoo");
-    expect(result.context.matchedHeader).toBe("deliveredTo");
+    expect(result).toEqual({
+      ok: false,
+      error: "from_alias_ambiguous",
+      message: "送信元グループアドレス候補が複数あります",
+      candidates: ["gopro_order_yahoo@vtj.co.jp", "gopro_y@vtj.co.jp"],
+    });
   });
 
   it("blocks mailing list replies even when Reply-To is valid", () => {

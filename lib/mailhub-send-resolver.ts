@@ -182,23 +182,23 @@ export function resolveReplyContext(
       .filter((alias) => alias.address === hit.email)
       .map((alias) => ({ ...hit, aliasAddress: alias.address, channel: alias.channel })),
   );
-  const matchedChannelIds = dedupePreserveOrder(gmailHits.map((hit) => hit.channel.id));
+  const matchedAliasAddresses = dedupePreserveOrder(gmailHits.map((hit) => hit.aliasAddress));
 
-  if (matchedChannelIds.length === 0) {
+  if (matchedAliasAddresses.length === 0) {
     return { ok: false, error: "from_alias_unresolved", message: "送信元グループアドレスを一意に解決できません" };
   }
-  if (matchedChannelIds.length > 1) {
+  if (matchedAliasAddresses.length > 1) {
     return {
       ok: false,
       error: "from_alias_ambiguous",
       message: "送信元グループアドレス候補が複数あります",
-      candidates: dedupePreserveOrder(gmailHits.map((hit) => hit.aliasAddress)),
+      candidates: matchedAliasAddresses,
     };
   }
 
-  const selectedChannelId = matchedChannelIds[0];
+  const selectedAliasAddress = matchedAliasAddresses[0];
   const selectedHit = gmailHits
-    .filter((hit) => hit.channel.id === selectedChannelId)
+    .filter((hit) => hit.aliasAddress === selectedAliasAddress)
     .sort(compareHeaderHitOrder)[0];
   if (!selectedHit) {
     return { ok: false, error: "from_alias_unresolved", message: "送信元グループアドレスを一意に解決できません" };

@@ -32,7 +32,7 @@ describe("routeReply", () => {
   });
 
   describe("Allチャンネル", () => {
-    it("常にemailを返す", () => {
+    it("returns gmail when headers do not identify a Rakuten channel", () => {
       const message = createMessage({
         subject: "【楽天RMS】お問い合わせ",
         from: "楽天市場 <rms@rakuten.co.jp>",
@@ -40,6 +40,23 @@ describe("routeReply", () => {
       const result = routeReply(message, "all", true);
       expect(result.kind).toBe("gmail");
       expect(result.storeId).toBeUndefined();
+    });
+
+    it("infers Rakuten route from delivered headers even when current channel is all", () => {
+      const message = createMessage({
+        subject: "【楽天RMS】お問い合わせ",
+        from: "楽天市場 <rms@rakuten.co.jp>",
+        plainTextBody: "問い合わせ番号: 12345678",
+        deliveredTo: ["mailhub@vtj.co.jp", "shop-a@vtj.co.jp"],
+        xOriginalTo: "shop-a@vtj.co.jp",
+        to: "StoreA <shop-a@vtj.co.jp>",
+      });
+      const result = routeReply(message, "all", true);
+      expect(result).toMatchObject({
+        kind: "rakuten_rms",
+        storeId: "store-a",
+        inquiryId: "12345678",
+      });
     });
   });
 

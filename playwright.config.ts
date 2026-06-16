@@ -54,6 +54,8 @@ export default defineConfig({
     timeout: 300 * 1000,
     env: {
       MAILHUB_TEST_MODE: "1",
+      MAILHUB_ACTIVITY_STORE: "file",
+      MAILHUB_TEST_STATUS_STORE: "file",
       NEXTAUTH_SECRET: "test-secret-for-e2e",
       NEXTAUTH_URL: "http://localhost:3001",
       NEXTAUTH_TRUST_HOST: "true",
@@ -64,4 +66,3 @@ export default defineConfig({
     },
   },
 });
-

@@ -1,6 +1,8 @@
 import "server-only";
 
 import { google } from "googleapis";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { mustGetEnv } from "@/lib/env";
 import { isTestMode } from "@/lib/test-mode";
 import type { InboxListMessage, MessageDetail } from "@/lib/mailhub-types";
@@ -51,6 +53,7 @@ type CacheEntry<T> = { value: T; expiresAt: number };
 
 // テストモード用: メールのStatus状態を保持
 type TestMessageStatus = "todo" | "waiting" | "done" | "muted" | "snoozed";
+const TEST_STATUS_STORE_PATH = join(process.cwd(), ".mailhub", "test-message-status.json");
 
 declare global {
   // eslint-disable-next-line no-var
@@ -90,8 +93,54 @@ function clearAllMessageCaches() {
   getCache().thread.clear();
 }
 
+function shouldUseFileTestStatusStore(): boolean {
+  return process.env.MAILHUB_TEST_STATUS_STORE?.trim() === "file";
+}
+
+function parseTestStatus(value: unknown): TestMessageStatus | null {
+  return value === "todo" || value === "waiting" || value === "done" || value === "muted" || value === "snoozed"
+    ? value
+    : null;
+}
+
+function readFileTestMessageStatus(): Map<string, TestMessageStatus> {
+  if (!existsSync(TEST_STATUS_STORE_PATH)) return new Map();
+  try {
+    const parsed = JSON.parse(readFileSync(TEST_STATUS_STORE_PATH, "utf8")) as unknown;
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return new Map();
+    const out = new Map<string, TestMessageStatus>();
+    for (const [id, status] of Object.entries(parsed)) {
+      if (typeof id !== "string") continue;
+      const parsedStatus = parseTestStatus(status);
+      if (parsedStatus) out.set(id, parsedStatus);
+    }
+    return out;
+  } catch {
+    return new Map();
+  }
+}
+
+function writeFileTestMessageStatus(statuses: Map<string, TestMessageStatus>): void {
+  mkdirSync(dirname(TEST_STATUS_STORE_PATH), { recursive: true });
+  writeFileSync(
+    TEST_STATUS_STORE_PATH,
+    JSON.stringify(Object.fromEntries(statuses.entries()), null, 2),
+    "utf8",
+  );
+}
+
+function clearTestMessageStatus(): void {
+  globalThis.__mailhubTestMessageStatus?.clear();
+  if (shouldUseFileTestStatusStore()) {
+    rmSync(TEST_STATUS_STORE_PATH, { force: true });
+  }
+}
+
 // テストモード用: メール状態を取得/設定
 function getTestMessageStatus(): Map<string, TestMessageStatus> {
+  if (shouldUseFileTestStatusStore()) {
+    return readFileTestMessageStatus();
+  }
   if (!globalThis.__mailhubTestMessageStatus) {
     globalThis.__mailhubTestMessageStatus = new Map();
   }
@@ -155,7 +204,12 @@ function getTestStatus(id: string): TestMessageStatus {
 }
 
 function setTestStatus(id: string, status: TestMessageStatus) {
-  getTestMessageStatus().set(id, status);
+  const statuses = getTestMessageStatus();
+  statuses.set(id, status);
+  if (shouldUseFileTestStatusStore()) {
+    writeFileTestMessageStatus(statuses);
+  }
+  clearAllMessageCaches();
 }
 
 // MailHub用のGmailラベル名
@@ -623,12 +677,13 @@ export async function listLatestInboxMessages(
         })
       : all;
     // statusType でフィルタ（メモリ上の状態に基づく）
+    const effectiveTestStatusType = statusType ?? (labelIds?.includes("INBOX") ? "todo" : undefined);
     // NOTE: assigneeSlug/unassigned でフィルタする場合は、担当ラベルのみで一覧を出したい
     // （受信箱→担当→保留→担当 で「担当0件」にならないようにする）
-    // statusTypeがundefinedの場合はフィルタリングしない（全メールを表示）
+    // statusTypeがundefinedかつINBOX以外の場合はフィルタリングしない（全メールを表示）
     const shouldIgnoreStatusForAssigneeView = Boolean(assigneeSlugParam || unassigned);
-    if (statusType !== undefined && !shouldIgnoreStatusForAssigneeView) {
-      filtered = filtered.filter((m) => getTestStatus(m.id) === statusType);
+    if (effectiveTestStatusType !== undefined && !shouldIgnoreStatusForAssigneeView) {
+      filtered = filtered.filter((m) => getTestStatus(m.id) === effectiveTestStatusType);
     }
     // assigneeSlugでフィルタ（担当タブ用）
     if (assigneeSlugParam) {
@@ -1418,9 +1473,7 @@ export async function resetTestState(): Promise<void> {
   }
   
   // テスト状態をクリア
-  if (globalThis.__mailhubTestMessageStatus) {
-    globalThis.__mailhubTestMessageStatus.clear();
-  }
+  clearTestMessageStatus();
   if (globalThis.__mailhubTestAssigneeMap) {
     globalThis.__mailhubTestAssigneeMap.clear();
   }
@@ -2437,4 +2490,3 @@ export async function releaseSnoozed(untilDate: string): Promise<{
     truncated,
   };
 }
-

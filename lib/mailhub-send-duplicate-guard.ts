@@ -136,11 +136,12 @@ export function releaseMailhubSendDuplicateGuard(reservation: MailhubSendDuplica
 
 export function retainMailhubSendDuplicateGuardReservation(
   // Holding after the send boundary is represented by leaving the TTL entries in place.
-  _reservation: MailhubSendDuplicateReservation,
-): void {}
+  reservation: MailhubSendDuplicateReservation,
+): void {
+  void reservation;
+}
 
 export function clearMailhubSendDuplicateGuard(): void {
   globalThis.__mailhubSendDuplicateGuardStore?.clear();
   globalThis.__mailhubSendDuplicateGuardSeq = 0;
 }
-

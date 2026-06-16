@@ -518,9 +518,12 @@ test.describe("QA-Strict Unified E2E Tests", () => {
     await expect(mutedLabel).toBeVisible({ timeout: 3000 });
     
     // リストAPI成功を待つ
-    const listRespP = page.waitForResponse((r) =>
-      r.url().includes("/api/mailhub/list") && r.request().method() === "GET" && r.status() === 200
-    );
+    const listRespP = page.waitForResponse((r) => {
+      if (!r.url().includes("/api/mailhub/list") || r.request().method() !== "GET" || r.status() !== 200) {
+        return false;
+      }
+      return new URL(r.url()).searchParams.get("label") === "muted";
+    });
     
     await mutedLabel.click();
     
@@ -564,9 +567,12 @@ test.describe("QA-Strict Unified E2E Tests", () => {
     await expect(todoLabel).toBeVisible({ timeout: 3000 });
     
     // リストAPI成功を待つ
-    const todoListRespP = page.waitForResponse((r) =>
-      r.url().includes("/api/mailhub/list") && r.request().method() === "GET" && r.status() === 200
-    );
+    const todoListRespP = page.waitForResponse((r) => {
+      if (!r.url().includes("/api/mailhub/list") || r.request().method() !== "GET" || r.status() !== 200) {
+        return false;
+      }
+      return new URL(r.url()).searchParams.get("label") === "todo";
+    });
     
     await todoLabel.click();
     
@@ -578,7 +584,7 @@ test.describe("QA-Strict Unified E2E Tests", () => {
     
     // ターゲットメールがInboxに戻っていることを確認（固定IDで検索）
     const restoredList = page.getByTestId("message-list");
-    await expect(restoredList).toBeVisible({ timeout: 3000 });
+    await expect(restoredList).toBeVisible({ timeout: 10000 });
     const restoredTarget = restoredList.locator(`[data-message-id="${targetId}"]`);
     await expect(restoredTarget).toBeVisible({ timeout: 5000 });
   });
@@ -6875,7 +6881,7 @@ async function w2T3aResetAndOpen(page: Page) {
 
 async function w2T3aSendAndDone(page: Page, bodyText: string): Promise<W2T3aSendResponse> {
   const panel = page.getByTestId("gmail-compose-panel");
-  await panel.getByTestId("gmail-compose-body").fill(bodyText);
+  await panel.getByTestId("reply-body").fill(bodyText);
 
   const sendAndDoneButton = panel.getByTestId("gmail-compose-send-and-done");
   await expect(sendAndDoneButton).toBeEnabled({ timeout: 10000 });

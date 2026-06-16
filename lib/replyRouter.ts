@@ -1,5 +1,5 @@
 import type { MessageDetail } from "./mailhub-types";
-import { coerceChannelId, getChannelById, type ChannelDef, type ChannelId } from "./channels";
+import { coerceChannelId, getChannelById, getChannels, type ChannelDef, type ChannelId } from "./channels";
 import { extractInquiryNumber } from "./rakuten/extract";
 
 export type ReplyKind = "gmail" | "rakuten_rms" | "unknown";
@@ -16,6 +16,31 @@ function getReplyChannel(channelId: ChannelId, testMode: boolean): ChannelDef | 
   return activeChannelId ? getChannelById(activeChannelId, testMode) : undefined;
 }
 
+const EMAIL_RE = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi;
+
+function extractEmails(value: string | null | undefined): string[] {
+  if (!value) return [];
+  return Array.from(value.matchAll(EMAIL_RE), (match) => match[0].toLowerCase());
+}
+
+function inferRakutenChannelFromHeaders(message: MessageDetail, testMode: boolean): ChannelDef | undefined {
+  const headerEmails = new Set([
+    ...message.deliveredTo.flatMap(extractEmails),
+    ...extractEmails(message.xOriginalTo),
+    ...extractEmails(message.to),
+    ...extractEmails(message.cc),
+    ...extractEmails(message.bcc),
+  ]);
+  if (headerEmails.size === 0) return undefined;
+
+  const candidates = getChannels(testMode).filter(
+    (channel) =>
+      channel.replyKind === "rakuten_rms" &&
+      channel.addresses.some((address) => headerEmails.has(address.toLowerCase())),
+  );
+  return candidates.length === 1 ? candidates[0] : undefined;
+}
+
 /**
  * メールの返信先を判定する（Step55拡張版）
  * @param message メール詳細
@@ -27,7 +52,10 @@ export function routeReply(
   channelId: ChannelId,
   testMode: boolean,
 ): ReplyRoute {
-  const channel = getReplyChannel(channelId, testMode);
+  const selectedChannel = getReplyChannel(channelId, testMode);
+  const channel = selectedChannel?.replyKind === "rakuten_rms"
+    ? selectedChannel
+    : inferRakutenChannelFromHeaders(message, testMode);
   if (channel?.replyKind !== "rakuten_rms") {
     return { kind: "gmail" };
   }
@@ -84,6 +112,5 @@ export function routeReply(
   // 判定できない場合は通常のメール返信
   return { kind: "gmail" };
 }
-
 
 

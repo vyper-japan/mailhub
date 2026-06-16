@@ -100,7 +100,7 @@ export function resetTestSendAsOverride(): void {
   delete globalThis.__mailhubTestSendAsOverride;
 }
 
-function createGmailClient(sharedInboxEmail: string) {
+function createGmailClient() {
   const refreshToken = mustGetEnv("GOOGLE_SHARED_INBOX_REFRESH_TOKEN");
   const clientId = mustGetEnv("GOOGLE_CLIENT_ID");
   const clientSecret = mustGetEnv("GOOGLE_CLIENT_SECRET");
@@ -114,7 +114,7 @@ function createGmailClient(sharedInboxEmail: string) {
 }
 
 async function fetchAcceptedSendAsAliases(sharedInboxEmail: string): Promise<string[]> {
-  const gmail = createGmailClient(sharedInboxEmail);
+  const gmail = createGmailClient();
   const response = await gmail.users.settings.sendAs.list({ userId: sharedInboxEmail });
   return dedupePreserveOrder(
     (response.data.sendAs ?? [])

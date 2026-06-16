@@ -178,6 +178,10 @@ export default function InboxShell({
   }, []);
 
   const [labelId, setLabelId] = useState<string>(initialLabelId);
+  const labelIdRef = useRef(labelId);
+  useEffect(() => {
+    labelIdRef.current = labelId;
+  }, [labelId]);
   const [channelId, setChannelId] = useState<ChannelId>(initialChannelId);
   const availableChannelIds = useMemo(
     () => getChannels(testMode).map((channel) => channel.id),
@@ -1946,7 +1950,7 @@ export default function InboxShell({
         }
       }
     }, 150);
-  }, [selectedId, messages, evictOldCacheEntries]);
+  }, [selectedId, evictOldCacheEntries]);
   
   // Step 93: マウス離脱時にタイマーをキャンセル
   const handleRowMouseLeave = useCallback(() => {
@@ -4696,6 +4700,7 @@ export default function InboxShell({
     const targetMessage = messages.find((m) => m.id === id);
     if (!targetMessage) return;
 
+    const labelIdAtAction = labelId;
     const delta: Partial<{ todo: number; waiting: number; done: number; muted: number }> = { muted: -1, todo: +1 };
     const inverseDelta: Partial<{ todo: number; waiting: number; done: number; muted: number }> = { muted: +1, todo: -1 };
     bumpCounts(delta);
@@ -4714,6 +4719,7 @@ export default function InboxShell({
     
     // アニメーション開始（Flash後にスライド）
     setTimeout(() => {
+      if (labelIdRef.current !== labelIdAtAction) return;
       setRemovingIds((prev) => new Set(prev).add(id));
     }, 150);
     
@@ -4723,13 +4729,14 @@ export default function InboxShell({
 
     // アニメーション後に削除
     setTimeout(() => {
-      const newMessages = messages.filter((m) => m.id !== id);
-      setMessages(newMessages);
       setRemovingIds((prev) => {
         const next = new Set(prev);
         next.delete(id);
         return next;
       });
+      if (labelIdRef.current !== labelIdAtAction) return;
+      const newMessages = messages.filter((m) => m.id !== id);
+      setMessages(newMessages);
 
       const currentIndex = previousMessages.findIndex((m) => m.id === id);
       const nextMessage = newMessages[currentIndex] ?? newMessages[currentIndex - 1] ?? newMessages[0];
