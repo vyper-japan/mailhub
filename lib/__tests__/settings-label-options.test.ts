@@ -9,16 +9,17 @@ function channelIdsFromSelect(options: Array<{ value: string }>): string[] {
 
 describe("settings view label options", () => {
   test("testMode=true returns store-a/b/c for both View option selects", () => {
-    expect(buildViewChannelOptions(true).map((option) => option.value)).toEqual(["store-a", "store-b", "store-c"]);
+    expect(buildViewChannelOptions(true).map((option) => option.value)).toEqual(["stores", "store-a", "store-b", "store-c"]);
 
     const options = buildViewLabelSelectOptions(true);
-    expect(channelIdsFromSelect(options.newView)).toEqual(["store-a", "store-b", "store-c"]);
-    expect(channelIdsFromSelect(options.editView)).toEqual(["store-a", "store-b", "store-c"]);
+    expect(channelIdsFromSelect(options.newView)).toEqual(["stores", "store-a", "store-b", "store-c"]);
+    expect(channelIdsFromSelect(options.editView)).toEqual(["stores", "store-a", "store-b", "store-c"]);
   });
 
-  test("testMode=false returns the 17 production channels for both View option selects", () => {
+  test("testMode=false returns the aggregate stores channel and 17 production channels for both View option selects", () => {
     const options = buildViewLabelSelectOptions(false);
     const expected = [
+      "stores",
       "cricut-rakuten",
       "cricut-yahoo",
       "cricut-amazon",
@@ -40,7 +41,7 @@ describe("settings view label options", () => {
 
     expect(channelIdsFromSelect(options.newView)).toEqual(expected);
     expect(channelIdsFromSelect(options.editView)).toEqual(expected);
-    expect(channelIdsFromSelect(options.newView)).toHaveLength(17);
-    expect(channelIdsFromSelect(options.editView)).toHaveLength(17);
+    expect(channelIdsFromSelect(options.newView)).toHaveLength(18);
+    expect(channelIdsFromSelect(options.editView)).toHaveLength(18);
   });
 });

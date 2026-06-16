@@ -11,6 +11,13 @@ import { buildLabelGroups, getDefaultLabel, getLabelById, getLabelQuery, LABEL_G
 const testChannels: ChannelDef[] = [
   { id: "all", label: "All", addresses: [], replyKind: "gmail" },
   {
+    id: "stores",
+    label: "ストア全部",
+    addresses: [],
+    q: "((deliveredto:shop-a@vtj.co.jp OR to:shop-a@vtj.co.jp OR cc:shop-a@vtj.co.jp) OR (deliveredto:shop-b@vtj.co.jp OR to:shop-b@vtj.co.jp OR cc:shop-b@vtj.co.jp) OR (deliveredto:shop-c@vtj.co.jp OR to:shop-c@vtj.co.jp OR cc:shop-c@vtj.co.jp))",
+    replyKind: "gmail",
+  },
+  {
     id: "store-a",
     label: "StoreA",
     addresses: ["shop-a@vtj.co.jp"],
@@ -144,6 +151,12 @@ describe("channels", () => {
         items: [
           { id: "all", label: "すべて", type: "channel" },
           {
+            id: "stores",
+            label: "ストア全部",
+            type: "channel",
+            q: "((deliveredto:shop-a@vtj.co.jp OR to:shop-a@vtj.co.jp OR cc:shop-a@vtj.co.jp) OR (deliveredto:shop-b@vtj.co.jp OR to:shop-b@vtj.co.jp OR cc:shop-b@vtj.co.jp) OR (deliveredto:shop-c@vtj.co.jp OR to:shop-c@vtj.co.jp OR cc:shop-c@vtj.co.jp))",
+          },
+          {
             id: "store-a",
             label: "StoreA",
             type: "channel",
@@ -195,17 +208,23 @@ describe("channels", () => {
 
     expect(groups.map((group) => group.id)).toEqual(["channels", "status", "assignee"]);
     expect(channels[0]).toEqual({ id: "all", label: "すべて", type: "channel" });
+    expect(channels[1]).toEqual({
+      id: "stores",
+      label: "ストア全部",
+      type: "channel",
+      q: expect.stringContaining("deliveredto:cricut_r@vtj.co.jp"),
+    });
     expect(channels.find((item) => item.id === "cricut-rakuten")).toEqual({
       id: "cricut-rakuten",
       label: "Cricut 楽天",
       type: "channel",
-      q: "to:cricut_r@vtj.co.jp",
+      q: "(deliveredto:cricut_r@vtj.co.jp OR to:cricut_r@vtj.co.jp OR cc:cricut_r@vtj.co.jp)",
     });
     expect(channels.find((item) => item.id === "gopro-rakuten")).toEqual({
       id: "gopro-rakuten",
       label: "GoPro 楽天",
       type: "channel",
-      q: "to:(gopro_r@vtj.co.jp OR gopro_order_rakuten@vtj.co.jp OR gopro_rakuten@vtj.co.jp)",
+      q: "((deliveredto:gopro_r@vtj.co.jp OR to:gopro_r@vtj.co.jp OR cc:gopro_r@vtj.co.jp) OR (deliveredto:gopro_order_rakuten@vtj.co.jp OR to:gopro_order_rakuten@vtj.co.jp OR cc:gopro_order_rakuten@vtj.co.jp) OR (deliveredto:gopro_rakuten@vtj.co.jp OR to:gopro_rakuten@vtj.co.jp OR cc:gopro_rakuten@vtj.co.jp))",
     });
   });
 
@@ -228,7 +247,7 @@ describe("channels", () => {
   test("label lookup uses the active test/prod channel set", () => {
     expect(getLabelById("cricut-rakuten", false)).toMatchObject({
       id: "cricut-rakuten",
-      q: "to:cricut_r@vtj.co.jp",
+      q: "(deliveredto:cricut_r@vtj.co.jp OR to:cricut_r@vtj.co.jp OR cc:cricut_r@vtj.co.jp)",
     });
     expect(getLabelById("store-a", false)).toBeNull();
     expect(getLabelById("store-a", true)).toMatchObject({
@@ -238,7 +257,7 @@ describe("channels", () => {
     expect(getLabelById("cricut-rakuten", true)).toBeNull();
   });
 
-  test("getChannels(false) exposes the 17 production channels", () => {
+  test("getChannels(false) exposes the aggregate stores channel and 17 production store channels", () => {
     const channels = getChannels(false);
 
     expect(channels[0]).toMatchObject({
@@ -246,16 +265,25 @@ describe("channels", () => {
       label: "All",
       addresses: [],
     });
-    expect(channels.slice(1).map(({ id, label, addresses }) => ({ id, label, addresses }))).toEqual(
+    expect(channels[1]).toMatchObject({
+      id: "stores",
+      label: "ストア全部",
+      addresses: [],
+    });
+    expect(channels[1].q).toContain("deliveredto:cricut_r@vtj.co.jp");
+    expect(channels[1].q).toContain("deliveredto:ebay@vtj.co.jp");
+    expect(channels.slice(2).map(({ id, label, addresses }) => ({ id, label, addresses }))).toEqual(
       prodChannels,
     );
   });
 
   test("buildAddressQuery builds Gmail OR queries from multiple addresses", () => {
     expect(buildAddressQuery([])).toBeUndefined();
-    expect(buildAddressQuery(["one@vtj.co.jp"])).toBe("to:one@vtj.co.jp");
+    expect(buildAddressQuery(["one@vtj.co.jp"])).toBe(
+      "(deliveredto:one@vtj.co.jp OR to:one@vtj.co.jp OR cc:one@vtj.co.jp)",
+    );
     expect(buildAddressQuery(["one@vtj.co.jp", "two@vtj.co.jp"])).toBe(
-      "to:(one@vtj.co.jp OR two@vtj.co.jp)",
+      "((deliveredto:one@vtj.co.jp OR to:one@vtj.co.jp OR cc:one@vtj.co.jp) OR (deliveredto:two@vtj.co.jp OR to:two@vtj.co.jp OR cc:two@vtj.co.jp))",
     );
   });
 
@@ -272,6 +300,8 @@ describe("channels", () => {
 
   test("coerceChannelId accepts only the active test/prod channel set", () => {
     expect(coerceChannelId("store-a", true)).toBe("store-a");
+    expect(coerceChannelId("stores", true)).toBe("stores");
+    expect(coerceChannelId("stores", false)).toBe("stores");
     expect(coerceChannelId("cricut-rakuten", true)).toBeUndefined();
     expect(coerceChannelId("cricut-rakuten", false)).toBe("cricut-rakuten");
     expect(coerceChannelId("store-a", false)).toBeUndefined();

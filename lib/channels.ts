@@ -2,6 +2,7 @@ export type RmsEnvPrefix = "RMS_STORE_A" | "RMS_STORE_B" | "RMS_STORE_C";
 
 export type ChannelId =
   | "all"
+  | "stores"
   | "store-a"
   | "store-b"
   | "store-c"
@@ -43,17 +44,15 @@ function makeDeliveredToQuery(address: string): string {
 export function buildAddressQuery(addresses: string[]): string | undefined {
   const normalized = addresses.map((address) => address.trim()).filter(Boolean);
   if (normalized.length === 0) return undefined;
-  if (normalized.length === 1) return `to:${normalized[0]}`;
-  return `to:(${normalized.join(" OR ")})`;
+  const parts = normalized.map(makeDeliveredToQuery);
+  return parts.length === 1 ? parts[0] : `(${parts.join(" OR ")})`;
 }
 
-const TEST_CHANNELS: ChannelDef[] = [
-  { id: "all", label: "All", addresses: [], replyKind: "gmail" },
+const TEST_STORE_CHANNELS: ChannelDef[] = ([
   {
     id: "store-a",
     label: "StoreA",
     addresses: ["shop-a@vtj.co.jp"],
-    q: makeDeliveredToQuery("shop-a@vtj.co.jp"),
     replyKind: "rakuten_rms",
     rmsEnvPrefix: "RMS_STORE_A",
   },
@@ -61,7 +60,6 @@ const TEST_CHANNELS: ChannelDef[] = [
     id: "store-b",
     label: "StoreB",
     addresses: ["shop-b@vtj.co.jp"],
-    q: makeDeliveredToQuery("shop-b@vtj.co.jp"),
     replyKind: "rakuten_rms",
     rmsEnvPrefix: "RMS_STORE_B",
   },
@@ -69,14 +67,24 @@ const TEST_CHANNELS: ChannelDef[] = [
     id: "store-c",
     label: "StoreC",
     addresses: ["shop-c@vtj.co.jp"],
-    q: makeDeliveredToQuery("shop-c@vtj.co.jp"),
     replyKind: "rakuten_rms",
     rmsEnvPrefix: "RMS_STORE_C",
   },
+] satisfies ChannelDef[]).map((channel) => ({ ...channel, q: buildAddressQuery(channel.addresses) }));
+
+const TEST_CHANNELS: ChannelDef[] = [
+  { id: "all", label: "All", addresses: [], replyKind: "gmail" },
+  {
+    id: "stores",
+    label: "ストア全部",
+    addresses: [],
+    q: buildAddressQuery(TEST_STORE_CHANNELS.flatMap((channel) => channel.addresses)),
+    replyKind: "gmail",
+  },
+  ...TEST_STORE_CHANNELS,
 ];
 
-const PROD_CHANNELS: ChannelDef[] = ([
-  { id: "all", label: "All", addresses: [], replyKind: "gmail" },
+const PROD_STORE_CHANNELS: ChannelDef[] = ([
   {
     id: "cricut-rakuten",
     label: "Cricut 楽天",
@@ -190,6 +198,18 @@ const PROD_CHANNELS: ChannelDef[] = ([
   const q = buildAddressQuery(channel.addresses);
   return q ? { ...channel, q } : channel;
 });
+
+const PROD_CHANNELS: ChannelDef[] = [
+  { id: "all", label: "All", addresses: [], replyKind: "gmail" },
+  {
+    id: "stores",
+    label: "ストア全部",
+    addresses: [],
+    q: buildAddressQuery(PROD_STORE_CHANNELS.flatMap((channel) => channel.addresses)),
+    replyKind: "gmail",
+  },
+  ...PROD_STORE_CHANNELS,
+];
 
 function cloneChannel(channel: ChannelDef): ChannelDef {
   return {

@@ -50,9 +50,35 @@ describe("mailhub list route label mode", () => {
 
     expect(res.status).toBe(200);
     expect(routeMocks.listLatestInboxMessages).toHaveBeenCalledWith(
-      expect.objectContaining({ q: "to:cricut_r@vtj.co.jp" }),
+      expect.objectContaining({
+        q: "(deliveredto:cricut_r@vtj.co.jp OR to:cricut_r@vtj.co.jp OR cc:cricut_r@vtj.co.jp)",
+      }),
     );
     expect(await readJson(res)).toMatchObject({ label: "cricut-rakuten" });
+  });
+
+  it("uses the aggregate stores query for all known store addresses", async () => {
+    const GET = await importGet();
+
+    const res = await GET(new Request("http://localhost/api/mailhub/list?label=stores"));
+
+    expect(res.status).toBe(200);
+    expect(routeMocks.listLatestInboxMessages).toHaveBeenCalledWith(
+      expect.objectContaining({
+        q: expect.stringContaining("deliveredto:cricut_r@vtj.co.jp"),
+      }),
+    );
+    expect(routeMocks.listLatestInboxMessages).toHaveBeenCalledWith(
+      expect.objectContaining({
+        q: expect.stringContaining("deliveredto:gopro_order_yahoo@vtj.co.jp"),
+      }),
+    );
+    expect(routeMocks.listLatestInboxMessages).toHaveBeenCalledWith(
+      expect.objectContaining({
+        q: expect.stringContaining("deliveredto:ebay@vtj.co.jp"),
+      }),
+    );
+    expect(await readJson(res)).toMatchObject({ label: "stores" });
   });
 
   it("falls back to all when TEST store-a is requested in PROD mode", async () => {
