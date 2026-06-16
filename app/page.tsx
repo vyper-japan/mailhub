@@ -53,7 +53,7 @@ export default async function HomePage({
 
   // label パラメータを優先、なければ channel（後方互換）、なければデフォルト
   const labelId = view?.labelId ?? getFirstString(sp?.label) ?? getFirstString(sp?.channel);
-  const defaultLabel = labelGroups[0].items[0];
+  const defaultLabel = labelGroups[0].items.find((item) => item.id === "stores") ?? labelGroups[0].items[0];
   const label =
     labelGroups.flatMap((group) => group.items).find((item) => item.id === labelId) ??
     defaultLabel;

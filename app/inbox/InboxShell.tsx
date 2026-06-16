@@ -854,6 +854,7 @@ export default function InboxShell({
   const abortRef = useRef<AbortController | null>(null);
   const inFlightIdRef = useRef<string | null>(null);
   const lastFocusSyncAtRef = useRef<number>(0);
+  const initialEmptyLoadAttemptedRef = useRef(false);
   
   // Step 93: Hover Prefetch用のref
   const hoverPrefetchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -871,6 +872,9 @@ export default function InboxShell({
   const replaceUrl = useCallback((label: string, id: string | null, keepView: boolean = true, searchQ?: string | null) => {
     const params = new URLSearchParams(window.location.search);
     params.set("label", label);
+    const nextChannel = resolveChannelId(label);
+    if (nextChannel === "all") params.delete("channel");
+    else params.set("channel", nextChannel);
     if (id) params.set("id", id);
     else params.delete("id");
     if (!keepView) params.delete("view");
@@ -885,18 +889,21 @@ export default function InboxShell({
     const qs = params.toString();
     const nextUrl = qs ? `${pathname}?${qs}` : `${pathname}`;
     window.history.replaceState(null, "", nextUrl);
-  }, [pathname]);
+  }, [pathname, resolveChannelId]);
 
   const replaceUrlWithView = useCallback((viewId: string, label: string, id: string | null) => {
     const params = new URLSearchParams(window.location.search);
     params.set("view", viewId);
     params.set("label", label);
+    const nextChannel = resolveChannelId(label);
+    if (nextChannel === "all") params.delete("channel");
+    else params.set("channel", nextChannel);
     if (id) params.set("id", id);
     else params.delete("id");
     const qs = params.toString();
     const nextUrl = qs ? `${pathname}?${qs}` : `${pathname}`;
     window.history.replaceState(null, "", nextUrl);
-  }, [pathname]);
+  }, [pathname, resolveChannelId]);
 
   // Saved Views（保存ビュー）
   const [views, setViews] = useState<View[]>([]);
@@ -2420,7 +2427,14 @@ export default function InboxShell({
 
   // 初期化時にメールが空の場合、loadListを呼ぶ（loadList定義後に配置）
   useEffect(() => {
-    if (messages.length === 0 && initialMessages.length === 0 && !listError && !isPending) {
+    if (
+      !initialEmptyLoadAttemptedRef.current &&
+      messages.length === 0 &&
+      initialMessages.length === 0 &&
+      !listError &&
+      !isPending
+    ) {
+      initialEmptyLoadAttemptedRef.current = true;
       startTransition(async () => {
         try {
           await loadList(labelId, null);
@@ -6571,9 +6585,32 @@ export default function InboxShell({
                   </div>
                 ) : messages.length === 0 && !isPending ? (
                   <div className="flex-1 flex items-center justify-center p-8 text-gray-500 text-sm font-medium">
-                    <div className="text-center space-y-2">
-                      <div>メールが読み込まれていません</div>
-                      <button onClick={reloadCurrentList} className="px-4 py-2 bg-blue-600 text-white rounded-md text-xs font-bold hover:bg-blue-700 transition-colors">再読み込み</button>
+                    <div className="text-center space-y-3 max-w-[280px]">
+                      <div className="text-gray-900 font-semibold">この条件では0件です</div>
+                      <div className="text-xs text-gray-500 leading-relaxed">
+                        {activeLabel?.label ? `現在の絞り込み: ${activeLabel.label}` : "現在の絞り込みではメールがありません"}
+                      </div>
+                      <div className="flex flex-wrap items-center justify-center gap-2">
+                        <button
+                          onClick={() => {
+                            const stores = labelGroups.flatMap((g) => g.items).find((item) => item.id === "stores");
+                            if (stores) onSelectLabel(stores);
+                          }}
+                          className="px-3 py-2 bg-blue-600 text-white rounded-md text-xs font-bold hover:bg-blue-700 transition-colors"
+                        >
+                          ストア全部
+                        </button>
+                        <button
+                          onClick={() => {
+                            const all = labelGroups.flatMap((g) => g.items).find((item) => item.id === "all");
+                            if (all) onSelectLabel(all);
+                          }}
+                          className="px-3 py-2 border border-gray-300 text-gray-700 rounded-md text-xs font-bold hover:bg-gray-50 transition-colors"
+                        >
+                          すべて
+                        </button>
+                        <button onClick={reloadCurrentList} className="px-3 py-2 border border-gray-300 text-gray-700 rounded-md text-xs font-bold hover:bg-gray-50 transition-colors">再読み込み</button>
+                      </div>
                     </div>
                   </div>
                 ) : slaFocus && slaFilteredMessages.length === 0 && !isPending ? (
