@@ -7416,6 +7416,7 @@ export default function InboxShell({
                       )}
 
                       {/* Conversation (thread) */}
+                      {(threadLoading || threadError || (threadSummary?.messages.length ?? 0) > 1) && (
                       <div id="section-conversation" className="mt-6 pt-5 border-t border-[#e8eaed]" data-testid="thread-pane">
                         {/* Thread Actions Bar */}
                         {threadSummary && threadSummary.messages.length > 0 && (() => {
@@ -7591,8 +7592,8 @@ export default function InboxShell({
                           <div className="rounded-md border border-[#f28b82] bg-[#fce8e6] p-3 text-[12px] text-[#c5221f]">
                             Conversationの取得に失敗しました: {threadError}
                           </div>
-                        ) : !threadSummary || threadSummary.messages.length === 0 ? (
-                          <div className="text-[12px] text-[#5f6368]">No messages</div>
+                        ) : !threadSummary || threadSummary.messages.length <= 1 ? (
+                          null
                         ) : (
                           <div className="overflow-hidden rounded-lg border border-[#dadce0] bg-white shadow-[0_1px_2px_rgba(60,64,67,0.08)]">
                             {threadSummary.messages.map((m, index) => {
@@ -7716,6 +7717,7 @@ export default function InboxShell({
                           </div>
                         )}
                       </div>
+                      )}
                       
                       <div id="section-notes" className="mt-12 pt-12 border-t border-gray-200 flex flex-col gap-6">
                         {/* Step 101: Work Tags（状況タグ） */}
