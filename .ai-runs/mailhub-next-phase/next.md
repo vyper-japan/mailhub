@@ -12,8 +12,9 @@ Continue from the completed INBOX-scoped source coverage and rule-safety wave:
    - `gopro-yahoo`, `vyperglobal-rakuten`, `ams-vyper`, `datacolor`: active inbox 0, all-mail historical hits found.
    - `vyperglobal-yahoo`, `ebay`: active inbox 0 and all-mail fallback 0.
 6. Collect operator feedback on the default saved views. Real Gmail audit proves `customer-inquiries` and `noise-candidates` are too broad for bulk automation, so keep them as manual-review shortcuts unless narrowed.
-7. Expand the rule-safety gate only after real-data validation: current gate protects suppressive labels from invoice/inquiry/important-looking messages and fails closed when classification text is missing, but does not yet implement a full production auto-discard policy.
-8. Optional: run a manual browser check on production/staging data for stores pagination. Forced E2E is now present and passing.
+7. Add the durable Brain decision ledger as a separate append-only store, not Activity logs and not rule suggestions. Keep evidence compact; do not persist full customer body/snippet text.
+8. Expand the rule-safety gate only after real-data validation: current gate protects suppressive labels from invoice/inquiry/important-looking messages and fails closed when classification text is missing, but does not yet implement a full production auto-discard policy.
+9. Optional: run a manual browser check on production/staging data for stores pagination. Forced E2E is now present and passing.
 
 ## Large-Team Wave Plan
 
@@ -67,5 +68,6 @@ The next phase is done only when:
 - at least one concrete missing-mail/root-cause class is fixed or proven absent
 - UI clearly communicates source/filter state
 - suppressive rule application cannot hide obvious invoice/inquiry/important messages without evidence
+- selected-message Brain suggestion is read-only, visible, and separated from executor/write paths
 - verification passes
 - changes are committed and pushed

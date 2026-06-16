@@ -107,6 +107,26 @@ npm run build
   - `customer-inquiries`: 1000 unique INBOX messages lower bound, more pages remain, too broad for bulk workflow.
   - `noise-candidates`: 1000 unique INBOX messages lower bound, more pages remain, too broad for bulk workflow.
 
+## Verification Commands Run On 2026-06-17 Brain Suggestion Wave
+
+```bash
+npx vitest run lib/__tests__/brainDecision.test.ts lib/__tests__/mailhub-brain-route.test.ts lib/__tests__/mailhubClassification.test.ts lib/__tests__/replyRouter.test.ts
+npm run typecheck
+npm run lint
+git diff --check
+npm run test
+npm run build
+```
+
+## 2026-06-17 Brain Suggestion Wave Results
+
+- Focused Vitest: 4 files / 58 tests passed.
+- `npm run typecheck`: passed.
+- `npm run lint`: passed.
+- `git diff --check`: passed.
+- `npm run test`: 55 files / 507 tests passed.
+- `npm run build`: passed.
+
 ## Useful Runtime Commands
 
 Start dev server for tunnel:

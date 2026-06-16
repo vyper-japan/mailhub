@@ -54,6 +54,12 @@
   - Confirmed with real Gmail audit that those views are manual-review shortcuts, not automation queues: `customer-inquiries` and `noise-candidates` both paged through 1000 unique INBOX results and still had more.
   - Extended `rules/apply` so explicit `messageIds` can carry `messageSummaries`; Inbox best-effort rule application now sends the displayed subject/from/snippet.
   - Made suppressive rules fail closed when classification text is missing, both in `/api/mailhub/rules/apply` and `runAutoRules`.
+- 2026-06-17 Brain suggestion wave completed:
+  - Added deterministic read-only Brain decisions in `lib/brainDecision.ts`.
+  - Added `GET /api/mailhub/brain` for one selected message at a time.
+  - Added a detail-pane `AI判断` card that shows purpose, disposition, reply route, next action, confidence, and keyword-level evidence.
+  - Kept the Brain surface separate from rule suggestions, Activity logs, and any write/executor paths.
+  - Documented the current scope and safety rules in `docs/mailhub-brain-suggestions.md`.
 
 ## Not Done
 
@@ -62,7 +68,7 @@
 - Production pagination basic behavior is represented in API/UI metadata and forced E2E; real browser/manual production verification is still useful before staff rollout.
 - Auto-discard rules for marketing/noise are protected against obvious important/invoice/inquiry suppression and missing summary text, but a full production auto-discard policy is still intentionally not enabled.
 - Important/invoice/customer-inquiry folders exist as default saved views and are audited as manual-review shortcuts; further narrowing requires operator feedback.
-- AI reply drafting and knowledge base integration are not implemented.
+- Durable Brain decision ledger, AI reply drafting, and knowledge base integration are not implemented.
 - Rakuten/Amazon/Yahoo API-based reply integration is not implemented.
 - Production staff workflow and permissions need real-data validation.
 
