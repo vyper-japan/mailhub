@@ -193,4 +193,80 @@ describe("mailhub rules apply route", () => {
       ],
     });
   });
+
+  it("uses client-provided summaries to protect explicit messageIds", async () => {
+    routeMocks.listLatestInboxMessages.mockReset();
+    routeMocks.getMessageMetadataForRules.mockReset();
+    routeMocks.getMessageMetadataForRules.mockResolvedValueOnce({ fromEmail: "no-reply@example.com", labelIds: [] });
+    const POST = await importPost();
+
+    const res = await POST(
+      post({
+        dryRun: true,
+        ruleId: "mute-billing",
+        messageIds: ["m-explicit"],
+        messageSummaries: [
+          {
+            id: "m-explicit",
+            subject: "請求書を送付します",
+            from: "no-reply@example.com",
+            snippet: "添付をご確認ください",
+          },
+        ],
+      }),
+    );
+    const json = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(routeMocks.listLatestInboxMessages).not.toHaveBeenCalled();
+    expect(json.preview).toMatchObject({
+      matchedCount: 0,
+      protectedCount: 1,
+      protectedSamples: [
+        {
+          id: "m-explicit",
+          classification: {
+            purpose: "invoice",
+            suppressible: false,
+          },
+        },
+      ],
+    });
+    expect(json.skippedDetails).toContainEqual(
+      expect.objectContaining({
+        id: "m-explicit",
+        reason: "protected_classification",
+      }),
+    );
+  });
+
+  it("fails closed for explicit messageIds without classification summaries", async () => {
+    routeMocks.listLatestInboxMessages.mockReset();
+    routeMocks.getMessageMetadataForRules.mockReset();
+    routeMocks.getMessageMetadataForRules.mockResolvedValueOnce({ fromEmail: "no-reply@example.com", labelIds: [] });
+    const POST = await importPost();
+
+    const res = await POST(
+      post({
+        dryRun: true,
+        ruleId: "mute-billing",
+        messageIds: ["m-no-summary"],
+      }),
+    );
+    const json = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(routeMocks.listLatestInboxMessages).not.toHaveBeenCalled();
+    expect(json.preview).toMatchObject({
+      matchedCount: 0,
+      protectedCount: 0,
+    });
+    expect(json.skippedDetails).toContainEqual(
+      expect.objectContaining({
+        id: "m-no-summary",
+        reason: "missing_classification_summary",
+      }),
+    );
+    expect(routeMocks.applyLabelsToMessages).not.toHaveBeenCalled();
+  });
 });

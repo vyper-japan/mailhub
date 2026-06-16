@@ -30,18 +30,19 @@ MailHub の次フェーズを開始してください。
    `gopro-yahoo`, `vyperglobal-rakuten`, `vyperglobal-yahoo`, `ams-vyper`, `datacolor`, `ebay`
    - `gopro-yahoo`, `vyperglobal-rakuten`, `ams-vyper`, `datacolor`: active inbox 0 / all-mail historical hitsあり
    - `vyperglobal-yahoo`, `ebay`: active inbox 0 / all-mail fallback 0
-2. 新規 default views (`invoice-docs`, `customer-inquiries`, `noise-candidates`) を実データでチューニングする
-3. suppressive rule safety gate は入ったが、production auto-discard policy はまだ有効化せず、real-data validation 後に進める
+2. 新規 default views (`invoice-docs`, `customer-inquiries`, `noise-candidates`) は `todo` ベースに変更済み。実データ監査では `invoice-docs` は 552件、`customer-inquiries`/`noise-candidates` は 1000件下限かつ続きあり。現状は automation queue ではなく manual-review shortcut として扱い、チューニングは operator feedback 後に行う
+3. suppressive rule safety gate は explicit `messageIds` + `messageSummaries` 対応済み。summary 欠落時は fail closed。production auto-discard policy はまだ有効化せず、real-data validation 後に進める
 4. 任意: production/staging実データで stores pagination の手動ブラウザ確認。forced E2E は追加済み
 
 直近の完了地点:
 
-- commit `16e703a fix: clarify MailHub source scope and rule safety`
-- follow-on commit TBD: forced pagination E2E + Cricut Yahoo active-inbox query fix
+- commit `5e0bead fix: verify MailHub pagination and Yahoo source coverage`
+- completion-push commit: `fix: harden MailHub rule safety and audit views`
+- prior commit `16e703a fix: clarify MailHub source scope and rule safety`
 - source coverage commits already present:
   - `0e9f358 fix: include AMS source in MailHub coverage`
   - `fdcd3ac fix: audit real Gmail source coverage`
-- latest wave verification:
+- follow-on wave verification:
   - focused Vitest 6 files / 38 tests PASS
   - forced pagination E2E Step104-1 PASS
   - `npm run typecheck` PASS
@@ -49,5 +50,13 @@ MailHub の次フェーズを開始してください。
   - `npm run test` 53 files / 500 tests PASS
   - `npm run build` PASS
   - `npm run audit:gmail-sources -- --out .ai-runs/mailhub-next-phase/gmail-source-coverage-audit.json --max-pages 3` PASS with corrected INBOX scope
+- completion-push wave verification:
+  - focused Vitest 3 files / 12 tests PASS
+  - `npm run typecheck` PASS
+  - `npm run audit:gmail-views -- --out .ai-runs/mailhub-next-phase/gmail-default-views-audit.json --max-pages 10` PASS
+  - `git diff --check` PASS
+  - `npm run lint` PASS
+  - `npm run test` 53 files / 502 tests PASS
+  - `npm run build` PASS
 - build PASS
 - tunnel URL: `https://hansen-bangkok-magnetic-projected.trycloudflare.com`

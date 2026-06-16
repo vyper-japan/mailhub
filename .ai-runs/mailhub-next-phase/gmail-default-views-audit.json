@@ -1,0 +1,220 @@
+{
+  "generatedAt": "2026-06-16T23:38:16.608Z",
+  "sharedInboxEmailMasked": "inf***@vtj.co.jp",
+  "viewCount": 3,
+  "views": [
+    {
+      "id": "invoice-docs",
+      "name": "請求/書類",
+      "labelId": "todo",
+      "q": "has:attachment (invoice OR receipt OR statement OR 請求書 OR 領収書 OR 見積書 OR 納品書 OR 支払明細)",
+      "labelIds": [
+        "INBOX"
+      ],
+      "effectiveScope": "todo_inbox",
+      "syntaxAccepted": true,
+      "error": null,
+      "resultSizeEstimate": 201,
+      "pagesFetched": 6,
+      "uniqueSeenLowerBound": 552,
+      "hasMoreAfterMaxPages": false,
+      "risk": "broad_manual_review_only",
+      "pageSummaries": [
+        {
+          "page": 1,
+          "idsReturned": 100,
+          "uniqueNewIds": 100,
+          "hasNextPageToken": true
+        },
+        {
+          "page": 2,
+          "idsReturned": 100,
+          "uniqueNewIds": 100,
+          "hasNextPageToken": true
+        },
+        {
+          "page": 3,
+          "idsReturned": 100,
+          "uniqueNewIds": 100,
+          "hasNextPageToken": true
+        },
+        {
+          "page": 4,
+          "idsReturned": 100,
+          "uniqueNewIds": 100,
+          "hasNextPageToken": true
+        },
+        {
+          "page": 5,
+          "idsReturned": 100,
+          "uniqueNewIds": 100,
+          "hasNextPageToken": true
+        },
+        {
+          "page": 6,
+          "idsReturned": 52,
+          "uniqueNewIds": 52,
+          "hasNextPageToken": false
+        }
+      ]
+    },
+    {
+      "id": "customer-inquiries",
+      "name": "問い合わせ",
+      "labelId": "todo",
+      "q": "(問い合わせ OR お問い合わせ OR inquiry OR question OR 質問 OR 相談 OR 返品 OR 交換 OR キャンセル)",
+      "labelIds": [
+        "INBOX"
+      ],
+      "effectiveScope": "todo_inbox",
+      "syntaxAccepted": true,
+      "error": null,
+      "resultSizeEstimate": 201,
+      "pagesFetched": 10,
+      "uniqueSeenLowerBound": 1000,
+      "hasMoreAfterMaxPages": true,
+      "risk": "too_broad_for_bulk_workflow",
+      "pageSummaries": [
+        {
+          "page": 1,
+          "idsReturned": 100,
+          "uniqueNewIds": 100,
+          "hasNextPageToken": true
+        },
+        {
+          "page": 2,
+          "idsReturned": 100,
+          "uniqueNewIds": 100,
+          "hasNextPageToken": true
+        },
+        {
+          "page": 3,
+          "idsReturned": 100,
+          "uniqueNewIds": 100,
+          "hasNextPageToken": true
+        },
+        {
+          "page": 4,
+          "idsReturned": 100,
+          "uniqueNewIds": 100,
+          "hasNextPageToken": true
+        },
+        {
+          "page": 5,
+          "idsReturned": 100,
+          "uniqueNewIds": 100,
+          "hasNextPageToken": true
+        },
+        {
+          "page": 6,
+          "idsReturned": 100,
+          "uniqueNewIds": 100,
+          "hasNextPageToken": true
+        },
+        {
+          "page": 7,
+          "idsReturned": 100,
+          "uniqueNewIds": 100,
+          "hasNextPageToken": true
+        },
+        {
+          "page": 8,
+          "idsReturned": 100,
+          "uniqueNewIds": 100,
+          "hasNextPageToken": true
+        },
+        {
+          "page": 9,
+          "idsReturned": 100,
+          "uniqueNewIds": 100,
+          "hasNextPageToken": true
+        },
+        {
+          "page": 10,
+          "idsReturned": 100,
+          "uniqueNewIds": 100,
+          "hasNextPageToken": true
+        }
+      ]
+    },
+    {
+      "id": "noise-candidates",
+      "name": "処理不要候補",
+      "labelId": "todo",
+      "q": "(from:no-reply OR from:noreply OR unsubscribe OR newsletter OR メルマガ OR 配信停止 OR 広告 OR セール) -問い合わせ -お問い合わせ -至急 -重要",
+      "labelIds": [
+        "INBOX"
+      ],
+      "effectiveScope": "todo_inbox",
+      "syntaxAccepted": true,
+      "error": null,
+      "resultSizeEstimate": 201,
+      "pagesFetched": 10,
+      "uniqueSeenLowerBound": 1000,
+      "hasMoreAfterMaxPages": true,
+      "risk": "too_broad_for_bulk_workflow",
+      "pageSummaries": [
+        {
+          "page": 1,
+          "idsReturned": 100,
+          "uniqueNewIds": 100,
+          "hasNextPageToken": true
+        },
+        {
+          "page": 2,
+          "idsReturned": 100,
+          "uniqueNewIds": 100,
+          "hasNextPageToken": true
+        },
+        {
+          "page": 3,
+          "idsReturned": 100,
+          "uniqueNewIds": 100,
+          "hasNextPageToken": true
+        },
+        {
+          "page": 4,
+          "idsReturned": 100,
+          "uniqueNewIds": 100,
+          "hasNextPageToken": true
+        },
+        {
+          "page": 5,
+          "idsReturned": 100,
+          "uniqueNewIds": 100,
+          "hasNextPageToken": true
+        },
+        {
+          "page": 6,
+          "idsReturned": 100,
+          "uniqueNewIds": 100,
+          "hasNextPageToken": true
+        },
+        {
+          "page": 7,
+          "idsReturned": 100,
+          "uniqueNewIds": 100,
+          "hasNextPageToken": true
+        },
+        {
+          "page": 8,
+          "idsReturned": 100,
+          "uniqueNewIds": 100,
+          "hasNextPageToken": true
+        },
+        {
+          "page": 9,
+          "idsReturned": 100,
+          "uniqueNewIds": 100,
+          "hasNextPageToken": true
+        },
+        {
+          "page": 10,
+          "idsReturned": 100,
+          "uniqueNewIds": 100,
+          "hasNextPageToken": true
+        }
+      ]
+    }
+  ]
+}

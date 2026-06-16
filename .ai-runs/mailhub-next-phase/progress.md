@@ -46,14 +46,22 @@
   - Fixed `cricut-yahoo` channel query to include exact address free-text, which also updates the aggregate `stores` query.
   - Re-ran real Gmail audit; `cricut-yahoo` is no longer zero-estimate.
 - Latest INBOX-scoped zero-estimate channels: `gopro-yahoo`, `vyperglobal-rakuten`, `vyperglobal-yahoo`, `ams-vyper`, `datacolor`, `ebay`.
+- 2026-06-17 completion-push wave completed:
+  - Classified the remaining six zero-estimate channels as operational follow-up, not code query gaps. `gopro-yahoo`, `vyperglobal-rakuten`, `ams-vyper`, and `datacolor` have historical all-mail evidence but no active INBOX mail. `vyperglobal-yahoo` and `ebay` have no active or all-mail fallback evidence for the configured addresses.
+  - Added `scripts/audit-gmail-default-views.mjs` and `npm run audit:gmail-views` for read-only real Gmail audits of default operational views.
+  - Saved latest default-view audit at `.ai-runs/mailhub-next-phase/gmail-default-views-audit.json` and documented it in `docs/mailhub-default-views-audit.md`.
+  - Changed `invoice-docs`, `customer-inquiries`, and `noise-candidates` default views to use the `todo` base label so they stay inside the active workbench.
+  - Confirmed with real Gmail audit that those views are manual-review shortcuts, not automation queues: `customer-inquiries` and `noise-candidates` both paged through 1000 unique INBOX results and still had more.
+  - Extended `rules/apply` so explicit `messageIds` can carry `messageSummaries`; Inbox best-effort rule application now sends the displayed subject/from/snippet.
+  - Made suppressive rules fail closed when classification text is missing, both in `/api/mailhub/rules/apply` and `runAutoRules`.
 
 ## Not Done
 
-- Real Gmail shared inbox ingestion has not been proven across all active source addresses with zero active-INBOX estimates.
-- Real OAuth/Gmail count parity is documented for all configured channels; `gopro-yahoo`, `vyperglobal-rakuten`, `vyperglobal-yahoo`, `ams-vyper`, `datacolor`, and `ebay` remain operational zero-active-inbox follow-ups.
+- Remaining zero-active-inbox channels are now classified as operational confirmation items, not known query/code gaps.
+- Confirm whether `vyperglobal-yahoo` and `ebay` are still routed/real sources; the audit found no active or historical shared-inbox evidence for the configured addresses.
 - Production pagination basic behavior is represented in API/UI metadata and forced E2E; real browser/manual production verification is still useful before staff rollout.
-- Auto-discard rules for marketing/noise are protected against obvious important/invoice/inquiry suppression but not yet fully designed or enabled as a production policy.
-- Important/invoice/customer-inquiry folders now exist as default saved views; final production rule policy still needs real-data validation.
+- Auto-discard rules for marketing/noise are protected against obvious important/invoice/inquiry suppression and missing summary text, but a full production auto-discard policy is still intentionally not enabled.
+- Important/invoice/customer-inquiry folders exist as default saved views and are audited as manual-review shortcuts; further narrowing requires operator feedback.
 - AI reply drafting and knowledge base integration are not implemented.
 - Rakuten/Amazon/Yahoo API-based reply integration is not implemented.
 - Production staff workflow and permissions need real-data validation.

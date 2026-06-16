@@ -51,6 +51,30 @@ type ApplyItem =
   | { id: string; status: "skipped"; reason: string; classification?: MailhubClassification }
   | { id: string; status: "failed"; error: string };
 
+type MessageSummaryInput = {
+  id: string;
+  subject: string | null;
+  from: string | null;
+  snippet: string | null;
+};
+
+function parseMessageSummaries(value: unknown): MessageSummaryInput[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((item): MessageSummaryInput[] => {
+    if (!item || typeof item !== "object") return [];
+    const obj = item as Record<string, unknown>;
+    if (typeof obj.id !== "string" || !obj.id) return [];
+    return [
+      {
+        id: obj.id,
+        subject: typeof obj.subject === "string" ? obj.subject : null,
+        from: typeof obj.from === "string" ? obj.from : null,
+        snippet: typeof obj.snippet === "string" ? obj.snippet : null,
+      },
+    ];
+  });
+}
+
 export async function POST(req: Request) {
   const authResult = await requireUser();
   if (!authResult.ok) return authErrorResponse(authResult);
@@ -71,6 +95,7 @@ export async function POST(req: Request) {
 
   const listResult = messageIds.length === 0 ? await listLatestInboxMessages({ max }) : null;
   const listForPreview = listResult?.messages ?? null;
+  const requestSummaries = parseMessageSummaries(body.messageSummaries);
   const sourceIds = messageIds.length ? messageIds : (listForPreview ?? []).map((m) => m.id);
   if (sourceIds.length === 0) {
     return NextResponse.json({ error: "missing_messageIds" }, { status: 400 });
@@ -78,7 +103,10 @@ export async function POST(req: Request) {
 
   const targetIds = sourceIds.slice(0, max);
   const idToSummary = new Map(
-    (listForPreview ?? []).map((m) => [m.id, { subject: m.subject ?? null, from: m.from ?? null, snippet: m.snippet ?? null }] as const),
+    [
+      ...requestSummaries.map((m) => [m.id, { subject: m.subject, from: m.from, snippet: m.snippet }] as const),
+      ...(listForPreview ?? []).map((m) => [m.id, { subject: m.subject ?? null, from: m.from ?? null, snippet: m.snippet ?? null }] as const),
+    ],
   );
 
   const [rules, registeredList] = await Promise.all([
@@ -135,13 +163,21 @@ export async function POST(req: Request) {
         from: summary?.from ?? fromEmail,
         snippet: summary?.snippet ?? "",
       });
+      const hasClassificationText = Boolean(
+        (summary?.subject ?? "").trim() || (summary?.snippet ?? "").trim(),
+      );
+      const hasSuppressiveLabel = matchedLabels.some(isSuppressiveLabelName);
 
       // labels も assignTo も無い場合はスキップ
       if (matchedLabels.length === 0 && !assignToEmail) {
         return { id, status: "skipped", reason: "no_match", classification };
       }
 
-      if (matchedLabels.some(isSuppressiveLabelName) && !classification.suppressible) {
+      if (hasSuppressiveLabel && !hasClassificationText) {
+        return { id, status: "skipped", reason: "missing_classification_summary", classification };
+      }
+
+      if (hasSuppressiveLabel && !classification.suppressible) {
         return { id, status: "skipped", reason: "protected_classification", classification };
       }
 
@@ -306,4 +342,3 @@ export async function POST(req: Request) {
     { headers: { "cache-control": "no-store" } },
   );
 }
-

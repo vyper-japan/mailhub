@@ -12,6 +12,7 @@ import {
 } from "@/lib/gmail";
 import { isTestMode } from "@/lib/test-mode";
 import { MAILHUB_USER_LABEL_PREFIX } from "@/lib/mailhub-labels";
+import { classifyMailhubMessage, isSuppressiveLabelName } from "@/lib/mailhubClassification";
 
 const DEFAULT_MAX_TOTAL = 100;
 const DEFAULT_MAX_PER_RULE = 50;
@@ -192,6 +193,21 @@ export async function runAutoRules(opts: {
         const alreadySet = new Set(alreadyNames);
         const toAdd = matched.filter((n) => !alreadySet.has(n) && n.startsWith(MAILHUB_USER_LABEL_PREFIX));
         if (toAdd.length === 0) {
+          ruleSkipped.push(message.id);
+          return;
+        }
+        const classification = classifyMailhubMessage({
+          subject: message.subject ?? null,
+          from: message.from ?? fromEmail,
+          snippet: message.snippet ?? "",
+        });
+        const hasClassificationText = Boolean((message.subject ?? "").trim() || (message.snippet ?? "").trim());
+        const hasSuppressiveLabel = toAdd.some(isSuppressiveLabelName);
+        if (hasSuppressiveLabel && !hasClassificationText) {
+          ruleSkipped.push(message.id);
+          return;
+        }
+        if (hasSuppressiveLabel && !classification.suppressible) {
           ruleSkipped.push(message.id);
           return;
         }

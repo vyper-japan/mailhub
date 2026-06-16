@@ -2120,8 +2120,17 @@ export default function InboxShell({
   const applyRulesBestEffort = useCallback(async (messageIds: string[]) => {
     if (messageIds.length === 0) return;
     try {
+      const idSet = new Set(messageIds);
       const res = (await postJsonOrThrow("/api/mailhub/rules/apply", {
         messageIds,
+        messageSummaries: messages
+          .filter((message) => idSet.has(message.id))
+          .map((message) => ({
+            id: message.id,
+            subject: message.subject ?? null,
+            from: message.from ?? null,
+            snippet: message.snippet ?? null,
+          })),
       })) as { appliedDetails?: Array<{ id: string; labels: string[] }> };
       const appliedDetails = res?.appliedDetails ?? [];
       if (appliedDetails.length === 0) return;
@@ -2144,7 +2153,7 @@ export default function InboxShell({
     } catch {
       // ignore（一覧表示が最優先）
     }
-  }, []);
+  }, [messages]);
 
   const loadList = useCallback(async (
     nextLabelId: string,

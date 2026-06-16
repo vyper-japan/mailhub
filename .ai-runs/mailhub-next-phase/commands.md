@@ -81,6 +81,32 @@ npm run audit:gmail-sources -- --out .ai-runs/mailhub-next-phase/gmail-source-co
 - `npm run audit:gmail-sources`: passed after Cricut Yahoo query fix.
 - Latest INBOX-scoped zero-estimate channels: `gopro-yahoo`, `vyperglobal-rakuten`, `vyperglobal-yahoo`, `ams-vyper`, `datacolor`, `ebay`.
 
+## Verification Commands Run On 2026-06-17 Completion-Push Wave
+
+```bash
+npx vitest run lib/__tests__/mailhub-rules-apply-route.test.ts lib/__tests__/mailhubClassification.test.ts lib/__tests__/views.test.ts
+npm run typecheck
+npm run audit:gmail-views -- --out .ai-runs/mailhub-next-phase/gmail-default-views-audit.json --max-pages 10
+git diff --check
+npm run lint
+npm run test
+npm run build
+```
+
+## 2026-06-17 Completion-Push Wave Results
+
+- Focused Vitest: 3 files / 12 tests passed.
+- `npm run typecheck`: passed.
+- `npm run audit:gmail-views`: passed.
+- `git diff --check`: passed.
+- `npm run lint`: passed.
+- `npm run test`: 53 files / 502 tests passed.
+- `npm run build`: passed.
+- Default view audit:
+  - `invoice-docs`: 552 unique INBOX messages, no more after max pages, broad manual review only.
+  - `customer-inquiries`: 1000 unique INBOX messages lower bound, more pages remain, too broad for bulk workflow.
+  - `noise-candidates`: 1000 unique INBOX messages lower bound, more pages remain, too broad for bulk workflow.
+
 ## Useful Runtime Commands
 
 Start dev server for tunnel:

@@ -22,19 +22,19 @@ describe("views", () => {
   test("DEFAULT_VIEWS includes operational category queries", () => {
     expect(DEFAULT_VIEWS.find((v) => v.id === "invoice-docs")).toMatchObject({
       name: "請求/書類",
-      labelId: "all",
+      labelId: "todo",
       q: "has:attachment (invoice OR receipt OR statement OR 請求書 OR 領収書 OR 見積書 OR 納品書 OR 支払明細)",
       pinned: true,
     });
     expect(DEFAULT_VIEWS.find((v) => v.id === "customer-inquiries")).toMatchObject({
       name: "問い合わせ",
-      labelId: "all",
+      labelId: "todo",
       q: "(問い合わせ OR お問い合わせ OR inquiry OR question OR 質問 OR 相談 OR 返品 OR 交換 OR キャンセル)",
       pinned: true,
     });
     expect(DEFAULT_VIEWS.find((v) => v.id === "noise-candidates")).toMatchObject({
       name: "処理不要候補",
-      labelId: "all",
+      labelId: "todo",
       q: "(from:no-reply OR from:noreply OR unsubscribe OR newsletter OR メルマガ OR 配信停止 OR 広告 OR セール) -問い合わせ -お問い合わせ -至急 -重要",
       pinned: true,
     });
