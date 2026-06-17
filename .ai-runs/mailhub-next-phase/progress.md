@@ -187,6 +187,10 @@
   - `lib/opsReadinessSummary.ts` compares the audit head with the current repo head, allowing the direct parent for committed audit-artifact refreshes.
   - The Ops Board banner now shows `再監査必要` when the readiness artifact is stale against the current code lineage.
   - This prevents old green/red readiness artifacts from being treated as current operational evidence after code changes.
+- 2026-06-17 readiness repo head refresh completed:
+  - Re-ran `npm run audit:mailhub-readiness` after the freshness code commit.
+  - The committed readiness artifact now records `repoHead=000b459`.
+  - The gate still correctly reports `productionReady=false` with P0 `current_shared_gmail_routing`.
 
 ## Not Done
 
