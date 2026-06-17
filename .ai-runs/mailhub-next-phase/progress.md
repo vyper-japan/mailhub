@@ -176,6 +176,12 @@
   - The tests prove production readiness rejects channel-level probe success when one expected address is missing.
   - The tests prove complete address-level probe evidence can satisfy the routing readiness path.
   - The tests prove the sender dry-run sends zero messages and the sender rejects `@vtj.co.jp` as external-route proof by default.
+- 2026-06-17 Ops Board readiness visibility wave completed:
+  - Added `lib/opsReadinessSummary.ts` to parse the production readiness audit into a compact operator-facing summary.
+  - `buildOpsSummary()` now includes `productionReadiness`, so `/api/mailhub/ops/summary` exposes the production gate state with P0/P1 blockers, unconfirmed channels, missing probe addresses, and MX evidence.
+  - The Ops Board drawer now shows a production readiness banner before SLA lists.
+  - This makes the remaining P0 (`current_shared_gmail_routing`) visible in the operator workflow instead of only in CLI artifacts.
+  - Added `lib/__tests__/opsReadinessSummary.test.ts`.
 
 ## Not Done
 

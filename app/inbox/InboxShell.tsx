@@ -121,6 +121,41 @@ type BrainDecisionState =
   | { status: "loading"; messageId: string }
   | { status: "ready"; messageId: string; decision: BrainDecisionView }
   | { status: "error"; messageId: string; message: string };
+type OpsSummaryItemView = {
+  id: string;
+  subject: string | null;
+  from: string | null;
+  receivedAt: string;
+  elapsed: string;
+  status: "critical" | "warn";
+  gmailLink: string | null;
+};
+type OpsSummaryBucketView = {
+  critical: { count: number; items: OpsSummaryItemView[] };
+  warn: { count: number; items: OpsSummaryItemView[] };
+};
+type OpsReadinessView = {
+  available: boolean;
+  generatedAt: string | null;
+  productionReady: boolean;
+  p0Blockers: string[];
+  p1Blockers: string[];
+  sourceCodeCoverageReady: boolean;
+  sourceInventoryReady: boolean;
+  currentSharedGmailRoutingReady: boolean;
+  routingProbeReady: boolean;
+  defaultViewsRealDataValidated: boolean;
+  currentRuleConfigRealDataSafetyReady: boolean;
+  unconfirmedChannels: string[];
+  missingProbeAddresses: string[];
+  mxRecords: Array<{ exchange: string; priority: number }>;
+};
+type OpsSummaryView = {
+  todo: OpsSummaryBucketView;
+  waiting: OpsSummaryBucketView;
+  unassigned: OpsSummaryBucketView;
+  productionReadiness?: OpsReadinessView;
+};
 
 const DETAIL_CACHE_TTL_MS = 60_000;
 const DETAIL_CACHE_REFRESH_DELAY_MS = 180;
@@ -902,11 +937,7 @@ export default function InboxShell({
   });
   
   // Ops Board Drawerの状態
-  const [opsSummary, setOpsSummary] = useState<{
-    todo: { critical: { count: number; items: Array<{ id: string; subject: string | null; from: string | null; receivedAt: string; elapsed: string; status: "critical" | "warn"; gmailLink: string | null }> }; warn: { count: number; items: Array<{ id: string; subject: string | null; from: string | null; receivedAt: string; elapsed: string; status: "critical" | "warn"; gmailLink: string | null }> } };
-    waiting: { critical: { count: number; items: Array<{ id: string; subject: string | null; from: string | null; receivedAt: string; elapsed: string; status: "critical" | "warn"; gmailLink: string | null }> }; warn: { count: number; items: Array<{ id: string; subject: string | null; from: string | null; receivedAt: string; elapsed: string; status: "critical" | "warn"; gmailLink: string | null }> } };
-    unassigned: { critical: { count: number; items: Array<{ id: string; subject: string | null; from: string | null; receivedAt: string; elapsed: string; status: "critical" | "warn"; gmailLink: string | null }> }; warn: { count: number; items: Array<{ id: string; subject: string | null; from: string | null; receivedAt: string; elapsed: string; status: "critical" | "warn"; gmailLink: string | null }> } };
-  } | null>(null);
+  const [opsSummary, setOpsSummary] = useState<OpsSummaryView | null>(null);
 
   const listRef = useRef<HTMLDivElement | null>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -8544,6 +8575,59 @@ export default function InboxShell({
                 <div className="text-center text-slate-500 text-sm py-8">読み込み中...</div>
               ) : (
                 <>
+                  {opsSummary.productionReadiness && (
+                    <div
+                      className={`rounded-lg border p-3 ${
+                        opsSummary.productionReadiness.productionReady
+                          ? "border-emerald-500/30 bg-emerald-500/10"
+                          : "border-red-500/30 bg-red-500/10"
+                      }`}
+                      data-testid="ops-production-readiness"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className={`flex items-center gap-2 text-sm font-bold ${
+                            opsSummary.productionReadiness.productionReady ? "text-emerald-300" : "text-red-300"
+                          }`}>
+                            {opsSummary.productionReadiness.productionReady ? (
+                              <CheckCircle className="h-4 w-4 shrink-0" />
+                            ) : (
+                              <AlertTriangle className="h-4 w-4 shrink-0" />
+                            )}
+                            <span>
+                              {opsSummary.productionReadiness.productionReady ? "本番判定 OK" : "本番判定 保留"}
+                            </span>
+                          </div>
+                          <div className="mt-1 text-xs leading-relaxed text-slate-300">
+                            {opsSummary.productionReadiness.available
+                              ? opsSummary.productionReadiness.productionReady
+                                ? "source coverage・routing・view/rule safety のゲートを通過しています。"
+                                : `残P0: ${opsSummary.productionReadiness.p0Blockers.join(", ") || "なし"}`
+                              : "readiness 監査成果物がありません。"}
+                          </div>
+                          {!opsSummary.productionReadiness.productionReady && opsSummary.productionReadiness.available && (
+                            <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-slate-300">
+                              <div className="rounded border border-slate-700/60 bg-slate-950/30 px-2 py-1">
+                                未確認チャンネル: {opsSummary.productionReadiness.unconfirmedChannels.length}
+                              </div>
+                              <div className="rounded border border-slate-700/60 bg-slate-950/30 px-2 py-1">
+                                未到達probe宛先: {opsSummary.productionReadiness.missingProbeAddresses.length}
+                              </div>
+                              <div className="col-span-2 rounded border border-slate-700/60 bg-slate-950/30 px-2 py-1">
+                                MX: {opsSummary.productionReadiness.mxRecords.map((record) => `${record.priority} ${record.exchange}`).join(", ") || "未取得"}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                        {opsSummary.productionReadiness.generatedAt && (
+                          <div className="shrink-0 text-right text-[11px] text-slate-500">
+                            {new Date(opsSummary.productionReadiness.generatedAt).toLocaleString("ja-JP")}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
                   {/* 今返す: 特に長く残っている */}
                   {opsSummary.todo.critical.count > 0 && (
                     <div>

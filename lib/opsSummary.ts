@@ -3,6 +3,7 @@ import "server-only";
 import { SLA_RULES, getSLAStatus } from "@/lib/slaRules";
 import { listCandidatesByQuery } from "@/lib/gmail-alerts";
 import { formatElapsedTime, getElapsedMs } from "@/lib/time-utils";
+import { readOpsReadinessSummary, type OpsReadinessSummary } from "@/lib/opsReadinessSummary";
 
 export type OpsSummaryItem = {
   id: string;
@@ -27,6 +28,7 @@ export type OpsSummary = {
     critical: { count: number; items: OpsSummaryItem[] };
     warn: { count: number; items: OpsSummaryItem[] };
   };
+  productionReadiness: OpsReadinessSummary;
 };
 
 export async function buildOpsSummary(options?: {
@@ -40,6 +42,7 @@ export async function buildOpsSummary(options?: {
     todo: { critical: { count: 0, items: [] }, warn: { count: 0, items: [] } },
     waiting: { critical: { count: 0, items: [] }, warn: { count: 0, items: [] } },
     unassigned: { critical: { count: 0, items: [] }, warn: { count: 0, items: [] } },
+    productionReadiness: readOpsReadinessSummary(),
   };
 
   for (const rule of SLA_RULES) {
@@ -104,4 +107,3 @@ export async function buildOpsSummary(options?: {
 
   return summary;
 }
-
