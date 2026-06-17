@@ -1,13 +1,13 @@
 {
-  "generatedAt": "2026-06-17T19:39:42.135Z",
+  "generatedAt": "2026-06-17T20:33:26.901Z",
   "inputs": {
     "readiness": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json",
     "rulesAudit": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.ai-runs/mailhub-next-phase/gmail-rule-safety-audit.json",
-    "readinessGeneratedAt": "2026-06-17T19:39:41.801Z",
-    "readinessRepoHead": "7d0792217ff5040a5ee972365ae643ad96d72e48",
+    "readinessGeneratedAt": "2026-06-17T20:33:26.453Z",
+    "readinessRepoHead": "351ffc1e77de8f7befa98a77de9c31d75ad57abe",
     "rulesAuditGeneratedAt": "2026-06-17T15:15:29.590Z",
-    "repoHead": "7d0792217ff5040a5ee972365ae643ad96d72e48",
-    "repoParentHead": "4dbaaa2903580ca2a4d444f9f70931d83fee55db",
+    "repoHead": "351ffc1e77de8f7befa98a77de9c31d75ad57abe",
+    "repoParentHead": "7d0792217ff5040a5ee972365ae643ad96d72e48",
     "localEnvFile": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.env.local",
     "localEnvFileLoaded": true,
     "valuePolicy": "Secret values are never printed; this artifact contains only key names, booleans, counts, commands, and validation issues.",
@@ -30,7 +30,10 @@
       "ConfigRules",
       "ConfigAssigneeRules"
     ],
-    "requiredRuleSheetsSource": "env_or_default"
+    "requiredRuleSheetsSource": "env_or_default",
+    "ruleSheetsChecked": false,
+    "ruleSheetsVerified": false,
+    "ruleSheetsVerificationState": "not_checked_missing_prerequisites"
   },
   "missing": {
     "productionConfigStore": [
@@ -44,6 +47,10 @@
     ],
     "gmailRuleAuditEnv": [],
     "ruleSheets": [],
+    "unverifiedRuleSheets": [
+      "ConfigRules",
+      "ConfigAssigneeRules"
+    ],
     "sourceWarnings": []
   },
   "present": {
@@ -83,6 +90,11 @@
         "ConfigAssigneeRules"
       ],
       "missingSheets": [],
+      "unverifiedSheets": [
+        "ConfigRules",
+        "ConfigAssigneeRules"
+      ],
+      "verificationState": "not_checked_missing_prerequisites",
       "expected": "ConfigRules and ConfigAssigneeRules can be read without source warnings."
     },
     {

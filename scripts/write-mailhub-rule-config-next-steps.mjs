@@ -180,6 +180,14 @@ function main() {
   const missingRuleSheets = sourceWarnings
     .filter((warning) => warning.startsWith("missing_sheet:"))
     .map((warning) => warning.replace("missing_sheet:", ""));
+  const ruleSheetsChecked = resolvedSource === "sheets";
+  const ruleSheetsVerified = currentRuleConfigSourceProductionReady;
+  const ruleSheetsVerificationState = ruleSheetsVerified
+    ? "verified_clean_sheets_source"
+    : (ruleSheetsChecked
+        ? (missingRuleSheets.length > 0 ? "checked_missing_sheets" : "checked_sheets_source_warnings")
+        : (canRunSheetsRuleSafetyAudit ? "ready_to_check_sheets" : "not_checked_missing_prerequisites"));
+  const unverifiedRuleSheets = ruleSheetsChecked ? [] : requiredRuleSheets;
 
   const result = {
     generatedAt: new Date().toISOString(),
@@ -211,6 +219,9 @@ function main() {
       auditedRuleSheets,
       requiredRuleSheets,
       requiredRuleSheetsSource: auditedRuleSheets.length === 2 ? "audit" : "env_or_default",
+      ruleSheetsChecked,
+      ruleSheetsVerified,
+      ruleSheetsVerificationState,
     },
     missing: {
       productionConfigStore: currentRuleConfigSourceProductionReady || configStoreReady ? [] : ["MAILHUB_CONFIG_STORE=sheets"],
@@ -220,6 +231,7 @@ function main() {
       ],
       gmailRuleAuditEnv: gmailRuleAuditEnvReady ? [] : gmailMissing,
       ruleSheets: missingRuleSheets,
+      unverifiedRuleSheets,
       sourceWarnings: sourceWarnings,
     },
     present: {
@@ -254,6 +266,8 @@ function main() {
         description: "Ensure the production Sheets workbook contains the rule tabs used by the rule safety audit.",
         requiredSheets: currentRuleConfigSourceProductionReady ? [] : requiredRuleSheets,
         missingSheets: currentRuleConfigSourceProductionReady ? [] : missingRuleSheets,
+        unverifiedSheets: currentRuleConfigSourceProductionReady ? [] : unverifiedRuleSheets,
+        verificationState: ruleSheetsVerificationState,
         expected: `${requiredRuleSheets.join(" and ")} can be read without source warnings.`,
       },
       {
@@ -286,6 +300,7 @@ function main() {
     gmailRuleAuditEnvReady,
     canRunSheetsRuleSafetyAudit,
     requiredActions: result.nextActions.filter((action) => action.status !== "done").map((action) => action.id),
+    ruleSheetsVerificationState,
     inputErrors,
     inputWarnings,
   }, null, 2));

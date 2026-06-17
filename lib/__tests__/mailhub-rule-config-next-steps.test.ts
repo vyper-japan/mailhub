@@ -115,20 +115,47 @@ describe("MailHub rule config next steps", () => {
 
       expect(result.status).toBe(0);
       const artifact = readJson<{
-        state: { currentRuleConfigSourceProductionReady: boolean; canRunSheetsRuleSafetyAudit: boolean; requiredRuleSheets: string[] };
-        missing: { sheetsConfig: string[]; gmailRuleAuditEnv: string[] };
-        nextActions: Array<{ id: string; status: string; command?: string; commands?: string[]; requiredSheets?: string[]; missingSheets?: string[] }>;
+        state: {
+          currentRuleConfigSourceProductionReady: boolean;
+          canRunSheetsRuleSafetyAudit: boolean;
+          requiredRuleSheets: string[];
+          ruleSheetsChecked: boolean;
+          ruleSheetsVerified: boolean;
+          ruleSheetsVerificationState: string;
+        };
+        missing: { sheetsConfig: string[]; gmailRuleAuditEnv: string[]; unverifiedRuleSheets: string[] };
+        nextActions: Array<{
+          id: string;
+          status: string;
+          command?: string;
+          commands?: string[];
+          requiredSheets?: string[];
+          missingSheets?: string[];
+          unverifiedSheets?: string[];
+          verificationState?: string;
+        }>;
       }>(nextPath);
       expect(artifact.state.currentRuleConfigSourceProductionReady).toBe(false);
       expect(artifact.state.canRunSheetsRuleSafetyAudit).toBe(false);
       expect(artifact.state.requiredRuleSheets).toEqual(["ConfigRules", "ConfigAssigneeRules"]);
+      expect(artifact.state.ruleSheetsChecked).toBe(false);
+      expect(artifact.state.ruleSheetsVerified).toBe(false);
+      expect(artifact.state.ruleSheetsVerificationState).toBe("not_checked_missing_prerequisites");
       expect(artifact.missing.sheetsConfig).toContain("MAILHUB_CONFIG_STORE=sheets");
       expect(artifact.missing.gmailRuleAuditEnv).toContain("GOOGLE_CLIENT_ID");
+      expect(artifact.missing.unverifiedRuleSheets).toEqual(["ConfigRules", "ConfigAssigneeRules"]);
       expect(artifact.nextActions.find((action) => action.id === "verify_rule_sheets_tabs")?.requiredSheets).toEqual([
         "ConfigRules",
         "ConfigAssigneeRules",
       ]);
       expect(artifact.nextActions.find((action) => action.id === "verify_rule_sheets_tabs")?.missingSheets).toEqual([]);
+      expect(artifact.nextActions.find((action) => action.id === "verify_rule_sheets_tabs")?.unverifiedSheets).toEqual([
+        "ConfigRules",
+        "ConfigAssigneeRules",
+      ]);
+      expect(artifact.nextActions.find((action) => action.id === "verify_rule_sheets_tabs")?.verificationState).toBe(
+        "not_checked_missing_prerequisites",
+      );
       expect(artifact.nextActions.find((action) => action.id === "run_sheets_rule_safety_audit")?.status).toBe("blocked");
       expect(JSON.stringify(artifact)).not.toContain("real-google-secret");
 
@@ -211,18 +238,38 @@ describe("MailHub rule config next steps", () => {
 
       expect(result.status).toBe(0);
       const artifact = readJson<{
-        state: { auditedRuleSheets: string[]; requiredRuleSheets: string[]; canRunSheetsRuleSafetyAudit: boolean };
-        missing: { ruleSheets: string[] };
-        nextActions: Array<{ id: string; status: string; requiredSheets?: string[]; missingSheets?: string[] }>;
+        state: {
+          auditedRuleSheets: string[];
+          requiredRuleSheets: string[];
+          canRunSheetsRuleSafetyAudit: boolean;
+          ruleSheetsChecked: boolean;
+          ruleSheetsVerified: boolean;
+          ruleSheetsVerificationState: string;
+        };
+        missing: { ruleSheets: string[]; unverifiedRuleSheets: string[] };
+        nextActions: Array<{
+          id: string;
+          status: string;
+          requiredSheets?: string[];
+          missingSheets?: string[];
+          unverifiedSheets?: string[];
+          verificationState?: string;
+        }>;
       }>(nextPath);
       expect(artifact.state.auditedRuleSheets).toEqual(["RulesProd", "AssigneesProd"]);
       expect(artifact.state.requiredRuleSheets).toEqual(["RulesProd", "AssigneesProd"]);
       expect(artifact.state.canRunSheetsRuleSafetyAudit).toBe(true);
+      expect(artifact.state.ruleSheetsChecked).toBe(true);
+      expect(artifact.state.ruleSheetsVerified).toBe(false);
+      expect(artifact.state.ruleSheetsVerificationState).toBe("checked_missing_sheets");
       expect(artifact.missing.ruleSheets).toEqual(["RulesProd"]);
+      expect(artifact.missing.unverifiedRuleSheets).toEqual([]);
       expect(artifact.nextActions.find((action) => action.id === "verify_rule_sheets_tabs")).toMatchObject({
         status: "required",
         requiredSheets: ["RulesProd", "AssigneesProd"],
         missingSheets: ["RulesProd"],
+        unverifiedSheets: [],
+        verificationState: "checked_missing_sheets",
       });
       expect(JSON.stringify(artifact)).not.toContain("real-google-secret");
 
@@ -313,14 +360,36 @@ describe("MailHub rule config next steps", () => {
 
       expect(result.status).toBe(0);
       const artifact = readJson<{
-        state: { currentRuleConfigSourceProductionReady: boolean; canRunSheetsRuleSafetyAudit: boolean };
-        nextActions: Array<{ id?: string; status: string; requiredSheets?: string[]; missingSheets?: string[] }>;
+        state: {
+          currentRuleConfigSourceProductionReady: boolean;
+          canRunSheetsRuleSafetyAudit: boolean;
+          ruleSheetsChecked: boolean;
+          ruleSheetsVerified: boolean;
+          ruleSheetsVerificationState: string;
+        };
+        missing: { unverifiedRuleSheets: string[] };
+        nextActions: Array<{
+          id?: string;
+          status: string;
+          requiredSheets?: string[];
+          missingSheets?: string[];
+          unverifiedSheets?: string[];
+          verificationState?: string;
+        }>;
       }>(nextPath);
       expect(artifact.state.currentRuleConfigSourceProductionReady).toBe(true);
       expect(artifact.state.canRunSheetsRuleSafetyAudit).toBe(true);
+      expect(artifact.state.ruleSheetsChecked).toBe(true);
+      expect(artifact.state.ruleSheetsVerified).toBe(true);
+      expect(artifact.state.ruleSheetsVerificationState).toBe("verified_clean_sheets_source");
+      expect(artifact.missing.unverifiedRuleSheets).toEqual([]);
       expect(artifact.nextActions.every((action) => action.status === "done")).toBe(true);
       expect(artifact.nextActions.find((action) => action.id === "verify_rule_sheets_tabs")?.requiredSheets).toEqual([]);
       expect(artifact.nextActions.find((action) => action.id === "verify_rule_sheets_tabs")?.missingSheets).toEqual([]);
+      expect(artifact.nextActions.find((action) => action.id === "verify_rule_sheets_tabs")?.unverifiedSheets).toEqual([]);
+      expect(artifact.nextActions.find((action) => action.id === "verify_rule_sheets_tabs")?.verificationState).toBe(
+        "verified_clean_sheets_source",
+      );
       expect(JSON.stringify(artifact)).not.toContain("real-google-secret");
 
       const contract = runNode(contractPath, [
@@ -475,6 +544,54 @@ describe("MailHub rule config next steps", () => {
 
       expect(contract.status).toBe(1);
       expect(contract.stdout).toContain("required_rule_sheets_audit_mismatch");
+    });
+  });
+
+  test("contract rejects a file-backed artifact that hides unverified rule sheets", () => {
+    withTempDir((dir) => {
+      const readinessPath = join(dir, "readiness.json");
+      const rulesPath = join(dir, "rules.json");
+      const nextPath = join(dir, "rule-next.json");
+      writeJson(readinessPath, readinessFixture());
+      writeJson(rulesPath, rulesAuditFixture());
+      expect(runNode(writerPath, [
+        "--readiness",
+        readinessPath,
+        "--rules-audit",
+        rulesPath,
+        "--out",
+        nextPath,
+        "--local-env-file",
+        join(dir, ".env.local"),
+        "--repo-head",
+        "head-1",
+        "--repo-parent-head",
+        "parent-1",
+      ]).status).toBe(0);
+
+      const artifact = readJson<{
+        missing: { unverifiedRuleSheets: string[] };
+        nextActions: Array<{ id: string; unverifiedSheets?: string[] }>;
+      }>(nextPath);
+      const action = artifact.nextActions.find((item) => item.id === "verify_rule_sheets_tabs");
+      if (action) action.unverifiedSheets = [];
+      writeJson(nextPath, artifact);
+
+      const contract = runNode(contractPath, [
+        "--next",
+        nextPath,
+        "--readiness",
+        readinessPath,
+        "--rules-audit",
+        rulesPath,
+        "--repo-head",
+        "head-1",
+        "--repo-parent-head",
+        "parent-1",
+      ]);
+
+      expect(contract.status).toBe(1);
+      expect(contract.stdout).toContain("verify_rule_sheets_unverified_sheets_mismatch");
     });
   });
 });

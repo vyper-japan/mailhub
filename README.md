@@ -167,7 +167,7 @@
 Settingsで管理するラベル/ルールは `MAILHUB_CONFIG_STORE` で永続化方式を選べます：
 
 - `MAILHUB_CONFIG_STORE=file`（開発/CI向け）: `.mailhub/registered-labels.json` / `.mailhub/labelRules.json`
-- `MAILHUB_CONFIG_STORE=sheets`（staging/prod推奨）: Google Sheets（Tabs: `ConfigLabels` / `ConfigRules`）
+- `MAILHUB_CONFIG_STORE=sheets`（staging/prod推奨）: Google Sheets（Tabs: `ConfigLabels` / `ConfigRules` / `ConfigAssigneeRules`）
 
 Sheets設定はActivityと同じService Account方式を流用します（`MAILHUB_SHEETS_SPREADSHEET_ID` 等）。
 
@@ -588,4 +588,3 @@ curl https://mailhub.vercel.app/api/version
 - `next-auth` は **v5 beta を固定**しています（勝手に上げないでください）
 - `Open in Gmail ↗` は、各ユーザーが **共有受信箱（`GOOGLE_SHARED_INBOX_EMAIL`）をGmail上で参照できる権限（委任など）** を持っていることが前提です。無い場合はログインや権限付与を求められる可能性があります。
 - 運用の詳細は [OPS_RUNBOOK.md](./OPS_RUNBOOK.md) を参照してください。
-

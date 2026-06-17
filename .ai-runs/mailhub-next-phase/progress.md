@@ -526,6 +526,13 @@
   - Added regression coverage so `MAILHUB_ACTIVITY_STORE=sheets` with only the shared `MAILHUB_SHEETS_ID` resolves to `sheets` and instantiates `SheetsStore`.
   - Added precedence coverage so existing Activity-specific production spreadsheets do not silently switch to the shared Sheets id when both env vars are present.
   - This closes a staff workflow P1 risk where durable Activity preflight could pass while the runtime Activity store silently fell back to memory.
+- 2026-06-18 rule Sheets unverified-tab state completed:
+  - `mailhub-rule-config-next-steps.json` now distinguishes missing Sheets tabs from unverified tabs with `ruleSheetsChecked`, `ruleSheetsVerified`, `ruleSheetsVerificationState`, and `missing.unverifiedRuleSheets`.
+  - Current state is explicit: required tabs are `ConfigRules` and `ConfigAssigneeRules`, but they are `not_checked_missing_prerequisites` because production Sheets env is not configured.
+  - `check-mailhub-rule-config-next-contract.mjs` now rejects artifacts that hide unverified rule tabs or drift the verification state from the readiness/rules audit evidence.
+  - README now lists `ConfigAssigneeRules` alongside `ConfigLabels` and `ConfigRules` for Sheets-backed config.
+  - Refreshed no-send routing artifacts, staff artifacts, production readiness, routing next-step, and rule-config next-step artifacts to repo head `351ffc1e77de8f7befa98a77de9c31d75ad57abe`.
+  - Verification passed: full readiness contract chain, routing proof contract, focused rule/routing/readiness tests, `test:coverage` (72 files / 640 tests), `lint`, `typecheck` after `build`, `build`, `smoke`, `security:scan`, `security:scan-artifacts`, and `git diff --check`.
 
 ## Not Done
 

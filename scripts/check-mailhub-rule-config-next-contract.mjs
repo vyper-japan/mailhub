@@ -149,6 +149,7 @@ function main() {
   const requiredRuleSheets = stringArray(state.requiredRuleSheets);
   const auditedRuleSheets = stringArray(state.auditedRuleSheets);
   const missingRuleSheets = stringArray(missing.ruleSheets);
+  const unverifiedRuleSheets = stringArray(missing.unverifiedRuleSheets);
   const missingSheetsConfig = stringArray(missing.sheetsConfig);
   const missingGmailEnv = stringArray(missing.gmailRuleAuditEnv);
   const p0Blockers = stringArray(readinessGate.p0Blockers);
@@ -193,6 +194,14 @@ function main() {
   const canRunAudit = state.canRunSheetsRuleSafetyAudit === true;
   const sheetsEnvReady = state.sheetsConfigEnvReady === true;
   const gmailEnvReady = state.gmailRuleAuditEnvReady === true;
+  const expectedRuleSheetsChecked = expectedResolvedSource === "sheets";
+  const expectedRuleSheetsVerified = sourceReady;
+  const expectedRuleSheetsVerificationState = expectedRuleSheetsVerified
+    ? "verified_clean_sheets_source"
+    : (expectedRuleSheetsChecked
+        ? (missingRuleSheets.length > 0 ? "checked_missing_sheets" : "checked_sheets_source_warnings")
+        : (canRunAudit ? "ready_to_check_sheets" : "not_checked_missing_prerequisites"));
+  const expectedUnverifiedRuleSheets = expectedRuleSheetsChecked ? [] : requiredRuleSheets;
 
   if (state.currentRuleConfigSourceProductionReady !== sourceReady) errors.push("rule_source_ready_state_mismatch");
   if (state.ruleSafetyReady !== ruleSafetyReady) errors.push("rule_safety_state_mismatch");
@@ -205,6 +214,11 @@ function main() {
   if (!sameStrings(sourceWarnings, expectedWarnings)) errors.push("source_warnings_mismatch");
   if (requiredRuleSheets.length !== 2 || requiredRuleSheets.some((sheet) => !sheet.trim())) {
     errors.push("required_rule_sheets_invalid");
+  }
+  if (state.ruleSheetsChecked !== expectedRuleSheetsChecked) errors.push("rule_sheets_checked_mismatch");
+  if (state.ruleSheetsVerified !== expectedRuleSheetsVerified) errors.push("rule_sheets_verified_mismatch");
+  if (state.ruleSheetsVerificationState !== expectedRuleSheetsVerificationState) {
+    errors.push("rule_sheets_verification_state_mismatch");
   }
   if (!sameStrings(auditedRuleSheets, expectedAuditedRuleSheets)) errors.push("audited_rule_sheets_mismatch");
   if (rulesAuditRuleSheets.length > 0 && !sameStrings(readinessRuleSheets, rulesAuditRuleSheets)) {
@@ -235,6 +249,9 @@ function main() {
   if (missingRuleSheets.some((sheet) => !requiredRuleSheets.includes(sheet))) {
     errors.push("missing_rule_sheet_not_required");
   }
+  if (!sameStrings(unverifiedRuleSheets, expectedUnverifiedRuleSheets)) {
+    errors.push("unverified_rule_sheets_mismatch");
+  }
 
   expectActionStatus({
     actions,
@@ -260,6 +277,12 @@ function main() {
   }
   if (!sameStrings(actionStringArray(verifySheetsAction, "missingSheets"), sourceReady ? [] : missingRuleSheets)) {
     errors.push("verify_rule_sheets_missing_sheets_mismatch");
+  }
+  if (!sameStrings(actionStringArray(verifySheetsAction, "unverifiedSheets"), sourceReady ? [] : unverifiedRuleSheets)) {
+    errors.push("verify_rule_sheets_unverified_sheets_mismatch");
+  }
+  if ((verifySheetsAction?.verificationState ?? null) !== expectedRuleSheetsVerificationState) {
+    errors.push("verify_rule_sheets_verification_state_mismatch");
   }
   expectActionStatus({
     actions,
@@ -298,6 +321,7 @@ function main() {
     requestedSource: expectedRequestedSource,
     resolvedSource: expectedResolvedSource,
     sourceWarnings,
+    ruleSheetsVerificationState: state.ruleSheetsVerificationState ?? null,
     requiredActions: [...actions.values()].filter((action) => action.status !== "done").map((action) => action.id),
     inputWarnings,
     errors,
