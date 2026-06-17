@@ -1341,6 +1341,7 @@ PW_OUTPUT_DIR=/tmp/mailhub-playwright-rule-assignee-fix4 MAILHUB_TEST_MODE=1 npx
 PW_OUTPUT_DIR=/tmp/mailhub-playwright-qa-recovery-wave2 MAILHUB_TEST_MODE=1 npx playwright test e2e/qa-strict-unified.spec.ts -g "14\\)|Step50-2|Step51|Step52|Step62-1|Step73-1|Step78-1|Step90-1|Step91-1|Step94-1|Step96-1|Step105-1|E2E #1|E2E #2" --workers=1
 PW_OUTPUT_DIR=/tmp/mailhub-playwright-qa-recovery-wave3 MAILHUB_TEST_MODE=1 npx playwright test e2e/qa-strict-unified.spec.ts -g "14\\)|Step90-1|Step94-1" --workers=1
 PW_OUTPUT_DIR=/tmp/mailhub-playwright-qa-flaky-fix2 MAILHUB_TEST_MODE=1 npx playwright test e2e/qa-strict-unified.spec.ts -g "21\\)|Step51" --workers=1
+PW_OUTPUT_DIR=/tmp/mailhub-playwright-ci-fix MAILHUB_TEST_MODE=1 npx playwright test e2e/qa-strict-unified.spec.ts -g "21\\)|Step97-1|Step111-1" --workers=1
 MAILHUB_TEST_MODE=1 NEXTAUTH_SECRET=dummy NEXTAUTH_URL=http://localhost:3000 NEXTAUTH_TRUST_HOST=true GOOGLE_CLIENT_ID=dummy GOOGLE_CLIENT_SECRET=dummy GOOGLE_SHARED_INBOX_EMAIL=inbox@vtj.co.jp GOOGLE_SHARED_INBOX_REFRESH_TOKEN=dummy npm run qa:strict
 npm run audit:mailhub-readiness -- --out .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json
 npm run audit:mailhub-routing-next -- --out .ai-runs/mailhub-next-phase/mailhub-routing-next-steps.json
@@ -1354,6 +1355,7 @@ npm run audit:mailhub-routing-next -- --out .ai-runs/mailhub-next-phase/mailhub-
 - Unified E2E targeted recovery runs passed for bulk/label/assignee/routing/search/queue/done/seen/Gmail compose coverage.
 - Full `qa:strict` passed once with 129 passed and 2 flaky before the final de-flake patch; the two flaky tests then passed targeted on first attempt after waiting for `labels/apply` and removing the Undo list-count assertion.
 - A second full `qa:strict` rerun reached the final Gmail compose tests after all prior recovery points passed; the terminal session ended before the final summary was captured.
+- GitHub `qa-strict` on `f0f938d` exposed one CI-only failure (`Step97`) and two CI flakies (`21`, `Step111`); the targeted CI fix run passed 3/3 locally after making those assertions result-based.
 - Production readiness refresh: passed with `productionReady=false` and the same P0 `current_shared_gmail_routing`.
 - Routing next-step refresh: passed with `canRunSendVerify=false`; the same four external SMTP proof secrets are still missing.
 

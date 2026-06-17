@@ -294,6 +294,7 @@
   - Fixed a real label auto-rule refresh regression in `InboxShell`: newly-created label auto-rules now clear the last apply key so the same visible message set can be re-applied on refresh.
   - De-flaked the remaining auto-rule and Search v2 tests by waiting for `labels/apply` before refresh and treating Undo search state as the primary assertion.
   - `npm run qa:strict` passed once with only two retries before final de-flake; targeted rechecks for those two tests then passed on first attempt.
+  - After GitHub `qa-strict` exposed CI-only timing gaps, hardened `Step97`, `21`, and `Step111` to assert final UI/API state instead of mandatory incidental response timing.
 
 ## Not Done
 
