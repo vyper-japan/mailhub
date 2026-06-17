@@ -484,6 +484,12 @@ npm run probe:routing-preflight -- --out .ai-runs/mailhub-next-phase/mailhub-rou
 ### 4. GitHub Actions から実行する場合
 `.github/workflows/mailhub-routing-probe.yml` は手動実行専用。pushやscheduleでは送信しない。
 
+現在の GitHub Actions Secrets の準備状況は、値を表示せずに確認できる。
+
+```bash
+npm run audit:github-routing-secrets -- --no-fail
+```
+
 必要な GitHub Actions Secrets:
 - `GOOGLE_CLIENT_ID`
 - `GOOGLE_CLIENT_SECRET`
@@ -497,6 +503,7 @@ npm run probe:routing-preflight -- --out .ai-runs/mailhub-next-phase/mailhub-rou
 - `MAILHUB_PROBE_FROM`（`@vtj.co.jp` 以外）
 
 手順:
+0. `npm run audit:github-routing-secrets -- --no-fail` で `readyForSendVerify=true` を確認する
 1. Actions → `MailHub Routing Probe` → `Run workflow`
 2. まず `mode=preflight` で実行し、artifact `mailhub-routing-probe-<run_id>` を確認する
 3. `readyForProductionProof=true` になったら、`mode=send_verify` を選ぶ

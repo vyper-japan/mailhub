@@ -906,6 +906,38 @@ git diff --check
 - Final readiness contract check: passed with `productionReady=false`, P0 `current_shared_gmail_routing`, and no contract errors.
 - Final `git diff --check`: passed.
 
+## Verification Commands Run On 2026-06-17 GitHub Routing Secrets Readiness Wave
+
+```bash
+gh secret list --repo vyper-japan/mailhub
+gh auth status
+node --check scripts/check-mailhub-routing-probe-secrets.mjs
+npm run audit:github-routing-secrets -- --no-fail
+npm run security:scan-artifacts
+npm run typecheck
+npm run lint
+npm run test
+npm run build
+npm run audit:mailhub-readiness -- --out .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json
+npm run audit:mailhub-readiness-contract
+git diff --check
+```
+
+## 2026-06-17 GitHub Routing Secrets Readiness Wave Results
+
+- `gh secret list --repo vyper-japan/mailhub`: passed and returned no configured repository Actions secrets.
+- `gh auth status`: passed for `takayukisuzuki0826` with `repo` and `workflow` scopes.
+- Script syntax check: passed.
+- `npm run audit:github-routing-secrets -- --no-fail`: passed with `secretCount=0`, `readyForPreflightProductionProof=false`, and `readyForSendVerify=false`.
+- `npm run security:scan-artifacts`: passed.
+- `npm run typecheck`: passed.
+- `npm run lint`: passed.
+- `npm run test`: 63 files / 548 tests passed.
+- `npm run build`: passed.
+- Final readiness refresh: passed.
+- Final readiness contract check: passed with `productionReady=false`, P0 `current_shared_gmail_routing`, and no contract errors.
+- `git diff --check`: passed.
+
 ## Useful Runtime Commands
 
 Start dev server for tunnel:

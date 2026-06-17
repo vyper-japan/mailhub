@@ -227,6 +227,12 @@
   - Quoted `$GITHUB_OUTPUT` redirects in `.github/workflows/mailhub-config-export.yml`.
   - The previously noted all-workflow `actionlint` shellcheck warning is resolved.
   - The complete `.github/workflows/*.yml` set now passes `actionlint`.
+- 2026-06-17 GitHub routing secret readiness wave completed:
+  - Added `scripts/check-mailhub-routing-probe-secrets.mjs` and `npm run audit:github-routing-secrets`.
+  - The script reads only GitHub Actions secret names/metadata via `gh`, never secret values.
+  - It reports whether the manual routing probe workflow is ready for preflight production proof and `send_verify`.
+  - Current GitHub repo secret list is empty, so Actions-side `send_verify` is not ready until SMTP/Gmail proof secrets are added.
+  - `OPS_RUNBOOK.md` and `next.md` now include the secrets readiness check before manual workflow execution.
 
 ## Not Done
 
@@ -242,6 +248,7 @@
 - Ops Board now surfaces the same preflight gap: `SMTP不足env=4` in the current local artifact.
 - The readiness contract workflow now guards against accidentally shipping a stale or under-evidenced `mailhub-production-readiness-audit.json`.
 - GitHub Actions can now run the final external probe once the required SMTP/Gmail secrets are configured, without depending on local `.env.local`.
+- GitHub Actions secrets are currently empty for `vyper-japan/mailhub`; add required SMTP/Gmail proof secrets before running `send_verify`.
 - All GitHub workflow YAML now passes local `actionlint`; the remaining GitHub-side risk is secret/config availability for the manual external routing probe, not workflow syntax.
 - Production pagination basic behavior is represented in API/UI metadata and forced E2E; real browser/manual production verification is still useful before staff rollout.
 - Auto-discard rules for marketing/noise are protected against obvious important/invoice/inquiry suppression and missing summary text, but a full production auto-discard policy is still intentionally not enabled.

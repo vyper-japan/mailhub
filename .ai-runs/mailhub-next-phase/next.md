@@ -28,7 +28,8 @@ Continue from the completed INBOX-scoped source coverage and rule-safety wave:
    - Generate the exact address-level send plan with `npm run probe:routing-send`.
    - Before sending, run `npm run probe:routing-preflight -- --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-preflight.json`; proceed only when `smtpPreflight.readyForProductionProof=true`.
    - Re-run `npm run audit:mailhub-readiness -- --out .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json` after preflight; Ops Board will show `SMTP不足env` until the external SMTP proof config is complete.
-   - GitHub Actionsから実行する場合は manual-only workflow `MailHub Routing Probe` を使う。まず `mode=preflight`、Secrets が揃った後に `mode=send_verify` + `confirmSend=SEND_EXTERNAL_MAILHUB_ROUTING_PROBES` を指定する。
+   - GitHub Actionsから実行する場合は manual-only workflow `MailHub Routing Probe` を使う。まず `npm run audit:github-routing-secrets -- --no-fail` で Secrets readiness を確認し、`mode=preflight`、Secrets が揃った後に `mode=send_verify` + `confirmSend=SEND_EXTERNAL_MAILHUB_ROUTING_PROBES` を指定する。
+   - 2026-06-17時点の `gh secret list --repo vyper-japan/mailhub` は空。GitHub Actions側の残作業は SMTP/Gmail proof secrets の投入。
    - To prove current external routing, configure a non-`@vtj.co.jp` external SMTP sender (`MAILHUB_PROBE_SMTP_*`, `MAILHUB_PROBE_FROM`) and run `npm run probe:routing-send -- --send --verify-after-send`, or run `npm run probe:routing-send -- --send` and then the emitted `npm run audit:routing-probes -- --marker <marker> --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-audit.json`.
    - Do not use a `@vtj.co.jp` sender as production proof; that can validate internal GWS group routing without proving the current Lolipop/MX external path.
    - Operator-safe sequence and failure interpretation are now documented in `OPS_RUNBOOK.md` under `External Routing Probe`.
