@@ -260,6 +260,11 @@
   - Added `--from-env` to `scripts/check-mailhub-routing-probe-secrets.mjs`.
   - The manual routing probe workflow now audits injected secret env into `github-routing-secrets-readiness.json` and blocks `send_verify` before sending unless `readyForSendVerify=true`.
   - Triggered manual GitHub Actions run `27663796128` in `mode=preflight`; it passed, exercised the injected-env secret audit step, and skipped `send_verify`.
+- 2026-06-17 send_verify guard proof wave completed:
+  - Triggered manual GitHub Actions run `27663957099` with `mode=send_verify` and the required confirmation string while SMTP secrets were missing.
+  - The run failed at `Audit injected routing probe secrets` with exit code 4; `Send and verify external routing probes` was skipped, so no external mail was sent.
+  - Added workflow cleanup for checked-in probe JSON before each run so failed guard runs cannot upload stale artifacts.
+  - Re-ran as `27664049883`; it again failed before send and uploaded only `github-routing-secrets-readiness.json`.
 
 ## Not Done
 

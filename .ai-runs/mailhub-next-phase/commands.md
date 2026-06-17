@@ -1123,6 +1123,55 @@ git diff --check
 - GitHub Actions run `27663796128`: passed in 27s on `c8f5813`.
 - The run exercised the new injected-env secret audit step, used `mode=preflight`, skipped `send_verify`, and sent no external mail.
 
+## Verification Commands Run On 2026-06-17 Send Verify Guard Proof Wave
+
+```bash
+gh workflow run mailhub-routing-probe.yml --repo vyper-japan/mailhub -f mode=send_verify -f confirmSend=SEND_EXTERNAL_MAILHUB_ROUTING_PROBES -f waitSeconds=300 -f pollSeconds=15
+gh run watch 27663957099 --repo vyper-japan/mailhub --exit-status
+gh run view 27663957099 --repo vyper-japan/mailhub --json databaseId,conclusion,status,headSha,url,createdAt,updatedAt,jobs
+gh run view 27663957099 --repo vyper-japan/mailhub --log-failed
+gh run download 27663957099 --repo vyper-japan/mailhub --dir /tmp/mailhub-run-27663957099
+actionlint .github/workflows/mailhub-routing-probe.yml
+actionlint .github/workflows/*.yml
+ruby -e 'require "yaml"; Dir[".github/workflows/*.yml"].each { |p| YAML.load_file(p) }; puts "workflow yaml ok"'
+npx vitest run lib/__tests__/mailhub-routing-probe-scripts.test.ts
+npm run typecheck
+npm run lint
+npm run test
+npm run build
+npm run security:scan-artifacts
+npm run audit:github-routing-secrets -- --no-fail --out .ai-runs/mailhub-next-phase/github-routing-secrets-readiness.json
+npm run probe:routing-preflight -- --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-preflight.json
+npm run audit:mailhub-readiness -- --out .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json
+npm run audit:mailhub-readiness-contract
+gh workflow run mailhub-routing-probe.yml --repo vyper-japan/mailhub -f mode=send_verify -f confirmSend=SEND_EXTERNAL_MAILHUB_ROUTING_PROBES -f waitSeconds=300 -f pollSeconds=15
+gh run view 27664049883 --repo vyper-japan/mailhub --json databaseId,conclusion,status,headSha,url,createdAt,updatedAt,jobs
+gh run view 27664049883 --repo vyper-japan/mailhub --log-failed
+gh run download 27664049883 --repo vyper-japan/mailhub --dir /tmp/mailhub-run-27664049883
+```
+
+## 2026-06-17 Send Verify Guard Proof Wave Results
+
+- GitHub Actions run `27663957099`: expected failure on `340fadd`.
+- The run accepted the required confirmation string, failed at `Audit injected routing probe secrets` with exit code 4, skipped `Run routing probe preflight`, skipped `Send and verify external routing probes`, and uploaded artifacts.
+- The failure evidence showed `source=env`, `secretCount=4`, `readyForSendVerify=false`, and missing SMTP proof keys only.
+- Found that failed guard runs could still upload checked-in stale probe JSON from checkout.
+- Added a `Prepare fresh routing probe artifacts` workflow step to remove old probe JSON before each run.
+- `actionlint .github/workflows/*.yml`: passed.
+- Workflow YAML parse: passed.
+- Focused Vitest: 1 file / 13 tests passed.
+- `npm run typecheck`: passed.
+- `npm run lint`: passed.
+- `npm run test`: 63 files / 552 tests passed.
+- `npm run build`: passed.
+- `npm run security:scan-artifacts`: passed.
+- Final GitHub routing secret readiness artifact refresh: passed with `source=github_actions_secrets`, `secretCount=4`, and only external SMTP proof secrets missing.
+- Standard routing preflight refresh: passed with `sentCount=0` and the four external SMTP proof env keys missing.
+- Final readiness refresh: passed.
+- Final readiness contract check: passed with `productionReady=false`, P0 `current_shared_gmail_routing`, and no contract errors.
+- GitHub Actions run `27664049883`: expected failure on `c88cd16`.
+- The run failed at `Audit injected routing probe secrets`, skipped `Send and verify external routing probes`, and uploaded only `github-routing-secrets-readiness.json`.
+
 ## Useful Runtime Commands
 
 Start dev server for tunnel:
