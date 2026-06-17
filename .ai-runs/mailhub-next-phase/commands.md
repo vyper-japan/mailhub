@@ -1277,6 +1277,9 @@ git diff --check
 - Manual GitHub preflight run `27664847772` on commit `bb78ef0` failed at `Refresh readiness and next-step artifacts` because the workflow deleted stale `mailhub-routing-probe-audit.json` but did not regenerate a plan-only address probe audit before the readiness contract.
 - The workflow now regenerates `mailhub-routing-probe-audit.json` before readiness refresh, so the contract has fresh address-level probe-gate evidence after cleanup.
 - Committed readiness artifacts were refreshed to `repoHead=bb78ef0` before the next commit.
+- Manual GitHub preflight run `27666835940` on commit `9fb9788`: passed.
+- Run `27666835940` skipped `send_verify` and uploaded fresh artifacts including `mailhub-routing-next-steps.json`.
+- Downloaded artifact `mailhub-routing-next-steps.json` showed `productionReady=false`, `canRunSendVerify=false`, `run_github_send_verify=blocked`, and the four external SMTP proof secrets missing.
 - Readiness contract: passed.
 - `npm run lint`: passed.
 - `npm run test`: 63 files / 556 tests passed.

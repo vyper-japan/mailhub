@@ -281,6 +281,8 @@
   - Hardened `.github/workflows/mailhub-routing-probe.yml` so the manual workflow now generates `mailhub-routing-next-steps.json` before the `send_verify` readiness gate.
   - `send_verify` still fails before sending when GitHub secret readiness, SMTP production preflight, or the next-step gate is not green.
   - Blocked manual runs now upload the fresh next-step artifact instead of only the secret-readiness artifact, so the artifact bundle contains the exact missing setup list.
+  - First manual preflight after the change (`27664847772`) exposed a missing plan-only probe audit regeneration after stale-artifact cleanup; fixed by adding `Refresh routing probe address plan`.
+  - Confirmed with manual preflight run `27666835940` on commit `9fb9788`: workflow passed, skipped external sending, and uploaded `mailhub-routing-next-steps.json` with `canRunSendVerify=false`.
 
 ## Not Done
 
