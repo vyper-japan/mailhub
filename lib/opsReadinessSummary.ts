@@ -16,10 +16,13 @@ export type OpsReadinessSummary = {
   sourceInventoryReady: boolean;
   currentSharedGmailRoutingReady: boolean;
   routingProbeReady: boolean;
+  routingProbePreflightReady: boolean;
   defaultViewsRealDataValidated: boolean;
   currentRuleConfigRealDataSafetyReady: boolean;
   unconfirmedChannels: string[];
   missingProbeAddresses: string[];
+  missingProbeSmtpEnv: string[];
+  probeSmtpWarnings: string[];
   mxRecords: Array<{ exchange: string; priority: number }>;
 };
 
@@ -38,10 +41,13 @@ export function unavailableOpsReadinessSummary(): OpsReadinessSummary {
     sourceInventoryReady: false,
     currentSharedGmailRoutingReady: false,
     routingProbeReady: false,
+    routingProbePreflightReady: false,
     defaultViewsRealDataValidated: false,
     currentRuleConfigRealDataSafetyReady: false,
     unconfirmedChannels: [],
     missingProbeAddresses: [],
+    missingProbeSmtpEnv: [],
+    probeSmtpWarnings: [],
     mxRecords: [],
   };
 }
@@ -104,6 +110,9 @@ export function summarizeProductionReadinessAudit(
   const routingProbeGate = evidence.routingProbeGate && typeof evidence.routingProbeGate === "object"
     ? evidence.routingProbeGate as Record<string, unknown>
     : {};
+  const routingProbePreflight = evidence.routingProbePreflight && typeof evidence.routingProbePreflight === "object"
+    ? evidence.routingProbePreflight as Record<string, unknown>
+    : {};
 
   return {
     available: true,
@@ -119,10 +128,13 @@ export function summarizeProductionReadinessAudit(
     sourceInventoryReady: requirements.sourceInventoryReady === true,
     currentSharedGmailRoutingReady: requirements.currentSharedGmailRoutingReady === true,
     routingProbeReady: requirements.routingProbeReady === true,
+    routingProbePreflightReady: requirements.routingProbePreflightReady === true,
     defaultViewsRealDataValidated: requirements.defaultViewsRealDataValidated === true,
     currentRuleConfigRealDataSafetyReady: requirements.currentRuleConfigRealDataSafetyReady === true,
     unconfirmedChannels: stringArray(evidence.currentSharedGmailRoutingUnconfirmed),
     missingProbeAddresses: stringArray(routingProbeGate.missingAddresses),
+    missingProbeSmtpEnv: stringArray(routingProbePreflight.missingRequiredEnv),
+    probeSmtpWarnings: stringArray(routingProbePreflight.warnings),
     mxRecords: mxRecords(evidence.mxRecords),
   };
 }

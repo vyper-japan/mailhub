@@ -514,6 +514,7 @@ npm run audit:mailhub-readiness -- --out .ai-runs/mailhub-next-phase/mailhub-pro
 ### 6. 失敗時の読み方
 - `smtpPreflight.missingRequiredEnv` が残る: 外部SMTP設定が未投入。送信せずに環境変数を補完する。
 - `smtpPreflight.readyForProductionProof=false`: 設定不足、無効なport/secure値、または `@vtj.co.jp` 送信元。production proof としては使わない。
+- Ops Board の `SMTP不足env` が残る: readiness audit が preflight artifact を読んでいる。表示された環境変数を補完してから再preflightする。
 - `missingAddresses` が残る: その宛先の現在MX/転送が MailHub shared Gmail に届いていない。Lolipop転送設定、GWS group membership、MX切替状態を確認する。
 - `matchedChannels` はあるが `missingAddresses` が残る: 複数宛先チャンネルの一部到達。production ready ではない。
 - `domainMxGoogleLike=false`: 現在MXがGoogle直ではない。Lolipop forwarding証跡または承認済みMX切替後の再probeが必要。

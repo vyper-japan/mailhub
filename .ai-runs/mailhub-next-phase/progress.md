@@ -208,6 +208,11 @@
   - Hardened sender parsing so formatted senders like `Probe <probe@vtj.co.jp>` are still treated as `@vtj.co.jp` and cannot satisfy production proof.
   - Added regression coverage proving preflight output does not expose raw SMTP user/password values.
   - Current local preflight confirms the remaining blocker is operational setup: external SMTP env vars are not configured in `.env.local`.
+- 2026-06-17 readiness preflight visibility wave completed:
+  - `npm run audit:mailhub-readiness` now reads `mailhub-routing-probe-preflight.json`.
+  - The production readiness audit includes `requirements.routingProbePreflightReady`.
+  - The `current_shared_gmail_routing` blocker evidence now carries preflight missing env and warnings.
+  - Ops Board readiness summary now exposes `SMTP preflight`, `SMTP不足env`, and missing SMTP env names, so the remaining setup gap is visible without opening CLI artifacts.
 
 ## Not Done
 
@@ -220,6 +225,7 @@
 - The aggregate production readiness gate has only one P0 blocker left: `current_shared_gmail_routing`.
 - A controlled probe can now close or disprove that blocker mechanically: use an external non-`@vtj.co.jp` SMTP sender with `npm run probe:routing-send -- --send`, then re-run the probe audit with the emitted `--marker`.
 - Before the controlled probe, run `npm run probe:routing-preflight -- --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-preflight.json`; current local status is not ready because external SMTP env vars are missing.
+- Ops Board now surfaces the same preflight gap: `SMTP不足env=4` in the current local artifact.
 - Production pagination basic behavior is represented in API/UI metadata and forced E2E; real browser/manual production verification is still useful before staff rollout.
 - Auto-discard rules for marketing/noise are protected against obvious important/invoice/inquiry suppression and missing summary text, but a full production auto-discard policy is still intentionally not enabled.
 - Real-data rule safety audit exists and passes for the current local file config because no rules are configured. Re-run with `MAILHUB_CONFIG_STORE=sheets` and production Sheets credentials when production rule config is enabled.

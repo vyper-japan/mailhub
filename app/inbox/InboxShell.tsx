@@ -148,10 +148,13 @@ type OpsReadinessView = {
   sourceInventoryReady: boolean;
   currentSharedGmailRoutingReady: boolean;
   routingProbeReady: boolean;
+  routingProbePreflightReady: boolean;
   defaultViewsRealDataValidated: boolean;
   currentRuleConfigRealDataSafetyReady: boolean;
   unconfirmedChannels: string[];
   missingProbeAddresses: string[];
+  missingProbeSmtpEnv: string[];
+  probeSmtpWarnings: string[];
   mxRecords: Array<{ exchange: string; priority: number }>;
 };
 type OpsSummaryView = {
@@ -8629,6 +8632,17 @@ export default function InboxShell({
                               <div className="rounded border border-slate-700/60 bg-slate-950/30 px-2 py-1">
                                 未到達probe宛先: {opsSummary.productionReadiness.missingProbeAddresses.length}
                               </div>
+                              <div className="rounded border border-slate-700/60 bg-slate-950/30 px-2 py-1">
+                                SMTP preflight: {opsSummary.productionReadiness.routingProbePreflightReady ? "OK" : "未完了"}
+                              </div>
+                              <div className="rounded border border-slate-700/60 bg-slate-950/30 px-2 py-1">
+                                SMTP不足env: {opsSummary.productionReadiness.missingProbeSmtpEnv.length}
+                              </div>
+                              {opsSummary.productionReadiness.missingProbeSmtpEnv.length > 0 && (
+                                <div className="col-span-2 rounded border border-slate-700/60 bg-slate-950/30 px-2 py-1 break-words">
+                                  不足: {opsSummary.productionReadiness.missingProbeSmtpEnv.join(", ")}
+                                </div>
+                              )}
                               <div className="col-span-2 rounded border border-slate-700/60 bg-slate-950/30 px-2 py-1">
                                 MX: {opsSummary.productionReadiness.mxRecords.map((record) => `${record.priority} ${record.exchange}`).join(", ") || "未取得"}
                               </div>

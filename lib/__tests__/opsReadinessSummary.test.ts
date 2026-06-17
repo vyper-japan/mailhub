@@ -14,6 +14,7 @@ describe("opsReadinessSummary", () => {
         sourceInventoryReady: true,
         currentSharedGmailRoutingReady: false,
         routingProbeReady: false,
+        routingProbePreflightReady: false,
         defaultViewsRealDataValidated: true,
         currentRuleConfigRealDataSafetyReady: true,
       },
@@ -30,6 +31,10 @@ describe("opsReadinessSummary", () => {
             currentSharedGmailRoutingUnconfirmed: ["gopro-yahoo", "ebay"],
             routingProbeGate: {
               missingAddresses: ["gopro_y@vtj.co.jp", "ebay@vtj.co.jp"],
+            },
+            routingProbePreflight: {
+              missingRequiredEnv: ["MAILHUB_PROBE_SMTP_HOST"],
+              warnings: ["vtj_from_not_external_route_proof"],
             },
             mxRecords: [{ exchange: "mx01.lolipop.jp", priority: 50 }],
           },
@@ -50,10 +55,13 @@ describe("opsReadinessSummary", () => {
       sourceInventoryReady: true,
       currentSharedGmailRoutingReady: false,
       routingProbeReady: false,
+      routingProbePreflightReady: false,
       defaultViewsRealDataValidated: true,
       currentRuleConfigRealDataSafetyReady: true,
       unconfirmedChannels: ["gopro-yahoo", "ebay"],
       missingProbeAddresses: ["gopro_y@vtj.co.jp", "ebay@vtj.co.jp"],
+      missingProbeSmtpEnv: ["MAILHUB_PROBE_SMTP_HOST"],
+      probeSmtpWarnings: ["vtj_from_not_external_route_proof"],
       mxRecords: [{ exchange: "mx01.lolipop.jp", priority: 50 }],
     });
   });

@@ -760,6 +760,36 @@ node -e 'const r=require("./.ai-runs/mailhub-next-phase/mailhub-production-readi
 - `productionReady`: `false`.
 - P0 blockers: `current_shared_gmail_routing`.
 
+## Verification Commands Run On 2026-06-17 Readiness Preflight Visibility Wave
+
+```bash
+node --check scripts/audit-mailhub-production-readiness.mjs
+npx vitest run lib/__tests__/mailhub-routing-probe-scripts.test.ts lib/__tests__/opsReadinessSummary.test.ts
+npm run typecheck
+npm run audit:mailhub-readiness -- --out .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json
+node -e 'const r=require("./.ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json"); const b=r.blockers.find(x=>x.id==="current_shared_gmail_routing"); if(r.gate.productionReady) process.exit(1); if(r.gate.p0Blockers.join(",")!=="current_shared_gmail_routing") process.exit(2); if(r.requirements.routingProbePreflightReady) process.exit(3); const missing=b?.evidence?.routingProbePreflight?.missingRequiredEnv||[]; if(!missing.includes("MAILHUB_PROBE_SMTP_HOST")||!missing.includes("MAILHUB_PROBE_FROM")) process.exit(4); console.log("readiness preflight evidence", JSON.stringify({productionReady:r.gate.productionReady, p0Blockers:r.gate.p0Blockers, routingProbePreflightReady:r.requirements.routingProbePreflightReady, missing}));'
+npm run lint
+npm run security:scan-artifacts
+npm run test
+npm run build
+git diff --check
+```
+
+## 2026-06-17 Readiness Preflight Visibility Wave Results
+
+- Script syntax check: passed.
+- Focused Vitest: 2 files / 13 tests passed.
+- `npm run typecheck`: passed.
+- `npm run audit:mailhub-readiness`: passed.
+- Readiness preflight evidence assertion: passed.
+- Current `routingProbePreflightReady`: `false`.
+- Current missing external SMTP env: `MAILHUB_PROBE_SMTP_HOST`, `MAILHUB_PROBE_SMTP_USER`, `MAILHUB_PROBE_SMTP_PASS`, `MAILHUB_PROBE_FROM`.
+- `npm run lint`: passed.
+- `npm run security:scan-artifacts`: passed.
+- `npm run test`: 62 files / 544 tests passed.
+- `npm run build`: passed.
+- `git diff --check`: passed.
+
 ## Useful Runtime Commands
 
 Start dev server for tunnel:

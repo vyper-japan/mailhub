@@ -1,17 +1,19 @@
 {
-  "generatedAt": "2026-06-17T02:35:34.425Z",
-  "repoHead": "9cc93c1c8911f2b8f8f2011fc6d102f440698c47",
+  "generatedAt": "2026-06-17T02:40:55.874Z",
+  "repoHead": "a27d5e94a11dec895b5a9887b49eff68a2b56318",
   "inputs": {
     "sourceAudit": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.ai-runs/mailhub-next-phase/gmail-source-coverage-audit.json",
     "opsAudit": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.ai-runs/mailhub-next-phase/mailhub-operational-confirmations.json",
     "gwsRoutingAudit": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.ai-runs/mailhub-next-phase/mailhub-gws-routing-audit.json",
     "routingProbeAudit": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.ai-runs/mailhub-next-phase/mailhub-routing-probe-audit.json",
+    "routingProbePreflight": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.ai-runs/mailhub-next-phase/mailhub-routing-probe-preflight.json",
     "viewsAudit": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.ai-runs/mailhub-next-phase/gmail-default-views-audit.json",
     "rulesAudit": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.ai-runs/mailhub-next-phase/gmail-rule-safety-audit.json",
     "sourceAuditGeneratedAt": "2026-06-17T01:03:24.561Z",
     "opsAuditGeneratedAt": "2026-06-17T01:19:41.050Z",
     "gwsRoutingAuditGeneratedAt": "2026-06-17T01:26:07.121Z",
     "routingProbeAuditGeneratedAt": "2026-06-17T01:42:16.683Z",
+    "routingProbePreflightGeneratedAt": "2026-06-17T02:32:34.778Z",
     "viewsAuditGeneratedAt": "2026-06-17T01:03:11.682Z",
     "rulesAuditGeneratedAt": "2026-06-17T01:03:08.912Z"
   },
@@ -20,6 +22,7 @@
     "sourceInventoryReady": true,
     "currentSharedGmailRoutingReady": false,
     "routingProbeReady": false,
+    "routingProbePreflightReady": false,
     "defaultViewsRealDataValidated": true,
     "defaultViewsManualReviewOnly": true,
     "currentRuleConfigRealDataSafetyReady": true
@@ -79,6 +82,33 @@
           ],
           "allExpectedAddressesConfirmed": false,
           "allExpectedChannelsConfirmed": false
+        },
+        "routingProbePreflight": {
+          "requiredEnvPresent": {
+            "MAILHUB_PROBE_SMTP_HOST": false,
+            "MAILHUB_PROBE_SMTP_USER": false,
+            "MAILHUB_PROBE_SMTP_PASS": false,
+            "MAILHUB_PROBE_FROM": false
+          },
+          "optionalEnvPresent": {
+            "MAILHUB_PROBE_SMTP_PORT": false,
+            "MAILHUB_PROBE_SMTP_SECURE": false
+          },
+          "missingRequiredEnv": [
+            "MAILHUB_PROBE_SMTP_HOST",
+            "MAILHUB_PROBE_SMTP_USER",
+            "MAILHUB_PROBE_SMTP_PASS",
+            "MAILHUB_PROBE_FROM"
+          ],
+          "from": null,
+          "fromDomain": null,
+          "fromIsVtj": false,
+          "allowVtjFrom": false,
+          "portValid": true,
+          "secureValid": true,
+          "readyForSend": false,
+          "readyForProductionProof": false,
+          "warnings": []
         },
         "mxRecords": [
           {

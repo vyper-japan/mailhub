@@ -69,6 +69,7 @@ function writeReadinessFixtures(dir: string, routingProbeGate: Record<string, un
     ops: join(dir, "ops.json"),
     gws: join(dir, "gws.json"),
     routing: join(dir, "routing.json"),
+    preflight: join(dir, "preflight.json"),
     views: join(dir, "views.json"),
     rules: join(dir, "rules.json"),
     out: join(dir, "readiness.json"),
@@ -93,6 +94,15 @@ function writeReadinessFixtures(dir: string, routingProbeGate: Record<string, un
   writeJson(paths.routing, {
     generatedAt: "2026-06-17T00:00:00.000Z",
     gate: routingProbeGate,
+  });
+  writeJson(paths.preflight, {
+    generatedAt: "2026-06-17T00:00:00.000Z",
+    smtpPreflight: {
+      missingRequiredEnv: ["MAILHUB_PROBE_SMTP_HOST", "MAILHUB_PROBE_FROM"],
+      readyForSend: false,
+      readyForProductionProof: false,
+      warnings: [],
+    },
   });
   writeJson(paths.views, {
     generatedAt: "2026-06-17T00:00:00.000Z",
@@ -172,6 +182,8 @@ describe("MailHub routing probe CLI gates", () => {
         paths.gws,
         "--routing-probe-audit",
         paths.routing,
+        "--routing-probe-preflight",
+        paths.preflight,
         "--views-audit",
         paths.views,
         "--rules-audit",
@@ -184,17 +196,32 @@ describe("MailHub routing probe CLI gates", () => {
       const out = readJson<{
         requirements: {
           routingProbeReady: boolean;
+          routingProbePreflightReady: boolean;
           currentSharedGmailRoutingReady: boolean;
         };
         gate: {
           productionReady: boolean;
           p0Blockers: string[];
         };
+        blockers: Array<{
+          id: string;
+          evidence?: {
+            routingProbePreflight?: {
+              missingRequiredEnv?: string[];
+              readyForProductionProof?: boolean;
+            };
+          };
+        }>;
       }>(paths.out);
       expect(out.requirements.routingProbeReady).toBe(false);
+      expect(out.requirements.routingProbePreflightReady).toBe(false);
       expect(out.requirements.currentSharedGmailRoutingReady).toBe(false);
       expect(out.gate.productionReady).toBe(false);
       expect(out.gate.p0Blockers).toEqual(["current_shared_gmail_routing"]);
+      expect(out.blockers[0]?.evidence?.routingProbePreflight?.missingRequiredEnv).toEqual([
+        "MAILHUB_PROBE_SMTP_HOST",
+        "MAILHUB_PROBE_FROM",
+      ]);
     });
   });
 
