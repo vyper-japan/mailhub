@@ -18,6 +18,7 @@
     "audit:gws-routing": "node scripts/audit-mailhub-gws-routing.mjs",
     "audit:routing-probes": "node scripts/audit-mailhub-routing-probes.mjs",
     "audit:mailhub-readiness": "node scripts/audit-mailhub-production-readiness.mjs",
+    "audit:mailhub-readiness-contract": "node scripts/check-mailhub-readiness-contract.mjs",
     "probe:routing-preflight": "node scripts/send-mailhub-routing-probes.mjs --preflight",
     "probe:routing-send": "node scripts/send-mailhub-routing-probes.mjs",
     "test": "vitest run",

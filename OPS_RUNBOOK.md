@@ -519,6 +519,7 @@ npm run audit:mailhub-readiness -- --out .ai-runs/mailhub-next-phase/mailhub-pro
 - `matchedChannels` はあるが `missingAddresses` が残る: 複数宛先チャンネルの一部到達。production ready ではない。
 - `domainMxGoogleLike=false`: 現在MXがGoogle直ではない。Lolipop forwarding証跡または承認済みMX切替後の再probeが必要。
 - Ops Board が「本番判定 再監査必要」: readiness artifact が現在のコードHEADと合っていない。`npm run audit:mailhub-readiness` を再実行する。
+- GitHub Actions `MailHub Readiness Contract` が失敗する: `mailhub-production-readiness-audit.json` の構造、repo head freshness、または残P0の証跡が壊れている。`npm run audit:mailhub-readiness-contract` の `errors` を見て修正する。
 
 ## Step28: Staging Ops（staging運用の一本道）
 

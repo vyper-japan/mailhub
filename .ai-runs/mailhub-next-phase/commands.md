@@ -805,6 +805,40 @@ node -e 'const r=require("./.ai-runs/mailhub-next-phase/mailhub-production-readi
 - P0 blockers: `current_shared_gmail_routing`.
 - `routingProbePreflightReady`: `false`.
 
+## Verification Commands Run On 2026-06-17 Readiness Contract Gate Wave
+
+```bash
+node --check scripts/check-mailhub-readiness-contract.mjs
+npx vitest run lib/__tests__/mailhub-readiness-contract.test.ts
+npm run audit:mailhub-readiness-contract
+ruby -e 'require "yaml"; YAML.load_file(".github/workflows/mailhub-readiness-contract.yml"); puts "yaml ok"'
+actionlint .github/workflows/mailhub-readiness-contract.yml
+npm run typecheck
+npm run lint
+npm run security:scan-artifacts
+npm run test
+npm run build
+npm run audit:mailhub-readiness -- --out .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json
+npm run audit:mailhub-readiness-contract
+git diff --check
+```
+
+## 2026-06-17 Readiness Contract Gate Wave Results
+
+- Script syntax check: passed.
+- Focused Vitest: 1 file / 4 tests passed.
+- `npm run audit:mailhub-readiness-contract`: passed.
+- Workflow YAML parse: passed.
+- `actionlint .github/workflows/mailhub-readiness-contract.yml`: passed.
+- `npm run typecheck`: passed.
+- `npm run lint`: passed.
+- `npm run security:scan-artifacts`: passed.
+- `npm run test`: 63 files / 548 tests passed.
+- `npm run build`: passed.
+- Final readiness refresh: passed.
+- Final readiness contract check: passed with `productionReady=false`, P0 `current_shared_gmail_routing`, and no contract errors.
+- `git diff --check`: passed.
+
 ## Useful Runtime Commands
 
 Start dev server for tunnel:

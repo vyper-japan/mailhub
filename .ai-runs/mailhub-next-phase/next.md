@@ -22,6 +22,7 @@ Continue from the completed INBOX-scoped source coverage and rule-safety wave:
    - Latest aggregate gate: `productionReady=false`.
    - Passing: source code coverage, source inventory, default view real-data syntax validation, current rule config real-data safety.
    - Only current P0 blocker: `current_shared_gmail_routing`.
+   - Run `npm run audit:mailhub-readiness-contract` after regenerating readiness. This is also enforced by `.github/workflows/mailhub-readiness-contract.yml` on push/PR.
 8. Run or inspect `npm run audit:routing-probes -- --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-audit.json`.
    - Current mode is `plan_only`; it lists six target channels and eight target addresses but does not send mail.
    - Generate the exact address-level send plan with `npm run probe:routing-send`.
