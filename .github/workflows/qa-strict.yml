@@ -11,7 +11,7 @@ env:
 jobs:
   qa:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
 
     steps:
       - uses: actions/checkout@v6
@@ -24,8 +24,16 @@ jobs:
       - name: Install
         run: npm ci
 
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
+
       - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install chromium
 
       - name: QA Strict
         run: npm run qa:strict
@@ -38,6 +46,5 @@ jobs:
           GOOGLE_CLIENT_SECRET: dummy
           GOOGLE_SHARED_INBOX_EMAIL: inbox@vtj.co.jp
           GOOGLE_SHARED_INBOX_REFRESH_TOKEN: dummy
-
 
 

@@ -2337,6 +2337,20 @@ npm run typecheck
 - Regression tests prove `MAILHUB_ACTIVITY_STORE=sheets` with only `MAILHUB_SHEETS_ID` resolves to `sheets` and creates a `SheetsStore`, preventing durable Activity from silently falling back to memory after preflight passes.
 - Regression tests also prove the Activity-specific id wins when both env vars are set, preventing a silent production write-target switch during rollout.
 
+## 2026-06-18 qa-strict Playwright Install Timeout Follow-up Commands
+
+```bash
+gh run view 27708920109 --repo vyper-japan/mailhub --json status,conclusion,jobs
+actionlint .github/workflows/*.yml
+git diff --check
+```
+
+## 2026-06-18 qa-strict Playwright Install Timeout Follow-up Results
+
+- `qa-strict` for `12b66c9` was cancelled by the 20 minute job timeout.
+- The run spent about 15 minutes in `Install Playwright browsers` before `QA Strict` started, leaving too little time for the actual gate.
+- `.github/workflows/qa-strict.yml` now caches Playwright browser downloads, installs Chromium without `--with-deps`, and raises the job timeout to 30 minutes.
+
 ## Useful Runtime Commands
 
 Start dev server for tunnel:

@@ -485,6 +485,9 @@
 - 2026-06-18 qa-strict CI timeout follow-up:
   - `qa-strict` for `6d676e0` reached the 20 minute job timeout while still installing Playwright browsers.
   - `playwright.config.ts` only runs the `chromium` project, so `.github/workflows/qa-strict.yml` now installs only `chromium` instead of all Playwright browsers.
+- 2026-06-18 qa-strict Playwright install timeout follow-up:
+  - `qa-strict` for `12b66c9` reached the 20 minute job timeout after `npx playwright install --with-deps chromium` spent about 15 minutes in browser/dependency setup.
+  - `.github/workflows/qa-strict.yml` now caches `~/.cache/ms-playwright`, installs Chromium without `--with-deps`, and gives the job a 30 minute timeout so QA Strict has enough execution window.
 - 2026-06-18 rule Sheets tab verification tightened:
   - `mailhub-rule-config-next-steps.json` now records `state.requiredRuleSheets` and `verify_rule_sheets_tabs.requiredSheets`, currently `ConfigRules` and `ConfigAssigneeRules`.
   - The action now separates required tabs from `missingSheets`, so a future Sheets audit can identify exactly which production tab is absent without changing the checklist shape.
