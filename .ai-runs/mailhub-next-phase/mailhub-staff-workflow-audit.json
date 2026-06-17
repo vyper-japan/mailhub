@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-06-17T17:18:42.277Z",
-  "repoHead": "f250dd59e2766e5f35e04b2d0b5520505e917c38",
+  "generatedAt": "2026-06-17T17:44:08.327Z",
+  "repoHead": "c30f5ed88fd69c73162ccf9516e2cf2acb2e5653",
   "inputs": {
     "envFile": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.env.local",
     "assignees": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.mailhub/assignees.json",

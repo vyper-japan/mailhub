@@ -1,13 +1,13 @@
 {
-  "generatedAt": "2026-06-17T17:18:42.659Z",
+  "generatedAt": "2026-06-17T17:44:08.773Z",
   "inputs": {
     "readiness": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json",
     "githubSecrets": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.ai-runs/mailhub-next-phase/github-routing-secrets-readiness.json",
     "preflight": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.ai-runs/mailhub-next-phase/mailhub-routing-probe-preflight.json",
-    "readinessGeneratedAt": "2026-06-17T17:18:42.510Z",
-    "readinessRepoHead": "f250dd59e2766e5f35e04b2d0b5520505e917c38",
-    "repoHead": "f250dd59e2766e5f35e04b2d0b5520505e917c38",
-    "repoParentHead": "2366b0c294eb45f2138ca3106e7a3d34fd5a14ab",
+    "readinessGeneratedAt": "2026-06-17T17:44:08.592Z",
+    "readinessRepoHead": "c30f5ed88fd69c73162ccf9516e2cf2acb2e5653",
+    "repoHead": "c30f5ed88fd69c73162ccf9516e2cf2acb2e5653",
+    "repoParentHead": "f250dd59e2766e5f35e04b2d0b5520505e917c38",
     "githubSecretsCheckedAt": "2026-06-17T15:15:08.207Z",
     "preflightGeneratedAt": "2026-06-17T15:16:00.624Z",
     "localEnvFile": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.env.local",

@@ -493,6 +493,11 @@
   - `audit:gmail-rules` now records the actual Sheets tabs it attempted under `config.ruleSheets` when `--config-source sheets` is used, and production readiness propagates that evidence through `inputs.ruleConfigSource.ruleSheets`.
   - `mailhub-rule-config-next-steps.json` now prefers audited rule sheet names over current env/default values and records `state.auditedRuleSheets` plus `state.requiredRuleSheetsSource`.
   - The rule-config next-step contract now rejects drift between the rule-safety audit, production readiness, and next-step artifact, closing the reviewer P1 where post-audit env changes could have renamed the required tab checklist.
+- 2026-06-18 activity Sheets ID fallback alignment completed:
+  - `lib/activityStore.ts` now resolves the Activity Sheets spreadsheet id from `MAILHUB_SHEETS_SPREADSHEET_ID` first, then falls back to `MAILHUB_SHEETS_ID` when the Activity-specific id is absent.
+  - Added regression coverage so `MAILHUB_ACTIVITY_STORE=sheets` with only the shared `MAILHUB_SHEETS_ID` resolves to `sheets` and instantiates `SheetsStore`.
+  - Added precedence coverage so existing Activity-specific production spreadsheets do not silently switch to the shared Sheets id when both env vars are present.
+  - This closes a staff workflow P1 risk where durable Activity preflight could pass while the runtime Activity store silently fell back to memory.
 
 ## Not Done
 

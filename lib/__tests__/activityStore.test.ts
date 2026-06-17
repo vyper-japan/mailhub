@@ -120,6 +120,18 @@ describe("activityStore", () => {
     expect(mod.getActivitySheetsConfigured()).toBe(true);
   });
 
+  it("getResolvedActivityStoreType: sheets requested accepts MAILHUB_SHEETS_ID fallback", async () => {
+    const mod = await import("@/lib/activityStore");
+    process.env.MAILHUB_ACTIVITY_STORE = "sheets";
+    process.env.MAILHUB_SHEETS_ID = "spreadsheet-from-shared-env";
+    delete process.env.MAILHUB_SHEETS_SPREADSHEET_ID;
+    process.env.MAILHUB_SHEETS_CLIENT_EMAIL = "client@example.com";
+    process.env.MAILHUB_SHEETS_PRIVATE_KEY = "-----BEGIN PRIVATE KEY-----\\nX\\n-----END PRIVATE KEY-----";
+
+    expect(mod.getResolvedActivityStoreType()).toBe("sheets");
+    expect(mod.getActivitySheetsConfigured()).toBe(true);
+  });
+
   it("getRequestedActivityStoreType trims whitespace", async () => {
     const mod = await import("@/lib/activityStore");
     process.env.MAILHUB_ACTIVITY_STORE = "  file  ";
@@ -147,6 +159,35 @@ describe("activityStore", () => {
     const mod = await import("@/lib/activityStore");
     const store = mod.getActivityStore();
     expect(store).toBeInstanceOf(mod.SheetsStore);
+  });
+
+  it("getActivityStore: sheets configured with MAILHUB_SHEETS_ID fallback -> SheetsStore", async () => {
+    vi.resetModules();
+    process.env.MAILHUB_ACTIVITY_STORE = "sheets";
+    process.env.MAILHUB_SHEETS_ID = "spreadsheet-from-shared-env";
+    delete process.env.MAILHUB_SHEETS_SPREADSHEET_ID;
+    process.env.MAILHUB_SHEETS_CLIENT_EMAIL = "client@example.com";
+    process.env.MAILHUB_SHEETS_PRIVATE_KEY = "-----BEGIN PRIVATE KEY-----\\nX\\n-----END PRIVATE KEY-----";
+    process.env.MAILHUB_SHEETS_SHEET_NAME = "Activity";
+
+    const mod = await import("@/lib/activityStore");
+    const store = mod.getActivityStore();
+    expect(store).toBeInstanceOf(mod.SheetsStore);
+  });
+
+  it("getActivityStore: sheets keeps MAILHUB_SHEETS_SPREADSHEET_ID precedence when both ids are configured", async () => {
+    vi.resetModules();
+    process.env.MAILHUB_ACTIVITY_STORE = "sheets";
+    process.env.MAILHUB_SHEETS_SPREADSHEET_ID = "activity-specific-spreadsheet";
+    process.env.MAILHUB_SHEETS_ID = "shared-spreadsheet";
+    process.env.MAILHUB_SHEETS_CLIENT_EMAIL = "client@example.com";
+    process.env.MAILHUB_SHEETS_PRIVATE_KEY = "-----BEGIN PRIVATE KEY-----\\nX\\n-----END PRIVATE KEY-----";
+    process.env.MAILHUB_SHEETS_SHEET_NAME = "Activity";
+
+    const mod = await import("@/lib/activityStore");
+    const store = mod.getActivityStore();
+    expect(store).toBeInstanceOf(mod.SheetsStore);
+    expect((store as unknown as { spreadsheetId: string }).spreadsheetId).toBe("activity-specific-spreadsheet");
   });
 
   it("getActivityStore: default -> MemoryStore", async () => {

@@ -312,13 +312,19 @@ export function getRequestedActivityStoreType(): string {
   return (process.env.MAILHUB_ACTIVITY_STORE || "memory").trim();
 }
 
+function getActivitySheetsConfig(): { spreadsheetId: string | undefined; clientEmail: string | undefined; privateKey: string | undefined } {
+  return {
+    spreadsheetId: process.env.MAILHUB_SHEETS_SPREADSHEET_ID || process.env.MAILHUB_SHEETS_ID,
+    clientEmail: process.env.MAILHUB_SHEETS_CLIENT_EMAIL,
+    privateKey: process.env.MAILHUB_SHEETS_PRIVATE_KEY,
+  };
+}
+
 export function getResolvedActivityStoreType(): ActivityStoreType {
   const requested = getRequestedActivityStoreType();
   if (requested === "file") return "file";
   if (requested === "sheets") {
-    const spreadsheetId = process.env.MAILHUB_SHEETS_SPREADSHEET_ID;
-    const clientEmail = process.env.MAILHUB_SHEETS_CLIENT_EMAIL;
-    const privateKey = process.env.MAILHUB_SHEETS_PRIVATE_KEY;
+    const { spreadsheetId, clientEmail, privateKey } = getActivitySheetsConfig();
     if (spreadsheetId && clientEmail && privateKey) return "sheets";
     return "memory";
   }
@@ -326,10 +332,11 @@ export function getResolvedActivityStoreType(): ActivityStoreType {
 }
 
 export function getActivitySheetsConfigured(): boolean {
+  const { spreadsheetId, clientEmail, privateKey } = getActivitySheetsConfig();
   return Boolean(
-    process.env.MAILHUB_SHEETS_SPREADSHEET_ID &&
-      process.env.MAILHUB_SHEETS_CLIENT_EMAIL &&
-      process.env.MAILHUB_SHEETS_PRIVATE_KEY,
+    spreadsheetId &&
+      clientEmail &&
+      privateKey,
   );
 }
 
@@ -343,9 +350,7 @@ export function getActivityStore(): ActivityStore {
   if (storeType === "file") {
     storeInstance = new FileStore();
   } else if (storeType === "sheets") {
-    const spreadsheetId = process.env.MAILHUB_SHEETS_SPREADSHEET_ID;
-    const clientEmail = process.env.MAILHUB_SHEETS_CLIENT_EMAIL;
-    const privateKey = process.env.MAILHUB_SHEETS_PRIVATE_KEY;
+    const { spreadsheetId, clientEmail, privateKey } = getActivitySheetsConfig();
     const sheetName = process.env.MAILHUB_SHEETS_SHEET_NAME || "Activity";
 
     if (!spreadsheetId || !clientEmail || !privateKey) {

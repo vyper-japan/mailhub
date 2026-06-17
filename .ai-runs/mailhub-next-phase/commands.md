@@ -2323,6 +2323,20 @@ npm run audit:mailhub-rule-config-next-contract
 - The next-step writer now prefers audited tab names and records `state.auditedRuleSheets` plus `state.requiredRuleSheetsSource`; if no Sheets audit evidence exists yet, it still falls back to `ConfigRules` and `ConfigAssigneeRules`.
 - The next-step contract now rejects mismatches across `gmail-rule-safety-audit.json`, `mailhub-production-readiness-audit.json`, and `mailhub-rule-config-next-steps.json`.
 
+## 2026-06-18 Activity Sheets ID Fallback Commands
+
+```bash
+npx vitest run lib/__tests__/activityStore.test.ts lib/__tests__/mailhub-staff-env-setup.test.ts lib/__tests__/mailhub-staff-workflow-audit.test.ts lib/__tests__/mailhub-staff-workflow-next-steps.test.ts
+npm run typecheck
+```
+
+## 2026-06-18 Activity Sheets ID Fallback Results
+
+- `ActivityStore` previously required `MAILHUB_SHEETS_SPREADSHEET_ID`, while the staff env preflight and staff workflow audit accepted the shared `MAILHUB_SHEETS_ID` fallback.
+- `ActivityStore` now uses `MAILHUB_SHEETS_SPREADSHEET_ID || MAILHUB_SHEETS_ID`, preserving the existing Activity-specific spreadsheet when both env vars are present while still accepting the shared Sheets id as fallback.
+- Regression tests prove `MAILHUB_ACTIVITY_STORE=sheets` with only `MAILHUB_SHEETS_ID` resolves to `sheets` and creates a `SheetsStore`, preventing durable Activity from silently falling back to memory after preflight passes.
+- Regression tests also prove the Activity-specific id wins when both env vars are set, preventing a silent production write-target switch during rollout.
+
 ## Useful Runtime Commands
 
 Start dev server for tunnel:
