@@ -99,6 +99,7 @@ describe("ops artifact secret scan", () => {
     expect(result.stdout).toContain("- OPS_RUNBOOK.md");
     expect(result.stdout).toContain("- .ai-runs/mailhub-next-phase/github-routing-secrets-readiness.json");
     expect(result.stdout).toContain("- .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json");
+    expect(result.stdout).toContain("- .ai-runs/mailhub-next-phase/mailhub-rule-config-next-steps.json");
     expect(result.stdout).toContain("- .ai-runs/mailhub-next-phase/mailhub-routing-next-steps.json");
     expect(result.stdout).toContain("- .ai-runs/mailhub-next-phase/mailhub-routing-probe-audit.json");
     expect(result.stdout).toContain("- .ai-runs/mailhub-next-phase/mailhub-routing-probe-preflight.json");

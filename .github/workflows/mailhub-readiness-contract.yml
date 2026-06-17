@@ -34,5 +34,6 @@ jobs:
           npm run audit:mailhub-staff-workflow-contract
           npm run audit:mailhub-staff-next-contract
           npm run audit:mailhub-readiness-contract
+          npm run audit:mailhub-rule-config-next-contract
           npm run audit:mailhub-routing-next-contract
           npm run audit:mailhub-routing-proof-contract

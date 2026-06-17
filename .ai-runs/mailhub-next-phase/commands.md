@@ -2222,6 +2222,33 @@ npm run audit:mailhub-routing-proof-contract
 - Regenerated staff workflow, staff next-step, readiness, and routing next-step artifacts at repo head `9d33e62`.
 - Local readiness/routing/staff contracts now pass again with no errors.
 
+## 2026-06-18 Rule Config Next-step Contract Commands
+
+```bash
+node --check scripts/write-mailhub-rule-config-next-steps.mjs
+node --check scripts/check-mailhub-rule-config-next-contract.mjs
+npm run audit:mailhub-rule-config-next -- --out .ai-runs/mailhub-next-phase/mailhub-rule-config-next-steps.json
+npm run audit:mailhub-rule-config-next-contract
+npx vitest run lib/__tests__/mailhub-rule-config-next-steps.test.ts lib/__tests__/ops-artifact-secret-scan.test.ts
+npm run typecheck
+npm run lint
+npm run test:coverage
+npm run build
+npm run smoke
+npm run security:scan
+npm run security:scan-artifacts
+actionlint .github/workflows/*.yml
+git diff --check
+```
+
+## 2026-06-18 Rule Config Next-step Contract Results
+
+- Added `mailhub-rule-config-next-steps.json` as the machine-readable checklist for P1 `rule_config_source_not_production`.
+- Added `audit:mailhub-rule-config-next` and `audit:mailhub-rule-config-next-contract`.
+- The next-step artifact now proves the exact state without secret values: current rule config source is `file`, shared Gmail audit env is present, Sheets rule config env is missing, and the Sheets rule safety audit remains blocked.
+- The readiness contract workflow now checks the rule-config next-step contract, so the action list cannot drift from the readiness and rule-safety artifacts.
+- Added the new artifact to the ops artifact secret scan default target list.
+
 ## Useful Runtime Commands
 
 Start dev server for tunnel:

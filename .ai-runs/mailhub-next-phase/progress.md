@@ -472,6 +472,11 @@
   - GitHub Actions readiness run `27701166064` correctly rejected stale staff workflow evidence after the source-gate commit moved the artifact's repo-head outside the accepted current/parent window.
   - Regenerated staff workflow, staff next-step, production readiness, and routing next-step artifacts at repo head `9d33e62`.
   - Local readiness/routing/staff contracts pass again with the same production blockers: P0 `current_shared_gmail_routing`, P1 `rule_config_source_not_production`, and P1 `staff_workflow_permissions`.
+- 2026-06-18 rule config next-step contract completed:
+  - Added `.ai-runs/mailhub-next-phase/mailhub-rule-config-next-steps.json` as the machine-readable checklist for P1 `rule_config_source_not_production`.
+  - Added writer/contract scripts and CI wiring so the rule-config action list must stay aligned with the production readiness artifact and `gmail-rule-safety-audit.json`.
+  - Current rule-config next-step artifact shows Gmail real-data audit env is present, but Sheets-backed rule config env is missing; `run_sheets_rule_safety_audit` remains blocked until `MAILHUB_CONFIG_STORE=sheets` and Sheets credentials are configured.
+  - Added the new artifact to the default ops artifact secret scan targets.
 
 ## Not Done
 
@@ -503,6 +508,7 @@
 - Auto-discard rules for marketing/noise are protected against obvious important/invoice/inquiry suppression and missing summary text, but a full production auto-discard policy is still intentionally not enabled.
 - Real-data rule safety audit exists and passes for the current local file config because no rules are configured. Re-run with `MAILHUB_CONFIG_STORE=sheets` and production Sheets credentials when production rule config is enabled.
 - Production readiness now explicitly tracks this as P1 `rule_config_source_not_production`; closing it requires the real-data rule safety audit to resolve to Sheets without warnings.
+- The new rule-config next-step artifact now tracks this blocker directly; current status is blocked on Sheets config env, not Gmail audit env.
 - Most critic-identified production-readiness P1s from this wave are closed in code or converted to explicit operational confirmations. Remaining staff workflow gap is operational evidence/configuration: production `MAILHUB_TEAM_MEMBERS`, durable Sheets config/activity, read-only rollout screenshots, activity CSV, and controlled write pilot screenshots.
 - Important/invoice/customer-inquiry folders exist as default saved views and are audited as manual-review shortcuts; further narrowing requires operator feedback.
 - Default view bulk automation remains intentionally unsafe for `customer-inquiries` and `noise-candidates`; the readiness contract now requires that evidence to stay visible until the views are narrowed and re-audited.

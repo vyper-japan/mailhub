@@ -25,6 +25,8 @@
     "audit:github-routing-secrets-contract": "node scripts/check-mailhub-routing-secret-readiness-contract.mjs",
     "audit:mailhub-readiness": "node scripts/audit-mailhub-production-readiness.mjs",
     "audit:mailhub-readiness-contract": "node scripts/check-mailhub-readiness-contract.mjs",
+    "audit:mailhub-rule-config-next": "node scripts/write-mailhub-rule-config-next-steps.mjs",
+    "audit:mailhub-rule-config-next-contract": "node scripts/check-mailhub-rule-config-next-contract.mjs",
     "audit:mailhub-routing-next": "node scripts/write-mailhub-routing-next-steps.mjs",
     "audit:mailhub-routing-next-contract": "node scripts/check-mailhub-routing-next-contract.mjs",
     "audit:mailhub-routing-proof-contract": "node scripts/check-mailhub-routing-proof-contract.mjs",
