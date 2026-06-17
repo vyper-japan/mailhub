@@ -1356,6 +1356,8 @@ npm run audit:mailhub-routing-next -- --out .ai-runs/mailhub-next-phase/mailhub-
 - Full `qa:strict` passed once with 129 passed and 2 flaky before the final de-flake patch; the two flaky tests then passed targeted on first attempt after waiting for `labels/apply` and removing the Undo list-count assertion.
 - A second full `qa:strict` rerun reached the final Gmail compose tests after all prior recovery points passed; the terminal session ended before the final summary was captured.
 - GitHub `qa-strict` on `f0f938d` exposed one CI-only failure (`Step97`) and two CI flakies (`21`, `Step111`); the targeted CI fix run passed 3/3 locally after making those assertions result-based.
+- GitHub `MailHub Readiness Contract` on `1bf31ac`: passed.
+- GitHub `qa-strict` on `1bf31ac` (`27671054720`): passed in 12m14s.
 - Production readiness refresh: passed with `productionReady=false` and the same P0 `current_shared_gmail_routing`.
 - Routing next-step refresh: passed with `canRunSendVerify=false`; the same four external SMTP proof secrets are still missing.
 

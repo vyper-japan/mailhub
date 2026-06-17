@@ -295,6 +295,7 @@
   - De-flaked the remaining auto-rule and Search v2 tests by waiting for `labels/apply` before refresh and treating Undo search state as the primary assertion.
   - `npm run qa:strict` passed once with only two retries before final de-flake; targeted rechecks for those two tests then passed on first attempt.
   - After GitHub `qa-strict` exposed CI-only timing gaps, hardened `Step97`, `21`, and `Step111` to assert final UI/API state instead of mandatory incidental response timing.
+  - Latest pushed recovery commit `1bf31ac` passed both required GitHub gates: `MailHub Readiness Contract` and `qa-strict` (`27671054720`, 12m14s).
 
 ## Not Done
 
