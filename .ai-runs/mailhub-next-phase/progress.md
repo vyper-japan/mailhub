@@ -356,6 +356,14 @@
   - Free-form `.ai-runs` logs such as `commands.md` and `progress.md` remain out of the default scan to avoid false positives from documented test env examples.
   - `npm run security:scan-artifacts` passed with 8 scanned files and no secret findings.
   - Refreshed production readiness and routing-next artifacts to repo head `936cdf7` so the next commit's CI accepts them as the parent artifact state.
+- 2026-06-17 routing proof artifact contract wave completed:
+  - Added `scripts/check-mailhub-routing-proof-contract.mjs` and `npm run audit:mailhub-routing-proof-contract`.
+  - The contract cross-checks `mailhub-routing-probe-preflight.json`, `mailhub-routing-probe-send.json`, `mailhub-routing-probe-audit.json`, and `mailhub-production-readiness-audit.json`.
+  - It validates the 8-address proof plan, preflight no-send behavior, dry-run/sent mode invariants, audit address partitioning, and readiness P0 evidence alignment with missing routing probe addresses.
+  - `.github/workflows/mailhub-readiness-contract.yml` now runs the routing proof artifact contract with the other MailHub readiness contracts.
+  - Focused routing probe script tests now cover a consistent blocked proof artifact bundle and contradictory send/readiness claims.
+  - Current proof bundle remains intentionally blocked: preflight is not production-proof ready, send artifact is dry-run with zero sent messages, audit is plan-only, and readiness remains `productionReady=false` with P0 `current_shared_gmail_routing`.
+  - Refreshed production readiness and routing-next artifacts to repo head `222cb49` so the next commit's CI accepts them as the parent artifact state.
 
 ## Not Done
 

@@ -1596,6 +1596,30 @@ npm run audit:mailhub-routing-next -- --strict --out .ai-runs/mailhub-next-phase
 - Focused ops artifact secret scan tests passed 10/10.
 - Production readiness and routing-next artifacts were refreshed to repo head `936cdf7`.
 
+## 2026-06-17 Routing Proof Artifact Contract Commands
+
+```bash
+node --check scripts/check-mailhub-routing-proof-contract.mjs
+npm run audit:mailhub-routing-proof-contract
+npx vitest run lib/__tests__/mailhub-routing-probe-scripts.test.ts
+npm run audit:mailhub-readiness -- --out .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json
+npm run audit:mailhub-routing-next -- --strict --out .ai-runs/mailhub-next-phase/mailhub-routing-next-steps.json
+```
+
+## 2026-06-17 Routing Proof Artifact Contract Results
+
+- Added `npm run audit:mailhub-routing-proof-contract`.
+- The new contract passed against the current committed proof bundle:
+  - `preflight.mode=preflight`
+  - `send.mode=dry_run`
+  - `audit.mode=plan_only`
+  - `probeCount=8`
+  - `sentCount=0`
+  - `allExpectedAddressesConfirmed=false`
+  - `productionReady=false`
+- Focused routing probe script tests passed 28/28.
+- Production readiness and routing-next artifacts were refreshed to repo head `222cb49`.
+
 ## Useful Runtime Commands
 
 Start dev server for tunnel:

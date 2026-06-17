@@ -33,3 +33,4 @@ jobs:
           npm run audit:github-routing-secrets-contract
           npm run audit:mailhub-readiness-contract
           npm run audit:mailhub-routing-next-contract
+          npm run audit:mailhub-routing-proof-contract

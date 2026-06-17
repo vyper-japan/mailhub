@@ -11,6 +11,7 @@ const routingProbeSecretsPath = resolve(process.cwd(), "scripts/check-mailhub-ro
 const routingSecretContractPath = resolve(process.cwd(), "scripts/check-mailhub-routing-secret-readiness-contract.mjs");
 const routingNextStepsPath = resolve(process.cwd(), "scripts/write-mailhub-routing-next-steps.mjs");
 const routingNextContractPath = resolve(process.cwd(), "scripts/check-mailhub-routing-next-contract.mjs");
+const routingProofContractPath = resolve(process.cwd(), "scripts/check-mailhub-routing-proof-contract.mjs");
 const routingSecretSetupPath = resolve(process.cwd(), "scripts/setup-mailhub-routing-probe-secrets.mjs");
 
 function withTempDir<T>(fn: (dir: string) => T): T {
@@ -1174,6 +1175,191 @@ describe("MailHub routing probe CLI gates", () => {
       expect(result.stdout).toContain("combined_send_gate_mismatch");
       expect(result.stdout).toContain("next_action_status_mismatch:set_external_smtp_secrets");
       expect(result.stdout).toContain("next_action_status_mismatch:run_github_send_verify");
+    });
+  });
+
+  test("routing proof contract accepts consistent blocked proof artifacts", () => {
+    withTempDir((dir) => {
+      const preflightPath = join(dir, "preflight.json");
+      const sendPath = join(dir, "send.json");
+      const auditPath = join(dir, "audit.json");
+      const readinessPath = join(dir, "readiness.json");
+      const addresses = [
+        "gopro_y@vtj.co.jp",
+        "gopro_order_yahoo@vtj.co.jp",
+        "vyper_r@vtj.co.jp",
+        "vyper_rakuten@vtj.co.jp",
+        "vyperglobal_y@vtj.co.jp",
+        "ams_vyper@vtj.co.jp",
+        "datacolor_shopify@vtj.co.jp",
+        "ebay@vtj.co.jp",
+      ];
+      const marker = "MAILHUB-ROUTING-PROBE-20260617T000000Z";
+      const probes = addresses.map((address, index) => ({
+        channelId: `channel-${index}`,
+        label: `Channel ${index}`,
+        address,
+        subject: marker,
+      }));
+
+      writeJson(preflightPath, {
+        mode: "preflight",
+        marker,
+        inputs: { preflight: true, verifyAfterSend: false },
+        smtpPreflight: {
+          missingRequiredEnv: [
+            "MAILHUB_PROBE_SMTP_HOST",
+            "MAILHUB_PROBE_SMTP_USER",
+            "MAILHUB_PROBE_SMTP_PASS",
+            "MAILHUB_PROBE_FROM",
+          ],
+          readyForProductionProof: false,
+          fromIsVtj: false,
+        },
+        probeCount: probes.length,
+        addressProbes: probes,
+        sent: [],
+        verification: null,
+      });
+      writeJson(sendPath, {
+        mode: "dry_run",
+        marker,
+        probeCount: probes.length,
+        addressProbes: probes,
+        sent: [],
+        verification: null,
+      });
+      writeJson(auditPath, {
+        mode: "plan_only",
+        plannedAddressProbes: probes.map(({ channelId, label, address }) => ({ channelId, label, address })),
+        gate: {
+          markerProvided: false,
+          targetAddressCount: addresses.length,
+          matchedAddresses: [],
+          missingAddresses: addresses,
+          allExpectedAddressesConfirmed: false,
+        },
+      });
+      writeJson(readinessPath, {
+        gate: {
+          productionReady: false,
+          p0Blockers: ["current_shared_gmail_routing"],
+        },
+        blockers: [{
+          id: "current_shared_gmail_routing",
+          severity: "P0",
+          evidence: {
+            routingProbeGate: {
+              missingAddresses: addresses,
+              allExpectedAddressesConfirmed: false,
+            },
+          },
+        }],
+      });
+
+      const result = runNodeScript(routingProofContractPath, [
+        "--preflight",
+        preflightPath,
+        "--send",
+        sendPath,
+        "--audit",
+        auditPath,
+        "--readiness",
+        readinessPath,
+      ]);
+
+      expect(result.status).toBe(0);
+      expect(JSON.parse(result.stdout)).toMatchObject({
+        ok: true,
+        sentCount: 0,
+        allExpectedAddressesConfirmed: false,
+        productionReady: false,
+      });
+    });
+  });
+
+  test("routing proof contract rejects send and readiness contradictions", () => {
+    withTempDir((dir) => {
+      const preflightPath = join(dir, "preflight.json");
+      const sendPath = join(dir, "send.json");
+      const auditPath = join(dir, "audit.json");
+      const readinessPath = join(dir, "readiness.json");
+      const addresses = [
+        "gopro_y@vtj.co.jp",
+        "gopro_order_yahoo@vtj.co.jp",
+        "vyper_r@vtj.co.jp",
+        "vyper_rakuten@vtj.co.jp",
+        "vyperglobal_y@vtj.co.jp",
+        "ams_vyper@vtj.co.jp",
+        "datacolor_shopify@vtj.co.jp",
+        "ebay@vtj.co.jp",
+      ];
+      const marker = "MAILHUB-ROUTING-PROBE-20260617T000000Z";
+      const probes = addresses.map((address, index) => ({
+        channelId: `channel-${index}`,
+        label: `Channel ${index}`,
+        address,
+        subject: marker,
+      }));
+
+      writeJson(preflightPath, {
+        mode: "preflight",
+        marker,
+        inputs: { preflight: true, verifyAfterSend: false },
+        smtpPreflight: {
+          missingRequiredEnv: ["MAILHUB_PROBE_SMTP_HOST"],
+          readyForProductionProof: true,
+          fromIsVtj: true,
+        },
+        probeCount: probes.length,
+        addressProbes: probes,
+        sent: [{ address: addresses[0] }],
+      });
+      writeJson(sendPath, {
+        mode: "dry_run",
+        marker,
+        probeCount: probes.length,
+        addressProbes: probes,
+        sent: [{ address: addresses[0] }],
+      });
+      writeJson(auditPath, {
+        mode: "plan_only",
+        plannedAddressProbes: probes.map(({ channelId, label, address }) => ({ channelId, label, address })),
+        gate: {
+          markerProvided: false,
+          targetAddressCount: addresses.length,
+          matchedAddresses: [addresses[0]],
+          missingAddresses: addresses.slice(1),
+          allExpectedAddressesConfirmed: false,
+        },
+      });
+      writeJson(readinessPath, {
+        gate: {
+          productionReady: true,
+          p0Blockers: [],
+        },
+        blockers: [],
+      });
+
+      const result = runNodeScript(routingProofContractPath, [
+        "--preflight",
+        preflightPath,
+        "--send",
+        sendPath,
+        "--audit",
+        auditPath,
+        "--readiness",
+        readinessPath,
+      ]);
+
+      expect(result.status).toBe(1);
+      expect(result.stdout).toContain("preflight_must_not_send_mail");
+      expect(result.stdout).toContain("preflight_ready_with_missing_env");
+      expect(result.stdout).toContain("preflight_ready_with_vtj_sender");
+      expect(result.stdout).toContain("dry_run_must_not_send_mail");
+      expect(result.stdout).toContain("plan_only_must_not_match_addresses");
+      expect(result.stdout).toContain("production_ready_without_confirmed_routing_probe");
+      expect(result.stdout).toContain("unconfirmed_routing_without_readiness_p0");
     });
   });
 
