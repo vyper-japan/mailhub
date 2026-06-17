@@ -44,6 +44,7 @@ function baseReadinessAudit(overrides: Record<string, unknown> = {}) {
       currentSharedGmailRoutingReady: false,
       routingProbeReady: false,
       routingProbePreflightReady: false,
+      routingProbeGithubSecretsReady: false,
       defaultViewsRealDataValidated: true,
       defaultViewsManualReviewOnly: true,
       currentRuleConfigRealDataSafetyReady: true,
@@ -68,6 +69,10 @@ function baseReadinessAudit(overrides: Record<string, unknown> = {}) {
             readyForProductionProof: false,
             missingRequiredEnv: ["MAILHUB_PROBE_SMTP_HOST"],
             warnings: [],
+          },
+          routingProbeGithubSecrets: {
+            readyForSendVerify: false,
+            missingSendVerifySecrets: ["MAILHUB_PROBE_SMTP_HOST"],
           },
           mxRecords: [{ exchange: "mx01.lolipop.jp", priority: 50 }],
         },
@@ -131,6 +136,42 @@ describe("MailHub readiness contract check", () => {
       const result = runContract(auditPath);
       expect(result.status).toBe(1);
       expect(result.stdout).toContain("routing_blocker_missing_preflight_gap");
+    });
+  });
+
+  test("rejects routing blockers without GitHub secret gap evidence", () => {
+    withTempDir((dir) => {
+      const auditPath = join(dir, "readiness.json");
+      writeJson(auditPath, baseReadinessAudit({
+        blockers: [
+          {
+            id: "current_shared_gmail_routing",
+            severity: "P0",
+            evidence: {
+              currentSharedGmailRoutingUnconfirmed: ["gopro-yahoo"],
+              routingProbeGate: {
+                targetAddressCount: 8,
+                allExpectedAddressesConfirmed: false,
+                missingAddresses: ["gopro_y@vtj.co.jp"],
+              },
+              routingProbePreflight: {
+                readyForProductionProof: false,
+                missingRequiredEnv: ["MAILHUB_PROBE_SMTP_HOST"],
+                warnings: [],
+              },
+              routingProbeGithubSecrets: {
+                readyForSendVerify: false,
+                missingSendVerifySecrets: [],
+              },
+              mxRecords: [{ exchange: "mx01.lolipop.jp", priority: 50 }],
+            },
+          },
+        ],
+      }));
+
+      const result = runContract(auditPath);
+      expect(result.status).toBe(1);
+      expect(result.stdout).toContain("routing_blocker_missing_github_secret_gap");
     });
   });
 

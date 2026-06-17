@@ -98,10 +98,12 @@ function main() {
     const evidence = objectValue(routingBlocker?.evidence);
     const routingProbeGate = objectValue(evidence.routingProbeGate);
     const routingProbePreflight = objectValue(evidence.routingProbePreflight);
+    const routingProbeGithubSecrets = objectValue(evidence.routingProbeGithubSecrets);
     const mxRecords = Array.isArray(evidence.mxRecords) ? evidence.mxRecords : [];
     const unconfirmed = stringArray(evidence.currentSharedGmailRoutingUnconfirmed);
     const missingAddresses = stringArray(routingProbeGate.missingAddresses);
     const missingEnv = stringArray(routingProbePreflight.missingRequiredEnv);
+    const missingGithubSecrets = stringArray(routingProbeGithubSecrets.missingSendVerifySecrets);
 
     if (unconfirmed.length === 0) errors.push("routing_blocker_missing_unconfirmed_channels");
     if (mxRecords.length === 0) errors.push("routing_blocker_missing_mx_records");
@@ -113,6 +115,9 @@ function main() {
     }
     if (requirements.routingProbePreflightReady !== true && missingEnv.length === 0) {
       errors.push("routing_blocker_missing_preflight_gap");
+    }
+    if (requirements.routingProbeGithubSecretsReady !== true && missingGithubSecrets.length === 0) {
+      errors.push("routing_blocker_missing_github_secret_gap");
     }
   } else if (routingBlocker) {
     warnings.push("routing_blocker_detail_present_without_p0");

@@ -1,12 +1,13 @@
 {
-  "generatedAt": "2026-06-17T03:39:29.369Z",
-  "repoHead": "c88cd16c5a1b50bafccc828fdba2853bd60228d4",
+  "generatedAt": "2026-06-17T03:43:02.374Z",
+  "repoHead": "efe52780394db825b4f5670219e7b082f9b5e1b2",
   "inputs": {
     "sourceAudit": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.ai-runs/mailhub-next-phase/gmail-source-coverage-audit.json",
     "opsAudit": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.ai-runs/mailhub-next-phase/mailhub-operational-confirmations.json",
     "gwsRoutingAudit": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.ai-runs/mailhub-next-phase/mailhub-gws-routing-audit.json",
     "routingProbeAudit": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.ai-runs/mailhub-next-phase/mailhub-routing-probe-audit.json",
     "routingProbePreflight": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.ai-runs/mailhub-next-phase/mailhub-routing-probe-preflight.json",
+    "githubRoutingSecrets": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.ai-runs/mailhub-next-phase/github-routing-secrets-readiness.json",
     "viewsAudit": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.ai-runs/mailhub-next-phase/gmail-default-views-audit.json",
     "rulesAudit": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.ai-runs/mailhub-next-phase/gmail-rule-safety-audit.json",
     "sourceAuditGeneratedAt": "2026-06-17T01:03:24.561Z",
@@ -14,6 +15,7 @@
     "gwsRoutingAuditGeneratedAt": "2026-06-17T01:26:07.121Z",
     "routingProbeAuditGeneratedAt": "2026-06-17T01:42:16.683Z",
     "routingProbePreflightGeneratedAt": "2026-06-17T03:35:52.334Z",
+    "githubRoutingSecretsCheckedAt": "2026-06-17T03:43:02.265Z",
     "viewsAuditGeneratedAt": "2026-06-17T01:03:11.682Z",
     "rulesAuditGeneratedAt": "2026-06-17T01:03:08.912Z"
   },
@@ -23,6 +25,7 @@
     "currentSharedGmailRoutingReady": false,
     "routingProbeReady": false,
     "routingProbePreflightReady": false,
+    "routingProbeGithubSecretsReady": false,
     "defaultViewsRealDataValidated": true,
     "defaultViewsManualReviewOnly": true,
     "currentRuleConfigRealDataSafetyReady": true
@@ -109,6 +112,30 @@
           "readyForSend": false,
           "readyForProductionProof": false,
           "warnings": []
+        },
+        "routingProbeGithubSecrets": {
+          "source": "github_actions_secrets",
+          "secretCount": 4,
+          "readyForPreflightProductionProof": false,
+          "readyForSendVerify": false,
+          "missingPreflightSecrets": [
+            "MAILHUB_PROBE_SMTP_HOST",
+            "MAILHUB_PROBE_SMTP_USER",
+            "MAILHUB_PROBE_SMTP_PASS",
+            "MAILHUB_PROBE_FROM"
+          ],
+          "missingSendVerifySecrets": [
+            "MAILHUB_PROBE_SMTP_HOST",
+            "MAILHUB_PROBE_SMTP_USER",
+            "MAILHUB_PROBE_SMTP_PASS",
+            "MAILHUB_PROBE_FROM"
+          ],
+          "presentRequiredSecretNames": [
+            "GOOGLE_CLIENT_ID",
+            "GOOGLE_CLIENT_SECRET",
+            "GOOGLE_SHARED_INBOX_EMAIL",
+            "GOOGLE_SHARED_INBOX_REFRESH_TOKEN"
+          ]
         },
         "mxRecords": [
           {

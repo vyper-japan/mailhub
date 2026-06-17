@@ -71,6 +71,7 @@ function writeReadinessFixtures(dir: string, routingProbeGate: Record<string, un
     gws: join(dir, "gws.json"),
     routing: join(dir, "routing.json"),
     preflight: join(dir, "preflight.json"),
+    githubSecrets: join(dir, "github-secrets.json"),
     views: join(dir, "views.json"),
     rules: join(dir, "rules.json"),
     out: join(dir, "readiness.json"),
@@ -104,6 +105,21 @@ function writeReadinessFixtures(dir: string, routingProbeGate: Record<string, un
       readyForProductionProof: false,
       warnings: [],
     },
+  });
+  writeJson(paths.githubSecrets, {
+    checkedAt: "2026-06-17T00:00:00.000Z",
+    source: "github_actions_secrets",
+    secretCount: 4,
+    readyForPreflightProductionProof: false,
+    readyForSendVerify: false,
+    missingPreflightSecrets: ["MAILHUB_PROBE_SMTP_HOST", "MAILHUB_PROBE_FROM"],
+    missingSendVerifySecrets: ["MAILHUB_PROBE_SMTP_HOST", "MAILHUB_PROBE_FROM"],
+    presentRequiredSecretNames: [
+      "GOOGLE_CLIENT_ID",
+      "GOOGLE_CLIENT_SECRET",
+      "GOOGLE_SHARED_INBOX_EMAIL",
+      "GOOGLE_SHARED_INBOX_REFRESH_TOKEN",
+    ],
   });
   writeJson(paths.views, {
     generatedAt: "2026-06-17T00:00:00.000Z",
@@ -339,6 +355,8 @@ describe("MailHub routing probe CLI gates", () => {
         paths.routing,
         "--routing-probe-preflight",
         paths.preflight,
+        "--github-routing-secrets",
+        paths.githubSecrets,
         "--views-audit",
         paths.views,
         "--rules-audit",
@@ -352,6 +370,7 @@ describe("MailHub routing probe CLI gates", () => {
         requirements: {
           routingProbeReady: boolean;
           routingProbePreflightReady: boolean;
+          routingProbeGithubSecretsReady: boolean;
           currentSharedGmailRoutingReady: boolean;
         };
         gate: {
@@ -365,15 +384,24 @@ describe("MailHub routing probe CLI gates", () => {
               missingRequiredEnv?: string[];
               readyForProductionProof?: boolean;
             };
+            routingProbeGithubSecrets?: {
+              missingSendVerifySecrets?: string[];
+              readyForSendVerify?: boolean;
+            };
           };
         }>;
       }>(paths.out);
       expect(out.requirements.routingProbeReady).toBe(false);
       expect(out.requirements.routingProbePreflightReady).toBe(false);
+      expect(out.requirements.routingProbeGithubSecretsReady).toBe(false);
       expect(out.requirements.currentSharedGmailRoutingReady).toBe(false);
       expect(out.gate.productionReady).toBe(false);
       expect(out.gate.p0Blockers).toEqual(["current_shared_gmail_routing"]);
       expect(out.blockers[0]?.evidence?.routingProbePreflight?.missingRequiredEnv).toEqual([
+        "MAILHUB_PROBE_SMTP_HOST",
+        "MAILHUB_PROBE_FROM",
+      ]);
+      expect(out.blockers[0]?.evidence?.routingProbeGithubSecrets?.missingSendVerifySecrets).toEqual([
         "MAILHUB_PROBE_SMTP_HOST",
         "MAILHUB_PROBE_FROM",
       ]);
@@ -403,6 +431,8 @@ describe("MailHub routing probe CLI gates", () => {
         paths.gws,
         "--routing-probe-audit",
         paths.routing,
+        "--github-routing-secrets",
+        paths.githubSecrets,
         "--views-audit",
         paths.views,
         "--rules-audit",

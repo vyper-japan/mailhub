@@ -149,11 +149,14 @@ type OpsReadinessView = {
   currentSharedGmailRoutingReady: boolean;
   routingProbeReady: boolean;
   routingProbePreflightReady: boolean;
+  routingProbeGithubSecretsReady: boolean;
   defaultViewsRealDataValidated: boolean;
   currentRuleConfigRealDataSafetyReady: boolean;
   unconfirmedChannels: string[];
   missingProbeAddresses: string[];
   missingProbeSmtpEnv: string[];
+  missingGithubRoutingSecrets: string[];
+  presentGithubRoutingSecrets: string[];
   probeSmtpWarnings: string[];
   mxRecords: Array<{ exchange: string; priority: number }>;
 };
@@ -8638,9 +8641,20 @@ export default function InboxShell({
                               <div className="rounded border border-slate-700/60 bg-slate-950/30 px-2 py-1">
                                 SMTP不足env: {opsSummary.productionReadiness.missingProbeSmtpEnv.length}
                               </div>
+                              <div className="rounded border border-slate-700/60 bg-slate-950/30 px-2 py-1">
+                                Actions secrets: {opsSummary.productionReadiness.routingProbeGithubSecretsReady ? "OK" : "未完了"}
+                              </div>
+                              <div className="rounded border border-slate-700/60 bg-slate-950/30 px-2 py-1">
+                                Actions不足: {opsSummary.productionReadiness.missingGithubRoutingSecrets.length}
+                              </div>
                               {opsSummary.productionReadiness.missingProbeSmtpEnv.length > 0 && (
                                 <div className="col-span-2 rounded border border-slate-700/60 bg-slate-950/30 px-2 py-1 break-words">
                                   不足: {opsSummary.productionReadiness.missingProbeSmtpEnv.join(", ")}
+                                </div>
+                              )}
+                              {opsSummary.productionReadiness.missingGithubRoutingSecrets.length > 0 && (
+                                <div className="col-span-2 rounded border border-slate-700/60 bg-slate-950/30 px-2 py-1 break-words">
+                                  Actions不足: {opsSummary.productionReadiness.missingGithubRoutingSecrets.join(", ")}
                                 </div>
                               )}
                               <div className="col-span-2 rounded border border-slate-700/60 bg-slate-950/30 px-2 py-1">

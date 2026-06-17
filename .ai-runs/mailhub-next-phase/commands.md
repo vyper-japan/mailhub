@@ -1172,6 +1172,41 @@ gh run download 27664049883 --repo vyper-japan/mailhub --dir /tmp/mailhub-run-27
 - GitHub Actions run `27664049883`: expected failure on `c88cd16`.
 - The run failed at `Audit injected routing probe secrets`, skipped `Send and verify external routing probes`, and uploaded only `github-routing-secrets-readiness.json`.
 
+## Verification Commands Run On 2026-06-17 GitHub Secret Readiness Visibility Wave
+
+```bash
+npx vitest run lib/__tests__/mailhub-routing-probe-scripts.test.ts lib/__tests__/opsReadinessSummary.test.ts
+npx vitest run lib/__tests__/mailhub-routing-probe-scripts.test.ts lib/__tests__/opsReadinessSummary.test.ts lib/__tests__/mailhub-readiness-contract.test.ts
+npm run typecheck
+npm run audit:github-routing-secrets -- --no-fail --out .ai-runs/mailhub-next-phase/github-routing-secrets-readiness.json
+npm run audit:mailhub-readiness -- --out .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json
+node -e '<print routingProbeGithubSecrets readiness evidence without secret values>'
+npm run audit:mailhub-readiness-contract
+npm run lint
+npm run test
+npm run build
+npm run security:scan-artifacts
+npm run audit:mailhub-readiness-contract
+git diff --check
+```
+
+## 2026-06-17 GitHub Secret Readiness Visibility Wave Results
+
+- Production readiness audit now reads `github-routing-secrets-readiness.json`.
+- Current artifact shows `requirements.routingProbeGithubSecretsReady=false`.
+- Routing blocker evidence now includes `source=github_actions_secrets`, `secretCount=4`, present Gmail proof secret names, and missing external SMTP proof secret names.
+- Ops readiness summary and Ops Board types now expose `routingProbeGithubSecretsReady`, `missingGithubRoutingSecrets`, and `presentGithubRoutingSecrets`.
+- Readiness contract now rejects routing blockers that omit GitHub secret gap evidence.
+- Focused Vitest: 3 files / 22 tests passed.
+- `npm run typecheck`: passed.
+- Final readiness refresh: passed.
+- Final readiness contract check: passed with `productionReady=false`, P0 `current_shared_gmail_routing`, and no contract errors.
+- `npm run lint`: passed.
+- `npm run test`: 63 files / 553 tests passed.
+- `npm run build`: passed.
+- `npm run security:scan-artifacts`: passed.
+- `git diff --check`: passed.
+
 ## Useful Runtime Commands
 
 Start dev server for tunnel:

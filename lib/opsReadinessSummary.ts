@@ -17,11 +17,14 @@ export type OpsReadinessSummary = {
   currentSharedGmailRoutingReady: boolean;
   routingProbeReady: boolean;
   routingProbePreflightReady: boolean;
+  routingProbeGithubSecretsReady: boolean;
   defaultViewsRealDataValidated: boolean;
   currentRuleConfigRealDataSafetyReady: boolean;
   unconfirmedChannels: string[];
   missingProbeAddresses: string[];
   missingProbeSmtpEnv: string[];
+  missingGithubRoutingSecrets: string[];
+  presentGithubRoutingSecrets: string[];
   probeSmtpWarnings: string[];
   mxRecords: Array<{ exchange: string; priority: number }>;
 };
@@ -42,11 +45,14 @@ export function unavailableOpsReadinessSummary(): OpsReadinessSummary {
     currentSharedGmailRoutingReady: false,
     routingProbeReady: false,
     routingProbePreflightReady: false,
+    routingProbeGithubSecretsReady: false,
     defaultViewsRealDataValidated: false,
     currentRuleConfigRealDataSafetyReady: false,
     unconfirmedChannels: [],
     missingProbeAddresses: [],
     missingProbeSmtpEnv: [],
+    missingGithubRoutingSecrets: [],
+    presentGithubRoutingSecrets: [],
     probeSmtpWarnings: [],
     mxRecords: [],
   };
@@ -113,6 +119,9 @@ export function summarizeProductionReadinessAudit(
   const routingProbePreflight = evidence.routingProbePreflight && typeof evidence.routingProbePreflight === "object"
     ? evidence.routingProbePreflight as Record<string, unknown>
     : {};
+  const routingProbeGithubSecrets = evidence.routingProbeGithubSecrets && typeof evidence.routingProbeGithubSecrets === "object"
+    ? evidence.routingProbeGithubSecrets as Record<string, unknown>
+    : {};
 
   return {
     available: true,
@@ -129,11 +138,14 @@ export function summarizeProductionReadinessAudit(
     currentSharedGmailRoutingReady: requirements.currentSharedGmailRoutingReady === true,
     routingProbeReady: requirements.routingProbeReady === true,
     routingProbePreflightReady: requirements.routingProbePreflightReady === true,
+    routingProbeGithubSecretsReady: requirements.routingProbeGithubSecretsReady === true,
     defaultViewsRealDataValidated: requirements.defaultViewsRealDataValidated === true,
     currentRuleConfigRealDataSafetyReady: requirements.currentRuleConfigRealDataSafetyReady === true,
     unconfirmedChannels: stringArray(evidence.currentSharedGmailRoutingUnconfirmed),
     missingProbeAddresses: stringArray(routingProbeGate.missingAddresses),
     missingProbeSmtpEnv: stringArray(routingProbePreflight.missingRequiredEnv),
+    missingGithubRoutingSecrets: stringArray(routingProbeGithubSecrets.missingSendVerifySecrets),
+    presentGithubRoutingSecrets: stringArray(routingProbeGithubSecrets.presentRequiredSecretNames),
     probeSmtpWarnings: stringArray(routingProbePreflight.warnings),
     mxRecords: mxRecords(evidence.mxRecords),
   };

@@ -265,6 +265,11 @@
   - The run failed at `Audit injected routing probe secrets` with exit code 4; `Send and verify external routing probes` was skipped, so no external mail was sent.
   - Added workflow cleanup for checked-in probe JSON before each run so failed guard runs cannot upload stale artifacts.
   - Re-ran as `27664049883`; it again failed before send and uploaded only `github-routing-secrets-readiness.json`.
+- 2026-06-17 GitHub secret readiness visibility wave completed:
+  - `scripts/audit-mailhub-production-readiness.mjs` now reads `.ai-runs/mailhub-next-phase/github-routing-secrets-readiness.json`.
+  - Production readiness artifacts now include `requirements.routingProbeGithubSecretsReady` and routing blocker evidence for missing GitHub `send_verify` secrets.
+  - `scripts/check-mailhub-readiness-contract.mjs` rejects routing blockers that omit GitHub secret gap evidence.
+  - Ops Board readiness summary now exposes GitHub Actions secret readiness and missing `send_verify` secret count separately from local SMTP preflight env.
 
 ## Not Done
 

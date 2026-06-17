@@ -12,6 +12,7 @@ const defaults = {
   gwsRoutingAudit: join(runDir, "mailhub-gws-routing-audit.json"),
   routingProbeAudit: join(runDir, "mailhub-routing-probe-audit.json"),
   routingProbePreflight: join(runDir, "mailhub-routing-probe-preflight.json"),
+  githubRoutingSecrets: join(runDir, "github-routing-secrets-readiness.json"),
   viewsAudit: join(runDir, "gmail-default-views-audit.json"),
   rulesAudit: join(runDir, "gmail-rule-safety-audit.json"),
   out: join(runDir, "mailhub-production-readiness-audit.json"),
@@ -26,11 +27,12 @@ function parseArgs(argv) {
     else if (arg === "--gws-routing-audit") out.gwsRoutingAudit = argv[++i];
     else if (arg === "--routing-probe-audit") out.routingProbeAudit = argv[++i];
     else if (arg === "--routing-probe-preflight") out.routingProbePreflight = argv[++i];
+    else if (arg === "--github-routing-secrets") out.githubRoutingSecrets = argv[++i];
     else if (arg === "--views-audit") out.viewsAudit = argv[++i];
     else if (arg === "--rules-audit") out.rulesAudit = argv[++i];
     else if (arg === "--out") out.out = argv[++i];
     else if (arg === "--help" || arg === "-h") {
-      console.log(`Usage: node scripts/audit-mailhub-production-readiness.mjs [--source-audit path] [--ops-audit path] [--gws-routing-audit path] [--routing-probe-audit path] [--routing-probe-preflight path] [--views-audit path] [--rules-audit path] [--out path]`);
+      console.log(`Usage: node scripts/audit-mailhub-production-readiness.mjs [--source-audit path] [--ops-audit path] [--gws-routing-audit path] [--routing-probe-audit path] [--routing-probe-preflight path] [--github-routing-secrets path] [--views-audit path] [--rules-audit path] [--out path]`);
       process.exit(0);
     }
   }
@@ -70,6 +72,7 @@ function main() {
   const gwsRoutingAudit = readJson(args.gwsRoutingAudit);
   const routingProbeAudit = readOptionalJson(args.routingProbeAudit);
   const routingProbePreflight = readOptionalJson(args.routingProbePreflight);
+  const githubRoutingSecrets = readOptionalJson(args.githubRoutingSecrets);
   const viewsAudit = readJson(args.viewsAudit);
   const rulesAudit = readJson(args.rulesAudit);
 
@@ -80,6 +83,7 @@ function main() {
   const sourceInventoryReady = (opsAudit.gate?.sourceInventoryMissing ?? []).length === 0;
   const routingProbeReady = Boolean(routingProbeAudit?.gate?.allExpectedAddressesConfirmed);
   const routingProbePreflightReady = Boolean(routingProbePreflight?.smtpPreflight?.readyForProductionProof);
+  const routingProbeGithubSecretsReady = Boolean(githubRoutingSecrets?.readyForSendVerify);
   const currentSharedGmailRoutingReady =
     (
       Boolean(opsAudit.gate?.productionCompleteClaimReady) &&
@@ -112,6 +116,15 @@ function main() {
       gwsRoutingGate: gwsRoutingAudit.gate ?? null,
       routingProbeGate: routingProbeAudit?.gate ?? null,
       routingProbePreflight: routingProbePreflight?.smtpPreflight ?? null,
+      routingProbeGithubSecrets: githubRoutingSecrets ? {
+        source: githubRoutingSecrets.source ?? null,
+        secretCount: githubRoutingSecrets.secretCount ?? null,
+        readyForPreflightProductionProof: githubRoutingSecrets.readyForPreflightProductionProof ?? null,
+        readyForSendVerify: githubRoutingSecrets.readyForSendVerify ?? null,
+        missingPreflightSecrets: githubRoutingSecrets.missingPreflightSecrets ?? [],
+        missingSendVerifySecrets: githubRoutingSecrets.missingSendVerifySecrets ?? [],
+        presentRequiredSecretNames: githubRoutingSecrets.presentRequiredSecretNames ?? [],
+      } : null,
       mxRecords: gwsRoutingAudit.dns?.mxRecords ?? [],
     }));
   }
@@ -135,6 +148,7 @@ function main() {
       gwsRoutingAudit: args.gwsRoutingAudit,
       routingProbeAudit: args.routingProbeAudit,
       routingProbePreflight: args.routingProbePreflight,
+      githubRoutingSecrets: args.githubRoutingSecrets,
       viewsAudit: args.viewsAudit,
       rulesAudit: args.rulesAudit,
       sourceAuditGeneratedAt: sourceAudit.generatedAt ?? null,
@@ -142,6 +156,7 @@ function main() {
       gwsRoutingAuditGeneratedAt: gwsRoutingAudit.generatedAt ?? null,
       routingProbeAuditGeneratedAt: routingProbeAudit?.generatedAt ?? null,
       routingProbePreflightGeneratedAt: routingProbePreflight?.generatedAt ?? null,
+      githubRoutingSecretsCheckedAt: githubRoutingSecrets?.checkedAt ?? null,
       viewsAuditGeneratedAt: viewsAudit.generatedAt ?? null,
       rulesAuditGeneratedAt: rulesAudit.generatedAt ?? null,
     },
@@ -151,6 +166,7 @@ function main() {
       currentSharedGmailRoutingReady,
       routingProbeReady,
       routingProbePreflightReady,
+      routingProbeGithubSecretsReady,
       defaultViewsRealDataValidated: viewSyntaxReady,
       defaultViewsManualReviewOnly: viewsManualReviewOnly,
       currentRuleConfigRealDataSafetyReady: ruleSafetyReady,
