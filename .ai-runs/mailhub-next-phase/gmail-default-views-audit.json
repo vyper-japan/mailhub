@@ -1,7 +1,22 @@
 {
-  "generatedAt": "2026-06-17T07:21:40.427Z",
+  "generatedAt": "2026-06-17T07:42:21.005Z",
   "sharedInboxEmailMasked": "inf***@vtj.co.jp",
   "viewCount": 3,
+  "gate": {
+    "syntaxReady": true,
+    "manualReviewOnly": true,
+    "bulkAutomationSafe": false,
+    "syntaxFailedViews": [],
+    "manualReviewOnlyViews": [
+      "invoice-docs",
+      "customer-inquiries",
+      "noise-candidates"
+    ],
+    "bulkUnsafeViews": [
+      "customer-inquiries",
+      "noise-candidates"
+    ]
+  },
   "views": [
     {
       "id": "invoice-docs",

@@ -155,11 +155,28 @@ async function main() {
   for (const view of views) {
     viewAudits.push(await probeView(gmail, sharedInboxEmail, view, { maxPages }));
   }
+  const syntaxFailedViews = viewAudits
+    .filter((view) => view.syntaxAccepted !== true || view.error)
+    .map((view) => view.id);
+  const manualReviewOnlyViews = viewAudits
+    .filter((view) => view.risk === "broad_manual_review_only" || view.risk === "too_broad_for_bulk_workflow")
+    .map((view) => view.id);
+  const bulkUnsafeViews = viewAudits
+    .filter((view) => view.risk === "too_broad_for_bulk_workflow" || view.hasMoreAfterMaxPages === true)
+    .map((view) => view.id);
 
   const audit = {
     generatedAt: new Date().toISOString(),
     sharedInboxEmailMasked: sharedInboxEmail.replace(/^(.{0,3}).*(@.*)$/, (_m, a, b) => `${a}***${b}`),
     viewCount: viewAudits.length,
+    gate: {
+      syntaxReady: syntaxFailedViews.length === 0,
+      manualReviewOnly: manualReviewOnlyViews.length > 0,
+      bulkAutomationSafe: bulkUnsafeViews.length === 0,
+      syntaxFailedViews,
+      manualReviewOnlyViews,
+      bulkUnsafeViews,
+    },
     views: viewAudits,
   };
   mkdirSync(dirname(outPath), { recursive: true });

@@ -151,6 +151,8 @@ type OpsReadinessView = {
   routingProbePreflightReady: boolean;
   routingProbeGithubSecretsReady: boolean;
   defaultViewsRealDataValidated: boolean;
+  defaultViewsManualReviewOnly: boolean;
+  defaultViewsBulkAutomationSafe: boolean;
   currentRuleConfigRealDataSafetyReady: boolean;
   unconfirmedChannels: string[];
   missingProbeAddresses: string[];
@@ -8647,6 +8649,18 @@ export default function InboxShell({
                               </div>
                               <div className="rounded border border-slate-700/60 bg-slate-950/30 px-2 py-1">
                                 Actions不足: {opsSummary.productionReadiness.missingGithubRoutingSecrets.length}
+                              </div>
+                              <div className="rounded border border-slate-700/60 bg-slate-950/30 px-2 py-1">
+                                View構文: {opsSummary.productionReadiness.defaultViewsRealDataValidated ? "OK" : "要確認"}
+                              </div>
+                              <div className="rounded border border-slate-700/60 bg-slate-950/30 px-2 py-1">
+                                View用途: {opsSummary.productionReadiness.defaultViewsBulkAutomationSafe ? "一括可" : "手動確認のみ"}
+                              </div>
+                              <div className="rounded border border-slate-700/60 bg-slate-950/30 px-2 py-1">
+                                Rule安全性: {opsSummary.productionReadiness.currentRuleConfigRealDataSafetyReady ? "OK" : "要確認"}
+                              </div>
+                              <div className="rounded border border-slate-700/60 bg-slate-950/30 px-2 py-1">
+                                手動View: {opsSummary.productionReadiness.defaultViewsManualReviewOnly ? "あり" : "なし"}
                               </div>
                               {opsSummary.productionReadiness.missingProbeSmtpEnv.length > 0 && (
                                 <div className="col-span-2 rounded border border-slate-700/60 bg-slate-950/30 px-2 py-1 break-words">

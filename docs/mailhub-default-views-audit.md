@@ -16,9 +16,16 @@ npm run audit:gmail-views -- --out .ai-runs/mailhub-next-phase/gmail-default-vie
 
 | View | Effective scope | Unique seen lower bound | More after max pages | Risk |
 |---|---|---:|---|---|
-| `invoice-docs` | todo inbox | 552 | no | broad manual review only |
+| `invoice-docs` | todo inbox | 555 | no | broad manual review only |
 | `customer-inquiries` | todo inbox | 1000 | yes | too broad for bulk workflow |
 | `noise-candidates` | todo inbox | 1000 | yes | too broad for bulk workflow |
+
+Current machine gate:
+
+- `syntaxReady=true`
+- `manualReviewOnly=true`
+- `bulkAutomationSafe=false`
+- `bulkUnsafeViews=["customer-inquiries","noise-candidates"]`
 
 ## Decision
 

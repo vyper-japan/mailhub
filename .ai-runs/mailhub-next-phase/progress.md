@@ -304,6 +304,12 @@
   - Added focused tests for stale readiness rejection and current/parent readiness acceptance.
   - Refreshed source coverage, default views, rule safety, operational confirmation, GWS routing, routing probe, GitHub secret readiness, SMTP preflight, production readiness, and routing next-step artifacts with current real-data evidence.
   - Current gate remains intentionally blocked: `productionReady=false`, P0 `current_shared_gmail_routing`, `canRunSendVerify=false`, and the four external SMTP proof secrets are still missing.
+- 2026-06-17 default view bulk-safety wave completed:
+  - `scripts/audit-gmail-default-views.mjs` now emits a machine `gate` with `syntaxReady`, `manualReviewOnly`, `bulkAutomationSafe`, `syntaxFailedViews`, `manualReviewOnlyViews`, and `bulkUnsafeViews`.
+  - Current real Gmail audit confirms default view syntax is valid, all three audited views are manual-review shortcuts, and `customer-inquiries` plus `noise-candidates` are not safe for bulk automation.
+  - Production readiness now records `requirements.defaultViewsBulkAutomationSafe=false` instead of only the weaker `defaultViewsManualReviewOnly=true`.
+  - Ops Board readiness summary now exposes default view syntax, manual-only status, bulk automation safety, and rule safety.
+  - Refreshed real-data artifacts; the only P0 remains `current_shared_gmail_routing`.
 
 ## Not Done
 

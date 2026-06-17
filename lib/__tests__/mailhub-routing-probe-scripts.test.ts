@@ -125,6 +125,14 @@ function writeReadinessFixtures(dir: string, routingProbeGate: Record<string, un
   });
   writeJson(paths.views, {
     generatedAt: "2026-06-17T00:00:00.000Z",
+    gate: {
+      syntaxReady: true,
+      manualReviewOnly: true,
+      bulkAutomationSafe: false,
+      syntaxFailedViews: [],
+      manualReviewOnlyViews: ["invoices"],
+      bulkUnsafeViews: ["customer-inquiries"],
+    },
     views: [{ id: "invoices", syntaxAccepted: true, hasMoreAfterMaxPages: false }],
   });
   writeJson(paths.rules, {
@@ -781,6 +789,9 @@ describe("MailHub routing probe CLI gates", () => {
           routingProbePreflightReady: boolean;
           routingProbeGithubSecretsReady: boolean;
           currentSharedGmailRoutingReady: boolean;
+          defaultViewsRealDataValidated: boolean;
+          defaultViewsManualReviewOnly: boolean;
+          defaultViewsBulkAutomationSafe: boolean;
         };
         gate: {
           productionReady: boolean;
@@ -804,6 +815,9 @@ describe("MailHub routing probe CLI gates", () => {
       expect(out.requirements.routingProbePreflightReady).toBe(false);
       expect(out.requirements.routingProbeGithubSecretsReady).toBe(false);
       expect(out.requirements.currentSharedGmailRoutingReady).toBe(false);
+      expect(out.requirements.defaultViewsRealDataValidated).toBe(true);
+      expect(out.requirements.defaultViewsManualReviewOnly).toBe(true);
+      expect(out.requirements.defaultViewsBulkAutomationSafe).toBe(false);
       expect(out.gate.productionReady).toBe(false);
       expect(out.gate.p0Blockers).toEqual(["current_shared_gmail_routing"]);
       expect(out.blockers[0]?.evidence?.routingProbePreflight?.missingRequiredEnv).toEqual([

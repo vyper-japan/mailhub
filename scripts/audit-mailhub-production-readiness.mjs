@@ -90,10 +90,13 @@ function main() {
       Boolean(gwsRoutingAudit.gate?.currentSharedGmailRoutingConfirmed)
     ) ||
     routingProbeReady;
-  const viewSyntaxReady = (viewsAudit.views ?? []).every((view) => view.syntaxAccepted === true && !view.error);
-  const viewsManualReviewOnly = (viewsAudit.views ?? []).some(
-    (view) => view.risk === "broad_manual_review_only" || view.hasMoreAfterMaxPages === true,
-  );
+  const viewSyntaxReady = viewsAudit.gate?.syntaxReady === true ||
+    (viewsAudit.views ?? []).every((view) => view.syntaxAccepted === true && !view.error);
+  const viewsManualReviewOnly = viewsAudit.gate?.manualReviewOnly === true ||
+    (viewsAudit.views ?? []).some(
+      (view) => view.risk === "broad_manual_review_only" || view.hasMoreAfterMaxPages === true,
+    );
+  const defaultViewsBulkAutomationSafe = viewsAudit.gate?.bulkAutomationSafe === true;
   const ruleSafetyReady = Boolean(rulesAudit.ruleSafetyGate?.realDataRuleRiskPass);
 
   const blockers = [];
@@ -169,6 +172,7 @@ function main() {
       routingProbeGithubSecretsReady,
       defaultViewsRealDataValidated: viewSyntaxReady,
       defaultViewsManualReviewOnly: viewsManualReviewOnly,
+      defaultViewsBulkAutomationSafe,
       currentRuleConfigRealDataSafetyReady: ruleSafetyReady,
     },
     blockers,

@@ -17,6 +17,8 @@ describe("opsReadinessSummary", () => {
         routingProbePreflightReady: false,
         routingProbeGithubSecretsReady: false,
         defaultViewsRealDataValidated: true,
+        defaultViewsManualReviewOnly: true,
+        defaultViewsBulkAutomationSafe: false,
         currentRuleConfigRealDataSafetyReady: true,
       },
       gate: {
@@ -63,6 +65,8 @@ describe("opsReadinessSummary", () => {
       routingProbePreflightReady: false,
       routingProbeGithubSecretsReady: false,
       defaultViewsRealDataValidated: true,
+      defaultViewsManualReviewOnly: true,
+      defaultViewsBulkAutomationSafe: false,
       currentRuleConfigRealDataSafetyReady: true,
       unconfirmedChannels: ["gopro-yahoo", "ebay"],
       missingProbeAddresses: ["gopro_y@vtj.co.jp", "ebay@vtj.co.jp"],

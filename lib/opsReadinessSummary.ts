@@ -19,6 +19,8 @@ export type OpsReadinessSummary = {
   routingProbePreflightReady: boolean;
   routingProbeGithubSecretsReady: boolean;
   defaultViewsRealDataValidated: boolean;
+  defaultViewsManualReviewOnly: boolean;
+  defaultViewsBulkAutomationSafe: boolean;
   currentRuleConfigRealDataSafetyReady: boolean;
   unconfirmedChannels: string[];
   missingProbeAddresses: string[];
@@ -47,6 +49,8 @@ export function unavailableOpsReadinessSummary(): OpsReadinessSummary {
     routingProbePreflightReady: false,
     routingProbeGithubSecretsReady: false,
     defaultViewsRealDataValidated: false,
+    defaultViewsManualReviewOnly: false,
+    defaultViewsBulkAutomationSafe: false,
     currentRuleConfigRealDataSafetyReady: false,
     unconfirmedChannels: [],
     missingProbeAddresses: [],
@@ -140,6 +144,8 @@ export function summarizeProductionReadinessAudit(
     routingProbePreflightReady: requirements.routingProbePreflightReady === true,
     routingProbeGithubSecretsReady: requirements.routingProbeGithubSecretsReady === true,
     defaultViewsRealDataValidated: requirements.defaultViewsRealDataValidated === true,
+    defaultViewsManualReviewOnly: requirements.defaultViewsManualReviewOnly === true,
+    defaultViewsBulkAutomationSafe: requirements.defaultViewsBulkAutomationSafe === true,
     currentRuleConfigRealDataSafetyReady: requirements.currentRuleConfigRealDataSafetyReady === true,
     unconfirmedChannels: stringArray(evidence.currentSharedGmailRoutingUnconfirmed),
     missingProbeAddresses: stringArray(routingProbeGate.missingAddresses),
