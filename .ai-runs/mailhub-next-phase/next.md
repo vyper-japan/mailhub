@@ -14,9 +14,15 @@ Continue from the completed INBOX-scoped source coverage and rule-safety wave:
    - Latest machine gate: `zeroEstimateAnalysis.knownCodeGaps` is empty and `coverageGate.codeCoveragePass` is true.
 6. Collect operator feedback on the default saved views. Real Gmail audit proves `customer-inquiries` and `noise-candidates` are too broad for bulk automation, so keep them as manual-review shortcuts unless narrowed.
 7. Re-run `npm run audit:gmail-rules -- --out .ai-runs/mailhub-next-phase/gmail-rule-safety-audit.json --max 100` whenever production file/Sheets rules are added or changed.
-8. Add AI reply drafting only after a knowledge evidence source is defined; keep generated drafts separate from send actions.
-9. Expand the rule-safety gate only after production rule config exists and passes the real-data audit. Current code protects suppressive labels from invoice/inquiry/important-looking messages and fails closed when classification text is missing, but does not implement a full production auto-discard policy.
-10. Optional: run a manual browser check on production/staging data for stores pagination. Forced E2E is now present and passing.
+8. Close the remaining production-readiness P1s:
+   - durable Gmail send idempotency across serverless instances/cold starts
+   - fail-closed or prominently blocked audit persistence for production mutations
+   - Rakuten reply workflow clarity so pending implementation cannot look like a successful send
+   - unassigned list/count accuracy across pages and all assignees
+   - autonomous SLA schedule enablement after Vercel protection/bypass is decided
+9. Add AI reply drafting only after a knowledge evidence source is defined; keep generated drafts separate from send actions.
+10. Expand the rule-safety gate only after production rule config exists and passes the real-data audit. Current code protects suppressive labels from invoice/inquiry/important-looking messages and fails closed when classification text is missing, but does not implement a full production auto-discard policy.
+11. Optional: run a manual browser check on production/staging data for stores pagination. Forced E2E is now present and passing.
 
 ## Large-Team Wave Plan
 

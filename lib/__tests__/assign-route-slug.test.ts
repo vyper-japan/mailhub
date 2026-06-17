@@ -7,6 +7,7 @@ const routeMocks = vi.hoisted(() => ({
   isReadOnlyMode: vi.fn(),
   writeForbiddenResponse: vi.fn(),
   isTestMode: vi.fn(),
+  isAdminEmail: vi.fn(),
   assignMessage: vi.fn(),
   unassignMessage: vi.fn(),
   logAction: vi.fn(),
@@ -28,6 +29,10 @@ vi.mock("@/lib/read-only", () => ({
 
 vi.mock("@/lib/test-mode", () => ({
   isTestMode: routeMocks.isTestMode,
+}));
+
+vi.mock("@/lib/admin", () => ({
+  isAdminEmail: routeMocks.isAdminEmail,
 }));
 
 vi.mock("@/lib/gmail", () => ({
@@ -68,6 +73,7 @@ describe("assign route assigneeSlug", () => {
       Response.json({ error: "read_only", reason: "assign" }, { status: 403 }),
     );
     routeMocks.isTestMode.mockReset().mockReturnValue(false);
+    routeMocks.isAdminEmail.mockReset().mockReturnValue(true);
     routeMocks.assignMessage.mockReset().mockResolvedValue({ currentAssigneeSlug: null });
     routeMocks.unassignMessage.mockReset().mockResolvedValue(undefined);
     routeMocks.logAction.mockReset().mockResolvedValue(undefined);
@@ -193,6 +199,39 @@ describe("assign route assigneeSlug", () => {
       message: "@vtj.co.jp ドメインのみ許可されています",
     });
     expect(routeMocks.assignMessage).not.toHaveBeenCalled();
+  });
+
+  it("rejects non-admin assignment to other people and force takeover", async () => {
+    routeMocks.isAdminEmail.mockReturnValue(false);
+    const POST = await importPost();
+
+    const otherRes = await POST(makeRequest({
+      id: "msg-other",
+      action: "assign",
+      assigneeEmail: "other@vtj.co.jp",
+    }));
+    expect(otherRes.status).toBe(403);
+    expect(await readJson(otherRes)).toEqual({ error: "forbidden_admin_only" });
+
+    const forceRes = await POST(makeRequest({
+      id: "msg-force-denied",
+      action: "assign",
+      force: true,
+    }));
+    expect(forceRes.status).toBe(403);
+    expect(await readJson(forceRes)).toEqual({ error: "forbidden_admin_only" });
+
+    expect(routeMocks.assignMessage).not.toHaveBeenCalled();
+  });
+
+  it("allows non-admin assignment to self", async () => {
+    routeMocks.isAdminEmail.mockReturnValue(false);
+    const POST = await importPost();
+
+    const res = await POST(makeRequest({ id: "msg-self", action: "assign" }));
+
+    expect(res.status).toBe(200);
+    expect(routeMocks.assignMessage).toHaveBeenCalledWith("msg-self", "test@vtj.co.jp", { force: false });
   });
 
   it("allows force takeover despite an existing assignee and logs the reason", async () => {

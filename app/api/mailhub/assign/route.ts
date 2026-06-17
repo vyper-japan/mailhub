@@ -7,6 +7,7 @@ import { parseGmailError } from "@/lib/gmail-error";
 import { assigneeSlug } from "@/lib/assignee";
 import type { NextRequest } from "next/server";
 import { isReadOnlyMode, writeForbiddenResponse } from "@/lib/read-only";
+import { isAdminEmail } from "@/lib/admin";
 
 export const dynamic = "force-dynamic";
 
@@ -52,6 +53,11 @@ export async function POST(req: NextRequest) {
     //   return NextResponse.json({ error: "assignee_not_in_team", assigneeEmail }, { status: 400 });
     // }
     targetEmail = assigneeEmail;
+  }
+
+  const isAssigningToOther = targetEmail.toLowerCase() !== authResult.user.email.toLowerCase();
+  if (action === "assign" && (isAssigningToOther || force) && !isAdminEmail(authResult.user.email)) {
+    return NextResponse.json({ error: "forbidden_admin_only" }, { status: 403 });
   }
 
   // Test mode handling

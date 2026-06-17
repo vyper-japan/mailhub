@@ -122,6 +122,18 @@ describe("mailhub rules apply route", () => {
     routeMocks.isAdminEmail.mockReturnValue(true);
   });
 
+  it("requires admin for rule previews and apply", async () => {
+    routeMocks.isAdminEmail.mockReturnValue(false);
+    const POST = await importPost();
+
+    const res = await POST(post({ dryRun: true, ruleId: "mute-billing", max: 10 }));
+
+    expect(res.status).toBe(403);
+    expect(await res.json()).toEqual({ error: "forbidden_admin_only" });
+    expect(routeMocks.getRules).not.toHaveBeenCalled();
+    expect(routeMocks.applyLabelsToMessages).not.toHaveBeenCalled();
+  });
+
   it("protects invoice messages from suppressive label rules in dry-run", async () => {
     routeMocks.getMessageMetadataForRules.mockResolvedValueOnce({ fromEmail: "no-reply@example.com", labelIds: [] });
     const POST = await importPost();

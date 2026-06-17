@@ -31,8 +31,8 @@ export function isReadOnlyMode(): boolean {
   const raw = (process.env.MAILHUB_READ_ONLY ?? "").trim();
   if (raw === "1") return true;
   if (raw === "0") return false;
-  // staging は「設定漏れでも事故ゼロ」に倒す（デフォルトREAD ONLY）
-  return getMailhubEnv() === "staging";
+  // staging/production は「設定漏れでも事故ゼロ」に倒す（デフォルトREAD ONLY）
+  return getMailhubEnv() === "staging" || getMailhubEnv() === "production";
 }
 
 export function writeForbiddenResponse(reason = "read_only"): Response {
@@ -41,5 +41,4 @@ export function writeForbiddenResponse(reason = "read_only"): Response {
     { status: 403 },
   );
 }
-
 

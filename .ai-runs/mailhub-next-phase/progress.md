@@ -87,6 +87,14 @@
   - Current config source resolved to `file`; no label or assignee rules are configured.
   - `ruleSafetyGate.realDataRuleRiskPass` is true, with no dangerous broad rules, no too-many-match rules, and no protected suppressive matches.
   - Documented the gate in `docs/mailhub-rule-safety-audit.md`.
+- 2026-06-17 production safety gate wave completed:
+  - Fixed SLA alert Gmail candidate retrieval so a 500-message Gmail page no longer silently keeps only the first 100 details.
+  - Made `/api/mailhub/rules/apply` admin-only at the route boundary for both preview and apply.
+  - Made production/staging default to READ ONLY unless `MAILHUB_READ_ONLY=0` is explicitly set.
+  - Split runner auth for `/api/mailhub/rules/run-all`: valid `MAILHUB_RULES_SECRET` Bearer can run headlessly, while session users still use admin checks for apply.
+  - Split runner auth for `/api/mailhub/snooze/release`: valid `MAILHUB_SNOOZE_SECRET` Bearer can release headlessly without a browser session.
+  - Enforced assign safety: non-admin users can assign to self, but cannot assign to other users or force takeover.
+  - Added focused route/unit tests for these safety gates.
 
 ## Not Done
 
@@ -95,6 +103,7 @@
 - Production pagination basic behavior is represented in API/UI metadata and forced E2E; real browser/manual production verification is still useful before staff rollout.
 - Auto-discard rules for marketing/noise are protected against obvious important/invoice/inquiry suppression and missing summary text, but a full production auto-discard policy is still intentionally not enabled.
 - Real-data rule safety audit exists and passes for the current local file config because no rules are configured. Re-run with `MAILHUB_CONFIG_STORE=sheets` and production Sheets credentials when production rule config is enabled.
+- Remaining production-readiness P1s from critic review include durable send idempotency across serverless instances, fail-closed audit persistence for production mutations, Rakuten reply workflow clarity, unassigned coverage/count accuracy, and autonomous SLA schedule enablement.
 - Important/invoice/customer-inquiry folders exist as default saved views and are audited as manual-review shortcuts; further narrowing requires operator feedback.
 - Brain decision ledger exists for memory/file/sheets and health visibility; AI reply drafting and knowledge base integration are not implemented.
 - Rakuten/Amazon/Yahoo API-based reply integration is not implemented.

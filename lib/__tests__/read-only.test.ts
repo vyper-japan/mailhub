@@ -33,6 +33,12 @@ describe("read-only", () => {
     expect(isReadOnlyMode()).toBe(true);
   });
 
+  test("server: MAILHUB_READ_ONLY unset + MAILHUB_ENV=production => true (safe default)", () => {
+    delete process.env.MAILHUB_READ_ONLY;
+    process.env.MAILHUB_ENV = "production";
+    expect(isReadOnlyMode()).toBe(true);
+  });
+
   test("server: MAILHUB_READ_ONLY unset + MAILHUB_ENV=local => false", () => {
     delete process.env.MAILHUB_READ_ONLY;
     process.env.MAILHUB_ENV = "local";
@@ -135,4 +141,3 @@ describe("admin guards for assign", () => {
     expect(shouldReject).toBe(false);
   });
 });
-

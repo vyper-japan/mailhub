@@ -85,6 +85,9 @@ export async function POST(req: Request) {
   if (isReadOnlyMode() && !dryRun) {
     return writeForbiddenResponse("rules_apply");
   }
+  if (!isAdminEmail(authResult.user.email)) {
+    return NextResponse.json({ error: "forbidden_admin_only" }, { status: 403 });
+  }
   const shouldLog = body.log === true;
   const ruleId = typeof body.ruleId === "string" ? body.ruleId : null;
   const max = typeof body.max === "number" && Number.isFinite(body.max) ? Math.max(1, Math.min(body.max, MAX_APPLY_MESSAGES)) : MAX_APPLY_MESSAGES;
@@ -305,9 +308,6 @@ export async function POST(req: Request) {
 
   // Activityログ（best-effort / 明示指定のみ）
   if (shouldLog) {
-    if (!isAdminEmail(authResult.user.email)) {
-      return NextResponse.json({ error: "forbidden_admin_only" }, { status: 403 });
-    }
     try {
       await logAction({
         actorEmail: authResult.user.email,

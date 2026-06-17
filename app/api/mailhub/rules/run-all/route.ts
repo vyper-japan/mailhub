@@ -4,11 +4,14 @@ import { NextResponse } from "next/server";
 import { requireUser, authErrorResponse } from "@/lib/require-user";
 import { isAdminEmail } from "@/lib/admin";
 import { isReadOnlyMode, writeForbiddenResponse } from "@/lib/read-only";
-import { isTestMode } from "@/lib/test-mode";
 import { runAutoRules } from "@/lib/autoRulesRunner";
 import { logAction } from "@/lib/audit-log";
 
 export const dynamic = "force-dynamic";
+
+type RunnerActor =
+  | { kind: "service"; email: "system@mailhub" }
+  | { kind: "user"; email: string };
 
 function getBearerToken(req: Request): string | null {
   const authHeader = req.headers.get("authorization");
@@ -16,34 +19,32 @@ function getBearerToken(req: Request): string | null {
   return authHeader.slice(7).trim();
 }
 
-export async function POST(req: Request) {
-  const authResult = await requireUser();
-  if (!authResult.ok) return authErrorResponse(authResult);
-
-  // 認可チェック（MAILHUB_RULES_SECRET）
-  const authHeader = req.headers.get("authorization");
+async function authorizeRunner(req: Request): Promise<RunnerActor | Response> {
   const secret = process.env.MAILHUB_RULES_SECRET;
-  const isProduction = process.env.NODE_ENV === "production";
+  const token = getBearerToken(req);
 
-  // productionではsecret必須
-  if (isProduction && !isTestMode()) {
+  if (token) {
     if (!secret) {
       return NextResponse.json(
         { error: "unauthorized", message: "MAILHUB_RULES_SECRET not configured" },
         { status: 401 },
       );
     }
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return NextResponse.json(
-        { error: "unauthorized", message: "Authorization header required" },
-        { status: 401 },
-      );
-    }
-    const token = getBearerToken(req);
     if (token !== secret) {
       return NextResponse.json({ error: "unauthorized", message: "Invalid secret" }, { status: 403 });
     }
+    return { kind: "service", email: "system@mailhub" };
   }
+
+  const authResult = await requireUser();
+  if (!authResult.ok) return authErrorResponse(authResult);
+  return { kind: "user", email: authResult.user.email };
+}
+
+export async function POST(req: Request) {
+  const actorOrResponse = await authorizeRunner(req);
+  if (actorOrResponse instanceof Response) return actorOrResponse;
+  const actor = actorOrResponse;
 
   const body = (await req.json().catch(() => ({} as Record<string, unknown>))) as Record<string, unknown>;
   const dryRun = body.dryRun === true || body.dryRun === 1 || body.dryRun === "1";
@@ -57,7 +58,7 @@ export async function POST(req: Request) {
   }
 
   // apply時はadmin必須
-  if (!dryRun && !isAdminEmail(authResult.user.email)) {
+  if (!dryRun && actor.kind === "user" && !isAdminEmail(actor.email)) {
     return NextResponse.json({ error: "forbidden_admin_only" }, { status: 403 });
   }
 
@@ -74,7 +75,7 @@ export async function POST(req: Request) {
     if (shouldLog) {
       try {
         await logAction({
-          actorEmail: authResult.user.email,
+          actorEmail: actor.email,
           action: dryRun ? "rule_run_all_preview" : "rule_run_all_apply",
           messageId: "",
           metadata: {

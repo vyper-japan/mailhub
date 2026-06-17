@@ -10,23 +10,44 @@ import { isTestMode } from "@/lib/test-mode";
 
 export const dynamic = "force-dynamic";
 
-export async function POST(req: Request) {
-  // 認証チェック（テストモードではテストユーザー）
+type SnoozeReleaseActor = {
+  email: string;
+};
+
+function getBearerToken(req: Request): string | null {
+  const authHeader = req.headers.get("authorization");
+  if (!authHeader || !authHeader.startsWith("Bearer ")) return null;
+  return authHeader.slice(7).trim();
+}
+
+async function authorizeSnoozeRelease(req: Request): Promise<SnoozeReleaseActor | Response> {
+  const expectedSecret = process.env.MAILHUB_SNOOZE_SECRET;
+  const token = getBearerToken(req);
+
+  if (token) {
+    if (!expectedSecret || token !== expectedSecret) {
+      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    }
+    return { email: "system@mailhub" };
+  }
+
   const authResult = await requireUser();
   if (!authResult.ok) {
     return authErrorResponse(authResult);
   }
-  if (isReadOnlyMode()) return writeForbiddenResponse("snooze_release");
 
-  // productionではsecret必須（TEST_MODEは不要）
   if (!isTestMode()) {
-    const authHeader = req.headers.get("authorization");
-    const secret = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
-    const expectedSecret = process.env.MAILHUB_SNOOZE_SECRET;
-    if (!expectedSecret || secret !== expectedSecret) {
-      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-    }
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
+
+  return { email: authResult.user.email };
+}
+
+export async function POST(req: Request) {
+  const actorOrResponse = await authorizeSnoozeRelease(req);
+  if (actorOrResponse instanceof Response) return actorOrResponse;
+  const actor = actorOrResponse;
+  if (isReadOnlyMode()) return writeForbiddenResponse("snooze_release");
 
   const body = (await req.json().catch(() => null)) as unknown;
   if (!body || typeof body !== "object") {
@@ -49,7 +70,7 @@ export async function POST(req: Request) {
 
     // 操作ログを出力（非同期、エラーは無視）
     logAction({
-      actorEmail: authResult.user.email,
+      actorEmail: actor.email,
       action: "snooze_release",
       messageId: "", // 複数件のため空
       metadata: {
@@ -73,7 +94,7 @@ export async function POST(req: Request) {
     );
   } catch (e) {
     // サーバーログに詳細を出力（トークン等の秘密情報は出さない）
-    console.error(`[Snooze Release API Error] until=${until}, user=${authResult.user.email}`, e);
+    console.error(`[Snooze Release API Error] until=${until}, user=${actor.email}`, e);
     
     const errorInfo = parseGmailError(e);
     return NextResponse.json(

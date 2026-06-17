@@ -241,6 +241,26 @@ npm run test
 - `ruleSafetyGate.realDataRuleRiskPass`: `true`.
 - `ruleSafetyGate.blockingFindings`: `[]`.
 
+## Verification Commands Run On 2026-06-17 Production Safety Gate Wave
+
+```bash
+npx vitest run lib/__tests__/read-only.test.ts lib/__tests__/rules-run-all-route.test.ts lib/__tests__/snooze-release-route.test.ts lib/__tests__/assign-route-slug.test.ts lib/__tests__/gmail-alerts.test.ts lib/__tests__/mailhub-rules-apply-route.test.ts
+npm run typecheck
+npm run lint
+git diff --check
+npm run test
+npm run build
+```
+
+## 2026-06-17 Production Safety Gate Wave Results
+
+- Focused Vitest: 6 files / 31 tests passed.
+- `npm run typecheck`: passed.
+- `npm run lint`: passed.
+- `git diff --check`: passed.
+- `npm run test`: 60 files / 526 tests passed.
+- `npm run build`: passed.
+
 ## Useful Runtime Commands
 
 Start dev server for tunnel:

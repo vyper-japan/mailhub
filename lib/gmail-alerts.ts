@@ -6,6 +6,25 @@ import type { InboxListMessage } from "./mailhub-types";
 import { buildGmailLink } from "./gmail";
 import messagesFixture from "@/fixtures/messages.json";
 
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  concurrency: number,
+  fn: (item: T) => Promise<R>,
+): Promise<R[]> {
+  const results: R[] = new Array(items.length);
+  let nextIndex = 0;
+  const workers = Array.from({ length: Math.min(concurrency, items.length) }, async () => {
+    while (true) {
+      const current = nextIndex;
+      nextIndex += 1;
+      if (current >= items.length) return;
+      results[current] = await fn(items[current]);
+    }
+  });
+  await Promise.all(workers);
+  return results;
+}
+
 /**
  * Gmail検索クエリで候補を抽出（ページング対応）
  * 古いメールが漏れないように、複数ページを取得する
@@ -100,46 +119,47 @@ export async function listCandidatesByQuery(options: {
       break;
     }
 
-    // メッセージ詳細を取得（5並列）
-    const messageDetails = await Promise.all(
-      messages.slice(0, Math.min(100, maxTotal - results.length)).map(async (msg) => {
-        try {
-          const detailRes = await gmail.users.messages.get({
-            userId: sharedInboxEmail,
-            id: msg.id!,
-            format: "metadata",
-            metadataHeaders: ["Subject", "From", "Date", "Message-ID"],
-          });
+    // メッセージ詳細を取得（5並列）。Gmail list は1ページ最大500件を返すため、
+    // ページ内の先頭100件だけ取得して次ページへ進むと stale mail を無音で落とす。
+    const remaining = Math.max(0, maxTotal - results.length);
+    const pageMessages = messages.slice(0, remaining);
+    const messageDetails = await mapWithConcurrency(pageMessages, 5, async (msg) => {
+      try {
+        const detailRes = await gmail.users.messages.get({
+          userId: sharedInboxEmail,
+          id: msg.id!,
+          format: "metadata",
+          metadataHeaders: ["Subject", "From", "Date", "Message-ID"],
+        });
 
-          const headers = detailRes.data.payload?.headers || [];
-          const subject = headers.find((h) => h.name === "Subject")?.value || null;
-          const from = headers.find((h) => h.name === "From")?.value || null;
-          const internalDate = detailRes.data.internalDate
-            ? parseInt(detailRes.data.internalDate, 10)
-            : Date.now();
+        const headers = detailRes.data.payload?.headers || [];
+        const subject = headers.find((h) => h.name === "Subject")?.value || null;
+        const from = headers.find((h) => h.name === "From")?.value || null;
+        const internalDate = detailRes.data.internalDate
+          ? parseInt(detailRes.data.internalDate, 10)
+          : Date.now();
 
-          const messageId = headers.find((h) => h.name === "Message-ID")?.value || null;
-          const threadId = detailRes.data.threadId || "";
-          
-          const result: InboxListMessage = {
-            id: msg.id!,
-            threadId,
-            messageId,
-            subject,
-            from,
-            receivedAt: new Date(internalDate).toLocaleString("ja-JP", {
-              timeZone: "Asia/Tokyo",
-            }),
-            snippet: detailRes.data.snippet || "",
-            gmailLink: buildGmailLink(sharedInboxEmail, messageId, threadId),
-            assigneeSlug: null,
-          };
-          return result;
-        } catch {
-          return null;
-        }
-      })
-    );
+        const messageId = headers.find((h) => h.name === "Message-ID")?.value || null;
+        const threadId = detailRes.data.threadId || "";
+
+        const result: InboxListMessage = {
+          id: msg.id!,
+          threadId,
+          messageId,
+          subject,
+          from,
+          receivedAt: new Date(internalDate).toLocaleString("ja-JP", {
+            timeZone: "Asia/Tokyo",
+          }),
+          snippet: detailRes.data.snippet || "",
+          gmailLink: buildGmailLink(sharedInboxEmail, messageId, threadId),
+          assigneeSlug: null,
+        };
+        return result;
+      } catch {
+        return null;
+      }
+    });
 
     const validMessages = messageDetails.filter((m): m is InboxListMessage => m !== null && m !== undefined);
     results.push(...validMessages);
