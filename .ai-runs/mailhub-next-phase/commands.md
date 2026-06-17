@@ -2274,6 +2274,17 @@ npm run audit:mailhub-routing-proof-contract
 - Strengthened `check-mailhub-staff-next-contract.mjs` so this production mode requirement cannot disappear when `config.missingProductionEnv=[]`.
 - Current staff next-step artifact now points `configure_production_env` at only `MAILHUB_ENV=production`; other missing items remain staff team members, Sheets config/activity, READ ONLY, and evidence.
 
+## 2026-06-18 QA Strict CI Timeout Follow-up
+
+```bash
+gh run view 27704192052 --repo vyper-japan/mailhub --json jobs,status,conclusion
+sed -n '1,180p' .github/workflows/qa-strict.yml
+actionlint .github/workflows/*.yml
+```
+
+- `qa-strict` for `6d676e0` was cancelled by the 20 minute job timeout while still in `Install Playwright browsers`.
+- `playwright.config.ts` only defines the `chromium` project, so the workflow now installs `chromium` only with `npx playwright install --with-deps chromium`.
+
 ## Useful Runtime Commands
 
 Start dev server for tunnel:

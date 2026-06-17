@@ -25,7 +25,7 @@ jobs:
         run: npm ci
 
       - name: Install Playwright browsers
-        run: npx playwright install --with-deps
+        run: npx playwright install --with-deps chromium
 
       - name: QA Strict
         run: npm run qa:strict
@@ -38,7 +38,6 @@ jobs:
           GOOGLE_CLIENT_SECRET: dummy
           GOOGLE_SHARED_INBOX_EMAIL: inbox@vtj.co.jp
           GOOGLE_SHARED_INBOX_REFRESH_TOKEN: dummy
-
 
 
 

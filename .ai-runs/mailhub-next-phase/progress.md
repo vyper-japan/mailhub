@@ -482,6 +482,9 @@
   - Added a regression guard for `MAILHUB_ENV=production` with `MAILHUB_TEST_MODE` still enabled, so the next action reports `MAILHUB_TEST_MODE=0` rather than restating already-present auth/Gmail env.
   - Strengthened `check-mailhub-staff-next-contract.mjs` so production mode cannot vanish from the next-step artifact when `config.missingProductionEnv=[]`.
   - Current staff next-step artifact is more actionable: production mode, team members, durable Sheets config/activity, READ ONLY, and rollout evidence are separated instead of restating already-present auth/Gmail env.
+- 2026-06-18 qa-strict CI timeout follow-up:
+  - `qa-strict` for `6d676e0` reached the 20 minute job timeout while still installing Playwright browsers.
+  - `playwright.config.ts` only runs the `chromium` project, so `.github/workflows/qa-strict.yml` now installs only `chromium` instead of all Playwright browsers.
 
 ## Not Done
 
