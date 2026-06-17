@@ -112,3 +112,26 @@ Zero-estimate follow-up split:
 The audit now emits `zeroEstimateAnalysis.knownCodeGaps`, `missingQueryChannels`, `missingAddressChannels`, and `coverageGate.codeCoveragePass`. The latest result has no known code gaps. The remaining zero estimates are operational follow-up items: confirm whether the shared inbox currently has no active inbox mail for those addresses, whether historical mail is archived/handled, or whether the source address is dormant.
 
 The two addresses with no active or historical shared-inbox evidence are `vyperglobal-yahoo` and `ebay`; those require operator/source-of-truth confirmation before claiming full operational coverage.
+
+## Operational Confirmation Audit
+
+Command:
+
+```bash
+npm run audit:mailhub-ops -- --out .ai-runs/mailhub-next-phase/mailhub-operational-confirmations.json
+```
+
+This combines the real Gmail source audit with `MAIL_MIGRATION_STATUS.md`, which is the MX/source-of-truth status file for this project.
+
+Current machine conclusion:
+
+| Channel | Shared Gmail evidence | Source-of-truth evidence | Required confirmation |
+|---|---|---|---|
+| `gopro-yahoo` | historical all-mail evidence, no active INBOX | not independently proven by this audit | confirm no active inbox work |
+| `vyperglobal-rakuten` | historical all-mail evidence, no active INBOX | found in `MAIL_MIGRATION_STATUS.md` | confirm no active inbox work |
+| `vyperglobal-yahoo` | none | missing | confirm whether the source still exists; remove or keep the channel only after operator confirmation |
+| `ams-vyper` | historical all-mail evidence, no active INBOX | found in `MAIL_MIGRATION_STATUS.md` | confirm no active inbox work |
+| `datacolor` | historical all-mail evidence, no active INBOX | not independently proven by this audit | confirm no active inbox work |
+| `ebay` | none | found in `MAIL_MIGRATION_STATUS.md` as `存続（eBay登録ID）` | verify GWS group membership / MX routing to `mailhub@` or confirm that eBay remains outside the shared Gmail workbench |
+
+The production-complete source coverage claim is not ready until the no-shared-inbox evidence items are resolved operationally. The current code coverage claim is ready: the audit has no known query/address code gaps.

@@ -130,11 +130,20 @@
   - Source coverage remains code-pass: `zeroEstimateAnalysis.knownCodeGaps` is empty and `codeCoveragePass` is true.
   - Rule safety remains pass: current file config has no configured label/assignee rules and `realDataRuleRiskPass` is true.
   - Default views remain manual-review only: `customer-inquiries` and `noise-candidates` are still too broad for bulk workflow.
+- 2026-06-17 operational confirmation audit wave completed:
+  - Added `scripts/audit-mailhub-operational-confirmations.mjs` and `npm run audit:mailhub-ops`.
+  - The audit combines the real Gmail source coverage result with `MAIL_MIGRATION_STATUS.md`.
+  - Current machine gate: source code coverage passes, but production-complete source claim is not ready.
+  - `ebay` has source-of-truth evidence in `MAIL_MIGRATION_STATUS.md` (`存続（eBay登録ID）`) but no shared Gmail evidence, so it requires GWS group / MX / mailhub routing confirmation.
+  - `vyperglobal-yahoo` has no shared Gmail evidence and no source-of-truth evidence in `MAIL_MIGRATION_STATUS.md`, so it requires source-existence confirmation or channel removal.
+  - `gopro-yahoo` and `datacolor` have historical shared Gmail evidence but no source-of-truth line in `MAIL_MIGRATION_STATUS.md`; current required action is confirming no active inbox work.
 
 ## Not Done
 
 - Remaining zero-active-inbox channels are now classified as operational confirmation items, not known query/code gaps.
-- Confirm whether `vyperglobal-yahoo` and `ebay` are still routed/real sources; the audit found no active or historical shared-inbox evidence for the configured addresses.
+- `npm run audit:mailhub-ops` currently reports `productionCompleteClaimReady=false` because `vyperglobal-yahoo` and `ebay` have no shared Gmail evidence.
+- Confirm whether `vyperglobal-yahoo` exists as a real source; if not, remove or hide the channel after operator approval.
+- Verify `ebay@vtj.co.jp` GWS group membership / MX routing to `mailhub@` or confirm that eBay remains outside the shared Gmail workbench.
 - Production pagination basic behavior is represented in API/UI metadata and forced E2E; real browser/manual production verification is still useful before staff rollout.
 - Auto-discard rules for marketing/noise are protected against obvious important/invoice/inquiry suppression and missing summary text, but a full production auto-discard policy is still intentionally not enabled.
 - Real-data rule safety audit exists and passes for the current local file config because no rules are configured. Re-run with `MAILHUB_CONFIG_STORE=sheets` and production Sheets credentials when production rule config is enabled.

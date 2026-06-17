@@ -8,10 +8,12 @@ Continue from the completed INBOX-scoped source coverage and rule-safety wave:
 2. Read `.ai-runs/mailhub-next-phase/*.md`.
 3. Check `git status -sb`.
 4. Confirm the latest next-phase commit is present.
-5. Operationally confirm remaining real Gmail INBOX zero-estimate channels: `gopro-yahoo`, `vyperglobal-rakuten`, `vyperglobal-yahoo`, `ams-vyper`, `datacolor`, `ebay`.
-   - `gopro-yahoo`, `vyperglobal-rakuten`, `ams-vyper`, `datacolor`: active inbox 0, all-mail historical hits found.
-   - `vyperglobal-yahoo`, `ebay`: active inbox 0 and all-mail fallback 0.
-   - Latest machine gate: `zeroEstimateAnalysis.knownCodeGaps` is empty and `coverageGate.codeCoveragePass` is true.
+5. Run or inspect `npm run audit:mailhub-ops -- --out .ai-runs/mailhub-next-phase/mailhub-operational-confirmations.json`.
+   - Latest machine gate: `sourceCoverage.codeCoveragePass=true`, `knownCodeGaps=[]`.
+   - `productionCompleteClaimReady=false` until operational confirmations are resolved.
+   - `ebay`: `MAIL_MIGRATION_STATUS.md` says the address should persist, but shared Gmail has no active or historical evidence. Verify GWS group membership / MX routing to `mailhub@`, or explicitly document that it remains outside the shared Gmail workbench.
+   - `vyperglobal-yahoo`: no shared Gmail evidence and no `MAIL_MIGRATION_STATUS.md` source-of-truth evidence. Confirm whether it exists as a real source; remove/hide the channel only after operator approval.
+   - `gopro-yahoo` and `datacolor`: historical shared Gmail evidence exists but no current active inbox work; confirm no active inbox work.
 6. Collect operator feedback on the default saved views. Real Gmail audit proves `customer-inquiries` and `noise-candidates` are too broad for bulk automation, so keep them as manual-review shortcuts unless narrowed.
 7. Re-run `npm run audit:gmail-rules -- --out .ai-runs/mailhub-next-phase/gmail-rule-safety-audit.json --max 100` whenever production file/Sheets rules are added or changed.
 8. Add AI reply drafting only after a knowledge evidence source is defined; keep generated drafts separate from send actions.

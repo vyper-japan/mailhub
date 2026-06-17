@@ -1,0 +1,162 @@
+{
+  "generatedAt": "2026-06-17T01:07:06.360Z",
+  "inputs": {
+    "sourceAudit": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.ai-runs/mailhub-next-phase/gmail-source-coverage-audit.json",
+    "migrationStatus": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/MAIL_MIGRATION_STATUS.md",
+    "sourceAuditGeneratedAt": "2026-06-17T01:03:24.561Z"
+  },
+  "sourceCoverage": {
+    "codeCoveragePass": true,
+    "knownCodeGaps": [],
+    "aggregateEstimate": 201,
+    "zeroEstimateChannels": [
+      "gopro-yahoo",
+      "vyperglobal-rakuten",
+      "vyperglobal-yahoo",
+      "ams-vyper",
+      "datacolor",
+      "ebay"
+    ]
+  },
+  "operationalConfirmations": [
+    {
+      "id": "gopro-yahoo",
+      "label": "GoPro Yahoo",
+      "addresses": [
+        "gopro_y@vtj.co.jp",
+        "gopro_order_yahoo@vtj.co.jp"
+      ],
+      "sourceAuditStatus": "active_inbox_zero_historical_found",
+      "sharedInboxEvidence": "historical_all_mail",
+      "sourceOfTruthStatus": "missing",
+      "sourceOfTruthReferences": [],
+      "recommendedAction": "confirm_no_active_inbox_work",
+      "severity": "operator"
+    },
+    {
+      "id": "vyperglobal-rakuten",
+      "label": "VYPER GLOBAL 楽天",
+      "addresses": [
+        "vyper_r@vtj.co.jp",
+        "vyper_rakuten@vtj.co.jp"
+      ],
+      "sourceAuditStatus": "active_inbox_zero_historical_found",
+      "sharedInboxEvidence": "historical_all_mail",
+      "sourceOfTruthStatus": "found",
+      "sourceOfTruthReferences": [
+        {
+          "file": "MAIL_MIGRATION_STATUS.md",
+          "line": 41,
+          "text": "| MX後統合予定 | 3件 | gopro_order_rakuten/gopro_rakuten → **gopro_r@**、vyper_rakuten → **vyper_r@** |"
+        },
+        {
+          "file": "MAIL_MIGRATION_STATUS.md",
+          "line": 59,
+          "text": "| VYPER GLOBAL | ⚠️ vyper_rakuten@vtj.co.jp | t_inoue@ |"
+        },
+        {
+          "file": "MAIL_MIGRATION_STATUS.md",
+          "line": 61,
+          "text": "→ cricut_r@/vyper_rakuten@ はGWSグループ作成済み、t_inoue@/c_fujita@ は §6-1 参照。"
+        },
+        {
+          "file": "MAIL_MIGRATION_STATUS.md",
+          "line": 92,
+          "text": "### 6-2. gopro_r@ / vyper_r@ への統合（MX切替時に実施）"
+        },
+        {
+          "file": "MAIL_MIGRATION_STATUS.md",
+          "line": 94,
+          "text": "- vyper_rakuten@ → vyper_r@ に統合（NE連携アドレスも削除）"
+        },
+        {
+          "file": "MAIL_MIGRATION_STATUS.md",
+          "line": 95,
+          "text": "- RMS側の登録メール変更が必要（楽天会員ID cricut_r@/vyper_rakuten@ は変更せず存続でも可）"
+        }
+      ],
+      "recommendedAction": "confirm_no_active_inbox_work",
+      "severity": "operator"
+    },
+    {
+      "id": "vyperglobal-yahoo",
+      "label": "VYPER GLOBAL Yahoo",
+      "addresses": [
+        "vyperglobal_y@vtj.co.jp"
+      ],
+      "sourceAuditStatus": "no_shared_inbox_evidence",
+      "sharedInboxEvidence": "none",
+      "sourceOfTruthStatus": "missing",
+      "sourceOfTruthReferences": [],
+      "recommendedAction": "confirm_source_exists_or_remove_channel",
+      "severity": "source_of_truth_confirmation"
+    },
+    {
+      "id": "ams-vyper",
+      "label": "Amazon Ads (AMS)",
+      "addresses": [
+        "ams_vyper@vtj.co.jp"
+      ],
+      "sourceAuditStatus": "active_inbox_zero_historical_found",
+      "sharedInboxEvidence": "historical_all_mail",
+      "sourceOfTruthStatus": "found",
+      "sourceOfTruthReferences": [
+        {
+          "file": "MAIL_MIGRATION_STATUS.md",
+          "line": 75,
+          "text": "| ams_vyper@ | 3,085 | 6/5 毎日 | Amazon Ads請求書（AMS/Prasad運用） | 現役・存続必須 |"
+        }
+      ],
+      "recommendedAction": "confirm_no_active_inbox_work",
+      "severity": "operator"
+    },
+    {
+      "id": "datacolor",
+      "label": "Datacolor Shopify",
+      "addresses": [
+        "datacolor_shopify@vtj.co.jp"
+      ],
+      "sourceAuditStatus": "active_inbox_zero_historical_found",
+      "sharedInboxEvidence": "historical_all_mail",
+      "sourceOfTruthStatus": "missing",
+      "sourceOfTruthReferences": [],
+      "recommendedAction": "confirm_no_active_inbox_work",
+      "severity": "operator"
+    },
+    {
+      "id": "ebay",
+      "label": "eBay",
+      "addresses": [
+        "ebay@vtj.co.jp"
+      ],
+      "sourceAuditStatus": "no_shared_inbox_evidence",
+      "sharedInboxEvidence": "none",
+      "sourceOfTruthStatus": "found",
+      "sourceOfTruthReferences": [
+        {
+          "file": "MAIL_MIGRATION_STATUS.md",
+          "line": 78,
+          "text": "| ebay@ | 221 | 5/28 | eBay規約通知のみ | 存続（eBay登録ID） |"
+        }
+      ],
+      "recommendedAction": "verify_gws_group_membership_or_mx_routing",
+      "severity": "routing_confirmation"
+    }
+  ],
+  "gate": {
+    "codeCoveragePass": true,
+    "noSharedInboxEvidence": [
+      "vyperglobal-yahoo",
+      "ebay"
+    ],
+    "routingConfirmationRequired": [
+      "ebay"
+    ],
+    "sourceOfTruthMissing": [
+      "gopro-yahoo",
+      "vyperglobal-yahoo",
+      "datacolor"
+    ],
+    "productionCompleteClaimReady": false
+  }
+}
