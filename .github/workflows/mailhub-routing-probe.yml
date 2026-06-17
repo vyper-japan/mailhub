@@ -71,6 +71,18 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Prepare fresh routing probe artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .ai-runs/mailhub-next-phase
+          rm -f \
+            .ai-runs/mailhub-next-phase/github-routing-secrets-readiness.json \
+            .ai-runs/mailhub-next-phase/mailhub-routing-probe-preflight.json \
+            .ai-runs/mailhub-next-phase/mailhub-routing-probe-send.json \
+            .ai-runs/mailhub-next-phase/mailhub-routing-probe-audit.json \
+            .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json
+
       - name: Validate send confirmation
         if: github.event.inputs.mode == 'send_verify'
         shell: bash

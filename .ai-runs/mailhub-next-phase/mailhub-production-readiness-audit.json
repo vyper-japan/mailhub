@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-06-17T03:30:04.251Z",
-  "repoHead": "c8f5813248a06f32955612d9a9c2f968b1265bb3",
+  "generatedAt": "2026-06-17T03:35:52.435Z",
+  "repoHead": "340fadd3229d7bbdf5ccd9d7330613eaa8e61e0e",
   "inputs": {
     "sourceAudit": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.ai-runs/mailhub-next-phase/gmail-source-coverage-audit.json",
     "opsAudit": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.ai-runs/mailhub-next-phase/mailhub-operational-confirmations.json",
@@ -13,7 +13,7 @@
     "opsAuditGeneratedAt": "2026-06-17T01:19:41.050Z",
     "gwsRoutingAuditGeneratedAt": "2026-06-17T01:26:07.121Z",
     "routingProbeAuditGeneratedAt": "2026-06-17T01:42:16.683Z",
-    "routingProbePreflightGeneratedAt": "2026-06-17T03:28:10.866Z",
+    "routingProbePreflightGeneratedAt": "2026-06-17T03:35:52.334Z",
     "viewsAuditGeneratedAt": "2026-06-17T01:03:11.682Z",
     "rulesAuditGeneratedAt": "2026-06-17T01:03:08.912Z"
   },
