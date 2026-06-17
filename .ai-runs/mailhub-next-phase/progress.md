@@ -463,6 +463,11 @@
   - Refreshed real-data source coverage, default views, rule safety, operational confirmations, GWS routing, routing probe plan/preflight, GitHub secret readiness, staff env readiness, staff workflow, routing next-step, staff next-step, and production readiness artifacts.
   - Latest staff workflow artifact now correctly treats required production auth/shared Gmail env and admins as present from `.env.local`; remaining P1 blockers are `not_production_env`, `staff_access_allowlist_not_ready`, `config_store_not_durable`, `activity_store_not_durable`, `read_only_not_enabled`, `readonly_evidence_missing`, and `write_pilot_evidence_missing`.
   - Latest real Gmail audits remain stable: source code coverage pass with `knownCodeGaps=[]`, default views validated but manual-review/bulk-unsafe for `customer-inquiries` and `noise-candidates`, and rule safety passes for the current empty file-backed rule config.
+- 2026-06-18 production rule config source gate completed:
+  - Added `requirements.currentRuleConfigSourceProductionReady` to `mailhub-production-readiness-audit.json`.
+  - Production readiness now records the rule safety audit source (`requestedSource`, `resolvedSource`, `warnings`) and raises P1 `rule_config_source_not_production` when the real-data rule safety audit was run against local file config instead of Sheets-backed production config.
+  - Strengthened `scripts/check-mailhub-readiness-contract.mjs` so a future `productionReady=true` claim requires Sheets-backed production rule config safety evidence, not only a fingerprint from a local empty file config.
+  - Ops readiness summary and the Ops Board now expose the rule config source alongside rule safety and fingerprint status.
 
 ## Not Done
 
@@ -493,6 +498,7 @@
 - Production pagination basic behavior is represented in API/UI metadata and forced E2E; real browser/manual production verification is still useful before staff rollout.
 - Auto-discard rules for marketing/noise are protected against obvious important/invoice/inquiry suppression and missing summary text, but a full production auto-discard policy is still intentionally not enabled.
 - Real-data rule safety audit exists and passes for the current local file config because no rules are configured. Re-run with `MAILHUB_CONFIG_STORE=sheets` and production Sheets credentials when production rule config is enabled.
+- Production readiness now explicitly tracks this as P1 `rule_config_source_not_production`; closing it requires the real-data rule safety audit to resolve to Sheets without warnings.
 - Most critic-identified production-readiness P1s from this wave are closed in code or converted to explicit operational confirmations. Remaining staff workflow gap is operational evidence/configuration: production `MAILHUB_TEAM_MEMBERS`, durable Sheets config/activity, read-only rollout screenshots, activity CSV, and controlled write pilot screenshots.
 - Important/invoice/customer-inquiry folders exist as default saved views and are audited as manual-review shortcuts; further narrowing requires operator feedback.
 - Default view bulk automation remains intentionally unsafe for `customer-inquiries` and `noise-candidates`; the readiness contract now requires that evidence to stay visible until the views are narrowed and re-audited.

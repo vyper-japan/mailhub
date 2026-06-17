@@ -50,12 +50,18 @@ function baseReadinessAudit(overrides: Record<string, unknown> = {}) {
       defaultViewsBulkAutomationSafe: false,
       currentRuleConfigRealDataSafetyReady: true,
       currentRuleConfigFingerprintPresent: true,
+      currentRuleConfigSourceProductionReady: true,
       staffWorkflowPermissionsReady: false,
       staffReadOnlyRolloutReady: false,
       staffControlledWritePilotReady: false,
     },
     inputs: {
       rulesConfigFingerprint: "sha256:abc123",
+      ruleConfigSource: {
+        requestedSource: "sheets",
+        resolvedSource: "sheets",
+        warnings: [],
+      },
     },
     viewSafety: {
       syntaxFailedViews: [],
@@ -223,6 +229,78 @@ describe("MailHub readiness contract check", () => {
     });
   });
 
+  test("rejects missing rule config source gate", () => {
+    withTempDir((dir) => {
+      const auditPath = join(dir, "readiness.json");
+      const audit = baseReadinessAudit();
+      const requirements = { ...audit.requirements };
+      delete (requirements as Record<string, unknown>).currentRuleConfigSourceProductionReady;
+      writeJson(auditPath, {
+        ...audit,
+        requirements,
+      });
+
+      const result = runContract(auditPath);
+      expect(result.status).toBe(1);
+      expect(result.stdout).toContain("rule_config_source_gate_missing");
+    });
+  });
+
+  test("rejects non-production rule config source without blocker evidence", () => {
+    withTempDir((dir) => {
+      const auditPath = join(dir, "readiness.json");
+      const audit = baseReadinessAudit();
+      writeJson(auditPath, {
+        ...audit,
+        requirements: {
+          ...audit.requirements,
+          currentRuleConfigSourceProductionReady: false,
+        },
+      });
+
+      const result = runContract(auditPath);
+      expect(result.status).toBe(1);
+      expect(result.stdout).toContain("rule_config_source_not_ready_without_blocker");
+      expect(result.stdout).toContain("rule_config_source_blocker_missing_detail");
+    });
+  });
+
+  test("accepts non-production rule config source when explicit blocker evidence is present", () => {
+    withTempDir((dir) => {
+      const auditPath = join(dir, "readiness.json");
+      const audit = baseReadinessAudit();
+      writeJson(auditPath, {
+        ...audit,
+        requirements: {
+          ...audit.requirements,
+          currentRuleConfigSourceProductionReady: false,
+        },
+        gate: {
+          ...audit.gate,
+          p1Blockers: ["staff_workflow_permissions", "rule_config_source_not_production"],
+        },
+        blockers: [
+          ...audit.blockers,
+          {
+            id: "rule_config_source_not_production",
+            severity: "P1",
+            evidence: {
+              ruleConfigSource: {
+                requestedSource: "file",
+                resolvedSource: "file",
+                warnings: [],
+              },
+              ruleSetFingerprint: "sha256:abc123",
+            },
+          },
+        ],
+      });
+
+      const result = runContract(auditPath);
+      expect(result.status).toBe(0);
+    });
+  });
+
   test("rejects bulk-unsafe default views without unsafe view evidence", () => {
     withTempDir((dir) => {
       const auditPath = join(dir, "readiness.json");
@@ -309,6 +387,7 @@ describe("MailHub readiness contract check", () => {
           defaultViewsBulkAutomationSafe: false,
           currentRuleConfigRealDataSafetyReady: true,
           currentRuleConfigFingerprintPresent: true,
+          currentRuleConfigSourceProductionReady: true,
         },
         gate: {
           productionReady: true,

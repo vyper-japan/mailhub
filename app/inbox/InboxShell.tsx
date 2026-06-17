@@ -157,7 +157,11 @@ type OpsReadinessView = {
   defaultViewsBulkUnsafeViews: string[];
   currentRuleConfigRealDataSafetyReady: boolean;
   currentRuleConfigFingerprintPresent: boolean;
+  currentRuleConfigSourceProductionReady: boolean;
   ruleConfigFingerprint: string | null;
+  ruleConfigSourceRequested: string | null;
+  ruleConfigSourceResolved: string | null;
+  ruleConfigSourceWarnings: string[];
   unconfirmedChannels: string[];
   missingProbeAddresses: string[];
   missingProbeSmtpEnv: string[];
@@ -8681,6 +8685,9 @@ export default function InboxShell({
                               </div>
                               <div className="rounded border border-slate-700/60 bg-slate-950/30 px-2 py-1">
                                 Rule指紋: {opsSummary.productionReadiness.currentRuleConfigFingerprintPresent ? "OK" : "なし"}
+                              </div>
+                              <div className="rounded border border-slate-700/60 bg-slate-950/30 px-2 py-1 truncate">
+                                Rule設定元: {opsSummary.productionReadiness.currentRuleConfigSourceProductionReady ? "Sheets" : (opsSummary.productionReadiness.ruleConfigSourceResolved || "未取得")}
                               </div>
                               <div className="rounded border border-slate-700/60 bg-slate-950/30 px-2 py-1 truncate">
                                 Rule hash: {opsSummary.productionReadiness.ruleConfigFingerprint?.slice(7, 19) || "未取得"}

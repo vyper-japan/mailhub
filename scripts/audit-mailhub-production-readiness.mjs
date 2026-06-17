@@ -109,6 +109,13 @@ function main() {
       ? rulesAudit.config.ruleSetFingerprint
       : null;
   const ruleConfigFingerprintPresent = Boolean(rulesConfigFingerprint);
+  const ruleConfigSource = {
+    requestedSource: rulesAudit.config?.requestedSource ?? null,
+    resolvedSource: rulesAudit.config?.resolvedSource ?? null,
+    warnings: stringArray(rulesAudit.config?.warnings),
+  };
+  const ruleConfigSourceProductionReady =
+    ruleConfigSource.resolvedSource === "sheets" && ruleConfigSource.warnings.length === 0;
   const ruleSafetyReady = Boolean(rulesAudit.ruleSafetyGate?.realDataRuleRiskPass) && ruleConfigFingerprintPresent;
   const staffWorkflowPermissionsReady = Boolean(staffWorkflowAudit?.gate?.staffWorkflowPermissionsReady);
   const staffWorkflowBlockerSeverity = currentSharedGmailRoutingReady ? "P0" : "P1";
@@ -158,6 +165,13 @@ function main() {
       fingerprintPresent: ruleConfigFingerprintPresent,
     }));
   }
+  if (!ruleConfigSourceProductionReady) {
+    blockers.push(blocker("rule_config_source_not_production", "P1", "Production readiness requires the rule-safety audit to validate the Sheets-backed production rule config.", {
+      ruleConfigSource,
+      ruleSafetyGate: rulesAudit.ruleSafetyGate ?? null,
+      ruleSetFingerprint: rulesConfigFingerprint,
+    }));
+  }
   if (!staffWorkflowPermissionsReady) {
     blockers.push(blocker("staff_workflow_permissions", staffWorkflowBlockerSeverity, "Production staff workflow and permission rollout evidence is not complete.", {
       staffWorkflowGate: staffWorkflowAudit?.gate ?? null,
@@ -190,6 +204,7 @@ function main() {
       rulesAuditGeneratedAt: rulesAudit.generatedAt ?? null,
       staffWorkflowAuditGeneratedAt: staffWorkflowAudit?.generatedAt ?? null,
       rulesConfigFingerprint,
+      ruleConfigSource,
     },
     requirements: {
       sourceCodeCoverageReady,
@@ -203,6 +218,7 @@ function main() {
       defaultViewsBulkAutomationSafe,
       currentRuleConfigRealDataSafetyReady: ruleSafetyReady,
       currentRuleConfigFingerprintPresent: ruleConfigFingerprintPresent,
+      currentRuleConfigSourceProductionReady: ruleConfigSourceProductionReady,
       staffWorkflowPermissionsReady,
       staffReadOnlyRolloutReady: staffWorkflowAudit?.gate?.readOnlyRolloutReady === true,
       staffControlledWritePilotReady: staffWorkflowAudit?.gate?.controlledWritePilotReady === true,
@@ -216,6 +232,7 @@ function main() {
         currentSharedGmailRoutingReady &&
         viewSyntaxReady &&
         ruleSafetyReady &&
+        ruleConfigSourceProductionReady &&
         staffWorkflowPermissionsReady &&
         blockers.filter((item) => item.severity === "P0").length === 0,
       p0Blockers: blockers.filter((item) => item.severity === "P0").map((item) => item.id),

@@ -183,6 +183,9 @@ function writeReadinessFixtures(
   writeJson(paths.rules, {
     generatedAt: "2026-06-17T00:00:00.000Z",
     config: {
+      requestedSource: "sheets",
+      resolvedSource: "sheets",
+      warnings: [],
       ruleSetFingerprint: "sha256:fixture-rules",
     },
     ruleSafetyGate: { realDataRuleRiskPass: true },

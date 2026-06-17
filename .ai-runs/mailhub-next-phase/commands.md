@@ -2184,6 +2184,25 @@ npm run audit:mailhub-staff-next -- --out .ai-runs/mailhub-next-phase/mailhub-st
 - Latest real-data audits remain green where code can prove them: source code coverage pass, source inventory pass, default view syntax validated/manual-review only, and current rule config real-data safety pass.
 - Remaining P0/P1 are unchanged in substance: external shared-Gmail routing proof still needs external SMTP proof, and staff workflow rollout still needs production config/evidence.
 
+## 2026-06-18 Production Rule Config Source Gate Commands
+
+```bash
+node --check scripts/audit-mailhub-production-readiness.mjs
+node --check scripts/check-mailhub-readiness-contract.mjs
+npx vitest run lib/__tests__/mailhub-readiness-contract.test.ts lib/__tests__/opsReadinessSummary.test.ts
+npm run typecheck
+npm run audit:mailhub-readiness -- --out .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json
+npm run audit:mailhub-routing-next -- --strict --out .ai-runs/mailhub-next-phase/mailhub-routing-next-steps.json
+```
+
+## 2026-06-18 Production Rule Config Source Gate Results
+
+- Added `currentRuleConfigSourceProductionReady` to the production readiness requirements.
+- Readiness now records the rule safety audit source and raises P1 `rule_config_source_not_production` when rule safety was proven against local file config instead of the Sheets-backed production config.
+- The readiness contract now rejects future `productionReady=true` claims without production rule config source evidence.
+- Ops readiness summary and Ops Board now expose the rule config source next to rule safety/fingerprint.
+- Current artifact still has rule safety pass, but `currentRuleConfigSourceProductionReady=false` because the latest audit resolved to `file`.
+
 ## Useful Runtime Commands
 
 Start dev server for tunnel:

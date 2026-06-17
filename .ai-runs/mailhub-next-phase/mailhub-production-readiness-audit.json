@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-06-17T15:16:19.453Z",
-  "repoHead": "0b537535d886843718059f113ee334aec8e3af27",
+  "generatedAt": "2026-06-17T15:35:36.544Z",
+  "repoHead": "86ae06d745feb3e59836018e4b29fdf6f665c6c1",
   "inputs": {
     "sourceAudit": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.ai-runs/mailhub-next-phase/gmail-source-coverage-audit.json",
     "opsAudit": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.ai-runs/mailhub-next-phase/mailhub-operational-confirmations.json",
@@ -20,7 +20,12 @@
     "viewsAuditGeneratedAt": "2026-06-17T15:15:32.600Z",
     "rulesAuditGeneratedAt": "2026-06-17T15:15:29.590Z",
     "staffWorkflowAuditGeneratedAt": "2026-06-17T15:15:07.612Z",
-    "rulesConfigFingerprint": "sha256:64ce3c152193b489c6d1b48a3c89ad4ea195b7824e0c25c5412db1c4a1cababd"
+    "rulesConfigFingerprint": "sha256:64ce3c152193b489c6d1b48a3c89ad4ea195b7824e0c25c5412db1c4a1cababd",
+    "ruleConfigSource": {
+      "requestedSource": "file",
+      "resolvedSource": "file",
+      "warnings": []
+    }
   },
   "requirements": {
     "sourceCodeCoverageReady": true,
@@ -34,6 +39,7 @@
     "defaultViewsBulkAutomationSafe": false,
     "currentRuleConfigRealDataSafetyReady": true,
     "currentRuleConfigFingerprintPresent": true,
+    "currentRuleConfigSourceProductionReady": false,
     "staffWorkflowPermissionsReady": false,
     "staffReadOnlyRolloutReady": false,
     "staffControlledWritePilotReady": false
@@ -200,6 +206,24 @@
       }
     },
     {
+      "id": "rule_config_source_not_production",
+      "severity": "P1",
+      "message": "Production readiness requires the rule-safety audit to validate the Sheets-backed production rule config.",
+      "evidence": {
+        "ruleConfigSource": {
+          "requestedSource": "file",
+          "resolvedSource": "file",
+          "warnings": []
+        },
+        "ruleSafetyGate": {
+          "realDataRuleRiskPass": true,
+          "suppressiveAutoApplySafe": true,
+          "blockingFindings": []
+        },
+        "ruleSetFingerprint": "sha256:64ce3c152193b489c6d1b48a3c89ad4ea195b7824e0c25c5412db1c4a1cababd"
+      }
+    },
+    {
       "id": "staff_workflow_permissions",
       "severity": "P1",
       "message": "Production staff workflow and permission rollout evidence is not complete.",
@@ -323,6 +347,7 @@
       "current_shared_gmail_routing"
     ],
     "p1Blockers": [
+      "rule_config_source_not_production",
       "staff_workflow_permissions"
     ]
   }

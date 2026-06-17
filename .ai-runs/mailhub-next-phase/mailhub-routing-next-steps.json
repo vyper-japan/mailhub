@@ -1,13 +1,13 @@
 {
-  "generatedAt": "2026-06-17T15:17:57.120Z",
+  "generatedAt": "2026-06-17T15:35:47.567Z",
   "inputs": {
     "readiness": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json",
     "githubSecrets": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.ai-runs/mailhub-next-phase/github-routing-secrets-readiness.json",
     "preflight": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.ai-runs/mailhub-next-phase/mailhub-routing-probe-preflight.json",
-    "readinessGeneratedAt": "2026-06-17T15:16:19.453Z",
-    "readinessRepoHead": "0b537535d886843718059f113ee334aec8e3af27",
-    "repoHead": "0b537535d886843718059f113ee334aec8e3af27",
-    "repoParentHead": "f9e65d316d01f6093c5d3fa3abf1f7d0ef364702",
+    "readinessGeneratedAt": "2026-06-17T15:35:36.544Z",
+    "readinessRepoHead": "86ae06d745feb3e59836018e4b29fdf6f665c6c1",
+    "repoHead": "86ae06d745feb3e59836018e4b29fdf6f665c6c1",
+    "repoParentHead": "0b537535d886843718059f113ee334aec8e3af27",
     "githubSecretsCheckedAt": "2026-06-17T15:15:08.207Z",
     "preflightGeneratedAt": "2026-06-17T15:16:00.624Z",
     "localEnvFile": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.env.local",
@@ -21,6 +21,7 @@
       "current_shared_gmail_routing"
     ],
     "p1Blockers": [
+      "rule_config_source_not_production",
       "staff_workflow_permissions"
     ],
     "currentSharedGmailRoutingBlocked": true,

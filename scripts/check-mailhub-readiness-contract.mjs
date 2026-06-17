@@ -92,6 +92,7 @@ function main() {
     if (requirements.defaultViewsRealDataValidated !== true) errors.push("production_ready_without_default_views_validation");
     if (requirements.currentRuleConfigRealDataSafetyReady !== true) errors.push("production_ready_without_rule_safety");
     if (requirements.currentRuleConfigFingerprintPresent !== true) errors.push("production_ready_without_rule_config_fingerprint");
+    if (requirements.currentRuleConfigSourceProductionReady !== true) errors.push("production_ready_without_production_rule_config_source");
     if (requirements.staffWorkflowPermissionsReady !== true) errors.push("production_ready_without_staff_workflow_permissions");
   } else if (p0Blockers.length === 0) {
     errors.push("not_ready_without_p0_blockers");
@@ -103,6 +104,26 @@ function main() {
 
   if (requirements.currentRuleConfigRealDataSafetyReady === true && requirements.currentRuleConfigFingerprintPresent !== true) {
     errors.push("rule_safety_ready_without_config_fingerprint");
+  }
+  if (typeof requirements.currentRuleConfigSourceProductionReady !== "boolean") {
+    errors.push("rule_config_source_gate_missing");
+  }
+  const ruleConfigSourceBlocker = blockers.find((item) => item.id === "rule_config_source_not_production");
+  if (requirements.currentRuleConfigSourceProductionReady !== true) {
+    if (!p0Blockers.includes("rule_config_source_not_production") && !p1Blockers.includes("rule_config_source_not_production")) {
+      errors.push("rule_config_source_not_ready_without_blocker");
+    }
+    if (!ruleConfigSourceBlocker) {
+      errors.push("rule_config_source_blocker_missing_detail");
+    } else {
+      const evidence = objectValue(ruleConfigSourceBlocker.evidence);
+      const source = objectValue(evidence.ruleConfigSource);
+      if (typeof source.resolvedSource !== "string") {
+        errors.push("rule_config_source_blocker_missing_resolved_source");
+      }
+    }
+  } else if (ruleConfigSourceBlocker) {
+    warnings.push("rule_config_source_blocker_detail_present_when_ready");
   }
 
   const syntaxFailedViews = stringArray(viewSafety.syntaxFailedViews);

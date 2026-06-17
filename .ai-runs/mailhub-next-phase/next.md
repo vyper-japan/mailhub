@@ -30,7 +30,8 @@ Continue from the completed INBOX-scoped source coverage and rule-safety wave:
    - Latest aggregate gate: `productionReady=false`.
    - Passing: source code coverage, source inventory, default view real-data syntax validation, current rule config real-data safety.
    - Current P0 blocker: `current_shared_gmail_routing`.
-   - Current P1 blocker: `staff_workflow_permissions`.
+   - Current P1 blockers: `rule_config_source_not_production`, `staff_workflow_permissions`.
+   - `rule_config_source_not_production` means the latest real-data rule safety audit passed against local `file` config. Before production-complete, re-run it with the Sheets-backed production rule config (`MAILHUB_CONFIG_STORE=sheets` plus Sheets env) so production rules, not local empty config, are proven safe.
    - `staff_workflow_permissions` escalates to P0 after routing proof is complete if read-only rollout / controlled write pilot evidence is still missing.
    - Run `npm run audit:mailhub-readiness-contract` after regenerating readiness. This is also enforced by `.github/workflows/mailhub-readiness-contract.yml` on push/PR.
 9. Run or inspect `npm run audit:routing-probes -- --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-audit.json`.
@@ -50,7 +51,7 @@ Continue from the completed INBOX-scoped source coverage and rule-safety wave:
 10. For `vyperglobal-yahoo` and `ebay`, source exists and GWS group membership is correct, but shared Gmail has no active or historical evidence. Verify Lolipop-side forwarding/current MX path to `mailhub@`, send a controlled probe, or explicitly document that the source remains outside the shared Gmail workbench.
 11. For `gopro-yahoo`, `vyperglobal-rakuten`, `ams-vyper`, and `datacolor`, historical shared Gmail evidence exists but active `INBOX` is zero. Confirm current routing/dormancy before production-complete source coverage is claimed.
 12. Collect operator feedback on the default saved views. Real Gmail audit now emits a machine gate: `syntaxReady=true`, `manualReviewOnly=true`, `bulkAutomationSafe=false`, and `bulkUnsafeViews=["customer-inquiries","noise-candidates"]`. Keep those views as manual-review shortcuts unless narrowed.
-13. Re-run `npm run audit:gmail-rules -- --out .ai-runs/mailhub-next-phase/gmail-rule-safety-audit.json --max 100` whenever production file/Sheets rules are added or changed. The audit must emit `config.ruleSetFingerprint`, and production readiness must show `currentRuleConfigFingerprintPresent=true`.
+13. Re-run `MAILHUB_CONFIG_STORE=sheets npm run audit:gmail-rules -- --out .ai-runs/mailhub-next-phase/gmail-rule-safety-audit.json --max 100` once production Sheets rule config is available. The audit must emit `config.ruleSetFingerprint`, and production readiness must show both `currentRuleConfigFingerprintPresent=true` and `currentRuleConfigSourceProductionReady=true`.
 14. Staff-permission code hardening candidates from the review wave are closed: explicit staff allowlist exists, non-admin `unassign` is blocked at the route boundary, and label rule `assignTo` persistence has regression coverage. Remaining staff work is operational config/evidence, not these code gaps.
 15. Add AI reply drafting only after a knowledge evidence source is defined; keep generated drafts separate from send actions.
 16. Expand the rule-safety gate only after production rule config exists and passes the real-data audit. Current code protects suppressive labels from invoice/inquiry/important-looking messages and fails closed when classification text is missing, but does not implement a full production auto-discard policy.

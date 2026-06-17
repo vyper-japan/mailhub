@@ -25,10 +25,14 @@ export type OpsReadinessSummary = {
   defaultViewsBulkUnsafeViews: string[];
   currentRuleConfigRealDataSafetyReady: boolean;
   currentRuleConfigFingerprintPresent: boolean;
+  currentRuleConfigSourceProductionReady: boolean;
   staffWorkflowPermissionsReady: boolean;
   staffReadOnlyRolloutReady: boolean;
   staffControlledWritePilotReady: boolean;
   ruleConfigFingerprint: string | null;
+  ruleConfigSourceRequested: string | null;
+  ruleConfigSourceResolved: string | null;
+  ruleConfigSourceWarnings: string[];
   unconfirmedChannels: string[];
   missingProbeAddresses: string[];
   missingProbeSmtpEnv: string[];
@@ -80,10 +84,14 @@ export function unavailableOpsReadinessSummary(): OpsReadinessSummary {
     defaultViewsBulkUnsafeViews: [],
     currentRuleConfigRealDataSafetyReady: false,
     currentRuleConfigFingerprintPresent: false,
+    currentRuleConfigSourceProductionReady: false,
     staffWorkflowPermissionsReady: false,
     staffReadOnlyRolloutReady: false,
     staffControlledWritePilotReady: false,
     ruleConfigFingerprint: null,
+    ruleConfigSourceRequested: null,
+    ruleConfigSourceResolved: null,
+    ruleConfigSourceWarnings: [],
     unconfirmedChannels: [],
     missingProbeAddresses: [],
     missingProbeSmtpEnv: [],
@@ -152,6 +160,9 @@ export function summarizeProductionReadinessAudit(
   const viewSafety = (audit.viewSafety && typeof audit.viewSafety === "object")
     ? audit.viewSafety as Record<string, unknown>
     : {};
+  const ruleConfigSource = (inputs.ruleConfigSource && typeof inputs.ruleConfigSource === "object")
+    ? inputs.ruleConfigSource as Record<string, unknown>
+    : {};
   const blockers = Array.isArray(audit.blockers) ? audit.blockers : [];
   const routingBlocker = blockers
     .filter((item): item is Record<string, unknown> => Boolean(item && typeof item === "object"))
@@ -210,10 +221,14 @@ export function summarizeProductionReadinessAudit(
     defaultViewsBulkUnsafeViews: stringArray(viewSafety.bulkUnsafeViews),
     currentRuleConfigRealDataSafetyReady: requirements.currentRuleConfigRealDataSafetyReady === true,
     currentRuleConfigFingerprintPresent: requirements.currentRuleConfigFingerprintPresent === true,
+    currentRuleConfigSourceProductionReady: requirements.currentRuleConfigSourceProductionReady === true,
     staffWorkflowPermissionsReady: requirements.staffWorkflowPermissionsReady === true,
     staffReadOnlyRolloutReady: requirements.staffReadOnlyRolloutReady === true,
     staffControlledWritePilotReady: requirements.staffControlledWritePilotReady === true,
     ruleConfigFingerprint: typeof inputs.rulesConfigFingerprint === "string" ? inputs.rulesConfigFingerprint : null,
+    ruleConfigSourceRequested: typeof ruleConfigSource.requestedSource === "string" ? ruleConfigSource.requestedSource : null,
+    ruleConfigSourceResolved: typeof ruleConfigSource.resolvedSource === "string" ? ruleConfigSource.resolvedSource : null,
+    ruleConfigSourceWarnings: stringArray(ruleConfigSource.warnings),
     unconfirmedChannels: stringArray(evidence.currentSharedGmailRoutingUnconfirmed),
     missingProbeAddresses: stringArray(routingProbeGate.missingAddresses),
     missingProbeSmtpEnv: stringArray(routingProbePreflight.missingRequiredEnv),
