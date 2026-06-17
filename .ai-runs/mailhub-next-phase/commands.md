@@ -938,6 +938,33 @@ git diff --check
 - Final readiness contract check: passed with `productionReady=false`, P0 `current_shared_gmail_routing`, and no contract errors.
 - `git diff --check`: passed.
 
+## Verification Commands Run On 2026-06-17 GitHub Routing Probe Preflight Wave
+
+```bash
+gh workflow run mailhub-routing-probe.yml --repo vyper-japan/mailhub -f mode=preflight -f confirmSend= -f waitSeconds=300 -f pollSeconds=15
+gh run watch 27662895095 --repo vyper-japan/mailhub --exit-status
+actionlint .github/workflows/*.yml
+ruby -e 'require "yaml"; Dir[".github/workflows/*.yml"].each { |p| YAML.load_file(p) }; puts "workflow yaml ok"'
+npm run audit:mailhub-readiness-contract
+npm run audit:mailhub-readiness -- --out .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json
+npm run audit:mailhub-readiness-contract
+git diff --check
+```
+
+## 2026-06-17 GitHub Routing Probe Preflight Wave Results
+
+- GitHub Actions run `27662895095`: passed in 26s on `afbda10`.
+- The run used `mode=preflight`; `send_verify` was skipped, so no external mail was sent.
+- The preflight job ran the routing probe preflight, refreshed readiness, and uploaded artifacts.
+- GitHub emitted a Node.js 20 JavaScript action runtime deprecation annotation for `actions/*@v4`.
+- Added `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true` to the workflow set and moved `qa-strict` setup-node from Node 20 to Node 22.
+- `actionlint .github/workflows/*.yml`: passed.
+- Workflow YAML parse: passed.
+- Initial readiness contract check: passed.
+- Final readiness refresh: passed.
+- Final readiness contract check: passed with `productionReady=false`, P0 `current_shared_gmail_routing`, and no contract errors.
+- `git diff --check`: passed.
+
 ## Useful Runtime Commands
 
 Start dev server for tunnel:

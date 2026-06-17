@@ -233,6 +233,11 @@
   - It reports whether the manual routing probe workflow is ready for preflight production proof and `send_verify`.
   - Current GitHub repo secret list is empty, so Actions-side `send_verify` is not ready until SMTP/Gmail proof secrets are added.
   - `OPS_RUNBOOK.md` and `next.md` now include the secrets readiness check before manual workflow execution.
+- 2026-06-17 GitHub routing probe preflight wave completed:
+  - Triggered manual GitHub Actions run `27662895095` in `mode=preflight`; it passed and skipped `send_verify`, so no external mail was sent.
+  - The GitHub run proved the manual workflow can execute the no-send preflight path and upload artifacts.
+  - GitHub emitted a Node.js 20 JavaScript action runtime deprecation annotation for `actions/*@v4`.
+  - Added `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true` across MailHub workflows and updated `qa-strict` from Node 20 to Node 22.
 
 ## Not Done
 

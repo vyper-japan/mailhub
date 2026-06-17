@@ -16,6 +16,9 @@ on:
           - production
           - staging
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
 concurrency:
   group: mailhub-alerts-${{ github.ref }}
   cancel-in-progress: false
@@ -100,5 +103,4 @@ jobs:
           if echo "$RESPONSE" | grep -q '"truncated":true'; then
             echo "⚠️ Warning: Alert truncated (limit reached)"
           fi
-
 

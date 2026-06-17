@@ -13,6 +13,9 @@ on:
         type: string
         default: ""
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
 concurrency:
   group: mailhub-config-backup-${{ github.ref }}
   cancel-in-progress: false

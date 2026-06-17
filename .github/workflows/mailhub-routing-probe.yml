@@ -36,6 +36,9 @@ on:
           - "15"
           - "30"
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
 concurrency:
   group: mailhub-routing-probe
   cancel-in-progress: false
