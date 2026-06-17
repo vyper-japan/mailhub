@@ -1,0 +1,145 @@
+#!/usr/bin/env node
+
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+
+const repoRoot = process.cwd();
+const runDir = join(repoRoot, ".ai-runs", "mailhub-next-phase");
+const defaults = {
+  sourceAudit: join(runDir, "gmail-source-coverage-audit.json"),
+  opsAudit: join(runDir, "mailhub-operational-confirmations.json"),
+  gwsRoutingAudit: join(runDir, "mailhub-gws-routing-audit.json"),
+  viewsAudit: join(runDir, "gmail-default-views-audit.json"),
+  rulesAudit: join(runDir, "gmail-rule-safety-audit.json"),
+  out: join(runDir, "mailhub-production-readiness-audit.json"),
+};
+
+function parseArgs(argv) {
+  const out = { ...defaults };
+  for (let i = 0; i < argv.length; i += 1) {
+    const arg = argv[i];
+    if (arg === "--source-audit") out.sourceAudit = argv[++i];
+    else if (arg === "--ops-audit") out.opsAudit = argv[++i];
+    else if (arg === "--gws-routing-audit") out.gwsRoutingAudit = argv[++i];
+    else if (arg === "--views-audit") out.viewsAudit = argv[++i];
+    else if (arg === "--rules-audit") out.rulesAudit = argv[++i];
+    else if (arg === "--out") out.out = argv[++i];
+    else if (arg === "--help" || arg === "-h") {
+      console.log(`Usage: node scripts/audit-mailhub-production-readiness.mjs [--source-audit path] [--ops-audit path] [--gws-routing-audit path] [--views-audit path] [--rules-audit path] [--out path]`);
+      process.exit(0);
+    }
+  }
+  return out;
+}
+
+function readJson(path) {
+  if (!existsSync(path)) throw new Error(`missing_audit:${path}`);
+  return JSON.parse(readFileSync(path, "utf8"));
+}
+
+function blocker(id, severity, message, evidence = {}) {
+  return { id, severity, message, evidence };
+}
+
+function main() {
+  const args = parseArgs(process.argv.slice(2));
+  const sourceAudit = readJson(args.sourceAudit);
+  const opsAudit = readJson(args.opsAudit);
+  const gwsRoutingAudit = readJson(args.gwsRoutingAudit);
+  const viewsAudit = readJson(args.viewsAudit);
+  const rulesAudit = readJson(args.rulesAudit);
+
+  const knownCodeGaps = sourceAudit.zeroEstimateAnalysis?.knownCodeGaps ?? [];
+  const sourceCodeCoverageReady =
+    Boolean(sourceAudit.zeroEstimateAnalysis?.coverageGate?.codeCoveragePass) &&
+    knownCodeGaps.length === 0;
+  const sourceInventoryReady = (opsAudit.gate?.sourceInventoryMissing ?? []).length === 0;
+  const currentSharedGmailRoutingReady =
+    Boolean(opsAudit.gate?.productionCompleteClaimReady) &&
+    Boolean(gwsRoutingAudit.gate?.currentSharedGmailRoutingConfirmed);
+  const viewSyntaxReady = (viewsAudit.views ?? []).every((view) => view.syntaxAccepted === true && !view.error);
+  const viewsManualReviewOnly = (viewsAudit.views ?? []).some(
+    (view) => view.risk === "broad_manual_review_only" || view.hasMoreAfterMaxPages === true,
+  );
+  const ruleSafetyReady = Boolean(rulesAudit.ruleSafetyGate?.realDataRuleRiskPass);
+
+  const blockers = [];
+  if (!sourceCodeCoverageReady) {
+    blockers.push(blocker("source_code_coverage", "P0", "Source code coverage gate is not ready.", {
+      knownCodeGaps,
+      codeCoveragePass: sourceAudit.zeroEstimateAnalysis?.coverageGate?.codeCoveragePass ?? null,
+    }));
+  }
+  if (!sourceInventoryReady) {
+    blockers.push(blocker("source_inventory_missing", "P0", "Some operational source addresses still lack source inventory evidence.", {
+      sourceInventoryMissing: opsAudit.gate?.sourceInventoryMissing ?? [],
+    }));
+  }
+  if (!currentSharedGmailRoutingReady) {
+    blockers.push(blocker("current_shared_gmail_routing", "P0", "Current external mail routing into the shared Gmail/MailHub workbench is not fully confirmed.", {
+      currentSharedGmailRoutingUnconfirmed: opsAudit.gate?.currentSharedGmailRoutingUnconfirmed ?? [],
+      noSharedInboxEvidence: opsAudit.gate?.noSharedInboxEvidence ?? [],
+      routingConfirmationRequired: opsAudit.gate?.routingConfirmationRequired ?? [],
+      gwsRoutingGate: gwsRoutingAudit.gate ?? null,
+      mxRecords: gwsRoutingAudit.dns?.mxRecords ?? [],
+    }));
+  }
+  if (!viewSyntaxReady) {
+    blockers.push(blocker("default_view_syntax", "P1", "At least one default operational view failed Gmail syntax validation.", {
+      failedViews: (viewsAudit.views ?? []).filter((view) => view.syntaxAccepted !== true || view.error),
+    }));
+  }
+  if (!ruleSafetyReady) {
+    blockers.push(blocker("rule_safety_real_data", "P0", "Real-data rule safety gate is not passing.", {
+      ruleSafetyGate: rulesAudit.ruleSafetyGate ?? null,
+    }));
+  }
+
+  const result = {
+    generatedAt: new Date().toISOString(),
+    inputs: {
+      sourceAudit: args.sourceAudit,
+      opsAudit: args.opsAudit,
+      gwsRoutingAudit: args.gwsRoutingAudit,
+      viewsAudit: args.viewsAudit,
+      rulesAudit: args.rulesAudit,
+      sourceAuditGeneratedAt: sourceAudit.generatedAt ?? null,
+      opsAuditGeneratedAt: opsAudit.generatedAt ?? null,
+      gwsRoutingAuditGeneratedAt: gwsRoutingAudit.generatedAt ?? null,
+      viewsAuditGeneratedAt: viewsAudit.generatedAt ?? null,
+      rulesAuditGeneratedAt: rulesAudit.generatedAt ?? null,
+    },
+    requirements: {
+      sourceCodeCoverageReady,
+      sourceInventoryReady,
+      currentSharedGmailRoutingReady,
+      defaultViewsRealDataValidated: viewSyntaxReady,
+      defaultViewsManualReviewOnly: viewsManualReviewOnly,
+      currentRuleConfigRealDataSafetyReady: ruleSafetyReady,
+    },
+    blockers,
+    gate: {
+      productionReady:
+        sourceCodeCoverageReady &&
+        sourceInventoryReady &&
+        currentSharedGmailRoutingReady &&
+        viewSyntaxReady &&
+        ruleSafetyReady &&
+        blockers.filter((item) => item.severity === "P0").length === 0,
+      p0Blockers: blockers.filter((item) => item.severity === "P0").map((item) => item.id),
+      p1Blockers: blockers.filter((item) => item.severity === "P1").map((item) => item.id),
+    },
+  };
+
+  mkdirSync(dirname(args.out), { recursive: true });
+  writeFileSync(args.out, `${JSON.stringify(result, null, 2)}\n`, "utf8");
+  console.log(JSON.stringify({
+    outPath: args.out,
+    generatedAt: result.generatedAt,
+    productionReady: result.gate.productionReady,
+    p0Blockers: result.gate.p0Blockers,
+    p1Blockers: result.gate.p1Blockers,
+  }, null, 2));
+}
+
+main();

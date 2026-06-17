@@ -161,3 +161,26 @@ Current machine conclusion:
 | Current shared Gmail routing confirmed | no |
 
 This resolves the GWS membership part of the routing question, including `vyperglobal_y@vtj.co.jp` and `ebay@vtj.co.jp`. It does not prove external mail reaches shared Gmail because the domain MX still points to Lolipop. The remaining production-complete blocker is current Lolipop forwarding/MX cutover evidence or active shared Gmail `INBOX` evidence for the zero-active-inbox channels.
+
+## Production Readiness Gate
+
+Command:
+
+```bash
+npm run audit:mailhub-readiness -- --out .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json
+```
+
+This aggregates the source coverage, operational confirmation, GWS routing, default view, and rule-safety audits into one production-complete claim gate.
+
+Current machine conclusion:
+
+| Requirement | Result |
+|---|---|
+| Source code coverage ready | pass |
+| Source inventory ready | pass |
+| Current shared Gmail routing ready | fail |
+| Default views real-data validated | pass |
+| Default views automation status | manual review only |
+| Current rule config real-data safety ready | pass |
+
+The aggregate `productionReady` gate is `false`. The only current P0 blocker is `current_shared_gmail_routing`: the six zero-active-inbox channels still lack current external-mail-to-shared-Gmail proof, and DNS MX remains `50 mx01.lolipop.jp`.

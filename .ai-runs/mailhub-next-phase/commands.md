@@ -273,6 +273,41 @@ npm run build
 - `npm run test`: 60 files / 531 tests passed.
 - `npm run build`: passed.
 
+## Verification Commands Run On 2026-06-17 Production Readiness Gate Wave
+
+```bash
+node --check scripts/audit-mailhub-production-readiness.mjs
+npm run audit:mailhub-readiness -- --out .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json
+jq '{requirements, gate, blockers}' .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json
+node -e 'const a=require("./.ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json"); if(a.gate.productionReady) process.exit(1); if(a.gate.p0Blockers.join(",")!=="current_shared_gmail_routing") process.exit(2); if(!a.requirements.sourceCodeCoverageReady||!a.requirements.sourceInventoryReady||!a.requirements.defaultViewsRealDataValidated||!a.requirements.currentRuleConfigRealDataSafetyReady) process.exit(3); if(a.requirements.currentSharedGmailRoutingReady) process.exit(4); console.log("readiness gate safe", JSON.stringify(a.gate));'
+git diff --check
+npm run typecheck
+npm run lint
+npm run test
+npm run build
+```
+
+## 2026-06-17 Production Readiness Gate Results
+
+- `node --check`: passed.
+- `npm run audit:mailhub-readiness`: passed.
+- `productionReady`: `false`.
+- P0 blockers: `current_shared_gmail_routing`.
+- P1 blockers: none.
+- Passing requirements:
+  - `sourceCodeCoverageReady`
+  - `sourceInventoryReady`
+  - `defaultViewsRealDataValidated`
+  - `currentRuleConfigRealDataSafetyReady`
+- Not ready:
+  - `currentSharedGmailRoutingReady`
+- Readiness gate assertion command: passed.
+- `git diff --check`: passed.
+- `npm run typecheck`: passed.
+- `npm run lint`: passed.
+- `npm run test`: 60 files / 531 tests passed.
+- `npm run build`: passed.
+
 ## Verification Commands Run On 2026-06-17 Rule Safety Real-Data Gate Wave
 
 ```bash

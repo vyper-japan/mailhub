@@ -1,0 +1,68 @@
+{
+  "generatedAt": "2026-06-17T01:32:21.130Z",
+  "inputs": {
+    "sourceAudit": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.ai-runs/mailhub-next-phase/gmail-source-coverage-audit.json",
+    "opsAudit": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.ai-runs/mailhub-next-phase/mailhub-operational-confirmations.json",
+    "gwsRoutingAudit": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.ai-runs/mailhub-next-phase/mailhub-gws-routing-audit.json",
+    "viewsAudit": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.ai-runs/mailhub-next-phase/gmail-default-views-audit.json",
+    "rulesAudit": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.ai-runs/mailhub-next-phase/gmail-rule-safety-audit.json",
+    "sourceAuditGeneratedAt": "2026-06-17T01:03:24.561Z",
+    "opsAuditGeneratedAt": "2026-06-17T01:19:41.050Z",
+    "gwsRoutingAuditGeneratedAt": "2026-06-17T01:26:07.121Z",
+    "viewsAuditGeneratedAt": "2026-06-17T01:03:11.682Z",
+    "rulesAuditGeneratedAt": "2026-06-17T01:03:08.912Z"
+  },
+  "requirements": {
+    "sourceCodeCoverageReady": true,
+    "sourceInventoryReady": true,
+    "currentSharedGmailRoutingReady": false,
+    "defaultViewsRealDataValidated": true,
+    "defaultViewsManualReviewOnly": true,
+    "currentRuleConfigRealDataSafetyReady": true
+  },
+  "blockers": [
+    {
+      "id": "current_shared_gmail_routing",
+      "severity": "P0",
+      "message": "Current external mail routing into the shared Gmail/MailHub workbench is not fully confirmed.",
+      "evidence": {
+        "currentSharedGmailRoutingUnconfirmed": [
+          "gopro-yahoo",
+          "vyperglobal-rakuten",
+          "vyperglobal-yahoo",
+          "ams-vyper",
+          "datacolor",
+          "ebay"
+        ],
+        "noSharedInboxEvidence": [
+          "vyperglobal-yahoo",
+          "ebay"
+        ],
+        "routingConfirmationRequired": [
+          "vyperglobal-yahoo",
+          "ebay"
+        ],
+        "gwsRoutingGate": {
+          "allGroupsFound": true,
+          "allGroupsHaveMailhubMember": true,
+          "domainMxGoogleLike": false,
+          "externalMxRequiresLolipopForwardingEvidence": true,
+          "currentSharedGmailRoutingConfirmed": false
+        },
+        "mxRecords": [
+          {
+            "exchange": "mx01.lolipop.jp",
+            "priority": 50
+          }
+        ]
+      }
+    }
+  ],
+  "gate": {
+    "productionReady": false,
+    "p0Blockers": [
+      "current_shared_gmail_routing"
+    ],
+    "p1Blockers": []
+  }
+}
