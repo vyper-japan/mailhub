@@ -1,7 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { MessageDetail } from "@/lib/mailhub-types";
-import { clearActivityLogs, getActivityLogs } from "@/lib/audit-log";
-import { clearMailhubSendDuplicateGuard } from "@/lib/mailhub-send-duplicate-guard";
+import { clearActivityLogs, getActivityLogs, logAction } from "@/lib/audit-log";
+import {
+  buildMailhubSendDuplicateKeys,
+  clearMailhubSendDuplicateGuard,
+} from "@/lib/mailhub-send-duplicate-guard";
 import { clearTestSentReplyCaptures, listTestSentReplyCaptures } from "@/lib/mailhub-send-test-capture";
 
 const routeMocks = vi.hoisted(() => ({
@@ -192,6 +195,26 @@ describe("POST /api/mailhub/send", () => {
     });
   });
 
+  it("requires a durable Sheets send guard in production runtime", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("MAILHUB_TEST_MODE", "0");
+    vi.stubEnv("MAILHUB_SEND_ENABLED", "1");
+    delete process.env.MAILHUB_ACTIVITY_STORE;
+    delete process.env.MAILHUB_SHEETS_SPREADSHEET_ID;
+    delete process.env.MAILHUB_SHEETS_CLIENT_EMAIL;
+    delete process.env.MAILHUB_SHEETS_PRIVATE_KEY;
+    const POST = await importSendPost();
+
+    const res = await POST(makeRequest(validBody({ clientRequestId: "client-prod-guard" })));
+
+    expect(res.status).toBe(503);
+    expect(await readJson(res)).toMatchObject({
+      error: "send_guard_unavailable",
+      activityStore: "memory",
+    });
+    expect(routeMocks.getMessageDetail).not.toHaveBeenCalled();
+  });
+
   it("captures TEST_MODE success and records reply_send activity", async () => {
     const POST = await importSendPost();
 
@@ -331,6 +354,41 @@ describe("POST /api/mailhub/send", () => {
     expect(res.status).toBe(409);
     expect(await readJson(res)).toMatchObject({ error: "duplicate_send", duplicateKey: "clientRequestId" });
     expect(routeMocks.sendGmailReply).toHaveBeenCalledTimes(1);
+  });
+
+  it("blocks cold-start duplicate sends from persisted send guard activity", async () => {
+    vi.stubEnv("MAILHUB_TEST_MODE", "0");
+    vi.stubEnv("MAILHUB_SEND_ENABLED", "1");
+    const keys = buildMailhubSendDuplicateKeys({
+      actorEmail: "test@vtj.co.jp",
+      messageId: "msg-001",
+      clientRequestId: "client-history",
+      bodyText: "返信本文です",
+    });
+    await logAction({
+      actorEmail: "test@vtj.co.jp",
+      action: "reply_send_guard",
+      messageId: "msg-001",
+      label: "send_boundary",
+      metadata: {
+        clientRequestId: "client-history",
+        requestKey: keys.requestKey,
+        bodyKey: keys.bodyKey,
+        bodyHash: keys.bodyHash,
+      },
+    });
+    clearMailhubSendDuplicateGuard();
+    const POST = await importSendPost();
+
+    const res = await POST(makeRequest(validBody({ clientRequestId: "client-history" })));
+
+    expect(res.status).toBe(409);
+    expect(await readJson(res)).toMatchObject({
+      error: "duplicate_send",
+      duplicateKey: "clientRequestId",
+    });
+    expect(routeMocks.getMessageDetail).not.toHaveBeenCalled();
+    expect(routeMocks.sendGmailReply).not.toHaveBeenCalled();
   });
 
   it("maps detail lookup failures to message_not_found in TEST_MODE", async () => {

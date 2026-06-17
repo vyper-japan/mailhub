@@ -15,8 +15,7 @@ Continue from the completed INBOX-scoped source coverage and rule-safety wave:
 6. Collect operator feedback on the default saved views. Real Gmail audit proves `customer-inquiries` and `noise-candidates` are too broad for bulk automation, so keep them as manual-review shortcuts unless narrowed.
 7. Re-run `npm run audit:gmail-rules -- --out .ai-runs/mailhub-next-phase/gmail-rule-safety-audit.json --max 100` whenever production file/Sheets rules are added or changed.
 8. Close the remaining production-readiness P1s:
-   - durable Gmail send idempotency across serverless instances/cold starts
-   - fail-closed or prominently blocked audit persistence for production mutations
+   - fail-closed or prominently blocked audit persistence for non-send production mutations
    - unassigned list pagination accuracy across pages
    - autonomous SLA schedule enablement after Vercel protection/bypass is decided
 9. Add AI reply drafting only after a knowledge evidence source is defined; keep generated drafts separate from send actions.

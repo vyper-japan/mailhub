@@ -52,6 +52,7 @@ export type AuditAction =
   | "reply_mark_done"
   | "reply_mark_waiting"
   | "reply_mark_muted"
+  | "reply_send_guard"
   | "reply_send";
 
 export function isAuditAction(v: string): v is AuditAction {
@@ -106,6 +107,7 @@ export function isAuditAction(v: string): v is AuditAction {
     "reply_mark_done",
     "reply_mark_waiting",
     "reply_mark_muted",
+    "reply_send_guard",
     "reply_send",
   ];
   return allowed.includes(v as AuditAction);

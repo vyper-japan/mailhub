@@ -105,6 +105,12 @@
   - `assigneeLoadBySlug` now includes other operators, not only the current user's assignee label.
   - `unassignedLoad` now subtracts all Todo/Waiting assigned load discovered through Gmail assignee labels.
   - Added a production-mode Gmail API mock test proving another operator's assigned load is excluded from the unassigned badge.
+- 2026-06-17 durable send guard wave completed:
+  - Added `reply_send_guard` Activity events at the Gmail send boundary with duplicate request/body keys.
+  - `/api/mailhub/send` now checks persisted `reply_send_guard` and `reply_send` Activity history before Gmail detail lookup, so cold-start/serverless repeats can return `duplicate_send`.
+  - Production runtime now requires `MAILHUB_ACTIVITY_STORE=sheets` for Gmail send; if the durable guard cannot resolve to Sheets, send returns `503 send_guard_unavailable` before touching Gmail.
+  - If the send-boundary guard Activity cannot be persisted, Gmail send is aborted with `503 send_guard_unavailable`.
+  - Updated `OPS_RUNBOOK.md` to state that Activity Sheets is required for production Gmail send idempotency.
 
 ## Not Done
 
@@ -113,7 +119,7 @@
 - Production pagination basic behavior is represented in API/UI metadata and forced E2E; real browser/manual production verification is still useful before staff rollout.
 - Auto-discard rules for marketing/noise are protected against obvious important/invoice/inquiry suppression and missing summary text, but a full production auto-discard policy is still intentionally not enabled.
 - Real-data rule safety audit exists and passes for the current local file config because no rules are configured. Re-run with `MAILHUB_CONFIG_STORE=sheets` and production Sheets credentials when production rule config is enabled.
-- Remaining production-readiness P1s from critic review include durable send idempotency across serverless instances, fail-closed audit persistence for production mutations, unassigned list pagination accuracy, and autonomous SLA schedule enablement.
+- Remaining production-readiness P1s from critic review include fail-closed audit persistence for non-send production mutations, unassigned list pagination accuracy, and autonomous SLA schedule enablement.
 - Important/invoice/customer-inquiry folders exist as default saved views and are audited as manual-review shortcuts; further narrowing requires operator feedback.
 - Brain decision ledger exists for memory/file/sheets and health visibility; AI reply drafting and knowledge base integration are not implemented.
 - Rakuten/Amazon/Yahoo API-based reply integration is not implemented.

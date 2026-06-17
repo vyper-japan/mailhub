@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createHash } from "node:crypto";
+import { getActivityLogs } from "@/lib/audit-log";
 
 export const MAILHUB_SEND_DUPLICATE_TTL_MS = 600_000;
 
@@ -24,6 +25,14 @@ export type MailhubSendDuplicateReserveResult =
       bodyHash: string;
       expiresAt: number;
     };
+
+export type MailhubSendDuplicateHistoryHit = {
+  duplicateKey: MailhubSendDuplicateKey;
+  requestKey: string;
+  bodyKey: string;
+  bodyHash: string;
+  expiresAt: number;
+};
 
 type GuardEntry = {
   requestKey: string;
@@ -82,6 +91,76 @@ export function buildMailhubSendDuplicateKeys(input: {
     bodyKey: `body:${input.messageId}:${bodyHash}`,
     bodyHash,
   };
+}
+
+function stringMetadataValue(metadata: Record<string, unknown> | undefined, key: string): string | null {
+  const value = metadata?.[key];
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function historyExpiresAt(timestamp: string, nowMs: number): number | null {
+  const createdAt = Date.parse(timestamp);
+  if (!Number.isFinite(createdAt)) return null;
+  const expiresAt = createdAt + MAILHUB_SEND_DUPLICATE_TTL_MS;
+  return expiresAt > nowMs ? expiresAt : null;
+}
+
+export async function findMailhubSendDuplicateHistory(input: {
+  actorEmail: string;
+  messageId: string;
+  clientRequestId: string;
+  bodyHash: string;
+  nowMs?: number;
+}): Promise<MailhubSendDuplicateHistoryHit | null> {
+  const nowMs = input.nowMs ?? Date.now();
+  const keys = {
+    requestKey: `req:${input.actorEmail}:${input.messageId}:${input.clientRequestId}`,
+    bodyKey: `body:${input.messageId}:${input.bodyHash}`,
+    bodyHash: input.bodyHash,
+  };
+
+  const [guardLogs, sendLogs] = await Promise.all([
+    getActivityLogs({ action: "reply_send_guard", limit: 200 }),
+    getActivityLogs({ action: "reply_send", limit: 200 }),
+  ]).catch(() => [[], []] as const);
+
+  for (const log of [...guardLogs, ...sendLogs]) {
+    if (log.messageId !== input.messageId) continue;
+    const expiresAt = historyExpiresAt(log.timestamp, nowMs);
+    if (!expiresAt) continue;
+
+    const metadata = log.metadata;
+    const logRequestKey = stringMetadataValue(metadata, "requestKey");
+    const logBodyKey = stringMetadataValue(metadata, "bodyKey");
+    const logClientRequestId = stringMetadataValue(metadata, "clientRequestId");
+    const logBodyHash = stringMetadataValue(metadata, "bodyHash");
+
+    const requestMatches =
+      logRequestKey === keys.requestKey ||
+      (log.actorEmail === input.actorEmail && logClientRequestId === input.clientRequestId);
+    if (requestMatches) {
+      return {
+        duplicateKey: "clientRequestId",
+        requestKey: keys.requestKey,
+        bodyKey: keys.bodyKey,
+        bodyHash: keys.bodyHash,
+        expiresAt,
+      };
+    }
+
+    const bodyMatches = logBodyKey === keys.bodyKey || logBodyHash === input.bodyHash;
+    if (bodyMatches) {
+      return {
+        duplicateKey: "bodyHash",
+        requestKey: keys.requestKey,
+        bodyKey: keys.bodyKey,
+        bodyHash: keys.bodyHash,
+        expiresAt,
+      };
+    }
+  }
+
+  return null;
 }
 
 export function reserveMailhubSendDuplicateGuard(input: {

@@ -434,7 +434,7 @@ curl --fail --retry 3 --max-time 20 \
 - `MAILHUB_ENV=staging`
 - `MAILHUB_READ_ONLY=1`（デフォルト。事故ゼロ）
 - `MAILHUB_CONFIG_STORE=sheets`（Settings: labels/rules を永続化）
-- `MAILHUB_ACTIVITY_STORE=sheets`（操作ログを永続化）
+- `MAILHUB_ACTIVITY_STORE=sheets`（操作ログを永続化。本番Gmail送信の重複ガードにも必須）
 
 ※ `file` ストアはサーバレス環境で永続しません（再デプロイで消えます）。公開/検証環境は **sheets推奨**。
 
@@ -670,6 +670,8 @@ MAILHUB_ENV=production
 MAILHUB_READ_ONLY=1
 MAILHUB_CONFIG_STORE=sheets
 MAILHUB_ACTIVITY_STORE=sheets
+# Gmail送信を有効化する場合、MAILHUB_ACTIVITY_STORE=sheets が必須。
+# 本番ランタイムでSheets永続guardが解決できない場合、/api/mailhub/send は 503 で送信を止める。
 # MAILHUB_TEST_MODE は設定しない（本番ガードで無効化される）
 ```
 

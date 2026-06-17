@@ -3,8 +3,10 @@ import { NextResponse } from "next/server";
 import { archiveMessage, getMessageDetail, sendGmailReply } from "@/lib/gmail";
 import { parseGmailError } from "@/lib/gmail-error";
 import { logAction } from "@/lib/audit-log";
+import { getResolvedActivityStoreType } from "@/lib/activityStore";
 import { assertSendAsAccepted } from "@/lib/mailhub-send-as";
 import {
+  findMailhubSendDuplicateHistory,
   releaseMailhubSendDuplicateGuard,
   reserveMailhubSendDuplicateGuard,
   type MailhubSendDuplicateReservation,
@@ -163,6 +165,12 @@ function releaseReservation(reservation: MailhubSendDuplicateReservation | null)
   if (reservation) releaseMailhubSendDuplicateGuard(reservation);
 }
 
+function durableSendGuardUnavailable(testMode: boolean): { unavailable: false } | { unavailable: true; storeType: string } {
+  if (testMode || process.env.NODE_ENV !== "production") return { unavailable: false };
+  const storeType = getResolvedActivityStoreType();
+  return storeType === "sheets" ? { unavailable: false } : { unavailable: true, storeType };
+}
+
 export async function POST(req: Request) {
   const testMode = isTestMode();
 
@@ -175,6 +183,16 @@ export async function POST(req: Request) {
 
   if (!testMode && process.env.MAILHUB_SEND_ENABLED !== "1") {
     return errorResponse(403, "send_disabled", "Gmail送信はまだ有効化されていません");
+  }
+
+  const durableGuard = durableSendGuardUnavailable(testMode);
+  if (durableGuard.unavailable) {
+    return errorResponse(
+      503,
+      "send_guard_unavailable",
+      "本番送信にはSheets永続化された重複送信ガードが必要です",
+      { activityStore: durableGuard.storeType },
+    );
   }
 
   let rawBody: unknown;
@@ -209,6 +227,27 @@ export async function POST(req: Request) {
   }
 
   let reservation: MailhubSendDuplicateReservation | null = duplicateReservation;
+
+  const historicalDuplicate = await findMailhubSendDuplicateHistory({
+    actorEmail: authResult.user.email,
+    messageId: sendRequest.messageId,
+    clientRequestId: sendRequest.clientRequestId,
+    bodyHash: duplicateReservation.bodyHash,
+  });
+  if (historicalDuplicate) {
+    releaseReservation(reservation);
+    reservation = null;
+    return errorResponse(
+      409,
+      "duplicate_send",
+      "すでに同じ送信が処理されています。送信済みの可能性があるため、受信トレイ/送信済みを確認してください",
+      {
+        messageId: sendRequest.messageId,
+        clientRequestId: sendRequest.clientRequestId,
+        duplicateKey: historicalDuplicate.duplicateKey,
+      },
+    );
+  }
 
   try {
     const detail = await getMessageDetail(sendRequest.messageId).catch((e: unknown) => {
@@ -308,6 +347,37 @@ export async function POST(req: Request) {
         status: "sent",
       });
     } else {
+      const guardLog = await logAction({
+        actorEmail: authResult.user.email,
+        action: "reply_send_guard",
+        messageId: sendRequest.messageId,
+        label: "send_boundary",
+        metadata: {
+          route: "gmail",
+          status: "send_boundary",
+          threadId: resolved.context.threadId,
+          clientRequestId: sendRequest.clientRequestId,
+          requestKey: duplicateReservation.requestKey,
+          bodyKey: duplicateReservation.bodyKey,
+          bodyHash: duplicateReservation.bodyHash,
+          reservationId: duplicateReservation.reservationId,
+          fromAlias: resolved.context.fromAlias,
+          fromChannelId: resolved.context.fromChannelId,
+          toDomain: toDomain(resolved.context.to),
+          toHash: shortHash(resolved.context.to.toLowerCase()),
+        },
+      });
+      if (!guardLog.storeAppendOk) {
+        releaseReservation(reservation);
+        reservation = null;
+        return errorResponse(
+          503,
+          "send_guard_unavailable",
+          "重複送信ガードを永続化できなかったため、Gmail送信を中止しました",
+          { auditError: guardLog.storeAppendError },
+        );
+      }
+
       try {
         const sendResult = await sendGmailReply({ raw: mime.raw, threadId: resolved.context.threadId });
         sentMessageId = sendResult.sentMessageId;

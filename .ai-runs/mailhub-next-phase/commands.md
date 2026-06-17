@@ -301,6 +301,26 @@ npm run build
 - `npm run test`: 60 files / 527 tests passed.
 - `npm run build`: passed.
 
+## Verification Commands Run On 2026-06-17 Durable Send Guard Wave
+
+```bash
+npx vitest run lib/__tests__/mailhub-send-route.test.ts lib/__tests__/mailhub-send-duplicate-guard.test.ts lib/__tests__/audit-log.test.ts
+npm run typecheck
+npm run lint
+git diff --check
+npm run test
+npm run build
+```
+
+## 2026-06-17 Durable Send Guard Wave Results
+
+- Focused Vitest before full gate: 3 files / 30 tests passed.
+- `npm run typecheck`: passed.
+- `npm run lint`: passed.
+- `git diff --check`: passed.
+- `npm run test`: 60 files / 529 tests passed.
+- `npm run build`: passed.
+
 ## Useful Runtime Commands
 
 Start dev server for tunnel:

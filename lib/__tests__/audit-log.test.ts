@@ -29,6 +29,7 @@ describe("audit-log", () => {
     expect(isAuditAction("handoff_send")).toBe(true);
     expect(isAuditAction("assignee_rule_preview")).toBe(true);
     expect(isAuditAction("assignee_rule_apply")).toBe(true);
+    expect(isAuditAction("reply_send_guard")).toBe(true);
     expect(isAuditAction("unknown_action")).toBe(false);
   });
 
