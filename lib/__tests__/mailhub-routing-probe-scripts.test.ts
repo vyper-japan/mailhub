@@ -1,7 +1,7 @@
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { join, resolve } from "path";
-import { spawnSync } from "child_process";
+import { execFileSync, spawnSync } from "child_process";
 import { describe, expect, test } from "vitest";
 
 const routingProbeAuditPath = resolve(process.cwd(), "scripts/audit-mailhub-routing-probes.mjs");
@@ -25,6 +25,14 @@ function withTempDir<T>(fn: (dir: string) => T): T {
 
 function writeJson(path: string, value: unknown) {
   writeFileSync(path, `${JSON.stringify(value, null, 2)}\n`, "utf8");
+}
+
+function currentRepoHead() {
+  return execFileSync("git", ["rev-parse", "HEAD"], {
+    cwd: process.cwd(),
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "ignore"],
+  }).trim();
 }
 
 function readJson<T>(path: string): T {
@@ -171,7 +179,7 @@ function writeReadinessFixtures(
   });
   writeJson(paths.githubStaffSecrets, {
     checkedAt: "2026-06-17T00:00:00.000Z",
-    repoHead: "fixture-head",
+    repoHead: currentRepoHead(),
     source: "github_actions_config",
     secretCount: staffWorkflowReady ? 4 : 0,
     variableCount: staffWorkflowReady ? 11 : 0,
@@ -200,8 +208,13 @@ function writeReadinessFixtures(
     ],
     missingProductionStaffConfig: staffWorkflowReady ? [] : ["MAILHUB_ENV", "NEXTAUTH_SECRET"],
     missingSecretConfig: staffWorkflowReady ? [] : ["NEXTAUTH_SECRET"],
+    semanticIssues: [],
     readyForSecretBackedStaffConfig: staffWorkflowReady,
     readyForProductionStaffPreflight: staffWorkflowReady,
+    setupCommands: staffWorkflowReady ? [] : [
+      "npm run setup:mailhub-staff-github-config",
+      "npm run setup:mailhub-staff-github-config -- --apply",
+    ],
     presentRequiredConfigNames: staffWorkflowReady
       ? [
           "MAILHUB_ENV",

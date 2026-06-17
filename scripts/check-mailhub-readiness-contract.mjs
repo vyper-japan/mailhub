@@ -6,6 +6,10 @@ import { execFileSync } from "node:child_process";
 
 const repoRoot = process.cwd();
 const defaultAuditPath = join(repoRoot, ".ai-runs", "mailhub-next-phase", "mailhub-production-readiness-audit.json");
+const STAFF_GITHUB_SETUP_COMMANDS = [
+  "npm run setup:mailhub-staff-github-config",
+  "npm run setup:mailhub-staff-github-config -- --apply",
+];
 
 function parseArgs(argv) {
   const out = {
@@ -215,12 +219,21 @@ function main() {
     errors.push("staff_github_config_gate_missing");
   }
   if (githubStaffSecrets) {
+    const staffArtifactRepoHead = typeof githubStaffSecrets.repoHead === "string" ? githubStaffSecrets.repoHead : null;
+    if (!staffArtifactRepoHead) {
+      errors.push("staff_github_config_artifact_missing_repo_head");
+    } else if (repoHead && staffArtifactRepoHead !== repoHead && staffArtifactRepoHead !== repoParentHead) {
+      errors.push("staff_github_config_artifact_stale_repo_head");
+    }
     const artifactReady = githubStaffSecrets.readyForProductionStaffPreflight === true;
     if (typeof requirements.staffGithubConfigReady === "boolean" && requirements.staffGithubConfigReady !== artifactReady) {
       errors.push("staff_github_config_gate_mismatch");
     }
     if (artifactReady && githubStaffSecrets.readyForSecretBackedStaffConfig !== true) {
       errors.push("staff_github_config_ready_without_secret_backing");
+    }
+    if ((requirements.staffGithubConfigReady === true || productionReady) && repoHead && staffArtifactRepoHead !== repoHead) {
+      errors.push("staff_github_config_ready_artifact_requires_current_repo_head");
     }
   }
   if (requirements.staffGithubConfigReady === true || productionReady) {
@@ -251,14 +264,30 @@ function main() {
       const staffGithubConfig = objectValue(evidence.staffGithubConfig);
       const missingProductionStaffConfig = stringArray(staffGithubConfig.missingProductionStaffConfig);
       const missingSecretConfig = stringArray(staffGithubConfig.missingSecretConfig);
+      const semanticIssues = stringArray(staffGithubConfig.semanticIssues);
+      const hasTrustGap =
+        staffGithubConfig.sourceTrusted === false ||
+        staffGithubConfig.repoHeadMatchesCurrent === false ||
+        staffGithubConfig.readyForSecretBackedStaffConfig === false;
+      const setupCommands = stringArray(staffGithubConfig.setupCommands);
       if (typeof staffGithubConfig.readyForProductionStaffPreflight !== "boolean" && !staffGithubConfig.missingArtifact) {
         errors.push("staff_github_config_blocker_missing_ready_flag");
       }
       if (staffGithubConfig.readyForProductionStaffPreflight !== true &&
         missingProductionStaffConfig.length === 0 &&
         missingSecretConfig.length === 0 &&
+        semanticIssues.length === 0 &&
+        !hasTrustGap &&
         !staffGithubConfig.missingArtifact) {
         errors.push("staff_github_config_blocker_missing_gap_detail");
+      }
+      if (!staffGithubConfig.missingArtifact) {
+        for (const command of STAFF_GITHUB_SETUP_COMMANDS) {
+          if (!setupCommands.includes(command)) errors.push(`staff_github_config_blocker_missing_setup_command:${command}`);
+        }
+        if (setupCommands.some((command) => command.startsWith("gh secret set ") || command.startsWith("gh variable set "))) {
+          errors.push("staff_github_config_blocker_raw_gh_commands_disallowed");
+        }
       }
       if (requirements.currentSharedGmailRoutingReady === true && staffGithubConfigBlocker.severity !== "P0") {
         errors.push("staff_github_config_must_be_p0_after_routing_ready");

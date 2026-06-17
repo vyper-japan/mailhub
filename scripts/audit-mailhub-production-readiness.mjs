@@ -89,6 +89,7 @@ function main() {
   const viewsAudit = readJson(args.viewsAudit);
   const rulesAudit = readJson(args.rulesAudit);
   const staffWorkflowAudit = readOptionalJson(args.staffWorkflowAudit);
+  const repoHead = currentRepoHead();
 
   const knownCodeGaps = sourceAudit.zeroEstimateAnalysis?.knownCodeGaps ?? [];
   const sourceCodeCoverageReady =
@@ -126,7 +127,12 @@ function main() {
     ruleConfigSource.resolvedSource === "sheets" && ruleConfigSource.warnings.length === 0;
   const ruleSafetyReady = Boolean(rulesAudit.ruleSafetyGate?.realDataRuleRiskPass) && ruleConfigFingerprintPresent;
   const staffWorkflowPermissionsReady = Boolean(staffWorkflowAudit?.gate?.staffWorkflowPermissionsReady);
-  const staffGithubConfigReady = Boolean(githubStaffSecrets?.readyForProductionStaffPreflight);
+  const staffGithubConfigReady =
+    githubStaffSecrets?.source === "github_actions_config" &&
+    githubStaffSecrets?.repoHead === repoHead &&
+    githubStaffSecrets?.readyForProductionStaffPreflight === true &&
+    githubStaffSecrets?.readyForSecretBackedStaffConfig === true &&
+    stringArray(githubStaffSecrets?.semanticIssues).length === 0;
   const staffWorkflowBlockerSeverity = currentSharedGmailRoutingReady ? "P0" : "P1";
   const staffGithubConfigBlockerSeverity = currentSharedGmailRoutingReady ? "P0" : "P1";
 
@@ -194,16 +200,21 @@ function main() {
     blockers.push(blocker("staff_github_config_not_ready", staffGithubConfigBlockerSeverity, "GitHub Actions production staff config is not complete or not backed by required secrets.", {
       staffGithubConfig: githubStaffSecrets ? {
         source: githubStaffSecrets.source ?? null,
+        sourceTrusted: githubStaffSecrets.source === "github_actions_config",
         checkedAt: githubStaffSecrets.checkedAt ?? null,
         repoHead: githubStaffSecrets.repoHead ?? null,
+        currentRepoHead: repoHead,
+        repoHeadMatchesCurrent: githubStaffSecrets.repoHead === repoHead,
         secretCount: githubStaffSecrets.secretCount ?? null,
         variableCount: githubStaffSecrets.variableCount ?? null,
         readyForProductionStaffPreflight: githubStaffSecrets.readyForProductionStaffPreflight ?? null,
         readyForSecretBackedStaffConfig: githubStaffSecrets.readyForSecretBackedStaffConfig ?? null,
         missingProductionStaffConfig: githubStaffSecrets.missingProductionStaffConfig ?? [],
         missingSecretConfig: githubStaffSecrets.missingSecretConfig ?? [],
+        semanticIssues: githubStaffSecrets.semanticIssues ?? [],
         presentRequiredConfigNames: githubStaffSecrets.presentRequiredConfigNames ?? [],
         presentRequiredConfigSources: githubStaffSecrets.presentRequiredConfigSources ?? {},
+        setupCommands: githubStaffSecrets.setupCommands ?? [],
       } : {
         missingArtifact: args.githubStaffSecrets,
       },
@@ -213,7 +224,7 @@ function main() {
 
   const result = {
     generatedAt: new Date().toISOString(),
-    repoHead: currentRepoHead(),
+    repoHead,
     inputs: {
       sourceAudit: args.sourceAudit,
       opsAudit: args.opsAudit,

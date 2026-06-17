@@ -498,6 +498,17 @@
   - Missing GitHub Actions staff config now includes production mode/URL/secret, staff allowlist, durable Sheets stores, Sheets credentials, and READ ONLY guard.
   - Adversarial review found and closed two false-ready paths: forged `productionReady=true` now cross-checks the referenced staff GitHub artifact, and `source=json` staff readiness artifacts are rejected by default production contracts.
   - Final verification passed with `typecheck`, `test:coverage` (72 files / 633 tests), `build`, `smoke`, `security:scan`, `security:scan-artifacts`, `actionlint`, `git diff --check`, and the full readiness contract chain.
+- 2026-06-18 staff GitHub config setup helper completed:
+  - Added `npm run setup:mailhub-staff-github-config` for safe dry-run/apply of GitHub Actions staff production config.
+  - Secrets are written through `gh secret set` stdin; non-sensitive config is written through `gh variable set --body`; no values are printed.
+  - The helper blocks apply unless production semantics are correct: `MAILHUB_ENV=production`, durable config/activity stores are `sheets`, and `MAILHUB_READ_ONLY=1`.
+  - `github-staff-secrets-readiness.json` and the aggregate readiness blocker now point to the safe helper commands and reject raw `gh` setup command lists.
+  - Current dry-run remains not ready because local/GitHub staff config still lacks Sheets settings, production mode, team members, durable stores, and READ ONLY.
+- 2026-06-18 staff GitHub config false-ready review fixes completed:
+  - The GitHub staff config audit now verifies non-secret semantic variable values instead of accepting variable name presence alone.
+  - A ready staff GitHub config artifact must match the current repo HEAD; parent-HEAD tolerance is allowed only for not-ready artifacts.
+  - Aggregate production readiness now requires the referenced staff GitHub artifact to be `github_actions_config`, current-HEAD, secret-backed, ready, and free of semantic issues before `staffGithubConfigReady=true`.
+  - Current GitHub Actions staff state remains not ready: `variableCount=0`, missing production staff variables, and missing secret-backed `NEXTAUTH_SECRET` / `MAILHUB_SHEETS_PRIVATE_KEY`.
 - 2026-06-18 rule Sheets tab verification tightened:
   - `mailhub-rule-config-next-steps.json` now records `state.requiredRuleSheets` and `verify_rule_sheets_tabs.requiredSheets`, currently `ConfigRules` and `ConfigAssigneeRules`.
   - The action now separates required tabs from `missingSheets`, so a future Sheets audit can identify exactly which production tab is absent without changing the checklist shape.

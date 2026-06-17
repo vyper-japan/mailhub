@@ -2405,6 +2405,69 @@ npm run security:scan-artifacts
   - `source=json` staff readiness artifacts are rejected by default production contracts; test fixtures must opt in with `--allow-non-github-source`.
 - Final local gates passed: `typecheck`, `test:coverage` (72 files / 633 tests), `build`, `smoke`, `security:scan`, `security:scan-artifacts`, `actionlint`, `git diff --check`, and the full readiness contract chain.
 
+## 2026-06-18 Staff GitHub Config Setup Helper Commands
+
+```bash
+node --check scripts/setup-mailhub-staff-github-config.mjs
+npm run setup:mailhub-staff-github-config -- --no-optional
+npx vitest run lib/__tests__/mailhub-staff-secrets-readiness.test.ts
+npm run audit:github-staff-secrets -- --no-fail --out .ai-runs/mailhub-next-phase/github-staff-secrets-readiness.json
+npm run audit:mailhub-staff-workflow
+npm run audit:mailhub-staff-next
+npm run audit:mailhub-readiness -- --out .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json
+npm run audit:mailhub-routing-next
+npm run audit:mailhub-rule-config-next
+```
+
+## 2026-06-18 Staff GitHub Config Setup Helper Results
+
+- Added `npm run setup:mailhub-staff-github-config` as the safe dry-run/apply path for GitHub Actions staff production config.
+- The helper writes secret-backed names via `gh secret set ... --app actions` stdin and non-sensitive config via `gh variable set ... --body`; values are not printed.
+- The helper blocks `--apply` unless all required names exist and semantic production values are correct: `MAILHUB_ENV=production`, `MAILHUB_CONFIG_STORE=sheets`, `MAILHUB_ACTIVITY_STORE=sheets`, and `MAILHUB_READ_ONLY=1`.
+- `github-staff-secrets-readiness.json` and the production readiness blocker now include only the safe setup commands, not raw `gh secret set` / `gh variable set` command lines.
+- Current dry-run still reports missing local/GitHub staff config for Sheets, production mode, team members, durable stores, and READ ONLY, so P1 `staff_github_config_not_ready` remains valid.
+
+## 2026-06-18 Staff GitHub Config Setup Helper Review Fixes
+
+```bash
+node --check scripts/check-mailhub-staff-secrets.mjs
+node --check scripts/check-mailhub-staff-secret-readiness-contract.mjs
+node --check scripts/audit-mailhub-production-readiness.mjs
+node --check scripts/check-mailhub-readiness-contract.mjs
+npx vitest run lib/__tests__/mailhub-staff-secrets-readiness.test.ts lib/__tests__/mailhub-readiness-contract.test.ts
+npm run audit:github-staff-secrets -- --no-fail --out .ai-runs/mailhub-next-phase/github-staff-secrets-readiness.json
+npm run audit:mailhub-readiness -- --out .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json
+npm run audit:mailhub-routing-next
+npm run audit:mailhub-rule-config-next
+npm run audit:github-routing-secrets-contract
+npm run audit:github-staff-secrets-contract
+npm run audit:mailhub-staff-workflow-contract
+npm run audit:mailhub-staff-next-contract
+npm run audit:mailhub-readiness-contract
+npm run audit:mailhub-rule-config-next-contract
+npm run audit:mailhub-routing-next-contract
+npm run audit:mailhub-routing-proof-contract
+npx vitest run lib/__tests__/mailhub-staff-secrets-readiness.test.ts lib/__tests__/mailhub-readiness-contract.test.ts lib/__tests__/mailhub-staff-workflow-next-steps.test.ts lib/__tests__/ops-artifact-secret-scan.test.ts
+npx vitest run lib/__tests__/mailhub-routing-probe-scripts.test.ts
+npm run test:coverage
+npm run lint
+npm run typecheck
+npm run build
+npm run smoke
+npm run security:scan
+npm run security:scan-artifacts
+actionlint .github/workflows/*.yml
+git diff --check
+```
+
+- Reviewer P1 closed: existing GitHub Actions variables are no longer treated as production-ready by name alone. The staff config audit reads non-secret variable values from `gh variable list --json name,updatedAt,value`, prints only semantic issue codes, and requires `MAILHUB_ENV=production`, both durable stores as `sheets`, and `MAILHUB_READ_ONLY=1`.
+- Reviewer P1 closed: a ready staff GitHub config artifact must now match the current repo HEAD. Parent-HEAD tolerance remains only for not-ready artifacts, so stale ready artifacts cannot remove `staff_github_config_not_ready`.
+- The aggregate production readiness audit now treats staff GitHub config as ready only when the child artifact is from `github_actions_config`, current-HEAD, secret-backed, ready, and free of semantic issues.
+- The production readiness blocker now includes `sourceTrusted`, `currentRepoHead`, and `repoHeadMatchesCurrent`, so source/head trust gaps remain visible even when missing-name arrays are empty.
+- Current GitHub Actions staff state after regeneration: `secretCount=4`, `variableCount=0`, `readyForProductionStaffPreflight=false`, `missingSecretConfig=[NEXTAUTH_SECRET, MAILHUB_SHEETS_PRIVATE_KEY]`.
+- Focused tests passed: 28 tests for staff/readiness contracts, 45 tests including staff workflow next-step and ops artifact secret scan, and 30 routing-probe tests after updating the production-ready fixture to current-HEAD staff GitHub evidence.
+- Final local gates passed: `test:coverage` (72 files / 639 tests), `lint`, `typecheck`, `build`, `smoke`, `security:scan`, `security:scan-artifacts`, `actionlint`, `git diff --check`, and the full readiness contract chain.
+
 ## Useful Runtime Commands
 
 Start dev server for tunnel:

@@ -38,7 +38,17 @@ const REQUIRED_SECRET_CONFIG = [
   "MAILHUB_SHEETS_PRIVATE_KEY",
 ];
 const OPTIONAL_RULE_SHEET_CONFIG = ["MAILHUB_SHEETS_TAB_RULES", "MAILHUB_SHEETS_TAB_ASSIGNEE_RULES"];
+const REQUIRED_SEMANTIC_VARIABLE_VALUES = {
+  MAILHUB_ENV: "production",
+  MAILHUB_CONFIG_STORE: "sheets",
+  MAILHUB_ACTIVITY_STORE: "sheets",
+  MAILHUB_READ_ONLY: "1",
+};
 const VALID_SOURCES = new Set(["github_actions_config", "env", "json"]);
+const STAFF_GITHUB_SETUP_COMMANDS = [
+  "npm run setup:mailhub-staff-github-config",
+  "npm run setup:mailhub-staff-github-config -- --apply",
+];
 
 function parseArgs(argv) {
   const out = { artifact: defaultArtifactPath, repoHead: "", repoParentHead: "", allowNonGithubSource: false };
@@ -142,6 +152,8 @@ function main() {
   const configuredOptionalRuleSheetConfig = stringArray(artifact.configuredOptionalRuleSheetConfig);
   const missingProductionStaffConfig = stringArray(artifact.missingProductionStaffConfig);
   const missingSecretConfig = stringArray(artifact.missingSecretConfig);
+  const semanticIssues = stringArray(artifact.semanticIssues);
+  const setupCommands = stringArray(artifact.setupCommands);
   const presentRequiredConfigNames = stringArray(artifact.presentRequiredConfigNames);
   const expectedRequired = REQUIRED_PRODUCTION_STAFF_CONFIG.map(requirementLabel);
   const expectedMissing = expectedRequired.filter((name) => !presentRequiredConfigNames.includes(name));
@@ -157,6 +169,9 @@ function main() {
   if (Number.isNaN(Date.parse(artifact.checkedAt ?? ""))) errors.push("invalid_checked_at");
   if (!artifactRepoHead) errors.push("missing_repo_head");
   else if (repoHead && artifactRepoHead !== repoHead && artifactRepoHead !== repoParentHead) errors.push("stale_repo_head");
+  if (artifact.readyForProductionStaffPreflight === true && repoHead && artifactRepoHead !== repoHead) {
+    errors.push("ready_staff_config_requires_current_repo_head");
+  }
   if (!Number.isInteger(artifact.secretCount) || artifact.secretCount < 0) errors.push("invalid_secret_count");
   if (!Number.isInteger(artifact.variableCount) || artifact.variableCount < 0) errors.push("invalid_variable_count");
   if (!sameArray(requiredProductionStaffConfig, expectedRequired)) errors.push("required_production_staff_config_mismatch");
@@ -169,11 +184,27 @@ function main() {
   if (hasDuplicates(presentRequiredConfigNames)) errors.push("duplicate_present_required_config");
   if (!sameArray(missingProductionStaffConfig, expectedMissing)) errors.push("missing_production_staff_config_mismatch");
   if (!sameArray(missingSecretConfig, expectedMissingSecrets)) errors.push("missing_secret_config_mismatch");
+  for (const issue of semanticIssues) {
+    const matched = Object.entries(REQUIRED_SEMANTIC_VARIABLE_VALUES).some(([name, expected]) =>
+      issue === `${name}_value_unverified` || issue === `${name}_must_be_${expected}`);
+    if (!matched) errors.push(`unknown_semantic_issue:${issue}`);
+  }
   if ((artifact.readyForSecretBackedStaffConfig === true) !== (missingSecretConfig.length === 0)) {
     errors.push("secret_backed_staff_config_ready_mismatch");
   }
-  if ((artifact.readyForProductionStaffPreflight === true) !== (missingProductionStaffConfig.length === 0 && missingSecretConfig.length === 0)) {
+  if ((artifact.readyForProductionStaffPreflight === true) !== (missingProductionStaffConfig.length === 0 && missingSecretConfig.length === 0 && semanticIssues.length === 0)) {
     errors.push("production_staff_preflight_ready_mismatch");
+  }
+  if (artifact.readyForProductionStaffPreflight === true && setupCommands.length > 0) {
+    errors.push("ready_staff_config_with_setup_commands");
+  }
+  if (artifact.readyForProductionStaffPreflight !== true) {
+    for (const command of STAFF_GITHUB_SETUP_COMMANDS) {
+      if (!setupCommands.includes(command)) errors.push(`missing_staff_github_setup_command:${command}`);
+    }
+  }
+  if (setupCommands.some((command) => command.startsWith("gh secret set ") || command.startsWith("gh variable set "))) {
+    errors.push("raw_gh_staff_config_commands_disallowed");
   }
   if ((artifact.secretCount + artifact.variableCount) < Object.keys(sourceMap).length) {
     errors.push("source_count_less_than_required_sources");
@@ -230,6 +261,8 @@ function main() {
     readyForSecretBackedStaffConfig: artifact.readyForSecretBackedStaffConfig === true,
     missingProductionStaffConfig,
     missingSecretConfig,
+    semanticIssues,
+    setupCommands,
     errors,
     warnings,
     ok: errors.length === 0,

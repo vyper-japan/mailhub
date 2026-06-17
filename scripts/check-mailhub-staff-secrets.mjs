@@ -55,6 +55,14 @@ const OPTIONAL_RULE_SHEET_CONFIG = [
   "MAILHUB_SHEETS_TAB_RULES",
   "MAILHUB_SHEETS_TAB_ASSIGNEE_RULES",
 ];
+const REQUIRED_SEMANTIC_VARIABLE_VALUES = {
+  MAILHUB_ENV: "production",
+  MAILHUB_CONFIG_STORE: "sheets",
+  MAILHUB_ACTIVITY_STORE: "sheets",
+  MAILHUB_READ_ONLY: "1",
+};
+const STAFF_GITHUB_SETUP_DRY_RUN_COMMAND = "npm run setup:mailhub-staff-github-config";
+const STAFF_GITHUB_SETUP_APPLY_COMMAND = "npm run setup:mailhub-staff-github-config -- --apply";
 
 function parseArgs(argv) {
   const args = {
@@ -84,7 +92,13 @@ function normalizeItems(value) {
   return value
     .map((item) => {
       if (typeof item === "string") return { name: item };
-      if (item && typeof item === "object" && typeof item.name === "string") return { name: item.name, updatedAt: item.updatedAt };
+      if (item && typeof item === "object" && typeof item.name === "string") {
+        return {
+          name: item.name,
+          updatedAt: item.updatedAt,
+          value: typeof item.value === "string" ? item.value : undefined,
+        };
+      }
       return null;
     })
     .filter(Boolean);
@@ -103,7 +117,7 @@ function readConfigJson(path) {
 function readGhList(kind, repo) {
   const args = kind === "secrets"
     ? ["secret", "list", "--repo", repo, "--app", "actions", "--json", "name,updatedAt"]
-    : ["variable", "list", "--repo", repo, "--json", "name,updatedAt"];
+    : ["variable", "list", "--repo", repo, "--json", "name,updatedAt,value"];
   const raw = execFileSync("gh", args, { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
   const parsed = JSON.parse(raw);
   return normalizeItems(parsed);
@@ -136,7 +150,7 @@ function readEnvConfig() {
     secrets: [],
     variables: [...names]
       .filter((name) => typeof process.env[name] === "string" && process.env[name].trim())
-      .map((name) => ({ name })),
+      .map((name) => ({ name, value: process.env[name]?.trim() })),
   };
 }
 
@@ -187,6 +201,15 @@ function configuredOptional(names, present) {
   return names.filter((name) => present.has(name));
 }
 
+function semanticIssues(variables) {
+  return Object.entries(REQUIRED_SEMANTIC_VARIABLE_VALUES).flatMap(([name, expected]) => {
+    const item = variables.find((variable) => variable.name === name);
+    if (!item) return [];
+    if (typeof item.value !== "string") return [`${name}_value_unverified`];
+    return item.value === expected ? [] : [`${name}_must_be_${expected}`];
+  });
+}
+
 function main() {
   const args = parseArgs(process.argv.slice(2));
   const config = args.fromEnv ? readEnvConfig() : args.configJson ? readConfigJson(args.configJson) : readGitHubConfig(args.repo);
@@ -203,6 +226,7 @@ function main() {
   };
   const missingProductionStaffConfig = missingRequirementNames(REQUIRED_PRODUCTION_STAFF_CONFIG, present);
   const missingSecretConfig = missingSecretConfigNames(REQUIRED_SECRET_CONFIG, secretNames);
+  const productionSemanticIssues = semanticIssues(config.variables);
   const presentRequiredConfigNames = presentRequirementNames(REQUIRED_PRODUCTION_STAFF_CONFIG, present);
   const presentRequiredConfigSources = Object.fromEntries(
     flattenRequirements(REQUIRED_PRODUCTION_STAFF_CONFIG)
@@ -222,18 +246,22 @@ function main() {
     configuredOptionalRuleSheetConfig: configuredOptional(OPTIONAL_RULE_SHEET_CONFIG, present),
     missingProductionStaffConfig,
     missingSecretConfig,
+    semanticIssues: productionSemanticIssues,
     readyForSecretBackedStaffConfig: missingSecretConfig.length === 0,
-    readyForProductionStaffPreflight: missingProductionStaffConfig.length === 0 && missingSecretConfig.length === 0,
+    readyForProductionStaffPreflight: missingProductionStaffConfig.length === 0 && missingSecretConfig.length === 0 && productionSemanticIssues.length === 0,
+    setupCommands: missingProductionStaffConfig.length === 0 && missingSecretConfig.length === 0 && productionSemanticIssues.length === 0
+      ? []
+      : [STAFF_GITHUB_SETUP_DRY_RUN_COMMAND, STAFF_GITHUB_SETUP_APPLY_COMMAND],
     secretGroups: groups,
     presentRequiredConfigNames,
     presentRequiredConfigSources,
     semanticWarnings: [
       "source_policy:NEXTAUTH_SECRET, GOOGLE_CLIENT_SECRET, GOOGLE_SHARED_INBOX_REFRESH_TOKEN, and MAILHUB_SHEETS_PRIVATE_KEY must be GitHub Actions secrets, not variables",
-      "name_presence_only:MAILHUB_ENV value must be production",
-      "name_presence_only:MAILHUB_READ_ONLY value must be 1 before read-only rollout",
-      "name_presence_only:MAILHUB_CONFIG_STORE and MAILHUB_ACTIVITY_STORE values must be sheets",
+      "semantic_check:MAILHUB_ENV value must be production",
+      "semantic_check:MAILHUB_READ_ONLY value must be 1 before read-only rollout",
+      "semantic_check:MAILHUB_CONFIG_STORE and MAILHUB_ACTIVITY_STORE values must be sheets",
     ],
-    note: "Only GitHub Actions secret/variable names and updatedAt metadata were read; values are never accessible or printed.",
+    note: "Only GitHub Actions secret names, variable names, updatedAt metadata, and non-secret semantic check results were printed; secret values are never accessible or printed.",
   };
 
   console.log(JSON.stringify(result, null, 2));

@@ -1,0 +1,192 @@
+#!/usr/bin/env node
+
+import { execFileSync } from "node:child_process";
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+
+const repoRoot = process.cwd();
+const envPath = join(repoRoot, ".env.local");
+const DEFAULT_REPO = "vyper-japan/mailhub";
+
+const REQUIRED_SECRET_NAMES = [
+  "NEXTAUTH_SECRET",
+  "GOOGLE_CLIENT_SECRET",
+  "GOOGLE_SHARED_INBOX_REFRESH_TOKEN",
+  "MAILHUB_SHEETS_PRIVATE_KEY",
+];
+
+const REQUIRED_VARIABLE_NAMES = [
+  "MAILHUB_ENV",
+  "NEXTAUTH_URL",
+  "GOOGLE_CLIENT_ID",
+  "GOOGLE_SHARED_INBOX_EMAIL",
+  "MAILHUB_ADMINS",
+  "MAILHUB_TEAM_MEMBERS",
+  "MAILHUB_CONFIG_STORE",
+  "MAILHUB_ACTIVITY_STORE",
+  "MAILHUB_SHEETS_CLIENT_EMAIL",
+  "MAILHUB_READ_ONLY",
+];
+
+const SHEETS_ID_NAMES = ["MAILHUB_SHEETS_ID", "MAILHUB_SHEETS_SPREADSHEET_ID"];
+const OPTIONAL_VARIABLE_NAMES = ["MAILHUB_SHEETS_TAB_RULES", "MAILHUB_SHEETS_TAB_ASSIGNEE_RULES"];
+
+function parseArgs(argv) {
+  const args = {
+    repo: DEFAULT_REPO,
+    apply: false,
+    includeOptional: true,
+    envFile: envPath,
+  };
+  for (let i = 0; i < argv.length; i += 1) {
+    const arg = argv[i];
+    if (arg === "--repo") args.repo = argv[++i] || "";
+    else if (arg === "--staff-env-file") args.envFile = argv[++i] || "";
+    else if (arg === "--apply") args.apply = true;
+    else if (arg === "--no-optional") args.includeOptional = false;
+    else if (arg === "--help" || arg === "-h") {
+      console.log(`Usage: node scripts/setup-mailhub-staff-github-config.mjs [--repo owner/name] [--staff-env-file path] [--apply] [--no-optional]
+
+Reads MailHub production staff config from environment/.env.local and, only with --apply, writes it to GitHub Actions secrets and variables.
+Values are never printed. Secret values are passed to gh via stdin; variables are passed to gh via --body.
+
+Required GitHub Actions secrets:
+  ${REQUIRED_SECRET_NAMES.join("\n  ")}
+
+Required GitHub Actions variables:
+  ${[...REQUIRED_VARIABLE_NAMES, "MAILHUB_SHEETS_ID or MAILHUB_SHEETS_SPREADSHEET_ID"].join("\n  ")}
+
+Optional GitHub Actions variables:
+  ${OPTIONAL_VARIABLE_NAMES.join("\n  ")}`);
+      process.exit(0);
+    }
+  }
+  return args;
+}
+
+function loadEnvFile(path) {
+  if (!path || !existsSync(path)) return false;
+  const raw = readFileSync(path, "utf8");
+  for (const line of raw.split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+    const match = trimmed.match(/^([A-Z0-9_]+)=(.*)$/);
+    if (!match) continue;
+    const [, key, rawValue] = match;
+    if (process.env[key]) continue;
+    let value = rawValue.trim();
+    if (
+      (value.startsWith("\"") && value.endsWith("\"")) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1);
+    }
+    process.env[key] = value.replace(/\\n/g, "\n");
+  }
+  return true;
+}
+
+function valueFor(name) {
+  const value = process.env[name];
+  return typeof value === "string" && value.trim() ? value.trim() : "";
+}
+
+function selectedSheetsIdName() {
+  return SHEETS_ID_NAMES.find((name) => valueFor(name)) || "MAILHUB_SHEETS_ID";
+}
+
+function selectedVariableNames(args) {
+  const sheetsIdName = selectedSheetsIdName();
+  return [
+    ...REQUIRED_VARIABLE_NAMES,
+    sheetsIdName,
+    ...(args.includeOptional ? OPTIONAL_VARIABLE_NAMES.filter((name) => valueFor(name)) : []),
+  ];
+}
+
+function missingRequiredEnv(variableNames) {
+  const missing = [
+    ...REQUIRED_SECRET_NAMES.filter((name) => !valueFor(name)),
+    ...REQUIRED_VARIABLE_NAMES.filter((name) => !valueFor(name)),
+  ];
+  if (!SHEETS_ID_NAMES.some((name) => valueFor(name))) {
+    missing.push("MAILHUB_SHEETS_ID or MAILHUB_SHEETS_SPREADSHEET_ID");
+  }
+  return missing.filter((name, index, values) => values.indexOf(name) === index);
+}
+
+function semanticIssues() {
+  const issues = [];
+  if (valueFor("MAILHUB_ENV") && valueFor("MAILHUB_ENV") !== "production") {
+    issues.push("MAILHUB_ENV_must_be_production");
+  }
+  if (valueFor("MAILHUB_CONFIG_STORE") && valueFor("MAILHUB_CONFIG_STORE") !== "sheets") {
+    issues.push("MAILHUB_CONFIG_STORE_must_be_sheets");
+  }
+  if (valueFor("MAILHUB_ACTIVITY_STORE") && valueFor("MAILHUB_ACTIVITY_STORE") !== "sheets") {
+    issues.push("MAILHUB_ACTIVITY_STORE_must_be_sheets");
+  }
+  if (valueFor("MAILHUB_READ_ONLY") && valueFor("MAILHUB_READ_ONLY") !== "1") {
+    issues.push("MAILHUB_READ_ONLY_must_be_1");
+  }
+  return issues;
+}
+
+function setSecret({ ghBin, repo, name, value }) {
+  execFileSync(ghBin, ["secret", "set", name, "--repo", repo, "--app", "actions"], {
+    input: value,
+    encoding: "utf8",
+    stdio: ["pipe", "pipe", "pipe"],
+  });
+}
+
+function setVariable({ ghBin, repo, name, value }) {
+  execFileSync(ghBin, ["variable", "set", name, "--repo", repo, "--body", value], {
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+}
+
+function main() {
+  const args = parseArgs(process.argv.slice(2));
+  const envFileLoaded = loadEnvFile(args.envFile);
+  const variableNames = selectedVariableNames(args);
+  const missing = missingRequiredEnv(variableNames);
+  const issues = semanticIssues();
+  const ghBin = process.env.MAILHUB_GH_BIN || "gh";
+  const secretNamesToSet = REQUIRED_SECRET_NAMES.filter((name) => valueFor(name));
+  const variableNamesToSet = variableNames.filter((name) => valueFor(name));
+  const result = {
+    repo: args.repo,
+    mode: args.apply ? "apply" : "dry_run",
+    includeOptional: args.includeOptional,
+    envFileLoaded,
+    secretNamesToSet,
+    variableNamesToSet,
+    missingRequiredEnv: missing,
+    semanticIssues: issues,
+    readyToApply: missing.length === 0 && issues.length === 0,
+    appliedSecretNames: [],
+    appliedVariableNames: [],
+    note: "Values are never printed; --apply passes secrets to gh via stdin and variables via gh variable set --body.",
+  };
+
+  if (args.apply) {
+    if (!result.readyToApply) {
+      console.log(JSON.stringify(result, null, 2));
+      process.exit(2);
+    }
+    for (const name of secretNamesToSet) {
+      setSecret({ ghBin, repo: args.repo, name, value: valueFor(name) });
+      result.appliedSecretNames.push(name);
+    }
+    for (const name of variableNamesToSet) {
+      setVariable({ ghBin, repo: args.repo, name, value: valueFor(name) });
+      result.appliedVariableNames.push(name);
+    }
+  }
+
+  console.log(JSON.stringify(result, null, 2));
+}
+
+main();

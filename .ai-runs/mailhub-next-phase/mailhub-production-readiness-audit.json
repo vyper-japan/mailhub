@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-06-17T18:47:58.405Z",
-  "repoHead": "23a7ec4019a9b4a065bb87bbb1f48a542b0d3ee6",
+  "generatedAt": "2026-06-17T19:24:48.652Z",
+  "repoHead": "4dbaaa2903580ca2a4d444f9f70931d83fee55db",
   "inputs": {
     "sourceAudit": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.ai-runs/mailhub-next-phase/gmail-source-coverage-audit.json",
     "opsAudit": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.ai-runs/mailhub-next-phase/mailhub-operational-confirmations.json",
@@ -18,10 +18,10 @@
     "routingProbeAuditGeneratedAt": "2026-06-17T15:16:01.072Z",
     "routingProbePreflightGeneratedAt": "2026-06-17T15:16:00.624Z",
     "githubRoutingSecretsCheckedAt": "2026-06-17T15:15:08.207Z",
-    "githubStaffSecretsCheckedAt": "2026-06-17T18:47:44.721Z",
+    "githubStaffSecretsCheckedAt": "2026-06-17T19:24:48.508Z",
     "viewsAuditGeneratedAt": "2026-06-17T15:15:32.600Z",
     "rulesAuditGeneratedAt": "2026-06-17T15:15:29.590Z",
-    "staffWorkflowAuditGeneratedAt": "2026-06-17T18:47:51.125Z",
+    "staffWorkflowAuditGeneratedAt": "2026-06-17T19:24:47.577Z",
     "rulesConfigFingerprint": "sha256:64ce3c152193b489c6d1b48a3c89ad4ea195b7824e0c25c5412db1c4a1cababd",
     "ruleConfigSource": {
       "requestedSource": "file",
@@ -352,8 +352,11 @@
       "evidence": {
         "staffGithubConfig": {
           "source": "github_actions_config",
-          "checkedAt": "2026-06-17T18:47:44.721Z",
-          "repoHead": "23a7ec4019a9b4a065bb87bbb1f48a542b0d3ee6",
+          "sourceTrusted": true,
+          "checkedAt": "2026-06-17T19:24:48.508Z",
+          "repoHead": "4dbaaa2903580ca2a4d444f9f70931d83fee55db",
+          "currentRepoHead": "4dbaaa2903580ca2a4d444f9f70931d83fee55db",
+          "repoHeadMatchesCurrent": true,
           "secretCount": 4,
           "variableCount": 0,
           "readyForProductionStaffPreflight": false,
@@ -375,6 +378,7 @@
             "NEXTAUTH_SECRET",
             "MAILHUB_SHEETS_PRIVATE_KEY"
           ],
+          "semanticIssues": [],
           "presentRequiredConfigNames": [
             "GOOGLE_CLIENT_ID",
             "GOOGLE_CLIENT_SECRET",
@@ -386,7 +390,11 @@
             "GOOGLE_CLIENT_SECRET": "secret",
             "GOOGLE_SHARED_INBOX_EMAIL": "secret",
             "GOOGLE_SHARED_INBOX_REFRESH_TOKEN": "secret"
-          }
+          },
+          "setupCommands": [
+            "npm run setup:mailhub-staff-github-config",
+            "npm run setup:mailhub-staff-github-config -- --apply"
+          ]
         },
         "escalatesToP0AfterRoutingProof": true
       }

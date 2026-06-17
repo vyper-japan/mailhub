@@ -128,6 +128,10 @@ function baseReadinessAudit(overrides: Record<string, unknown> = {}) {
             missingSecretConfig: ["NEXTAUTH_SECRET"],
             presentRequiredConfigNames: [],
             presentRequiredConfigSources: {},
+            setupCommands: [
+              "npm run setup:mailhub-staff-github-config",
+              "npm run setup:mailhub-staff-github-config -- --apply",
+            ],
           },
           escalatesToP0AfterRoutingProof: true,
         },
@@ -399,6 +403,51 @@ describe("MailHub readiness contract check", () => {
       expect(result.stdout).toContain("staff_github_config_gate_mismatch");
       expect(result.stdout).toContain("staff_github_config_ready_without_ready_artifact");
       expect(result.stdout).toContain("staff_github_config_ready_without_secret_artifact");
+    });
+  });
+
+  test("rejects production-ready staff GitHub claims backed by a stale referenced artifact", () => {
+    withTempDir((dir) => {
+      const auditPath = join(dir, "readiness.json");
+      const staffGithubPath = join(dir, "github-staff-secrets-readiness.json");
+      writeJson(staffGithubPath, {
+        source: "github_actions_config",
+        repoHead: "parent123",
+        readyForProductionStaffPreflight: true,
+        readyForSecretBackedStaffConfig: true,
+        missingProductionStaffConfig: [],
+        missingSecretConfig: [],
+        semanticIssues: [],
+      });
+      const audit = baseReadinessAudit();
+      writeJson(auditPath, {
+        ...audit,
+        requirements: {
+          ...audit.requirements,
+          currentSharedGmailRoutingReady: true,
+          routingProbeReady: true,
+          routingProbePreflightReady: true,
+          routingProbeGithubSecretsReady: true,
+          staffWorkflowPermissionsReady: true,
+          staffGithubConfigReady: true,
+          staffReadOnlyRolloutReady: true,
+          staffControlledWritePilotReady: true,
+        },
+        inputs: {
+          ...audit.inputs,
+          githubStaffSecrets: staffGithubPath,
+        },
+        gate: {
+          productionReady: true,
+          p0Blockers: [],
+          p1Blockers: [],
+        },
+        blockers: [],
+      });
+
+      const result = runContract(auditPath, "head123", "parent123");
+      expect(result.status).toBe(1);
+      expect(result.stdout).toContain("staff_github_config_ready_artifact_requires_current_repo_head");
     });
   });
 

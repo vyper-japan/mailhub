@@ -33,6 +33,7 @@
     "audit:mailhub-routing-next-contract": "node scripts/check-mailhub-routing-next-contract.mjs",
     "audit:mailhub-routing-proof-contract": "node scripts/check-mailhub-routing-proof-contract.mjs",
     "setup:mailhub-routing-secrets": "node scripts/setup-mailhub-routing-probe-secrets.mjs",
+    "setup:mailhub-staff-github-config": "node scripts/setup-mailhub-staff-github-config.mjs",
     "setup:mailhub-staff-env": "node scripts/setup-mailhub-staff-env.mjs",
     "setup:mailhub-staff-manifest": "node scripts/write-mailhub-staff-evidence-manifest.mjs",
     "probe:routing-preflight": "node scripts/send-mailhub-routing-probes.mjs --preflight",
