@@ -364,6 +364,13 @@
   - Focused routing probe script tests now cover a consistent blocked proof artifact bundle and contradictory send/readiness claims.
   - Current proof bundle remains intentionally blocked: preflight is not production-proof ready, send artifact is dry-run with zero sent messages, audit is plan-only, and readiness remains `productionReady=false` with P0 `current_shared_gmail_routing`.
   - Refreshed production readiness and routing-next artifacts to repo head `222cb49` so the next commit's CI accepts them as the parent artifact state.
+- 2026-06-17 routing probe workflow artifact-gate wave completed:
+  - Hardened `.github/workflows/mailhub-routing-probe.yml` so the manual routing probe workflow now writes a safe dry-run `mailhub-routing-probe-send.json` artifact before the readiness refresh.
+  - The manual workflow now runs the full committed artifact contract suite in both preflight and post-`send_verify` paths: GitHub secret readiness, production readiness, routing next-step, and routing proof contracts.
+  - This closes the workflow-level gap where manual probe artifacts could be uploaded without the same cross-artifact checks used by the readiness CI.
+  - Local reproduction of the new dry-run send artifact passed with `mode=dry_run`, `probeCount=8`, `sentCount=0`, and missing external SMTP proof env unchanged.
+  - Refreshed production readiness, routing next-step, and dry-run send artifacts to repo head `f505adb` so the next commit's CI accepts them as the parent artifact state.
+  - Current state remains intentionally blocked: `productionReady=false`, P0 `current_shared_gmail_routing`, and missing external SMTP proof values `MAILHUB_PROBE_SMTP_HOST`, `MAILHUB_PROBE_SMTP_USER`, `MAILHUB_PROBE_SMTP_PASS`, and `MAILHUB_PROBE_FROM`.
 
 ## Not Done
 

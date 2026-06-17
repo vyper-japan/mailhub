@@ -1620,6 +1620,54 @@ npm run audit:mailhub-routing-next -- --strict --out .ai-runs/mailhub-next-phase
 - Focused routing probe script tests passed 28/28.
 - Production readiness and routing-next artifacts were refreshed to repo head `222cb49`.
 
+## 2026-06-17 Routing Probe Workflow Artifact-Gate Commands
+
+```bash
+actionlint .github/workflows/mailhub-routing-probe.yml
+npm run audit:github-routing-secrets-contract
+npm run audit:mailhub-readiness-contract
+npm run audit:mailhub-routing-next-contract
+npm run audit:mailhub-routing-proof-contract
+npx vitest run lib/__tests__/mailhub-routing-probe-scripts.test.ts
+npm run typecheck
+npm run lint
+npm run build
+npm run security:scan
+npm run security:scan-artifacts
+npm run test
+npm run probe:routing-send -- --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-send.json
+npm run audit:mailhub-readiness -- --out .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json
+npm run test:coverage
+npm run audit:mailhub-routing-next -- --strict --out .ai-runs/mailhub-next-phase/mailhub-routing-next-steps.json
+npm run audit:github-routing-secrets-contract
+npm run audit:mailhub-readiness-contract
+npm run audit:mailhub-routing-next-contract
+npm run audit:mailhub-routing-proof-contract
+```
+
+## 2026-06-17 Routing Probe Workflow Artifact-Gate Results
+
+- Hardened `.github/workflows/mailhub-routing-probe.yml` to write the safe dry-run send artifact in preflight mode before the readiness refresh.
+- The manual workflow now runs the same four artifact contracts used by readiness CI in both the preflight refresh and the post-`send_verify` refresh.
+- Local dry-run send reproduction passed:
+  - `mode=dry_run`
+  - `probeCount=8`
+  - `sentCount=0`
+  - `smtpReadyForProductionProof=false`
+- Final contracts passed with:
+  - `canRunGithubWorkflowDispatch=false`
+  - `canRunLocalSendVerify=false`
+  - `canRunSendVerify=false`
+  - `productionReady=false`
+  - P0 `current_shared_gmail_routing`
+- Validation passed:
+  - `actionlint .github/workflows/mailhub-routing-probe.yml`
+  - focused routing probe script tests 28/28
+  - full Vitest 63 files / 569 tests
+  - coverage run 63 files / 569 tests
+  - typecheck, lint, build, security scan, and artifact secret scan
+- First `npm run typecheck` failed before `next build` because `.next/types` referenced stale generated files; after `next build` regenerated `.next/types`, `npm run typecheck` passed.
+
 ## Useful Runtime Commands
 
 Start dev server for tunnel:

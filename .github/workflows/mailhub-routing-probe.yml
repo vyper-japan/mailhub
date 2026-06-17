@@ -120,6 +120,14 @@ jobs:
             --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-audit.json
           node -e 'const a=require("./.ai-runs/mailhub-next-phase/mailhub-routing-probe-audit.json"); console.log(JSON.stringify({mode:a.mode, targetChannelCount:a.gate?.targetChannelCount, targetAddressCount:a.gate?.targetAddressCount, plannedAddressProbes:a.plannedAddressProbes?.length, allExpectedAddressesConfirmed:a.gate?.allExpectedAddressesConfirmed}, null, 2)); if(a.mode!=="plan_only") process.exit(2); if(a.gate?.targetAddressCount!==8) process.exit(3); if(a.plannedAddressProbes?.length!==8) process.exit(4);'
 
+      - name: Write routing probe dry-run send artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run probe:routing-send -- \
+            --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-send.json
+          node -e 'const s=require("./.ai-runs/mailhub-next-phase/mailhub-routing-probe-send.json"); console.log(JSON.stringify({mode:s.mode, probeCount:s.probeCount, sentCount:s.sent.length, hasVerification:Boolean(s.verification)}, null, 2)); if(s.mode!=="dry_run") process.exit(2); if(s.probeCount!==8) process.exit(3); if(s.sent.length!==0) process.exit(4); if(s.verification) process.exit(5);'
+
       - name: Refresh readiness and next-step artifacts
         shell: bash
         run: |
@@ -129,7 +137,10 @@ jobs:
           npm run audit:mailhub-routing-next -- \
             --strict \
             --out .ai-runs/mailhub-next-phase/mailhub-routing-next-steps.json
+          npm run audit:github-routing-secrets-contract
           npm run audit:mailhub-readiness-contract
+          npm run audit:mailhub-routing-next-contract
+          npm run audit:mailhub-routing-proof-contract
           node -e 'const n=require("./.ai-runs/mailhub-next-phase/mailhub-routing-next-steps.json"); console.log(JSON.stringify({productionReady:n.state.productionReady, canRunSendVerify:n.state.canRunSendVerify, missingExternalSmtpSecrets:n.missing.externalSmtpSecrets, runGithubSendVerify:n.nextActions.find((a)=>a.id==="run_github_send_verify")?.status}, null, 2));'
 
       - name: Validate send_verify readiness gates
@@ -162,7 +173,10 @@ jobs:
           npm run audit:mailhub-routing-next -- \
             --strict \
             --out .ai-runs/mailhub-next-phase/mailhub-routing-next-steps.json
+          npm run audit:github-routing-secrets-contract
           npm run audit:mailhub-readiness-contract
+          npm run audit:mailhub-routing-next-contract
+          npm run audit:mailhub-routing-proof-contract
 
       - name: Upload routing probe artifacts
         uses: actions/upload-artifact@v7
