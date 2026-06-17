@@ -138,3 +138,26 @@ Current machine conclusion:
 | `ebay` | none | `MAIL_MIGRATION_STATUS.md`; GWS group found; Lolipop inventory 221; Lolipop peek dates through `26/05/28` | verify current GWS group membership / MX routing to `mailhub@`, or explicitly document that it remains outside the shared Gmail workbench |
 
 The production-complete source coverage claim is not ready. The current machine gate has `sourceInventoryMissing: []`, but `currentSharedGmailRoutingUnconfirmed` still contains all six zero-active-inbox channels. The current code coverage claim is ready: the audit has no known query/address code gaps.
+
+## GWS Routing Audit
+
+Command:
+
+```bash
+npm run audit:gws-routing -- --out .ai-runs/mailhub-next-phase/mailhub-gws-routing-audit.json
+```
+
+This uses the authenticated `gcloud` account (`info@vtj.co.jp`, project `ec-data-hub`) to read Cloud Identity group membership, then resolves current DNS MX for `vtj.co.jp`.
+
+Current machine conclusion:
+
+| Check | Result |
+|---|---|
+| Target addresses audited | 8 |
+| GWS groups found | yes, all target addresses |
+| `mailhub@vtj.co.jp` group member | yes, all target groups |
+| Current `vtj.co.jp` MX | `50 mx01.lolipop.jp` |
+| MX routes directly to Google | no |
+| Current shared Gmail routing confirmed | no |
+
+This resolves the GWS membership part of the routing question, including `vyperglobal_y@vtj.co.jp` and `ebay@vtj.co.jp`. It does not prove external mail reaches shared Gmail because the domain MX still points to Lolipop. The remaining production-complete blocker is current Lolipop forwarding/MX cutover evidence or active shared Gmail `INBOX` evidence for the zero-active-inbox channels.

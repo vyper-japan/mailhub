@@ -14,13 +14,17 @@ Continue from the completed INBOX-scoped source coverage and rule-safety wave:
    - Migration evidence now proves source inventory for all six zero-active-inbox channels, so `sourceInventoryMissing=[]`.
    - The complete gate intentionally requires current shared Gmail coverage; historical all-mail, Lolipop, or GWS inventory evidence is source inventory only.
    - `currentSharedGmailRoutingUnconfirmed`: `gopro-yahoo`, `vyperglobal-rakuten`, `vyperglobal-yahoo`, `ams-vyper`, `datacolor`, `ebay`.
-   - `vyperglobal-yahoo` and `ebay`: source exists but shared Gmail has no active or historical evidence. Verify current GWS group membership / MX routing to `mailhub@`, or explicitly document that the source remains outside the shared Gmail workbench.
-   - `gopro-yahoo`, `vyperglobal-rakuten`, `ams-vyper`, and `datacolor`: historical shared Gmail evidence exists but active `INBOX` is zero. Confirm current routing/dormancy before production-complete source coverage is claimed.
-6. Collect operator feedback on the default saved views. Real Gmail audit proves `customer-inquiries` and `noise-candidates` are too broad for bulk automation, so keep them as manual-review shortcuts unless narrowed.
-7. Re-run `npm run audit:gmail-rules -- --out .ai-runs/mailhub-next-phase/gmail-rule-safety-audit.json --max 100` whenever production file/Sheets rules are added or changed.
-8. Add AI reply drafting only after a knowledge evidence source is defined; keep generated drafts separate from send actions.
-9. Expand the rule-safety gate only after production rule config exists and passes the real-data audit. Current code protects suppressive labels from invoice/inquiry/important-looking messages and fails closed when classification text is missing, but does not implement a full production auto-discard policy.
-10. Optional: run a manual browser check on production/staging data for stores pagination. Forced E2E is now present and passing.
+6. Run or inspect `npm run audit:gws-routing -- --out .ai-runs/mailhub-next-phase/mailhub-gws-routing-audit.json`.
+   - Latest machine gate: all eight target GWS groups exist and all have `mailhub@vtj.co.jp` as `MEMBER`.
+   - Current `vtj.co.jp` MX is `50 mx01.lolipop.jp`, so direct Google MX routing is not confirmed.
+   - `currentSharedGmailRoutingConfirmed=false`; remaining work is Lolipop forwarding/MX cutover evidence or active shared Gmail `INBOX` evidence.
+7. For `vyperglobal-yahoo` and `ebay`, source exists and GWS group membership is correct, but shared Gmail has no active or historical evidence. Verify Lolipop-side forwarding/current MX path to `mailhub@`, send a controlled probe, or explicitly document that the source remains outside the shared Gmail workbench.
+8. For `gopro-yahoo`, `vyperglobal-rakuten`, `ams-vyper`, and `datacolor`, historical shared Gmail evidence exists but active `INBOX` is zero. Confirm current routing/dormancy before production-complete source coverage is claimed.
+9. Collect operator feedback on the default saved views. Real Gmail audit proves `customer-inquiries` and `noise-candidates` are too broad for bulk automation, so keep them as manual-review shortcuts unless narrowed.
+10. Re-run `npm run audit:gmail-rules -- --out .ai-runs/mailhub-next-phase/gmail-rule-safety-audit.json --max 100` whenever production file/Sheets rules are added or changed.
+11. Add AI reply drafting only after a knowledge evidence source is defined; keep generated drafts separate from send actions.
+12. Expand the rule-safety gate only after production rule config exists and passes the real-data audit. Current code protects suppressive labels from invoice/inquiry/important-looking messages and fails closed when classification text is missing, but does not implement a full production auto-discard policy.
+13. Optional: run a manual browser check on production/staging data for stores pagination. Forced E2E is now present and passing.
 
 ## Large-Team Wave Plan
 

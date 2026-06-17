@@ -243,6 +243,36 @@ npm run build
 - `npm run test`: 60 files / 531 tests passed.
 - `npm run build`: passed.
 
+## Verification Commands Run On 2026-06-17 GWS Routing Audit Wave
+
+```bash
+node --check scripts/audit-mailhub-gws-routing.mjs
+npm run audit:gws-routing -- --out .ai-runs/mailhub-next-phase/mailhub-gws-routing-audit.json
+jq '.gate' .ai-runs/mailhub-next-phase/mailhub-gws-routing-audit.json
+node -e 'const a=require("./.ai-runs/mailhub-next-phase/mailhub-gws-routing-audit.json"); if(!a.gate.allGroupsFound) process.exit(1); if(!a.gate.allGroupsHaveMailhubMember) process.exit(2); if(a.gate.domainMxGoogleLike) process.exit(3); if(!a.gate.externalMxRequiresLolipopForwardingEvidence) process.exit(4); if(a.gate.currentSharedGmailRoutingConfirmed) process.exit(5); console.log("gws routing gate safe", JSON.stringify(a.gate));'
+npm run typecheck
+npm run lint
+npm run test
+npm run build
+```
+
+## 2026-06-17 GWS Routing Audit Results
+
+- `node --check`: passed.
+- `npm run audit:gws-routing`: passed.
+- Target addresses audited: 8.
+- `allGroupsFound`: `true`.
+- `allGroupsHaveMailhubMember`: `true`.
+- Current DNS MX for `vtj.co.jp`: `50 mx01.lolipop.jp`.
+- `domainMxGoogleLike`: `false`.
+- `externalMxRequiresLolipopForwardingEvidence`: `true`.
+- `currentSharedGmailRoutingConfirmed`: `false`.
+- GWS routing gate assertion command: passed.
+- `npm run typecheck`: passed.
+- `npm run lint`: passed.
+- `npm run test`: 60 files / 531 tests passed.
+- `npm run build`: passed.
+
 ## Verification Commands Run On 2026-06-17 Rule Safety Real-Data Gate Wave
 
 ```bash
