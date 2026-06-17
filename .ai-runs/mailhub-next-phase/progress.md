@@ -201,6 +201,13 @@
   - With `--send --verify-after-send`, the sender now polls `audit-mailhub-routing-probes.mjs` for the marker and regenerates `mailhub-production-readiness-audit.json`.
   - Added guard coverage proving `--verify-after-send` is rejected without `--send`.
   - Updated `OPS_RUNBOOK.md`, `env.example`, and `next.md` to prefer the one-command send/wait/verify flow when external SMTP is available.
+- 2026-06-17 external routing probe preflight wave completed:
+  - Added `npm run probe:routing-preflight`.
+  - The preflight mode writes the exact eight-address probe plan, sends zero messages, and reports missing external SMTP env keys without exposing secrets.
+  - The preflight gate distinguishes `readyForSend` from `readyForProductionProof`, so `@vtj.co.jp` smoke senders cannot accidentally satisfy production routing evidence.
+  - Hardened sender parsing so formatted senders like `Probe <probe@vtj.co.jp>` are still treated as `@vtj.co.jp` and cannot satisfy production proof.
+  - Added regression coverage proving preflight output does not expose raw SMTP user/password values.
+  - Current local preflight confirms the remaining blocker is operational setup: external SMTP env vars are not configured in `.env.local`.
 
 ## Not Done
 
@@ -212,6 +219,7 @@
 - GWS group membership is no longer the blocker for the six channels; all target groups have `mailhub@vtj.co.jp`. The blocker is Lolipop-side forwarding/current MX path evidence because `vtj.co.jp` still resolves to `mx01.lolipop.jp`.
 - The aggregate production readiness gate has only one P0 blocker left: `current_shared_gmail_routing`.
 - A controlled probe can now close or disprove that blocker mechanically: use an external non-`@vtj.co.jp` SMTP sender with `npm run probe:routing-send -- --send`, then re-run the probe audit with the emitted `--marker`.
+- Before the controlled probe, run `npm run probe:routing-preflight -- --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-preflight.json`; current local status is not ready because external SMTP env vars are missing.
 - Production pagination basic behavior is represented in API/UI metadata and forced E2E; real browser/manual production verification is still useful before staff rollout.
 - Auto-discard rules for marketing/noise are protected against obvious important/invoice/inquiry suppression and missing summary text, but a full production auto-discard policy is still intentionally not enabled.
 - Real-data rule safety audit exists and passes for the current local file config because no rules are configured. Re-run with `MAILHUB_CONFIG_STORE=sheets` and production Sheets credentials when production rule config is enabled.

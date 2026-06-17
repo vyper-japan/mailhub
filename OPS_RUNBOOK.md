@@ -467,7 +467,21 @@ MAILHUB_PROBE_FROM=external-probe@example.com
 
 `MAILHUB_PROBE_FROM` は `@vtj.co.jp` 以外にする。スクリプトは既定で `@vtj.co.jp` 送信元を拒否する。
 
-### 3. 外部probeを送信
+### 3. 外部SMTP preflight
+送信前に、秘密情報を出さずにSMTP設定と8宛先計画を確認する。
+
+```bash
+npm run probe:routing-preflight -- --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-preflight.json
+```
+
+合格条件:
+- `mode=preflight`
+- `probeCount=8`
+- `sentCount=0`
+- `smtpPreflight.readyForProductionProof=true`
+- `smtpPreflight.missingRequiredEnv=[]`
+
+### 4. 外部probeを送信
 ```bash
 npm run probe:routing-send -- --send --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-send.json
 ```
@@ -482,7 +496,7 @@ npm run probe:routing-send -- --send --verify-after-send --wait-seconds 300 --po
 
 この場合、スクリプトが `mailhub-routing-probe-audit.json` と `mailhub-production-readiness-audit.json` も更新する。
 
-### 4. shared Gmail 側で到達検証（手動分割する場合）
+### 5. shared Gmail 側で到達検証（手動分割する場合）
 送信直後は配送遅延があるため、1-5分待ってから実行する。
 
 ```bash
@@ -497,7 +511,9 @@ npm run audit:mailhub-readiness -- --out .ai-runs/mailhub-next-phase/mailhub-pro
 - `mailhub-production-readiness-audit.json` の `requirements.routingProbeReady=true`
 - 他P0がなければ `gate.productionReady=true`
 
-### 5. 失敗時の読み方
+### 6. 失敗時の読み方
+- `smtpPreflight.missingRequiredEnv` が残る: 外部SMTP設定が未投入。送信せずに環境変数を補完する。
+- `smtpPreflight.readyForProductionProof=false`: 設定不足、無効なport/secure値、または `@vtj.co.jp` 送信元。production proof としては使わない。
 - `missingAddresses` が残る: その宛先の現在MX/転送が MailHub shared Gmail に届いていない。Lolipop転送設定、GWS group membership、MX切替状態を確認する。
 - `matchedChannels` はあるが `missingAddresses` が残る: 複数宛先チャンネルの一部到達。production ready ではない。
 - `domainMxGoogleLike=false`: 現在MXがGoogle直ではない。Lolipop forwarding証跡または承認済みMX切替後の再probeが必要。

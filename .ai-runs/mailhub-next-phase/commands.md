@@ -716,6 +716,36 @@ node -e 'const r=require("./.ai-runs/mailhub-next-phase/mailhub-production-readi
 - `productionReady`: `false`.
 - P0 blockers: `current_shared_gmail_routing`.
 
+## Verification Commands Run On 2026-06-17 External Routing Probe Preflight Wave
+
+```bash
+node --check scripts/send-mailhub-routing-probes.mjs
+npx vitest run lib/__tests__/mailhub-routing-probe-scripts.test.ts
+npm run probe:routing-preflight -- --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-preflight.json
+node -e 'const p=require("./.ai-runs/mailhub-next-phase/mailhub-routing-probe-preflight.json"); if(p.mode!=="preflight") process.exit(1); if(p.probeCount!==8) process.exit(2); if(p.sent.length!==0) process.exit(3); if(p.smtpPreflight.readyForProductionProof) process.exit(4); console.log("preflight artifact", JSON.stringify({mode:p.mode, probeCount:p.probeCount, sentCount:p.sent.length, readyForProductionProof:p.smtpPreflight.readyForProductionProof, missing:p.smtpPreflight.missingRequiredEnv}));'
+npm run typecheck
+npm run lint
+npm run security:scan-artifacts
+npm run test
+npm run build
+git diff --check
+```
+
+## 2026-06-17 External Routing Probe Preflight Wave Results
+
+- Script syntax check: passed.
+- Focused Vitest: 1 file / 9 tests passed.
+- Preflight artifact: `mode=preflight`, `probeCount=8`, `sentCount=0`.
+- `smtpPreflight.readyForProductionProof`: `false`.
+- Missing required external SMTP env: `MAILHUB_PROBE_SMTP_HOST`, `MAILHUB_PROBE_SMTP_USER`, `MAILHUB_PROBE_SMTP_PASS`, `MAILHUB_PROBE_FROM`.
+- Reviewer P1 fix: formatted `@vtj.co.jp` senders are parsed as internal senders, and raw SMTP user/password values are asserted absent from preflight artifacts/stdout/stderr.
+- `npm run typecheck`: passed.
+- `npm run lint`: passed.
+- `npm run security:scan-artifacts`: passed.
+- `npm run test`: 62 files / 544 tests passed.
+- `npm run build`: passed.
+- `git diff --check`: passed.
+
 ## Useful Runtime Commands
 
 Start dev server for tunnel:

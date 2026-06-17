@@ -19,6 +19,7 @@ function parseArgs(argv) {
     out: defaultOutPath,
     marker: "",
     send: false,
+    preflight: false,
     allowVtjFrom: false,
     verifyAfterSend: false,
     waitSeconds: 300,
@@ -33,6 +34,7 @@ function parseArgs(argv) {
     else if (arg === "--out") out.out = argv[++i];
     else if (arg === "--marker") out.marker = argv[++i];
     else if (arg === "--send") out.send = true;
+    else if (arg === "--preflight") out.preflight = true;
     else if (arg === "--allow-vtj-from") out.allowVtjFrom = true;
     else if (arg === "--verify-after-send") out.verifyAfterSend = true;
     else if (arg === "--wait-seconds") out.waitSeconds = Math.max(0, Math.min(1800, Number(argv[++i]) || 0));
@@ -41,7 +43,7 @@ function parseArgs(argv) {
     else if (arg === "--readiness-out") out.readinessOut = argv[++i];
     else if (arg === "--max-results") out.maxResults = Math.max(1, Math.min(50, Number(argv[++i]) || 10));
     else if (arg === "--help" || arg === "-h") {
-      console.log(`Usage: node scripts/send-mailhub-routing-probes.mjs [--ops-audit path] [--out path] [--marker MAILHUB-ROUTING-PROBE-...] [--send] [--allow-vtj-from] [--verify-after-send] [--wait-seconds 300] [--poll-seconds 15]
+      console.log(`Usage: node scripts/send-mailhub-routing-probes.mjs [--ops-audit path] [--out path] [--marker MAILHUB-ROUTING-PROBE-...] [--preflight] [--send] [--allow-vtj-from] [--verify-after-send] [--wait-seconds 300] [--poll-seconds 15]
 
 Environment for --send:
   MAILHUB_PROBE_SMTP_HOST
@@ -52,6 +54,7 @@ Environment for --send:
   MAILHUB_PROBE_FROM
 
 Dry-run is the default and writes the exact address-level probe plan without sending mail.
+Use --preflight to also report external SMTP readiness without exposing secrets.
 Use --verify-after-send with --send to poll shared Gmail for the marker and regenerate readiness.`);
       process.exit(0);
     }
@@ -118,6 +121,72 @@ function smtpConfigFromEnv() {
       user: requireEnv("MAILHUB_PROBE_SMTP_USER"),
       pass: requireEnv("MAILHUB_PROBE_SMTP_PASS"),
     },
+  };
+}
+
+function extractEmailAddress(value) {
+  const trimmed = value?.trim() || "";
+  const angleMatch = trimmed.match(/<([^<>]+)>/);
+  return (angleMatch?.[1] ?? trimmed).trim().toLowerCase();
+}
+
+function emailDomain(value) {
+  const email = extractEmailAddress(value);
+  return email.includes("@") ? email.split("@").pop() : null;
+}
+
+function isVtjAddress(value) {
+  return emailDomain(value) === "vtj.co.jp";
+}
+
+function maskEmail(value) {
+  const email = extractEmailAddress(value);
+  if (!email) return null;
+  return email.replace(/^(.).+(@.+)$/, "$1***$2");
+}
+
+function smtpPreflightFromEnv({ allowVtjFrom }) {
+  const requiredKeys = [
+    "MAILHUB_PROBE_SMTP_HOST",
+    "MAILHUB_PROBE_SMTP_USER",
+    "MAILHUB_PROBE_SMTP_PASS",
+    "MAILHUB_PROBE_FROM",
+  ];
+  const missingRequiredEnv = requiredKeys.filter((key) => !process.env[key]?.trim());
+  const from = process.env.MAILHUB_PROBE_FROM?.trim() || "";
+  const fromDomain = emailDomain(from);
+  const fromIsVtj = isVtjAddress(from);
+  const rawPort = process.env.MAILHUB_PROBE_SMTP_PORT?.trim() || "587";
+  const port = Number(rawPort);
+  const portValid = Number.isInteger(port) && port > 0 && port <= 65535;
+  const rawSecure = process.env.MAILHUB_PROBE_SMTP_SECURE?.trim().toLowerCase();
+  const secureValid = !rawSecure || rawSecure === "true" || rawSecure === "false";
+  const fromAllowedForSend = Boolean(from) && (!fromIsVtj || allowVtjFrom);
+  const warnings = [];
+  if (fromIsVtj) warnings.push("vtj_from_not_external_route_proof");
+  if (allowVtjFrom && fromIsVtj) warnings.push("allow_vtj_from_is_smoke_only_not_production_proof");
+  if (!portValid) warnings.push("invalid_MAILHUB_PROBE_SMTP_PORT");
+  if (!secureValid) warnings.push("invalid_MAILHUB_PROBE_SMTP_SECURE");
+
+  const readyForSend = missingRequiredEnv.length === 0 && portValid && secureValid && fromAllowedForSend;
+  const readyForProductionProof = readyForSend && !fromIsVtj;
+
+  return {
+    requiredEnvPresent: Object.fromEntries(requiredKeys.map((key) => [key, !missingRequiredEnv.includes(key)])),
+    optionalEnvPresent: {
+      MAILHUB_PROBE_SMTP_PORT: Boolean(process.env.MAILHUB_PROBE_SMTP_PORT?.trim()),
+      MAILHUB_PROBE_SMTP_SECURE: Boolean(process.env.MAILHUB_PROBE_SMTP_SECURE?.trim()),
+    },
+    missingRequiredEnv,
+    from: maskEmail(from),
+    fromDomain,
+    fromIsVtj,
+    allowVtjFrom,
+    portValid,
+    secureValid,
+    readyForSend,
+    readyForProductionProof,
+    warnings,
   };
 }
 
@@ -207,9 +276,10 @@ async function main() {
 
   loadEnvFile(envPath);
   const from = process.env.MAILHUB_PROBE_FROM?.trim() || null;
+  const smtpPreflight = smtpPreflightFromEnv({ allowVtjFrom: args.allowVtjFrom });
   if (args.verifyAfterSend && !args.send) throw new Error("verify_after_send_requires_send");
   if (args.send && !from) throw new Error("missing_env:MAILHUB_PROBE_FROM");
-  if (args.send && from?.toLowerCase().endsWith("@vtj.co.jp") && !args.allowVtjFrom) {
+  if (args.send && isVtjAddress(from) && !args.allowVtjFrom) {
     throw new Error("vtj_from_not_external_route_proof: use a non-vtj external sender or pass --allow-vtj-from for a non-production-proof smoke");
   }
 
@@ -247,15 +317,17 @@ async function main() {
 
   const result = {
     generatedAt: new Date().toISOString(),
-    mode: args.send ? "sent" : "dry_run",
+    mode: args.send ? "sent" : args.preflight ? "preflight" : "dry_run",
     marker,
     inputs: {
       opsAudit: args.opsAudit,
       opsAuditGeneratedAt: opsAudit.generatedAt ?? null,
-      from: from ? from.replace(/^(.).+(@.+)$/, "$1***$2") : null,
+      from: maskEmail(from),
       allowVtjFrom: args.allowVtjFrom,
+      preflight: args.preflight,
       verifyAfterSend: args.verifyAfterSend,
     },
+    smtpPreflight,
     probeCount: addressProbes.length,
     addressProbes,
     sent,
@@ -272,6 +344,8 @@ async function main() {
     marker: result.marker,
     probeCount: result.probeCount,
     sentCount: result.sent.length,
+    smtpReadyForProductionProof: result.smtpPreflight.readyForProductionProof,
+    missingRequiredEnv: result.smtpPreflight.missingRequiredEnv,
     verification: result.verification,
     nextVerificationCommand: result.nextVerificationCommand,
     nextReadinessCommand: result.nextReadinessCommand,

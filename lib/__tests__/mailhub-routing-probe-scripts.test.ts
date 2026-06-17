@@ -288,6 +288,140 @@ describe("MailHub routing probe CLI gates", () => {
     });
   });
 
+  test("routing probe preflight reports missing SMTP env without sending", () => {
+    withTempDir((dir) => {
+      const opsPath = join(dir, "ops.json");
+      const outPath = join(dir, "send-plan.json");
+      writeJson(opsPath, opsAuditFixture());
+
+      const result = runNodeScript(
+        routingProbeSenderPath,
+        ["--ops-audit", opsPath, "--out", outPath, "--preflight"],
+        {
+          MAILHUB_PROBE_SMTP_HOST: " ",
+          MAILHUB_PROBE_SMTP_USER: " ",
+          MAILHUB_PROBE_SMTP_PASS: " ",
+          MAILHUB_PROBE_FROM: " ",
+        },
+      );
+
+      expect(result.status).toBe(0);
+      const out = readJson<{
+        mode: string;
+        sent: unknown[];
+        smtpPreflight: {
+          missingRequiredEnv: string[];
+          readyForSend: boolean;
+          readyForProductionProof: boolean;
+        };
+      }>(outPath);
+      expect(out.mode).toBe("preflight");
+      expect(out.sent).toEqual([]);
+      expect(out.smtpPreflight.readyForSend).toBe(false);
+      expect(out.smtpPreflight.readyForProductionProof).toBe(false);
+      expect(out.smtpPreflight.missingRequiredEnv).toEqual([
+        "MAILHUB_PROBE_SMTP_HOST",
+        "MAILHUB_PROBE_SMTP_USER",
+        "MAILHUB_PROBE_SMTP_PASS",
+        "MAILHUB_PROBE_FROM",
+      ]);
+    });
+  });
+
+  test("routing probe preflight accepts non-vtj external SMTP proof configuration", () => {
+    withTempDir((dir) => {
+      const opsPath = join(dir, "ops.json");
+      const outPath = join(dir, "send-plan.json");
+      writeJson(opsPath, opsAuditFixture());
+
+      const result = runNodeScript(
+        routingProbeSenderPath,
+        ["--ops-audit", opsPath, "--out", outPath, "--preflight"],
+        {
+          MAILHUB_PROBE_SMTP_HOST: "smtp.example.com",
+          MAILHUB_PROBE_SMTP_PORT: "587",
+          MAILHUB_PROBE_SMTP_SECURE: "false",
+          MAILHUB_PROBE_SMTP_USER: "probe-user",
+          MAILHUB_PROBE_SMTP_PASS: "probe-pass",
+          MAILHUB_PROBE_FROM: "external-probe@example.com",
+        },
+      );
+
+      expect(result.status).toBe(0);
+      const serialized = readFileSync(outPath, "utf8");
+      const out = readJson<{
+        mode: string;
+        sent: unknown[];
+        smtpPreflight: {
+          missingRequiredEnv: string[];
+          from: string | null;
+          fromDomain: string | null;
+          fromIsVtj: boolean;
+          readyForSend: boolean;
+          readyForProductionProof: boolean;
+          warnings: string[];
+        };
+      }>(outPath);
+      expect(out.mode).toBe("preflight");
+      expect(out.sent).toEqual([]);
+      expect(out.smtpPreflight.missingRequiredEnv).toEqual([]);
+      expect(out.smtpPreflight.from).toBe("e***@example.com");
+      expect(out.smtpPreflight.fromDomain).toBe("example.com");
+      expect(out.smtpPreflight.fromIsVtj).toBe(false);
+      expect(out.smtpPreflight.readyForSend).toBe(true);
+      expect(out.smtpPreflight.readyForProductionProof).toBe(true);
+      expect(out.smtpPreflight.warnings).toEqual([]);
+      expect(serialized).not.toContain("probe-user");
+      expect(serialized).not.toContain("probe-pass");
+      expect(result.stdout).not.toContain("probe-user");
+      expect(result.stdout).not.toContain("probe-pass");
+      expect(result.stderr).not.toContain("probe-user");
+      expect(result.stderr).not.toContain("probe-pass");
+    });
+  });
+
+  test("routing probe preflight keeps vtj.co.jp smoke senders out of production proof", () => {
+    withTempDir((dir) => {
+      const opsPath = join(dir, "ops.json");
+      const outPath = join(dir, "send-plan.json");
+      writeJson(opsPath, opsAuditFixture());
+
+      const result = runNodeScript(
+        routingProbeSenderPath,
+        ["--ops-audit", opsPath, "--out", outPath, "--preflight", "--allow-vtj-from"],
+        {
+          MAILHUB_PROBE_SMTP_HOST: "smtp.example.com",
+          MAILHUB_PROBE_SMTP_PORT: "587",
+          MAILHUB_PROBE_SMTP_SECURE: "false",
+          MAILHUB_PROBE_SMTP_USER: "probe-user",
+          MAILHUB_PROBE_SMTP_PASS: "probe-pass",
+          MAILHUB_PROBE_FROM: "Probe <probe@vtj.co.jp>",
+        },
+      );
+
+      expect(result.status).toBe(0);
+      const out = readJson<{
+        mode: string;
+        smtpPreflight: {
+          from: string | null;
+          fromDomain: string | null;
+          fromIsVtj: boolean;
+          readyForSend: boolean;
+          readyForProductionProof: boolean;
+          warnings: string[];
+        };
+      }>(outPath);
+      expect(out.mode).toBe("preflight");
+      expect(out.smtpPreflight.from).toBe("p***@vtj.co.jp");
+      expect(out.smtpPreflight.fromDomain).toBe("vtj.co.jp");
+      expect(out.smtpPreflight.fromIsVtj).toBe(true);
+      expect(out.smtpPreflight.readyForSend).toBe(true);
+      expect(out.smtpPreflight.readyForProductionProof).toBe(false);
+      expect(out.smtpPreflight.warnings).toContain("vtj_from_not_external_route_proof");
+      expect(out.smtpPreflight.warnings).toContain("allow_vtj_from_is_smoke_only_not_production_proof");
+    });
+  });
+
   test("routing probe sender requires --send before --verify-after-send", () => {
     withTempDir((dir) => {
       const opsPath = join(dir, "ops.json");
@@ -316,7 +450,7 @@ describe("MailHub routing probe CLI gates", () => {
       const result = runNodeScript(
         routingProbeSenderPath,
         ["--ops-audit", opsPath, "--out", outPath, "--send"],
-        { MAILHUB_PROBE_FROM: "probe@vtj.co.jp" },
+        { MAILHUB_PROBE_FROM: "Probe <probe@vtj.co.jp>" },
       );
 
       expect(result.status).toBe(1);
