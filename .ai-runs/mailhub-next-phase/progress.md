@@ -254,6 +254,11 @@
   - Added `--out` to `scripts/check-mailhub-routing-probe-secrets.mjs` and generated `.ai-runs/mailhub-next-phase/github-routing-secrets-readiness.json`.
   - Triggered manual GitHub Actions run `27663283240` in `mode=preflight`; it passed and skipped `send_verify`, so no external mail was sent.
   - The remaining GitHub-side gap is now only the four external SMTP proof secrets.
+- 2026-06-17 routing probe env gate wave completed:
+  - Searched existing env/keychain sources for external SMTP proof candidates without printing values.
+  - Only a `pilates-booking` Resend placeholder was found; it lacks `RESEND_API_KEY` and uses `example.com`, so it is not usable as production proof.
+  - Added `--from-env` to `scripts/check-mailhub-routing-probe-secrets.mjs`.
+  - The manual routing probe workflow now audits injected secret env into `github-routing-secrets-readiness.json` and blocks `send_verify` before sending unless `readyForSendVerify=true`.
 
 ## Not Done
 

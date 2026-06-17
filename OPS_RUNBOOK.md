@@ -511,6 +511,7 @@ npm run audit:github-routing-secrets -- --no-fail --out .ai-runs/mailhub-next-ph
 5. 完了後、artifact 内の `mailhub-routing-probe-send.json` / `mailhub-routing-probe-audit.json` / `mailhub-production-readiness-audit.json` を確認する
 
 `send_verify` は confirm 文字列が一致しないと送信前に失敗する。preflight が production proof として未準備の場合も送信前に失敗する。
+workflow 内でも injected env の secret readiness を値なしで監査し、`send_verify` では `readyForSendVerify=true` でない限り送信前に失敗する。
 
 ### 5. 外部probeをローカルから送信
 ```bash

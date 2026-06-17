@@ -29,15 +29,17 @@ function parseArgs(argv) {
     failOnMissing: true,
     secretsJson: "",
     out: "",
+    fromEnv: false,
   };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     if (arg === "--repo") args.repo = argv[++i] || "";
     else if (arg === "--secrets-json") args.secretsJson = argv[++i] || "";
     else if (arg === "--out") args.out = argv[++i] || "";
+    else if (arg === "--from-env") args.fromEnv = true;
     else if (arg === "--no-fail") args.failOnMissing = false;
     else if (arg === "--help" || arg === "-h") {
-      console.log("Usage: node scripts/check-mailhub-routing-probe-secrets.mjs [--repo owner/name] [--secrets-json path] [--out path] [--no-fail]");
+      console.log("Usage: node scripts/check-mailhub-routing-probe-secrets.mjs [--repo owner/name] [--secrets-json path] [--from-env] [--out path] [--no-fail]");
       process.exit(0);
     }
   }
@@ -62,19 +64,26 @@ function readActionSecrets(repo) {
   return Array.isArray(parsed) ? parsed : [];
 }
 
+function readEnvSecrets() {
+  return REQUIRED_SEND_VERIFY_SECRETS
+    .filter((name) => typeof process.env[name] === "string" && process.env[name].trim())
+    .map((name) => ({ name }));
+}
+
 function missingSecrets(required, present) {
   return required.filter((name) => !present.has(name));
 }
 
 function main() {
   const args = parseArgs(process.argv.slice(2));
-  const secrets = args.secretsJson ? readSecretsJson(args.secretsJson) : readActionSecrets(args.repo);
+  const secrets = args.fromEnv ? readEnvSecrets() : args.secretsJson ? readSecretsJson(args.secretsJson) : readActionSecrets(args.repo);
   const present = new Set(secrets.map((secret) => secret.name).filter(Boolean));
   const missingPreflight = missingSecrets(REQUIRED_PREFLIGHT_SECRETS, present);
   const missingSendVerify = missingSecrets(REQUIRED_SEND_VERIFY_SECRETS, present);
   const configuredOptional = OPTIONAL_SECRETS.filter((name) => present.has(name));
   const result = {
     repo: args.repo,
+    source: args.fromEnv ? "env" : args.secretsJson ? "json" : "github_actions_secrets",
     checkedAt: new Date().toISOString(),
     secretCount: secrets.length,
     requiredPreflightSecrets: REQUIRED_PREFLIGHT_SECRETS,

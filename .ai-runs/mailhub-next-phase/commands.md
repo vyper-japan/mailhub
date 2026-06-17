@@ -1048,6 +1048,7 @@ npm run test
 npm run build
 npm run security:scan-artifacts
 npm run audit:github-routing-secrets -- --no-fail --out .ai-runs/mailhub-next-phase/github-routing-secrets-readiness.json
+npm run probe:routing-preflight -- --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-preflight.json
 npm run audit:mailhub-readiness -- --out .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json
 npm run audit:mailhub-readiness-contract
 git diff --check
@@ -1069,6 +1070,51 @@ git diff --check
 - `npm run build`: passed.
 - `npm run security:scan-artifacts`: passed.
 - Final GitHub routing secret readiness artifact refresh: passed with `secretCount=4` and only external SMTP proof secrets missing.
+- Final readiness refresh: passed.
+- Final readiness contract check: passed with `productionReady=false`, P0 `current_shared_gmail_routing`, and no contract errors.
+- `git diff --check`: passed.
+
+## Verification Commands Run On 2026-06-17 Routing Probe Env Gate Wave
+
+```bash
+find /Users/takayukisuzuki/VYPER-Dev -maxdepth 5 \( -name '.env' -o -name '.env.local' -o -name '.env.production' -o -name '.env.development' -o -name '.env.staging' -o -name '.env.test' \) -type f
+node -e '<scan env/keychain candidates without printing values>'
+security find-generic-password -s RESEND_API_KEY -w >/dev/null
+security find-generic-password -s MAILHUB_PROBE_SMTP_PASS -w >/dev/null
+security find-generic-password -s SMTP_PASS -w >/dev/null
+node -e '<run Resend-as-SMTP preflight without printing values>'
+actionlint .github/workflows/mailhub-routing-probe.yml
+actionlint .github/workflows/*.yml
+ruby -e 'require "yaml"; Dir[".github/workflows/*.yml"].each { |p| YAML.load_file(p) }; puts "workflow yaml ok"'
+npx vitest run lib/__tests__/mailhub-routing-probe-scripts.test.ts
+npm run typecheck
+npm run lint
+npm run test
+npm run build
+npm run security:scan-artifacts
+npm run audit:github-routing-secrets -- --no-fail --out .ai-runs/mailhub-next-phase/github-routing-secrets-readiness.json
+npm run audit:mailhub-readiness -- --out .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json
+npm run audit:mailhub-readiness-contract
+git diff --check
+```
+
+## 2026-06-17 Routing Probe Env Gate Wave Results
+
+- External SMTP candidate search found no usable production proof credential.
+- `pilates-booking` has Resend key names, but `RESEND_API_KEY` is empty and `RESEND_FROM` is `example.com`; Resend-as-SMTP preflight still misses `MAILHUB_PROBE_SMTP_PASS`.
+- Keychain checks for `RESEND_API_KEY`, `MAILHUB_PROBE_SMTP_PASS`, and `SMTP_PASS`: no matching password items.
+- Added `--from-env` to `scripts/check-mailhub-routing-probe-secrets.mjs`.
+- Manual routing probe workflow now writes injected-env secret readiness to `github-routing-secrets-readiness.json` and blocks `send_verify` before sending unless `readyForSendVerify=true`.
+- `actionlint .github/workflows/*.yml`: passed.
+- Workflow YAML parse: passed.
+- Focused Vitest: 1 file / 13 tests passed.
+- `npm run typecheck`: passed.
+- `npm run lint`: passed.
+- `npm run test`: 63 files / 552 tests passed.
+- `npm run build`: passed.
+- `npm run security:scan-artifacts`: passed.
+- Final GitHub routing secret readiness artifact refresh: passed with `source=github_actions_secrets`, `secretCount=4`, and only external SMTP proof secrets missing.
+- Final standard routing preflight refresh: passed with `sentCount=0`, `smtpReadyForProductionProof=false`, and the four external SMTP proof env keys missing.
 - Final readiness refresh: passed.
 - Final readiness contract check: passed with `productionReady=false`, P0 `current_shared_gmail_routing`, and no contract errors.
 - `git diff --check`: passed.

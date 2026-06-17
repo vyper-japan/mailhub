@@ -238,6 +238,39 @@ describe("MailHub routing probe CLI gates", () => {
     });
   });
 
+  test("GitHub routing secret audit can inspect injected workflow env without printing values", () => {
+    withTempDir((dir) => {
+      const outPath = join(dir, "env-routing-secrets.json");
+      const result = runNodeScript(
+        routingProbeSecretsPath,
+        ["--from-env", "--out", outPath],
+        {
+          GOOGLE_CLIENT_ID: "client-id",
+          GOOGLE_CLIENT_SECRET: "client-secret",
+          GOOGLE_SHARED_INBOX_EMAIL: "mailhub@vtj.co.jp",
+          GOOGLE_SHARED_INBOX_REFRESH_TOKEN: "refresh-token",
+          MAILHUB_PROBE_SMTP_HOST: "smtp.example.com",
+          MAILHUB_PROBE_SMTP_USER: "probe-user",
+          MAILHUB_PROBE_SMTP_PASS: "probe-pass",
+          MAILHUB_PROBE_FROM: "external-probe@example.com",
+        },
+      );
+
+      expect(result.status).toBe(0);
+      expect(result.stdout).not.toContain("client-secret");
+      expect(result.stdout).not.toContain("refresh-token");
+      expect(result.stdout).not.toContain("probe-pass");
+      expect(readFileSync(outPath, "utf8")).not.toContain("client-secret");
+      expect(readFileSync(outPath, "utf8")).not.toContain("refresh-token");
+      expect(readFileSync(outPath, "utf8")).not.toContain("probe-pass");
+      expect(readJson(outPath)).toMatchObject({
+        source: "env",
+        readyForPreflightProductionProof: true,
+        readyForSendVerify: true,
+      });
+    });
+  });
+
   test("plan-only routing probe audit reports every target address, not just channels", () => {
     withTempDir((dir) => {
       const opsPath = join(dir, "ops.json");
