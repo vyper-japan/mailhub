@@ -1654,6 +1654,11 @@ describe("MailHub routing probe CLI gates", () => {
           defaultViewsManualReviewOnly: boolean;
           defaultViewsBulkAutomationSafe: boolean;
         };
+        viewSafety: {
+          syntaxFailedViews: string[];
+          manualReviewOnlyViews: string[];
+          bulkUnsafeViews: string[];
+        };
         gate: {
           productionReady: boolean;
           p0Blockers: string[];
@@ -1683,6 +1688,11 @@ describe("MailHub routing probe CLI gates", () => {
       expect(out.requirements.defaultViewsRealDataValidated).toBe(true);
       expect(out.requirements.defaultViewsManualReviewOnly).toBe(true);
       expect(out.requirements.defaultViewsBulkAutomationSafe).toBe(false);
+      expect(out.viewSafety).toEqual({
+        syntaxFailedViews: [],
+        manualReviewOnlyViews: ["invoices"],
+        bulkUnsafeViews: ["customer-inquiries"],
+      });
       expect(out.gate.productionReady).toBe(false);
       expect(out.gate.p0Blockers).toEqual(["current_shared_gmail_routing"]);
       expect(out.blockers[0]?.evidence?.routingProbePreflight?.missingRequiredEnv).toEqual([

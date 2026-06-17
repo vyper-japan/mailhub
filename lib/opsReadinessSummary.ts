@@ -21,6 +21,8 @@ export type OpsReadinessSummary = {
   defaultViewsRealDataValidated: boolean;
   defaultViewsManualReviewOnly: boolean;
   defaultViewsBulkAutomationSafe: boolean;
+  defaultViewsManualReviewOnlyViews: string[];
+  defaultViewsBulkUnsafeViews: string[];
   currentRuleConfigRealDataSafetyReady: boolean;
   currentRuleConfigFingerprintPresent: boolean;
   staffWorkflowPermissionsReady: boolean;
@@ -74,6 +76,8 @@ export function unavailableOpsReadinessSummary(): OpsReadinessSummary {
     defaultViewsRealDataValidated: false,
     defaultViewsManualReviewOnly: false,
     defaultViewsBulkAutomationSafe: false,
+    defaultViewsManualReviewOnlyViews: [],
+    defaultViewsBulkUnsafeViews: [],
     currentRuleConfigRealDataSafetyReady: false,
     currentRuleConfigFingerprintPresent: false,
     staffWorkflowPermissionsReady: false,
@@ -145,6 +149,9 @@ export function summarizeProductionReadinessAudit(
   const inputs = (audit.inputs && typeof audit.inputs === "object")
     ? audit.inputs as Record<string, unknown>
     : {};
+  const viewSafety = (audit.viewSafety && typeof audit.viewSafety === "object")
+    ? audit.viewSafety as Record<string, unknown>
+    : {};
   const blockers = Array.isArray(audit.blockers) ? audit.blockers : [];
   const routingBlocker = blockers
     .filter((item): item is Record<string, unknown> => Boolean(item && typeof item === "object"))
@@ -199,6 +206,8 @@ export function summarizeProductionReadinessAudit(
     defaultViewsRealDataValidated: requirements.defaultViewsRealDataValidated === true,
     defaultViewsManualReviewOnly: requirements.defaultViewsManualReviewOnly === true,
     defaultViewsBulkAutomationSafe: requirements.defaultViewsBulkAutomationSafe === true,
+    defaultViewsManualReviewOnlyViews: stringArray(viewSafety.manualReviewOnlyViews),
+    defaultViewsBulkUnsafeViews: stringArray(viewSafety.bulkUnsafeViews),
     currentRuleConfigRealDataSafetyReady: requirements.currentRuleConfigRealDataSafetyReady === true,
     currentRuleConfigFingerprintPresent: requirements.currentRuleConfigFingerprintPresent === true,
     staffWorkflowPermissionsReady: requirements.staffWorkflowPermissionsReady === true,

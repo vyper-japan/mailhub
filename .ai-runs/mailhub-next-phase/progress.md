@@ -445,6 +445,11 @@
   - CI readiness run `27695345578` caught that `mailhub-staff-workflow-audit.json` was stale after the routing-next safe setup commit.
   - Regenerated staff workflow audit, staff next-step, production readiness, and routing next-step artifacts against commit `d466aadc5f99fac4b142743bbc75a721b8746acd`.
   - Local readiness/routing/staff contracts passed after the artifact refresh; readiness remains blocked only by the same P0/P1 production evidence gaps.
+- 2026-06-17 default view bulk safety evidence wave completed:
+  - Added `viewSafety` to `mailhub-production-readiness-audit.json`, carrying `syntaxFailedViews`, `manualReviewOnlyViews`, and `bulkUnsafeViews` from the real Gmail default view audit.
+  - Strengthened `scripts/check-mailhub-readiness-contract.mjs` so `defaultViewsBulkAutomationSafe=false` must be paired with `defaultViewsManualReviewOnly=true` and non-empty `bulkUnsafeViews` evidence.
+  - Updated Ops readiness summary and Ops Board to show the bulk-unsafe view count/list, not only the boolean manual-only state.
+  - Current regenerated readiness artifact records `bulkUnsafeViews=["customer-inquiries","noise-candidates"]`; these remain manual-review shortcuts and cannot silently become bulk automation queues.
 
 ## Not Done
 
@@ -475,6 +480,7 @@
 - Real-data rule safety audit exists and passes for the current local file config because no rules are configured. Re-run with `MAILHUB_CONFIG_STORE=sheets` and production Sheets credentials when production rule config is enabled.
 - Most critic-identified production-readiness P1s from this wave are closed in code or converted to explicit operational confirmations. Remaining staff workflow gap is operational evidence/configuration: production `MAILHUB_TEAM_MEMBERS`, durable Sheets config/activity, read-only rollout screenshots, activity CSV, and controlled write pilot screenshots.
 - Important/invoice/customer-inquiry folders exist as default saved views and are audited as manual-review shortcuts; further narrowing requires operator feedback.
+- Default view bulk automation remains intentionally unsafe for `customer-inquiries` and `noise-candidates`; the readiness contract now requires that evidence to stay visible until the views are narrowed and re-audited.
 - Brain decision ledger exists for memory/file/sheets and health visibility; AI reply drafting and knowledge base integration are not implemented.
 - Rakuten/Amazon/Yahoo API-based reply integration is not implemented.
 - Production staff workflow and permissions need real-data validation through the new staff workflow audit: production env, durable Sheets config/activity, staff roster/admins, read-only rollout screenshots, activity CSV, and Gmail/MailHub write pilot screenshots.

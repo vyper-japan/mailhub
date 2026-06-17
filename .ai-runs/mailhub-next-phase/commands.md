@@ -2072,6 +2072,45 @@ git diff --check
 - Regenerated staff workflow audit, staff next-step, production readiness, and routing next-step artifacts against commit `d466aadc5f99fac4b142743bbc75a721b8746acd`.
 - Local GitHub routing secrets, staff workflow, staff next-step, readiness, routing next-step, routing proof contracts, and `git diff --check` passed after regeneration.
 
+## 2026-06-17 Default View Bulk Safety Evidence Commands
+
+```bash
+node --check scripts/audit-mailhub-production-readiness.mjs
+node --check scripts/check-mailhub-readiness-contract.mjs
+npx vitest run lib/__tests__/mailhub-readiness-contract.test.ts lib/__tests__/opsReadinessSummary.test.ts lib/__tests__/mailhub-routing-probe-scripts.test.ts
+npm run audit:mailhub-staff-workflow -- --out .ai-runs/mailhub-next-phase/mailhub-staff-workflow-audit.json
+npm run audit:mailhub-staff-next -- --out .ai-runs/mailhub-next-phase/mailhub-staff-workflow-next-steps.json
+npm run audit:mailhub-readiness -- --out .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json
+npm run audit:mailhub-routing-next -- --strict --out .ai-runs/mailhub-next-phase/mailhub-routing-next-steps.json
+npm run audit:github-routing-secrets-contract
+npm run audit:mailhub-staff-workflow-contract
+npm run audit:mailhub-staff-next-contract
+npm run audit:mailhub-readiness-contract
+npm run audit:mailhub-routing-next-contract
+npm run audit:mailhub-routing-proof-contract
+npm run typecheck
+npm run lint
+npm run test
+npm run build
+npm run smoke
+npm run security:scan
+npm run security:scan-artifacts
+npm run test:coverage
+actionlint .github/workflows/*.yml
+git diff --check
+```
+
+## 2026-06-17 Default View Bulk Safety Evidence Results
+
+- Added `viewSafety` to `mailhub-production-readiness-audit.json` with `syntaxFailedViews`, `manualReviewOnlyViews`, and `bulkUnsafeViews`.
+- Strengthened the readiness contract so `defaultViewsBulkAutomationSafe=false` requires manual-review status and non-empty `bulkUnsafeViews`; contradictory validated/safe claims are rejected.
+- Ops readiness summary and Ops Board now expose the bulk-unsafe view count/list instead of only the boolean `defaultViewsBulkAutomationSafe=false`.
+- Current artifact shows `bulkUnsafeViews=["customer-inquiries","noise-candidates"]`; production readiness remains blocked by the same P0 routing proof and P1 staff workflow evidence gaps.
+- Focused tests passed 3 files / 44 tests.
+- Full Vitest passed 69 files / 605 tests.
+- Coverage passed 69 files / 605 tests with global coverage above threshold.
+- Typecheck, lint, build, smoke, security scan, artifact secret scan, actionlint, `git diff --check`, and all readiness/routing/staff contracts passed after artifact regeneration.
+
 ## Useful Runtime Commands
 
 Start dev server for tunnel:

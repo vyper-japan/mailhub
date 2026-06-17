@@ -55,6 +55,10 @@ function blocker(id, severity, message, evidence = {}) {
   return { id, severity, message, evidence };
 }
 
+function stringArray(value) {
+  return Array.isArray(value) ? value.filter((item) => typeof item === "string") : [];
+}
+
 function currentRepoHead() {
   try {
     return execFileSync("git", ["rev-parse", "HEAD"], {
@@ -90,6 +94,11 @@ function main() {
   const currentSharedGmailRoutingReady = routingProbeReady;
   const viewSyntaxReady = viewsAudit.gate?.syntaxReady === true ||
     (viewsAudit.views ?? []).every((view) => view.syntaxAccepted === true && !view.error);
+  const viewSafety = {
+    syntaxFailedViews: stringArray(viewsAudit.gate?.syntaxFailedViews),
+    manualReviewOnlyViews: stringArray(viewsAudit.gate?.manualReviewOnlyViews),
+    bulkUnsafeViews: stringArray(viewsAudit.gate?.bulkUnsafeViews),
+  };
   const viewsManualReviewOnly = viewsAudit.gate?.manualReviewOnly === true ||
     (viewsAudit.views ?? []).some(
       (view) => view.risk === "broad_manual_review_only" || view.hasMoreAfterMaxPages === true,
@@ -198,6 +207,7 @@ function main() {
       staffReadOnlyRolloutReady: staffWorkflowAudit?.gate?.readOnlyRolloutReady === true,
       staffControlledWritePilotReady: staffWorkflowAudit?.gate?.controlledWritePilotReady === true,
     },
+    viewSafety,
     blockers,
     gate: {
       productionReady:

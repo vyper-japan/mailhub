@@ -153,6 +153,8 @@ type OpsReadinessView = {
   defaultViewsRealDataValidated: boolean;
   defaultViewsManualReviewOnly: boolean;
   defaultViewsBulkAutomationSafe: boolean;
+  defaultViewsManualReviewOnlyViews: string[];
+  defaultViewsBulkUnsafeViews: string[];
   currentRuleConfigRealDataSafetyReady: boolean;
   currentRuleConfigFingerprintPresent: boolean;
   ruleConfigFingerprint: string | null;
@@ -8669,6 +8671,9 @@ export default function InboxShell({
                                 View用途: {opsSummary.productionReadiness.defaultViewsBulkAutomationSafe ? "一括可" : "手動確認のみ"}
                               </div>
                               <div className="rounded border border-slate-700/60 bg-slate-950/30 px-2 py-1">
+                                一括不可View: {opsSummary.productionReadiness.defaultViewsBulkUnsafeViews.length}
+                              </div>
+                              <div className="rounded border border-slate-700/60 bg-slate-950/30 px-2 py-1">
                                 Rule安全性: {opsSummary.productionReadiness.currentRuleConfigRealDataSafetyReady ? "OK" : "要確認"}
                               </div>
                               <div className="rounded border border-slate-700/60 bg-slate-950/30 px-2 py-1">
@@ -8693,6 +8698,11 @@ export default function InboxShell({
                               {opsSummary.productionReadiness.missingGithubExternalSmtpSecrets.length > 0 && (
                                 <div className="col-span-2 rounded border border-slate-700/60 bg-slate-950/30 px-2 py-1 break-words">
                                   Actions SMTP不足: {opsSummary.productionReadiness.missingGithubExternalSmtpSecrets.join(", ")}
+                                </div>
+                              )}
+                              {opsSummary.productionReadiness.defaultViewsBulkUnsafeViews.length > 0 && (
+                                <div className="col-span-2 rounded border border-slate-700/60 bg-slate-950/30 px-2 py-1 break-words">
+                                  一括不可View: {opsSummary.productionReadiness.defaultViewsBulkUnsafeViews.join(", ")}
                                 </div>
                               )}
                               {opsSummary.productionReadiness.missingGithubGmailProofSecrets.length > 0 && (

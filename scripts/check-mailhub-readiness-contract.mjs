@@ -60,6 +60,7 @@ function main() {
   const repoParentHead = args.repoParentHead || gitRevParse("HEAD^");
   const auditRepoHead = typeof audit.repoHead === "string" ? audit.repoHead : null;
   const requirements = objectValue(audit.requirements);
+  const viewSafety = objectValue(audit.viewSafety);
   const gate = objectValue(audit.gate);
   const blockers = Array.isArray(audit.blockers) ? audit.blockers.filter((item) => item && typeof item === "object") : [];
   const p0Blockers = stringArray(gate.p0Blockers);
@@ -102,6 +103,36 @@ function main() {
 
   if (requirements.currentRuleConfigRealDataSafetyReady === true && requirements.currentRuleConfigFingerprintPresent !== true) {
     errors.push("rule_safety_ready_without_config_fingerprint");
+  }
+
+  const syntaxFailedViews = stringArray(viewSafety.syntaxFailedViews);
+  const manualReviewOnlyViews = stringArray(viewSafety.manualReviewOnlyViews);
+  const bulkUnsafeViews = stringArray(viewSafety.bulkUnsafeViews);
+  if (typeof requirements.defaultViewsRealDataValidated !== "boolean") {
+    errors.push("default_views_real_data_gate_missing");
+  }
+  if (typeof requirements.defaultViewsManualReviewOnly !== "boolean") {
+    errors.push("default_views_manual_review_gate_missing");
+  }
+  if (typeof requirements.defaultViewsBulkAutomationSafe !== "boolean") {
+    errors.push("default_views_bulk_gate_missing");
+  }
+  if (requirements.defaultViewsRealDataValidated === true && syntaxFailedViews.length > 0) {
+    errors.push("default_views_validated_with_syntax_failures");
+  }
+  if (requirements.defaultViewsBulkAutomationSafe === false) {
+    if (requirements.defaultViewsManualReviewOnly !== true) {
+      errors.push("bulk_unsafe_views_not_manual_review_only");
+    }
+    if (bulkUnsafeViews.length === 0) {
+      errors.push("bulk_unsafe_views_missing");
+    }
+  }
+  if (requirements.defaultViewsBulkAutomationSafe === true && bulkUnsafeViews.length > 0) {
+    errors.push("bulk_safe_with_unsafe_views");
+  }
+  if (requirements.defaultViewsManualReviewOnly === true && manualReviewOnlyViews.length === 0) {
+    errors.push("manual_review_views_missing");
   }
 
   const staffWorkflowBlocker = blockers.find((item) => item.id === "staff_workflow_permissions");
@@ -167,6 +198,7 @@ function main() {
     productionReady,
     p0Blockers,
     p1Blockers,
+    bulkUnsafeViews,
     errors,
     warnings,
     ok: errors.length === 0,

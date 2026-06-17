@@ -47,6 +47,7 @@ function baseReadinessAudit(overrides: Record<string, unknown> = {}) {
       routingProbeGithubSecretsReady: false,
       defaultViewsRealDataValidated: true,
       defaultViewsManualReviewOnly: true,
+      defaultViewsBulkAutomationSafe: false,
       currentRuleConfigRealDataSafetyReady: true,
       currentRuleConfigFingerprintPresent: true,
       staffWorkflowPermissionsReady: false,
@@ -55,6 +56,11 @@ function baseReadinessAudit(overrides: Record<string, unknown> = {}) {
     },
     inputs: {
       rulesConfigFingerprint: "sha256:abc123",
+    },
+    viewSafety: {
+      syntaxFailedViews: [],
+      manualReviewOnlyViews: ["invoice-docs", "customer-inquiries"],
+      bulkUnsafeViews: ["customer-inquiries"],
     },
     gate: {
       productionReady: false,
@@ -217,6 +223,58 @@ describe("MailHub readiness contract check", () => {
     });
   });
 
+  test("rejects bulk-unsafe default views without unsafe view evidence", () => {
+    withTempDir((dir) => {
+      const auditPath = join(dir, "readiness.json");
+      writeJson(auditPath, baseReadinessAudit({
+        viewSafety: {
+          syntaxFailedViews: [],
+          manualReviewOnlyViews: ["customer-inquiries"],
+          bulkUnsafeViews: [],
+        },
+      }));
+
+      const result = runContract(auditPath);
+      expect(result.status).toBe(1);
+      expect(result.stdout).toContain("bulk_unsafe_views_missing");
+    });
+  });
+
+  test("rejects bulk-unsafe default views that are not marked manual-review only", () => {
+    withTempDir((dir) => {
+      const auditPath = join(dir, "readiness.json");
+      const audit = baseReadinessAudit();
+      writeJson(auditPath, {
+        ...audit,
+        requirements: {
+          ...audit.requirements,
+          defaultViewsManualReviewOnly: false,
+        },
+      });
+
+      const result = runContract(auditPath);
+      expect(result.status).toBe(1);
+      expect(result.stdout).toContain("bulk_unsafe_views_not_manual_review_only");
+    });
+  });
+
+  test("rejects validated default views with syntax failure evidence", () => {
+    withTempDir((dir) => {
+      const auditPath = join(dir, "readiness.json");
+      writeJson(auditPath, baseReadinessAudit({
+        viewSafety: {
+          syntaxFailedViews: ["invoice-docs"],
+          manualReviewOnlyViews: ["invoice-docs"],
+          bulkUnsafeViews: ["invoice-docs"],
+        },
+      }));
+
+      const result = runContract(auditPath);
+      expect(result.status).toBe(1);
+      expect(result.stdout).toContain("default_views_validated_with_syntax_failures");
+    });
+  });
+
   test("rejects production-ready claims missing shared routing readiness", () => {
     withTempDir((dir) => {
       const auditPath = join(dir, "readiness.json");
@@ -248,6 +306,7 @@ describe("MailHub readiness contract check", () => {
           routingProbeGithubSecretsReady: true,
           defaultViewsRealDataValidated: true,
           defaultViewsManualReviewOnly: true,
+          defaultViewsBulkAutomationSafe: false,
           currentRuleConfigRealDataSafetyReady: true,
           currentRuleConfigFingerprintPresent: true,
         },

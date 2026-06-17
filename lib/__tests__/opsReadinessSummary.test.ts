@@ -28,6 +28,11 @@ describe("opsReadinessSummary", () => {
       inputs: {
         rulesConfigFingerprint: "sha256:abc123",
       },
+      viewSafety: {
+        syntaxFailedViews: [],
+        manualReviewOnlyViews: ["invoice-docs", "customer-inquiries"],
+        bulkUnsafeViews: ["customer-inquiries"],
+      },
       gate: {
         productionReady: false,
         p0Blockers: ["current_shared_gmail_routing"],
@@ -84,6 +89,8 @@ describe("opsReadinessSummary", () => {
       defaultViewsRealDataValidated: true,
       defaultViewsManualReviewOnly: true,
       defaultViewsBulkAutomationSafe: false,
+      defaultViewsManualReviewOnlyViews: ["invoice-docs", "customer-inquiries"],
+      defaultViewsBulkUnsafeViews: ["customer-inquiries"],
       currentRuleConfigRealDataSafetyReady: true,
       currentRuleConfigFingerprintPresent: true,
       staffWorkflowPermissionsReady: false,

@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-06-17T14:14:23.942Z",
-  "repoHead": "d466aadc5f99fac4b142743bbc75a721b8746acd",
+  "generatedAt": "2026-06-17T14:32:33.487Z",
+  "repoHead": "026905449fa917d4888e5872801f40259963dc5b",
   "inputs": {
     "sourceAudit": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.ai-runs/mailhub-next-phase/gmail-source-coverage-audit.json",
     "opsAudit": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.ai-runs/mailhub-next-phase/mailhub-operational-confirmations.json",
@@ -19,7 +19,7 @@
     "githubRoutingSecretsCheckedAt": "2026-06-17T08:38:38.855Z",
     "viewsAuditGeneratedAt": "2026-06-17T08:12:07.091Z",
     "rulesAuditGeneratedAt": "2026-06-17T08:10:18.407Z",
-    "staffWorkflowAuditGeneratedAt": "2026-06-17T14:14:23.659Z",
+    "staffWorkflowAuditGeneratedAt": "2026-06-17T14:32:33.275Z",
     "rulesConfigFingerprint": "sha256:64ce3c152193b489c6d1b48a3c89ad4ea195b7824e0c25c5412db1c4a1cababd"
   },
   "requirements": {
@@ -37,6 +37,18 @@
     "staffWorkflowPermissionsReady": false,
     "staffReadOnlyRolloutReady": false,
     "staffControlledWritePilotReady": false
+  },
+  "viewSafety": {
+    "syntaxFailedViews": [],
+    "manualReviewOnlyViews": [
+      "invoice-docs",
+      "customer-inquiries",
+      "noise-candidates"
+    ],
+    "bulkUnsafeViews": [
+      "customer-inquiries",
+      "noise-candidates"
+    ]
   },
   "blockers": [
     {
