@@ -821,6 +821,8 @@ npm run build
 npm run audit:mailhub-readiness -- --out .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json
 npm run audit:mailhub-readiness-contract
 git diff --check
+gh workflow run mailhub-routing-probe.yml --repo vyper-japan/mailhub -f mode=preflight -f confirmSend= -f waitSeconds=300 -f pollSeconds=15
+gh run watch 27663059707 --repo vyper-japan/mailhub --exit-status
 ```
 
 ## 2026-06-17 Readiness Contract Gate Wave Results
@@ -989,6 +991,9 @@ git diff --check
 - Final readiness refresh: passed.
 - Final readiness contract check: passed with `productionReady=false`, P0 `current_shared_gmail_routing`, and no contract errors.
 - `git diff --check`: passed.
+- GitHub Actions run `27663059707`: passed in 24s on `dfc6532`.
+- The upgraded action run had no Node.js 20 deprecation annotation.
+- The run used `mode=preflight`; `send_verify` was skipped, so no external mail was sent.
 
 ## Useful Runtime Commands
 

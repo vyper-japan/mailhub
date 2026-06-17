@@ -242,6 +242,7 @@
   - Checked current upstream action releases with `gh api`.
   - Updated workflow action pins from `actions/checkout@v4` to `@v6`, `actions/setup-node@v4` to `@v6`, and `actions/upload-artifact@v4` to `@v7`.
   - Local actionlint and workflow YAML parsing pass with the upgraded action majors.
+  - Triggered manual preflight run `27663059707` after the upgrade; it passed with no Node.js 20 deprecation annotation and still skipped `send_verify`.
 
 ## Not Done
 
