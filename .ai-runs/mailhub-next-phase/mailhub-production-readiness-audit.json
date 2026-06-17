@@ -1,14 +1,16 @@
 {
-  "generatedAt": "2026-06-17T01:32:21.130Z",
+  "generatedAt": "2026-06-17T01:37:58.987Z",
   "inputs": {
     "sourceAudit": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.ai-runs/mailhub-next-phase/gmail-source-coverage-audit.json",
     "opsAudit": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.ai-runs/mailhub-next-phase/mailhub-operational-confirmations.json",
     "gwsRoutingAudit": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.ai-runs/mailhub-next-phase/mailhub-gws-routing-audit.json",
+    "routingProbeAudit": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.ai-runs/mailhub-next-phase/mailhub-routing-probe-audit.json",
     "viewsAudit": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.ai-runs/mailhub-next-phase/gmail-default-views-audit.json",
     "rulesAudit": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.ai-runs/mailhub-next-phase/gmail-rule-safety-audit.json",
     "sourceAuditGeneratedAt": "2026-06-17T01:03:24.561Z",
     "opsAuditGeneratedAt": "2026-06-17T01:19:41.050Z",
     "gwsRoutingAuditGeneratedAt": "2026-06-17T01:26:07.121Z",
+    "routingProbeAuditGeneratedAt": "2026-06-17T01:37:49.258Z",
     "viewsAuditGeneratedAt": "2026-06-17T01:03:11.682Z",
     "rulesAuditGeneratedAt": "2026-06-17T01:03:08.912Z"
   },
@@ -16,6 +18,7 @@
     "sourceCodeCoverageReady": true,
     "sourceInventoryReady": true,
     "currentSharedGmailRoutingReady": false,
+    "routingProbeReady": false,
     "defaultViewsRealDataValidated": true,
     "defaultViewsManualReviewOnly": true,
     "currentRuleConfigRealDataSafetyReady": true
@@ -48,6 +51,20 @@
           "domainMxGoogleLike": false,
           "externalMxRequiresLolipopForwardingEvidence": true,
           "currentSharedGmailRoutingConfirmed": false
+        },
+        "routingProbeGate": {
+          "markerProvided": false,
+          "targetChannelCount": 6,
+          "matchedChannels": [],
+          "missingChannels": [
+            "gopro-yahoo",
+            "vyperglobal-rakuten",
+            "vyperglobal-yahoo",
+            "ams-vyper",
+            "datacolor",
+            "ebay"
+          ],
+          "allExpectedChannelsConfirmed": false
         },
         "mxRecords": [
           {

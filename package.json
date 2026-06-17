@@ -16,6 +16,7 @@
     "audit:gmail-rules": "node scripts/audit-gmail-rule-safety.mjs",
     "audit:mailhub-ops": "node scripts/audit-mailhub-operational-confirmations.mjs",
     "audit:gws-routing": "node scripts/audit-mailhub-gws-routing.mjs",
+    "audit:routing-probes": "node scripts/audit-mailhub-routing-probes.mjs",
     "audit:mailhub-readiness": "node scripts/audit-mailhub-production-readiness.mjs",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",

@@ -184,3 +184,22 @@ Current machine conclusion:
 | Current rule config real-data safety ready | pass |
 
 The aggregate `productionReady` gate is `false`. The only current P0 blocker is `current_shared_gmail_routing`: the six zero-active-inbox channels still lack current external-mail-to-shared-Gmail proof, and DNS MX remains `50 mx01.lolipop.jp`.
+
+## Routing Probe Audit
+
+Command:
+
+```bash
+npm run audit:routing-probes -- --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-audit.json
+```
+
+Without `--marker`, this generates a non-sending probe plan for the six current routing-unconfirmed channels. It lists the target addresses and a subject marker pattern. It does not send mail.
+
+After a controlled probe message is sent to each listed address, verify shared Gmail arrival with:
+
+```bash
+npm run audit:routing-probes -- --marker MAILHUB-ROUTING-PROBE-<YYYYMMDD-HHMMSS> --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-audit.json
+npm run audit:mailhub-readiness -- --out .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json
+```
+
+The readiness gate treats `routingProbeReady=true` only when every expected zero-active-inbox channel has matching shared Gmail evidence for the marker. The current committed probe audit is `plan_only`, so `routingProbeReady=false` and `productionReady=false`.

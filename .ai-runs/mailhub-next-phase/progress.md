@@ -155,6 +155,12 @@
   - Current readiness requirements: source code coverage pass, source inventory pass, default views real-data validated, current rule config real-data safety pass.
   - `productionReady` remains `false`.
   - The only current P0 blocker is `current_shared_gmail_routing`, because the six zero-active-inbox channels still lack current external-mail-to-shared-Gmail proof and `vtj.co.jp` MX remains `50 mx01.lolipop.jp`.
+- 2026-06-17 routing probe audit wave completed:
+  - Added `scripts/audit-mailhub-routing-probes.mjs` and `npm run audit:routing-probes`.
+  - The script does not send mail. Without `--marker`, it emits a plan for the six routing-unconfirmed channels and the target addresses to probe.
+  - With `--marker`, it searches the shared Gmail inbox/all mail for that marker plus each target channel address and emits matched/missing channels.
+  - `npm run audit:mailhub-readiness` now reads `.ai-runs/mailhub-next-phase/mailhub-routing-probe-audit.json` when present.
+  - Current committed probe audit is `plan_only`, so `routingProbeReady=false` and `productionReady=false`.
 
 ## Not Done
 
@@ -165,6 +171,7 @@
 - For `gopro-yahoo`, `vyperglobal-rakuten`, `ams-vyper`, and `datacolor`, historical shared Gmail evidence exists, but active `INBOX` is zero; confirm current routing/dormancy before production-complete source coverage is claimed.
 - GWS group membership is no longer the blocker for the six channels; all target groups have `mailhub@vtj.co.jp`. The blocker is Lolipop-side forwarding/current MX path evidence because `vtj.co.jp` still resolves to `mx01.lolipop.jp`.
 - The aggregate production readiness gate has only one P0 blocker left: `current_shared_gmail_routing`.
+- A controlled probe can now close or disprove that blocker mechanically: send one message with a shared `MAILHUB-ROUTING-PROBE-...` marker to every address listed by `npm run audit:routing-probes`, then re-run the probe audit with `--marker`.
 - Production pagination basic behavior is represented in API/UI metadata and forced E2E; real browser/manual production verification is still useful before staff rollout.
 - Auto-discard rules for marketing/noise are protected against obvious important/invoice/inquiry suppression and missing summary text, but a full production auto-discard policy is still intentionally not enabled.
 - Real-data rule safety audit exists and passes for the current local file config because no rules are configured. Re-run with `MAILHUB_CONFIG_STORE=sheets` and production Sheets credentials when production rule config is enabled.

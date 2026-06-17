@@ -1,0 +1,97 @@
+{
+  "generatedAt": "2026-06-17T01:37:49.258Z",
+  "inputs": {
+    "opsAudit": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.ai-runs/mailhub-next-phase/mailhub-operational-confirmations.json",
+    "opsAuditGeneratedAt": "2026-06-17T01:19:41.050Z",
+    "marker": null,
+    "maxResults": 10
+  },
+  "mode": "plan_only",
+  "probePlan": [
+    {
+      "channelId": "gopro-yahoo",
+      "label": "GoPro Yahoo",
+      "addresses": [
+        "gopro_y@vtj.co.jp",
+        "gopro_order_yahoo@vtj.co.jp"
+      ],
+      "manualProbeSubject": "MAILHUB-ROUTING-PROBE-<YYYYMMDD-HHMMSS>",
+      "sendOneProbeToEachAddress": [
+        "gopro_y@vtj.co.jp",
+        "gopro_order_yahoo@vtj.co.jp"
+      ]
+    },
+    {
+      "channelId": "vyperglobal-rakuten",
+      "label": "VYPER GLOBAL 楽天",
+      "addresses": [
+        "vyper_r@vtj.co.jp",
+        "vyper_rakuten@vtj.co.jp"
+      ],
+      "manualProbeSubject": "MAILHUB-ROUTING-PROBE-<YYYYMMDD-HHMMSS>",
+      "sendOneProbeToEachAddress": [
+        "vyper_r@vtj.co.jp",
+        "vyper_rakuten@vtj.co.jp"
+      ]
+    },
+    {
+      "channelId": "vyperglobal-yahoo",
+      "label": "VYPER GLOBAL Yahoo",
+      "addresses": [
+        "vyperglobal_y@vtj.co.jp"
+      ],
+      "manualProbeSubject": "MAILHUB-ROUTING-PROBE-<YYYYMMDD-HHMMSS>",
+      "sendOneProbeToEachAddress": [
+        "vyperglobal_y@vtj.co.jp"
+      ]
+    },
+    {
+      "channelId": "ams-vyper",
+      "label": "Amazon Ads (AMS)",
+      "addresses": [
+        "ams_vyper@vtj.co.jp"
+      ],
+      "manualProbeSubject": "MAILHUB-ROUTING-PROBE-<YYYYMMDD-HHMMSS>",
+      "sendOneProbeToEachAddress": [
+        "ams_vyper@vtj.co.jp"
+      ]
+    },
+    {
+      "channelId": "datacolor",
+      "label": "Datacolor Shopify",
+      "addresses": [
+        "datacolor_shopify@vtj.co.jp"
+      ],
+      "manualProbeSubject": "MAILHUB-ROUTING-PROBE-<YYYYMMDD-HHMMSS>",
+      "sendOneProbeToEachAddress": [
+        "datacolor_shopify@vtj.co.jp"
+      ]
+    },
+    {
+      "channelId": "ebay",
+      "label": "eBay",
+      "addresses": [
+        "ebay@vtj.co.jp"
+      ],
+      "manualProbeSubject": "MAILHUB-ROUTING-PROBE-<YYYYMMDD-HHMMSS>",
+      "sendOneProbeToEachAddress": [
+        "ebay@vtj.co.jp"
+      ]
+    }
+  ],
+  "probes": [],
+  "gate": {
+    "markerProvided": false,
+    "targetChannelCount": 6,
+    "matchedChannels": [],
+    "missingChannels": [
+      "gopro-yahoo",
+      "vyperglobal-rakuten",
+      "vyperglobal-yahoo",
+      "ams-vyper",
+      "datacolor",
+      "ebay"
+    ],
+    "allExpectedChannelsConfirmed": false
+  }
+}

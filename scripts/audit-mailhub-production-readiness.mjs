@@ -9,6 +9,7 @@ const defaults = {
   sourceAudit: join(runDir, "gmail-source-coverage-audit.json"),
   opsAudit: join(runDir, "mailhub-operational-confirmations.json"),
   gwsRoutingAudit: join(runDir, "mailhub-gws-routing-audit.json"),
+  routingProbeAudit: join(runDir, "mailhub-routing-probe-audit.json"),
   viewsAudit: join(runDir, "gmail-default-views-audit.json"),
   rulesAudit: join(runDir, "gmail-rule-safety-audit.json"),
   out: join(runDir, "mailhub-production-readiness-audit.json"),
@@ -21,11 +22,12 @@ function parseArgs(argv) {
     if (arg === "--source-audit") out.sourceAudit = argv[++i];
     else if (arg === "--ops-audit") out.opsAudit = argv[++i];
     else if (arg === "--gws-routing-audit") out.gwsRoutingAudit = argv[++i];
+    else if (arg === "--routing-probe-audit") out.routingProbeAudit = argv[++i];
     else if (arg === "--views-audit") out.viewsAudit = argv[++i];
     else if (arg === "--rules-audit") out.rulesAudit = argv[++i];
     else if (arg === "--out") out.out = argv[++i];
     else if (arg === "--help" || arg === "-h") {
-      console.log(`Usage: node scripts/audit-mailhub-production-readiness.mjs [--source-audit path] [--ops-audit path] [--gws-routing-audit path] [--views-audit path] [--rules-audit path] [--out path]`);
+      console.log(`Usage: node scripts/audit-mailhub-production-readiness.mjs [--source-audit path] [--ops-audit path] [--gws-routing-audit path] [--routing-probe-audit path] [--views-audit path] [--rules-audit path] [--out path]`);
       process.exit(0);
     }
   }
@@ -34,6 +36,11 @@ function parseArgs(argv) {
 
 function readJson(path) {
   if (!existsSync(path)) throw new Error(`missing_audit:${path}`);
+  return JSON.parse(readFileSync(path, "utf8"));
+}
+
+function readOptionalJson(path) {
+  if (!path || !existsSync(path)) return null;
   return JSON.parse(readFileSync(path, "utf8"));
 }
 
@@ -46,6 +53,7 @@ function main() {
   const sourceAudit = readJson(args.sourceAudit);
   const opsAudit = readJson(args.opsAudit);
   const gwsRoutingAudit = readJson(args.gwsRoutingAudit);
+  const routingProbeAudit = readOptionalJson(args.routingProbeAudit);
   const viewsAudit = readJson(args.viewsAudit);
   const rulesAudit = readJson(args.rulesAudit);
 
@@ -54,9 +62,13 @@ function main() {
     Boolean(sourceAudit.zeroEstimateAnalysis?.coverageGate?.codeCoveragePass) &&
     knownCodeGaps.length === 0;
   const sourceInventoryReady = (opsAudit.gate?.sourceInventoryMissing ?? []).length === 0;
+  const routingProbeReady = Boolean(routingProbeAudit?.gate?.allExpectedChannelsConfirmed);
   const currentSharedGmailRoutingReady =
-    Boolean(opsAudit.gate?.productionCompleteClaimReady) &&
-    Boolean(gwsRoutingAudit.gate?.currentSharedGmailRoutingConfirmed);
+    (
+      Boolean(opsAudit.gate?.productionCompleteClaimReady) &&
+      Boolean(gwsRoutingAudit.gate?.currentSharedGmailRoutingConfirmed)
+    ) ||
+    routingProbeReady;
   const viewSyntaxReady = (viewsAudit.views ?? []).every((view) => view.syntaxAccepted === true && !view.error);
   const viewsManualReviewOnly = (viewsAudit.views ?? []).some(
     (view) => view.risk === "broad_manual_review_only" || view.hasMoreAfterMaxPages === true,
@@ -81,6 +93,7 @@ function main() {
       noSharedInboxEvidence: opsAudit.gate?.noSharedInboxEvidence ?? [],
       routingConfirmationRequired: opsAudit.gate?.routingConfirmationRequired ?? [],
       gwsRoutingGate: gwsRoutingAudit.gate ?? null,
+      routingProbeGate: routingProbeAudit?.gate ?? null,
       mxRecords: gwsRoutingAudit.dns?.mxRecords ?? [],
     }));
   }
@@ -101,11 +114,13 @@ function main() {
       sourceAudit: args.sourceAudit,
       opsAudit: args.opsAudit,
       gwsRoutingAudit: args.gwsRoutingAudit,
+      routingProbeAudit: args.routingProbeAudit,
       viewsAudit: args.viewsAudit,
       rulesAudit: args.rulesAudit,
       sourceAuditGeneratedAt: sourceAudit.generatedAt ?? null,
       opsAuditGeneratedAt: opsAudit.generatedAt ?? null,
       gwsRoutingAuditGeneratedAt: gwsRoutingAudit.generatedAt ?? null,
+      routingProbeAuditGeneratedAt: routingProbeAudit?.generatedAt ?? null,
       viewsAuditGeneratedAt: viewsAudit.generatedAt ?? null,
       rulesAuditGeneratedAt: rulesAudit.generatedAt ?? null,
     },
@@ -113,6 +128,7 @@ function main() {
       sourceCodeCoverageReady,
       sourceInventoryReady,
       currentSharedGmailRoutingReady,
+      routingProbeReady,
       defaultViewsRealDataValidated: viewSyntaxReady,
       defaultViewsManualReviewOnly: viewsManualReviewOnly,
       currentRuleConfigRealDataSafetyReady: ruleSafetyReady,

@@ -308,6 +308,36 @@ npm run build
 - `npm run test`: 60 files / 531 tests passed.
 - `npm run build`: passed.
 
+## Verification Commands Run On 2026-06-17 Routing Probe Audit Wave
+
+```bash
+node --check scripts/audit-mailhub-routing-probes.mjs
+npm run audit:routing-probes -- --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-audit.json
+npm run audit:mailhub-readiness -- --out .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json
+npm run audit:routing-probes -- --marker MAILHUB-ROUTING-PROBE-NONEXISTENT-VERIFY --out /tmp/mailhub-routing-probe-audit.json
+npm run typecheck
+npm run lint
+npm run test
+npm run build
+```
+
+## 2026-06-17 Routing Probe Audit Results
+
+- `node --check`: passed.
+- Plan-only probe audit: passed.
+- Current committed probe audit:
+  - `mode`: `plan_only`
+  - `targetChannelCount`: 6
+  - `matchedChannels`: `[]`
+  - `missingChannels`: `gopro-yahoo`, `vyperglobal-rakuten`, `vyperglobal-yahoo`, `ams-vyper`, `datacolor`, `ebay`
+  - `allExpectedChannelsConfirmed`: `false`
+- Readiness gate now includes `routingProbeReady`; current value is `false`.
+- Marker verification path was tested against shared Gmail with a nonexistent marker and returned the expected no-match result without changing committed artifacts.
+- `npm run typecheck`: passed.
+- `npm run lint`: passed.
+- `npm run test`: 60 files / 531 tests passed.
+- `npm run build`: passed.
+
 ## Verification Commands Run On 2026-06-17 Rule Safety Real-Data Gate Wave
 
 ```bash
