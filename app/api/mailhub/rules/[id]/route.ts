@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { requireUser, authErrorResponse } from "@/lib/require-user";
 import { getLabelRulesStore } from "@/lib/labelRulesStore";
 import { getLabelRegistryStore } from "@/lib/labelRegistryStore";
-import { normalizeFromEmail } from "@/lib/labelRules";
+import { normalizeAssignToSpec, normalizeFromEmail } from "@/lib/labelRules";
 import { isAdminEmail } from "@/lib/admin";
 import { isReadOnlyMode, writeForbiddenResponse } from "@/lib/read-only";
 
@@ -53,6 +53,9 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
 
   const fromEmail = fromEmailRaw ? normalizeFromEmail(fromEmailRaw) : null;
   const fromDomain = fromDomainRaw ? fromDomainRaw.trim().toLowerCase().replace(/^@/, "") : null;
+  const assignTo = Object.prototype.hasOwnProperty.call(body, "assignTo")
+    ? normalizeAssignToSpec(body.assignTo)
+    : current.assignTo;
 
   if (labelNames.length === 0) return NextResponse.json({ error: "missing_labelName" }, { status: 400 });
   if (!fromEmail && !fromDomain) return NextResponse.json({ error: "missing_match" }, { status: 400 });
@@ -68,6 +71,7 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
     id,
     labelNames,
     enabled: nextEnabled,
+    assignTo,
     match: {
       ...(fromEmail ? { fromEmail } : {}),
       ...(fromDomain ? { fromDomain } : {}),
@@ -91,6 +95,5 @@ export async function DELETE(_req: Request, ctx: { params: Promise<{ id: string 
   await getLabelRulesStore().deleteRule(id);
   return NextResponse.json({ ok: true }, { headers: { "cache-control": "no-store" } });
 }
-
 
 

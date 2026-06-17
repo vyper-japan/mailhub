@@ -2,7 +2,7 @@ import "server-only";
 
 import { join } from "path";
 import { randomUUID } from "crypto";
-import type { LabelRule, LabelRuleMatch, AssignToSpec } from "@/lib/labelRules";
+import { normalizeAssignToSpec, type LabelRule, type LabelRuleMatch, type AssignToSpec } from "@/lib/labelRules";
 import { createConfigStore, type ConfigStore, type ConfigStoreType } from "@/lib/configStore";
 
 export interface LabelRulesStore {
@@ -44,6 +44,7 @@ function parseRules(raw: string): LabelRule[] {
         const labelNames = Array.isArray(labelNamesRaw)
           ? labelNamesRaw.filter((v): v is string => typeof v === "string" && v.trim().length > 0)
           : [];
+        const assignTo = normalizeAssignToSpec(o.assignTo);
         return {
           id,
           enabled,
@@ -51,6 +52,7 @@ function parseRules(raw: string): LabelRule[] {
           match: { ...(fromEmail ? { fromEmail } : {}), ...(fromDomain ? { fromDomain } : {}) },
           ...(labelNames.length ? { labelNames } : {}),
           ...(labelName ? { labelName } : {}),
+          ...(assignTo ? { assignTo } : {}),
         } satisfies LabelRule;
       })
       .filter((r) => r.id);
@@ -168,5 +170,4 @@ export function getLabelRulesFileStoreForImport(): LabelRulesStore {
 export async function overwriteLabelRulesForImport(rules: LabelRule[]): Promise<void> {
   await buildConfigStore().write(rules);
 }
-
 

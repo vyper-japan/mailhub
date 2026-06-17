@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import { requireUser, authErrorResponse } from "@/lib/require-user";
 import { getLabelRulesStore } from "@/lib/labelRulesStore";
 import { getLabelRegistryStore } from "@/lib/labelRegistryStore";
-import { normalizeFromEmail, type AssignToSpec } from "@/lib/labelRules";
+import { normalizeAssignToSpec, normalizeFromEmail } from "@/lib/labelRules";
 import { isAdminEmail } from "@/lib/admin";
 import { isReadOnlyMode, writeForbiddenResponse } from "@/lib/read-only";
 import { logAction } from "@/lib/audit-log";
@@ -70,16 +70,7 @@ export async function POST(req: Request) {
   const suggestionId = typeof body.suggestionId === "string" ? body.suggestionId : null;
   const suggestionType = typeof body.suggestionType === "string" ? body.suggestionType : null;
 
-  // Step 83: assignToを受け取る（"me" or { assigneeEmail: string }）
-  let assignTo: AssignToSpec | undefined;
-  if (body.assignTo === "me") {
-    assignTo = "me";
-  } else if (body.assignTo && typeof body.assignTo === "object") {
-    const at = body.assignTo as Record<string, unknown>;
-    if (typeof at.assigneeEmail === "string" && at.assigneeEmail.endsWith("@vtj.co.jp")) {
-      assignTo = { assigneeEmail: at.assigneeEmail };
-    }
-  }
+  const assignTo = normalizeAssignToSpec(body.assignTo);
 
   const rule = await getLabelRulesStore().upsertRule({
     id,
@@ -124,6 +115,5 @@ export async function DELETE(req: Request) {
   await getLabelRulesStore().deleteRule(id);
   return NextResponse.json({ ok: true }, { headers: { "cache-control": "no-store" } });
 }
-
 
 

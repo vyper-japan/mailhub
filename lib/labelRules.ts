@@ -40,6 +40,16 @@ export function normalizeFromEmail(email: string | null | undefined): string | n
   return trimmed;
 }
 
+export function normalizeAssignToSpec(value: unknown): AssignToSpec | undefined {
+  if (value === "me") return "me";
+  if (!value || typeof value !== "object") return undefined;
+  const raw = (value as Record<string, unknown>).assigneeEmail;
+  if (typeof raw !== "string") return undefined;
+  const email = normalizeFromEmail(raw);
+  if (!email || !email.endsWith("@vtj.co.jp")) return undefined;
+  return { assigneeEmail: email };
+}
+
 /**
  * "Name <foo@bar.com>" / "foo@bar.com" / "\"Name\" <foo@bar.com>" を想定してemailを抽出する。
  */
@@ -127,5 +137,4 @@ export function matchRulesWithAssign(fromEmail: string, rules: LabelRule[]): Mat
   }
   return { labels: [...labels], assignTo };
 }
-
 

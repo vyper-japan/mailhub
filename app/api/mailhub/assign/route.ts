@@ -59,6 +59,9 @@ export async function POST(req: NextRequest) {
   if (action === "assign" && (isAssigningToOther || force) && !isAdminEmail(authResult.user.email)) {
     return NextResponse.json({ error: "forbidden_admin_only" }, { status: 403 });
   }
+  if (action === "unassign" && !isAdminEmail(authResult.user.email)) {
+    return NextResponse.json({ error: "forbidden_admin_only" }, { status: 403 });
+  }
 
   // Test mode handling
   if (isTestMode()) {

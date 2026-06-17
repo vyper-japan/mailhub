@@ -402,6 +402,12 @@
   - `scripts/scan-ops-artifacts.mjs` now includes `.ai-runs/mailhub-next-phase/mailhub-staff-workflow-audit.json` in the default committed artifact secret scan.
   - Refreshed `mailhub-staff-workflow-audit.json`, `mailhub-production-readiness-audit.json`, and `mailhub-routing-next-steps.json`.
   - Current readiness state is intentionally blocked: `productionReady=false`, P0 `current_shared_gmail_routing`, and P1 `staff_workflow_permissions`.
+- 2026-06-17 staff permission P1 code hardening wave completed:
+  - Fixed label rule `assignTo` persistence: `parseRules` now preserves valid `assignTo`, rule create/update share the same normalization, and PATCH keeps existing `assignTo` unless explicitly cleared.
+  - Added route-level regression coverage proving rule create normalizes `assignTo`, PATCH preserves it, and explicit `assignTo: null` clears it.
+  - Tightened `/api/mailhub/assign` so non-admin users can no longer `unassign`; the route cannot prove ownership before removing all assignee labels, so unassign is admin-only until an owner-aware path exists.
+  - Increased the routing plan-only test timeout to remove full-suite timing flakiness observed under concurrent Vitest load.
+  - Current code-side staff permission follow-up left: staff access is still domain-wide through `@vtj.co.jp` auth and should be narrowed to an explicit allowlist before broad rollout.
 
 ## Not Done
 
@@ -426,7 +432,7 @@
 - Production pagination basic behavior is represented in API/UI metadata and forced E2E; real browser/manual production verification is still useful before staff rollout.
 - Auto-discard rules for marketing/noise are protected against obvious important/invoice/inquiry suppression and missing summary text, but a full production auto-discard policy is still intentionally not enabled.
 - Real-data rule safety audit exists and passes for the current local file config because no rules are configured. Re-run with `MAILHUB_CONFIG_STORE=sheets` and production Sheets credentials when production rule config is enabled.
-- All critic-identified production-readiness P1s from this wave are closed in code or converted to explicit operational confirmations.
+- Most critic-identified production-readiness P1s from this wave are closed in code or converted to explicit operational confirmations. Remaining code follow-up: narrow staff access from domain-wide `@vtj.co.jp` to an explicit allowlist/roster gate before broader rollout.
 - Important/invoice/customer-inquiry folders exist as default saved views and are audited as manual-review shortcuts; further narrowing requires operator feedback.
 - Brain decision ledger exists for memory/file/sheets and health visibility; AI reply drafting and knowledge base integration are not implemented.
 - Rakuten/Amazon/Yahoo API-based reply integration is not implemented.

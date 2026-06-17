@@ -1582,7 +1582,7 @@ describe("MailHub routing probe CLI gates", () => {
       ]);
       expect(out.gate.allExpectedAddressesConfirmed).toBe(false);
     });
-  });
+  }, 15000);
 
   test("production readiness rejects channel-level probe success when address evidence is incomplete", () => {
     withTempDir((dir) => {

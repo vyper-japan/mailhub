@@ -1,5 +1,12 @@
 import { describe, expect, test } from "vitest";
-import { extractFromDomain, extractFromEmail, matchRules, normalizeFromEmail } from "@/lib/labelRules";
+import {
+  extractFromDomain,
+  extractFromEmail,
+  matchRules,
+  matchRulesWithAssign,
+  normalizeAssignToSpec,
+  normalizeFromEmail,
+} from "@/lib/labelRules";
 
 describe("labelRules", () => {
   test("extractFromEmail: 日本語名 + <email> から抽出できる（楽天想定）", () => {
@@ -109,6 +116,38 @@ describe("labelRules", () => {
       },
     ])).toEqual([]);
   });
-});
 
+  test("normalizeAssignToSpec keeps only me or vtj assignees", () => {
+    expect(normalizeAssignToSpec("me")).toBe("me");
+    expect(normalizeAssignToSpec({ assigneeEmail: " Owner@VTJ.CO.JP " })).toEqual({
+      assigneeEmail: "owner@vtj.co.jp",
+    });
+    expect(normalizeAssignToSpec({ assigneeEmail: "owner@example.com" })).toBeUndefined();
+    expect(normalizeAssignToSpec(null)).toBeUndefined();
+  });
+
+  test("matchRulesWithAssign returns the first matching assignTo", () => {
+    const result = matchRulesWithAssign("a@example.com", [
+      {
+        id: "r1",
+        match: { fromDomain: "example.com" },
+        labelName: "Domain",
+        assignTo: { assigneeEmail: "owner@vtj.co.jp" },
+        enabled: true,
+        createdAt: new Date().toISOString(),
+      },
+      {
+        id: "r2",
+        match: { fromEmail: "a@example.com" },
+        labelName: "Exact",
+        assignTo: "me",
+        enabled: true,
+        createdAt: new Date().toISOString(),
+      },
+    ]);
+
+    expect(result.labels).toEqual(["Domain", "Exact"]);
+    expect(result.assignTo).toEqual({ assigneeEmail: "owner@vtj.co.jp" });
+  });
+});
 

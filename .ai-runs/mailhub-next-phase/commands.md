@@ -1798,6 +1798,32 @@ git diff --check
   - `staffReadOnlyRolloutReady=false`
   - `staffControlledWritePilotReady=false`
 
+## 2026-06-17 Staff Permission P1 Code Hardening Commands
+
+```bash
+npx vitest run lib/__tests__/rules-route-assignTo.test.ts lib/__tests__/assign-route-slug.test.ts lib/__tests__/labelRules.test.ts lib/__tests__/mailhub-rules-apply-route.test.ts lib/__tests__/config-import-preview.test.ts
+npm run typecheck
+npm run build
+npm run test
+npm run test:coverage
+npm run lint
+npm run smoke
+npm run security:scan
+git diff --check
+```
+
+## 2026-06-17 Staff Permission P1 Code Hardening Results
+
+- Fixed two code-side staff workflow P1s:
+  - `assignTo` no longer drops from label rules when rules are parsed or patched.
+  - non-admin `unassign` is blocked because the route cannot prove current ownership before removing assignee labels.
+- Added `lib/__tests__/rules-route-assignTo.test.ts` and extended assignment/rule tests.
+- Focused tests passed 5 files / 49 tests.
+- Full Vitest passed 65 files / 588 tests.
+- Coverage passed 65 files / 588 tests with global coverage above threshold.
+- Typecheck, build, lint, smoke, security scan, and `git diff --check` passed.
+- A full-suite timeout on `plan-only routing probe audit reports every target address` was fixed by giving the CLI subprocess test an explicit 15s timeout; the test is still functional and continues to assert address-level proof, not only channel-level proof.
+
 ## Useful Runtime Commands
 
 Start dev server for tunnel:

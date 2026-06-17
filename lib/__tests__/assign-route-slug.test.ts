@@ -234,6 +234,17 @@ describe("assign route assigneeSlug", () => {
     expect(routeMocks.assignMessage).toHaveBeenCalledWith("msg-self", "test@vtj.co.jp", { force: false });
   });
 
+  it("rejects non-admin unassign because ownership cannot be proven at the route boundary", async () => {
+    routeMocks.isAdminEmail.mockReturnValue(false);
+    const POST = await importPost();
+
+    const res = await POST(makeRequest({ id: "msg-unassign-denied", action: "unassign" }));
+
+    expect(res.status).toBe(403);
+    expect(await readJson(res)).toEqual({ error: "forbidden_admin_only" });
+    expect(routeMocks.unassignMessage).not.toHaveBeenCalled();
+  });
+
   it("allows force takeover despite an existing assignee and logs the reason", async () => {
     const currentAssigneeSlug = assigneeSlug("owner@vtj.co.jp");
     routeMocks.assignMessage.mockResolvedValueOnce({ currentAssigneeSlug });
