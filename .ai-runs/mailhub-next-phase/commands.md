@@ -363,6 +363,26 @@ npm run build
 - `npm run test`: 60 files / 530 tests passed.
 - `npm run build`: passed.
 
+## Verification Commands Run On 2026-06-17 Non-Send Mutation Audit Safety Wave
+
+```bash
+npx vitest run lib/__tests__/read-only.test.ts
+npm run typecheck
+npm run lint
+git diff --check
+npm run test
+npm run build
+```
+
+## 2026-06-17 Non-Send Mutation Audit Safety Wave Results
+
+- Focused Vitest before full gate: 1 file / 12 tests passed.
+- `npm run typecheck`: passed.
+- `npm run lint`: passed.
+- `git diff --check`: passed.
+- `npm run test`: 60 files / 531 tests passed.
+- `npm run build`: passed.
+
 ## Useful Runtime Commands
 
 Start dev server for tunnel:

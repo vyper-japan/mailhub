@@ -569,6 +569,7 @@ Productionは **最初に必ず READ ONLY** で公開し、問題が無いこと
 - **Vercel保護**: Deployment Protectionを維持する場合、GitHub Actions secret `MAILHUB_VERCEL_PROTECTION_BYPASS` を設定する。workflowは `x-vercel-protection-bypass` ヘッダをhealth checkとalerts runの両方に付ける。
 - **Secret不足時**: schedule実行は失敗扱いにせずskipし、手動実行はfailする。
 - **認可**: production環境では`Authorization: Bearer <MAILHUB_ALERTS_SECRET>`ヘッダが必須
+- **WRITE前提**: staging/productionでは `MAILHUB_READ_ONLY=0` でも `MAILHUB_ACTIVITY_STORE=sheets` が解決できない場合、サーバ側はREAD ONLYを継続する。非送信ミューテーションのActivity永続化を必須にするため。
 - **定期実行例（手動実行時）**:
   ```bash
   # dryRunで確認

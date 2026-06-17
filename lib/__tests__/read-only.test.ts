@@ -21,10 +21,28 @@ describe("read-only", () => {
     expect(isReadOnlyMode()).toBe(true);
   });
 
-  test("server: MAILHUB_READ_ONLY=0 => false", () => {
+  function configureActivitySheets() {
+    process.env.MAILHUB_ACTIVITY_STORE = "sheets";
+    process.env.MAILHUB_SHEETS_SPREADSHEET_ID = "sheet-1";
+    process.env.MAILHUB_SHEETS_CLIENT_EMAIL = "svc@example.com";
+    process.env.MAILHUB_SHEETS_PRIVATE_KEY = "private-key";
+  }
+
+  test("server: MAILHUB_READ_ONLY=0 + durable Activity Sheets => false", () => {
     process.env.MAILHUB_READ_ONLY = "0";
     process.env.MAILHUB_ENV = "staging";
+    configureActivitySheets();
     expect(isReadOnlyMode()).toBe(false);
+  });
+
+  test("server: MAILHUB_READ_ONLY=0 + staging without durable Activity Sheets => true", () => {
+    process.env.MAILHUB_READ_ONLY = "0";
+    process.env.MAILHUB_ENV = "staging";
+    delete process.env.MAILHUB_ACTIVITY_STORE;
+    delete process.env.MAILHUB_SHEETS_SPREADSHEET_ID;
+    delete process.env.MAILHUB_SHEETS_CLIENT_EMAIL;
+    delete process.env.MAILHUB_SHEETS_PRIVATE_KEY;
+    expect(isReadOnlyMode()).toBe(true);
   });
 
   test("server: MAILHUB_READ_ONLY unset + MAILHUB_ENV=staging => true (safe default)", () => {

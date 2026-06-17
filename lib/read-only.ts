@@ -6,6 +6,7 @@
 
 import { getMailhubEnv } from "@/lib/mailhub-env";
 import { isTestMode } from "@/lib/test-mode";
+import { getResolvedActivityStoreType } from "@/lib/activityStore";
 
 declare global {
   // eslint-disable-next-line no-var
@@ -30,9 +31,13 @@ export function isReadOnlyMode(): boolean {
   }
   const raw = (process.env.MAILHUB_READ_ONLY ?? "").trim();
   if (raw === "1") return true;
-  if (raw === "0") return false;
+  const env = getMailhubEnv();
+  const requiresDurableAudit = env === "staging" || env === "production";
+  if (raw === "0") {
+    return requiresDurableAudit && getResolvedActivityStoreType() !== "sheets";
+  }
   // staging/production は「設定漏れでも事故ゼロ」に倒す（デフォルトREAD ONLY）
-  return getMailhubEnv() === "staging" || getMailhubEnv() === "production";
+  return requiresDurableAudit;
 }
 
 export function writeForbiddenResponse(reason = "read_only"): Response {
@@ -41,4 +46,3 @@ export function writeForbiddenResponse(reason = "read_only"): Response {
     { status: 403 },
   );
 }
-

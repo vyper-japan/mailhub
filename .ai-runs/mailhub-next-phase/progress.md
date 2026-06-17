@@ -120,6 +120,11 @@
   - Added workflow preflight so scheduled runs skip cleanly when required secrets are missing, while manual runs fail visibly.
   - Added optional `MAILHUB_VERCEL_PROTECTION_BYPASS` support via the official `x-vercel-protection-bypass` header for both health check and alerts run.
   - Updated `OPS_RUNBOOK.md` and `README.md` from manual-only/Vercel Cron notes to the GitHub Actions scheduled workflow.
+- 2026-06-17 non-send mutation audit safety wave completed:
+  - Hardened `isReadOnlyMode()` so staging/production cannot leave READ ONLY with `MAILHUB_READ_ONLY=0` unless Activity resolves to Sheets.
+  - This makes Activity persistence a server-side prerequisite for non-send production mutations.
+  - Added a focused read-only test proving staging stays READ ONLY without durable Activity Sheets.
+  - Updated `OPS_RUNBOOK.md` with the WRITE prerequisite.
 
 ## Not Done
 
@@ -128,7 +133,7 @@
 - Production pagination basic behavior is represented in API/UI metadata and forced E2E; real browser/manual production verification is still useful before staff rollout.
 - Auto-discard rules for marketing/noise are protected against obvious important/invoice/inquiry suppression and missing summary text, but a full production auto-discard policy is still intentionally not enabled.
 - Real-data rule safety audit exists and passes for the current local file config because no rules are configured. Re-run with `MAILHUB_CONFIG_STORE=sheets` and production Sheets credentials when production rule config is enabled.
-- Remaining production-readiness P1s from critic review include fail-closed audit persistence for non-send production mutations.
+- All critic-identified production-readiness P1s from this wave are closed in code or converted to explicit operational confirmations.
 - Important/invoice/customer-inquiry folders exist as default saved views and are audited as manual-review shortcuts; further narrowing requires operator feedback.
 - Brain decision ledger exists for memory/file/sheets and health visibility; AI reply drafting and knowledge base integration are not implemented.
 - Rakuten/Amazon/Yahoo API-based reply integration is not implemented.
