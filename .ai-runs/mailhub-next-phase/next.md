@@ -27,6 +27,7 @@ Continue from the completed INBOX-scoped source coverage and rule-safety wave:
    - Generate the exact address-level send plan with `npm run probe:routing-send`.
    - To prove current external routing, configure a non-`@vtj.co.jp` external SMTP sender (`MAILHUB_PROBE_SMTP_*`, `MAILHUB_PROBE_FROM`) and run `npm run probe:routing-send -- --send`, then run the emitted `npm run audit:routing-probes -- --marker <marker> --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-audit.json`.
    - Do not use a `@vtj.co.jp` sender as production proof; that can validate internal GWS group routing without proving the current Lolipop/MX external path.
+   - Operator-safe sequence and failure interpretation are now documented in `OPS_RUNBOOK.md` under `External Routing Probe`.
    - The readiness gate requires `allExpectedAddressesConfirmed=true`; channel-level evidence alone is not enough.
    - Re-run `npm run audit:mailhub-readiness -- --out .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json` after the marker verification.
 9. For `vyperglobal-yahoo` and `ebay`, source exists and GWS group membership is correct, but shared Gmail has no active or historical evidence. Verify Lolipop-side forwarding/current MX path to `mailhub@`, send a controlled probe, or explicitly document that the source remains outside the shared Gmail workbench.

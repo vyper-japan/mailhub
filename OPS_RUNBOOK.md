@@ -424,6 +424,77 @@ curl --fail --retry 3 --max-time 20 \
 - “Apply now” 系は admin必須 + confirm必須を維持する
 - UIは補助。サーバ側403が本体（直接API叩きでも事故らない）
 
+## External Routing Probe（本番到達証跡）
+
+### 目的
+`productionReady=false` の最後のP0である `current_shared_gmail_routing` を、8つの対象宛先すべてについて機械的に閉じる。これは通常のアプリ内返信ではなく、外部メールが現在のMX/転送経路を通って shared Gmail / MailHub に届くかを確認するための証跡作業。
+
+### 原則
+- `@vtj.co.jp` 送信元は本番外部ルーティング証跡に使わない。内部GWS配送で届く可能性があり、Lolipop MX / 外部経路の証明にならない。
+- MX切替は破壊的操作なので、この手順では実施しない。MX切替が必要な場合は `mx-cutover/MX_CUTOVER_RUNBOOK.md` に従い、人間承認後に行う。
+- probe は8宛先すべてが一致して初めて合格。チャンネル単位の一部到達では production ready にしない。
+
+### 1. 送信計画だけ生成（送信なし）
+```bash
+npm run probe:routing-send -- --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-send.json
+```
+
+確認:
+- `mode` が `dry_run`
+- `probeCount` が `8`
+- `sentCount` が `0`
+- `addressProbes` に以下が含まれる:
+  - `gopro_y@vtj.co.jp`
+  - `gopro_order_yahoo@vtj.co.jp`
+  - `vyper_r@vtj.co.jp`
+  - `vyper_rakuten@vtj.co.jp`
+  - `vyperglobal_y@vtj.co.jp`
+  - `ams_vyper@vtj.co.jp`
+  - `datacolor_shopify@vtj.co.jp`
+  - `ebay@vtj.co.jp`
+
+### 2. 外部SMTPを設定
+`.env.local` または実行環境に以下を設定する。値は認証情報管理から取得し、repoには保存しない。
+
+```bash
+MAILHUB_PROBE_SMTP_HOST=
+MAILHUB_PROBE_SMTP_PORT=587
+MAILHUB_PROBE_SMTP_SECURE=false
+MAILHUB_PROBE_SMTP_USER=
+MAILHUB_PROBE_SMTP_PASS=
+MAILHUB_PROBE_FROM=external-probe@example.com
+```
+
+`MAILHUB_PROBE_FROM` は `@vtj.co.jp` 以外にする。スクリプトは既定で `@vtj.co.jp` 送信元を拒否する。
+
+### 3. 外部probeを送信
+```bash
+npm run probe:routing-send -- --send --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-send.json
+```
+
+出力の `marker` と `nextVerificationCommand` を控える。`sentCount=8`、`rejected=[]` が期待値。
+
+### 4. shared Gmail 側で到達検証
+送信直後は配送遅延があるため、1-5分待ってから実行する。
+
+```bash
+npm run audit:routing-probes -- --marker <marker> --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-audit.json
+npm run audit:mailhub-readiness -- --out .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json
+```
+
+合格条件:
+- `mailhub-routing-probe-audit.json` の `gate.allExpectedAddressesConfirmed=true`
+- `matchedAddresses` が8件
+- `missingAddresses=[]`
+- `mailhub-production-readiness-audit.json` の `requirements.routingProbeReady=true`
+- 他P0がなければ `gate.productionReady=true`
+
+### 5. 失敗時の読み方
+- `missingAddresses` が残る: その宛先の現在MX/転送が MailHub shared Gmail に届いていない。Lolipop転送設定、GWS group membership、MX切替状態を確認する。
+- `matchedChannels` はあるが `missingAddresses` が残る: 複数宛先チャンネルの一部到達。production ready ではない。
+- `domainMxGoogleLike=false`: 現在MXがGoogle直ではない。Lolipop forwarding証跡または承認済みMX切替後の再probeが必要。
+- Ops Board が「本番判定 再監査必要」: readiness artifact が現在のコードHEADと合っていない。`npm run audit:mailhub-readiness` を再実行する。
+
 ## Step28: Staging Ops（staging運用の一本道）
 
 ### 目的

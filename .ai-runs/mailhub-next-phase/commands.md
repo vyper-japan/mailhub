@@ -658,6 +658,23 @@ git diff --check
 - P0 blockers: `current_shared_gmail_routing`.
 - `git diff --check`: passed.
 
+## Verification Commands Run On 2026-06-17 External Routing Probe Runbook Wave
+
+```bash
+node --check scripts/send-mailhub-routing-probes.mjs
+npm run probe:routing-send -- --out /tmp/mailhub-routing-probe-runbook-dry-run.json
+node -e 'const p=require("/tmp/mailhub-routing-probe-runbook-dry-run.json"); if(p.mode!=="dry_run") process.exit(1); if(p.probeCount!==8) process.exit(2); if(p.sent.length!==0) process.exit(3); console.log("routing probe runbook dry-run safe", JSON.stringify({mode:p.mode, probeCount:p.probeCount, sentCount:p.sent.length}));'
+npm run security:scan-artifacts
+git diff --check
+```
+
+## 2026-06-17 External Routing Probe Runbook Wave Results
+
+- Script syntax check: passed.
+- Dry-run probe plan: `mode=dry_run`, `probeCount=8`, `sentCount=0`.
+- `npm run security:scan-artifacts`: passed.
+- `git diff --check`: passed.
+
 ## Useful Runtime Commands
 
 Start dev server for tunnel:

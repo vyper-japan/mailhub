@@ -191,6 +191,11 @@
   - Re-ran `npm run audit:mailhub-readiness` after the freshness code commit.
   - The committed readiness artifact now records `repoHead=000b459`.
   - The gate still correctly reports `productionReady=false` with P0 `current_shared_gmail_routing`.
+- 2026-06-17 external routing probe runbook wave completed:
+  - Added `MAILHUB_PROBE_SMTP_*` and `MAILHUB_PROBE_FROM` placeholders to `env.example`.
+  - Added an `External Routing Probe` section to `OPS_RUNBOOK.md`.
+  - The runbook documents dry-run, external non-`@vtj.co.jp` SMTP setup, sending, marker verification, readiness regeneration, and failure interpretation.
+  - `.ai-runs/mailhub-next-phase/next.md` now points the remaining P0 workflow at that runbook.
 
 ## Not Done
 
