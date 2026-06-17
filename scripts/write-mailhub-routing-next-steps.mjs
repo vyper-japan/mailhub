@@ -117,6 +117,7 @@ function main() {
   }
 
   const p0Blockers = stringArray(readiness?.gate?.p0Blockers);
+  const p1Blockers = stringArray(readiness?.gate?.p1Blockers);
   const productionReady = readiness?.gate?.productionReady === true;
   const missingGithubSecrets = githubSecrets
     ? stringArray(githubSecrets.missingSendVerifySecrets)
@@ -163,6 +164,7 @@ function main() {
     state: {
       productionReady,
       p0Blockers,
+      p1Blockers,
       currentSharedGmailRoutingBlocked: p0Blockers.includes("current_shared_gmail_routing"),
       readyForGithubSendVerify,
       readyForLocalProductionProof,

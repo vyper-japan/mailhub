@@ -76,7 +76,12 @@ function opsAuditFixture() {
   };
 }
 
-function writeReadinessFixtures(dir: string, routingProbeGate: Record<string, unknown>) {
+function writeReadinessFixtures(
+  dir: string,
+  routingProbeGate: Record<string, unknown>,
+  options: { staffWorkflowReady?: boolean } = {},
+) {
+  const staffWorkflowReady = options.staffWorkflowReady === true;
   const paths = {
     source: join(dir, "source.json"),
     ops: join(dir, "ops.json"),
@@ -86,6 +91,7 @@ function writeReadinessFixtures(dir: string, routingProbeGate: Record<string, un
     githubSecrets: join(dir, "github-secrets.json"),
     views: join(dir, "views.json"),
     rules: join(dir, "rules.json"),
+    staffWorkflow: join(dir, "staff-workflow.json"),
     out: join(dir, "readiness.json"),
   };
   writeJson(paths.source, {
@@ -180,6 +186,28 @@ function writeReadinessFixtures(dir: string, routingProbeGate: Record<string, un
       ruleSetFingerprint: "sha256:fixture-rules",
     },
     ruleSafetyGate: { realDataRuleRiskPass: true },
+  });
+  writeJson(paths.staffWorkflow, {
+    generatedAt: "2026-06-17T00:00:00.000Z",
+    gate: {
+      staffWorkflowPermissionsReady: staffWorkflowReady,
+      readOnlyRolloutReady: staffWorkflowReady,
+      controlledWritePilotReady: staffWorkflowReady,
+      p0Blockers: [],
+      p1Blockers: staffWorkflowReady ? [] : ["write_pilot_evidence_missing"],
+    },
+    requirements: {
+      productionEnvReady: staffWorkflowReady,
+      adminsReady: staffWorkflowReady,
+      assigneeRosterReady: staffWorkflowReady,
+      durableConfigReady: staffWorkflowReady,
+      durableActivityReady: staffWorkflowReady,
+      readOnlyRolloutEvidenceReady: staffWorkflowReady,
+      writePilotEvidenceReady: staffWorkflowReady,
+    },
+    blockers: staffWorkflowReady
+      ? []
+      : [{ id: "write_pilot_evidence_missing", severity: "P1", message: "fixture missing write evidence" }],
   });
   return paths;
 }
@@ -1587,6 +1615,8 @@ describe("MailHub routing probe CLI gates", () => {
         paths.views,
         "--rules-audit",
         paths.rules,
+        "--staff-workflow-audit",
+        paths.staffWorkflow,
         "--out",
         paths.out,
       ]);
@@ -1654,17 +1684,21 @@ describe("MailHub routing probe CLI gates", () => {
 
   test("production readiness accepts complete address-level probe evidence", () => {
     withTempDir((dir) => {
-      const paths = writeReadinessFixtures(dir, {
-        markerProvided: true,
-        targetChannelCount: 2,
-        targetAddressCount: 3,
-        matchedChannels: ["multi-source", "single-source"],
-        missingChannels: [],
-        matchedAddresses: ["first@example.com", "second@example.com", "third@example.com"],
-        missingAddresses: [],
-        allExpectedChannelsConfirmed: true,
-        allExpectedAddressesConfirmed: true,
-      });
+      const paths = writeReadinessFixtures(
+        dir,
+        {
+          markerProvided: true,
+          targetChannelCount: 2,
+          targetAddressCount: 3,
+          matchedChannels: ["multi-source", "single-source"],
+          missingChannels: [],
+          matchedAddresses: ["first@example.com", "second@example.com", "third@example.com"],
+          missingAddresses: [],
+          allExpectedChannelsConfirmed: true,
+          allExpectedAddressesConfirmed: true,
+        },
+        { staffWorkflowReady: true },
+      );
 
       const result = runNodeScript(readinessAuditPath, [
         "--source-audit",
@@ -1681,6 +1715,8 @@ describe("MailHub routing probe CLI gates", () => {
         paths.views,
         "--rules-audit",
         paths.rules,
+        "--staff-workflow-audit",
+        paths.staffWorkflow,
         "--out",
         paths.out,
       ]);

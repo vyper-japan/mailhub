@@ -15,6 +15,7 @@ const defaults = {
   githubRoutingSecrets: join(runDir, "github-routing-secrets-readiness.json"),
   viewsAudit: join(runDir, "gmail-default-views-audit.json"),
   rulesAudit: join(runDir, "gmail-rule-safety-audit.json"),
+  staffWorkflowAudit: join(runDir, "mailhub-staff-workflow-audit.json"),
   out: join(runDir, "mailhub-production-readiness-audit.json"),
 };
 
@@ -30,9 +31,10 @@ function parseArgs(argv) {
     else if (arg === "--github-routing-secrets") out.githubRoutingSecrets = argv[++i];
     else if (arg === "--views-audit") out.viewsAudit = argv[++i];
     else if (arg === "--rules-audit") out.rulesAudit = argv[++i];
+    else if (arg === "--staff-workflow-audit") out.staffWorkflowAudit = argv[++i];
     else if (arg === "--out") out.out = argv[++i];
     else if (arg === "--help" || arg === "-h") {
-      console.log(`Usage: node scripts/audit-mailhub-production-readiness.mjs [--source-audit path] [--ops-audit path] [--gws-routing-audit path] [--routing-probe-audit path] [--routing-probe-preflight path] [--github-routing-secrets path] [--views-audit path] [--rules-audit path] [--out path]`);
+      console.log(`Usage: node scripts/audit-mailhub-production-readiness.mjs [--source-audit path] [--ops-audit path] [--gws-routing-audit path] [--routing-probe-audit path] [--routing-probe-preflight path] [--github-routing-secrets path] [--views-audit path] [--rules-audit path] [--staff-workflow-audit path] [--out path]`);
       process.exit(0);
     }
   }
@@ -75,6 +77,7 @@ function main() {
   const githubRoutingSecrets = readOptionalJson(args.githubRoutingSecrets);
   const viewsAudit = readJson(args.viewsAudit);
   const rulesAudit = readJson(args.rulesAudit);
+  const staffWorkflowAudit = readOptionalJson(args.staffWorkflowAudit);
 
   const knownCodeGaps = sourceAudit.zeroEstimateAnalysis?.knownCodeGaps ?? [];
   const sourceCodeCoverageReady =
@@ -98,6 +101,8 @@ function main() {
       : null;
   const ruleConfigFingerprintPresent = Boolean(rulesConfigFingerprint);
   const ruleSafetyReady = Boolean(rulesAudit.ruleSafetyGate?.realDataRuleRiskPass) && ruleConfigFingerprintPresent;
+  const staffWorkflowPermissionsReady = Boolean(staffWorkflowAudit?.gate?.staffWorkflowPermissionsReady);
+  const staffWorkflowBlockerSeverity = currentSharedGmailRoutingReady ? "P0" : "P1";
 
   const blockers = [];
   if (!sourceCodeCoverageReady) {
@@ -144,6 +149,14 @@ function main() {
       fingerprintPresent: ruleConfigFingerprintPresent,
     }));
   }
+  if (!staffWorkflowPermissionsReady) {
+    blockers.push(blocker("staff_workflow_permissions", staffWorkflowBlockerSeverity, "Production staff workflow and permission rollout evidence is not complete.", {
+      staffWorkflowGate: staffWorkflowAudit?.gate ?? null,
+      staffWorkflowRequirements: staffWorkflowAudit?.requirements ?? null,
+      staffWorkflowBlockers: staffWorkflowAudit?.blockers ?? ["missing_staff_workflow_audit"],
+      escalatesToP0AfterRoutingProof: !currentSharedGmailRoutingReady,
+    }));
+  }
 
   const result = {
     generatedAt: new Date().toISOString(),
@@ -157,6 +170,7 @@ function main() {
       githubRoutingSecrets: args.githubRoutingSecrets,
       viewsAudit: args.viewsAudit,
       rulesAudit: args.rulesAudit,
+      staffWorkflowAudit: args.staffWorkflowAudit,
       sourceAuditGeneratedAt: sourceAudit.generatedAt ?? null,
       opsAuditGeneratedAt: opsAudit.generatedAt ?? null,
       gwsRoutingAuditGeneratedAt: gwsRoutingAudit.generatedAt ?? null,
@@ -165,6 +179,7 @@ function main() {
       githubRoutingSecretsCheckedAt: githubRoutingSecrets?.checkedAt ?? null,
       viewsAuditGeneratedAt: viewsAudit.generatedAt ?? null,
       rulesAuditGeneratedAt: rulesAudit.generatedAt ?? null,
+      staffWorkflowAuditGeneratedAt: staffWorkflowAudit?.generatedAt ?? null,
       rulesConfigFingerprint,
     },
     requirements: {
@@ -179,6 +194,9 @@ function main() {
       defaultViewsBulkAutomationSafe,
       currentRuleConfigRealDataSafetyReady: ruleSafetyReady,
       currentRuleConfigFingerprintPresent: ruleConfigFingerprintPresent,
+      staffWorkflowPermissionsReady,
+      staffReadOnlyRolloutReady: staffWorkflowAudit?.gate?.readOnlyRolloutReady === true,
+      staffControlledWritePilotReady: staffWorkflowAudit?.gate?.controlledWritePilotReady === true,
     },
     blockers,
     gate: {
@@ -188,6 +206,7 @@ function main() {
         currentSharedGmailRoutingReady &&
         viewSyntaxReady &&
         ruleSafetyReady &&
+        staffWorkflowPermissionsReady &&
         blockers.filter((item) => item.severity === "P0").length === 0,
       p0Blockers: blockers.filter((item) => item.severity === "P0").map((item) => item.id),
       p1Blockers: blockers.filter((item) => item.severity === "P1").map((item) => item.id),

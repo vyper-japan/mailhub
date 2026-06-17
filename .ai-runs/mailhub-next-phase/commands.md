@@ -1754,6 +1754,50 @@ git diff --check
 - Refreshed readiness and routing-next artifacts to current HEAD `67b7845...`.
 - All four readiness/proof artifact contracts pass locally after refresh.
 
+## 2026-06-17 Staff Workflow Readiness Gate Commands
+
+```bash
+node --check scripts/audit-mailhub-staff-workflow.mjs
+node --check scripts/check-mailhub-staff-workflow-contract.mjs
+node --check scripts/audit-mailhub-production-readiness.mjs
+node --check scripts/check-mailhub-readiness-contract.mjs
+node --check scripts/write-mailhub-routing-next-steps.mjs
+npm run audit:mailhub-staff-workflow -- --out .ai-runs/mailhub-next-phase/mailhub-staff-workflow-audit.json
+npm run audit:mailhub-readiness -- --out .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json
+npm run audit:mailhub-routing-next -- --strict --out .ai-runs/mailhub-next-phase/mailhub-routing-next-steps.json
+npm run audit:mailhub-staff-workflow-contract
+npm run audit:github-routing-secrets-contract
+npm run audit:mailhub-readiness-contract
+npm run audit:mailhub-routing-next-contract
+npm run audit:mailhub-routing-proof-contract
+npx vitest run lib/__tests__/mailhub-routing-probe-scripts.test.ts lib/__tests__/mailhub-readiness-contract.test.ts lib/__tests__/mailhub-staff-workflow-audit.test.ts lib/__tests__/opsReadinessSummary.test.ts lib/__tests__/ops-artifact-secret-scan.test.ts
+npm run typecheck
+npm run lint
+npm run test
+npm run test:coverage
+npm run build
+npm run smoke
+npm run security:scan-artifacts
+actionlint .github/workflows/mailhub-readiness-contract.yml .github/workflows/mailhub-routing-probe.yml
+git diff --check
+```
+
+## 2026-06-17 Staff Workflow Readiness Gate Results
+
+- Added staff workflow audit and contract coverage.
+- Focused readiness/routing/staff tests passed 5 files / 53 tests.
+- Full Vitest passed 64 files / 574 tests.
+- Coverage run passed 64 files / 574 tests.
+- Typecheck, lint, build, smoke, actionlint, artifact secret scan, and all five MailHub readiness/proof contracts passed.
+- Default artifact secret scan now covers 10 files, including `mailhub-staff-workflow-audit.json`.
+- Current final artifact state:
+  - `productionReady=false`
+  - P0 `current_shared_gmail_routing`
+  - P1 `staff_workflow_permissions`
+  - `staffWorkflowPermissionsReady=false`
+  - `staffReadOnlyRolloutReady=false`
+  - `staffControlledWritePilotReady=false`
+
 ## Useful Runtime Commands
 
 Start dev server for tunnel:

@@ -391,6 +391,17 @@
   - Investigated failed `MailHub Readiness Contract` run `27686138004`; failure was `stale_repo_head`, with the committed readiness artifact still pointing at `52807bf`.
   - Regenerated `mailhub-production-readiness-audit.json` and `mailhub-routing-next-steps.json` at HEAD `67b7845`.
   - All four artifact contracts pass locally after refresh.
+- 2026-06-17 staff workflow readiness gate wave completed:
+  - Added `scripts/audit-mailhub-staff-workflow.mjs` and `npm run audit:mailhub-staff-workflow`.
+  - Added `scripts/check-mailhub-staff-workflow-contract.mjs` and `npm run audit:mailhub-staff-workflow-contract`.
+  - The audit records production staff rollout readiness without printing secret values: production/test-mode state, required env presence, admin/team/assignee roster readiness, Sheets-backed config/activity durability, read-only rollout evidence, and controlled write pilot evidence.
+  - Production readiness now requires `staffWorkflowPermissionsReady=true` in addition to source coverage, source inventory, routing proof, default view syntax, and rule-safety gates.
+  - The staff workflow blocker is P1 while `current_shared_gmail_routing` remains P0, but automatically escalates to P0 once routing proof is complete if staff workflow evidence is still missing.
+  - Ops readiness summary now exposes `staffWorkflowPermissionsReady`, `staffReadOnlyRolloutReady`, and `staffControlledWritePilotReady`.
+  - `.github/workflows/mailhub-readiness-contract.yml` and `.github/workflows/mailhub-routing-probe.yml` now run the staff workflow contract with the existing readiness/proof contract suite.
+  - `scripts/scan-ops-artifacts.mjs` now includes `.ai-runs/mailhub-next-phase/mailhub-staff-workflow-audit.json` in the default committed artifact secret scan.
+  - Refreshed `mailhub-staff-workflow-audit.json`, `mailhub-production-readiness-audit.json`, and `mailhub-routing-next-steps.json`.
+  - Current readiness state is intentionally blocked: `productionReady=false`, P0 `current_shared_gmail_routing`, and P1 `staff_workflow_permissions`.
 
 ## Not Done
 
@@ -400,7 +411,8 @@
 - `ebay@vtj.co.jp` is proven as a real source by `MAIL_MIGRATION_STATUS.md` and migration evidence, but has no shared Gmail active or historical evidence; verify current GWS membership/MX routing to `mailhub@`, or explicitly document that it remains outside the workbench.
 - For `gopro-yahoo`, `vyperglobal-rakuten`, `ams-vyper`, and `datacolor`, historical shared Gmail evidence exists, but active `INBOX` is zero; confirm current routing/dormancy before production-complete source coverage is claimed.
 - GWS group membership is no longer the blocker for the six channels; all target groups have `mailhub@vtj.co.jp`. The blocker is Lolipop-side forwarding/current MX path evidence because `vtj.co.jp` still resolves to `mx01.lolipop.jp`.
-- The aggregate production readiness gate has only one P0 blocker left: `current_shared_gmail_routing`.
+- The aggregate production readiness gate has one P0 blocker left: `current_shared_gmail_routing`.
+- Production staff workflow and permissions are now machine-visible as P1 `staff_workflow_permissions`; this becomes P0 after routing proof is complete if read-only rollout / controlled write pilot evidence is still missing.
 - A controlled probe can now close or disprove that blocker mechanically: use an external non-`@vtj.co.jp` SMTP sender with `npm run probe:routing-send -- --send`, then re-run the probe audit with the emitted `--marker`.
 - Before the controlled probe, run `npm run probe:routing-preflight -- --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-preflight.json`; current local status is not ready because external SMTP env vars are missing.
 - Ops Board now surfaces the same preflight gap: `SMTP不足env=4` in the current local artifact.
@@ -418,7 +430,7 @@
 - Important/invoice/customer-inquiry folders exist as default saved views and are audited as manual-review shortcuts; further narrowing requires operator feedback.
 - Brain decision ledger exists for memory/file/sheets and health visibility; AI reply drafting and knowledge base integration are not implemented.
 - Rakuten/Amazon/Yahoo API-based reply integration is not implemented.
-- Production staff workflow and permissions need real-data validation.
+- Production staff workflow and permissions need real-data validation through the new staff workflow audit: production env, durable Sheets config/activity, staff roster/admins, read-only rollout screenshots, activity CSV, and Gmail/MailHub write pilot screenshots.
 
 ## Current Runtime
 

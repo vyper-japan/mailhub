@@ -91,6 +91,7 @@ function main() {
     if (requirements.defaultViewsRealDataValidated !== true) errors.push("production_ready_without_default_views_validation");
     if (requirements.currentRuleConfigRealDataSafetyReady !== true) errors.push("production_ready_without_rule_safety");
     if (requirements.currentRuleConfigFingerprintPresent !== true) errors.push("production_ready_without_rule_config_fingerprint");
+    if (requirements.staffWorkflowPermissionsReady !== true) errors.push("production_ready_without_staff_workflow_permissions");
   } else if (p0Blockers.length === 0) {
     errors.push("not_ready_without_p0_blockers");
   }
@@ -101,6 +102,31 @@ function main() {
 
   if (requirements.currentRuleConfigRealDataSafetyReady === true && requirements.currentRuleConfigFingerprintPresent !== true) {
     errors.push("rule_safety_ready_without_config_fingerprint");
+  }
+
+  const staffWorkflowBlocker = blockers.find((item) => item.id === "staff_workflow_permissions");
+  if (requirements.staffWorkflowPermissionsReady !== true) {
+    if (!p0Blockers.includes("staff_workflow_permissions") && !p1Blockers.includes("staff_workflow_permissions")) {
+      errors.push("staff_workflow_not_ready_without_blocker");
+    }
+    if (!staffWorkflowBlocker) {
+      errors.push("staff_workflow_blocker_missing_detail");
+    } else {
+      const evidence = objectValue(staffWorkflowBlocker.evidence);
+      const staffWorkflowGate = objectValue(evidence.staffWorkflowGate);
+      const staffWorkflowRequirements = objectValue(evidence.staffWorkflowRequirements);
+      if (typeof staffWorkflowGate.staffWorkflowPermissionsReady !== "boolean") {
+        errors.push("staff_workflow_blocker_missing_gate");
+      }
+      if (typeof staffWorkflowRequirements.staffWorkflowPermissionsReady !== "boolean") {
+        errors.push("staff_workflow_blocker_missing_requirements");
+      }
+      if (requirements.currentSharedGmailRoutingReady === true && staffWorkflowBlocker.severity !== "P0") {
+        errors.push("staff_workflow_must_be_p0_after_routing_ready");
+      }
+    }
+  } else if (staffWorkflowBlocker) {
+    warnings.push("staff_workflow_blocker_detail_present_when_ready");
   }
 
   const routingBlocker = blockers.find((item) => item.id === "current_shared_gmail_routing");

@@ -23,6 +23,9 @@ export type OpsReadinessSummary = {
   defaultViewsBulkAutomationSafe: boolean;
   currentRuleConfigRealDataSafetyReady: boolean;
   currentRuleConfigFingerprintPresent: boolean;
+  staffWorkflowPermissionsReady: boolean;
+  staffReadOnlyRolloutReady: boolean;
+  staffControlledWritePilotReady: boolean;
   ruleConfigFingerprint: string | null;
   unconfirmedChannels: string[];
   missingProbeAddresses: string[];
@@ -73,6 +76,9 @@ export function unavailableOpsReadinessSummary(): OpsReadinessSummary {
     defaultViewsBulkAutomationSafe: false,
     currentRuleConfigRealDataSafetyReady: false,
     currentRuleConfigFingerprintPresent: false,
+    staffWorkflowPermissionsReady: false,
+    staffReadOnlyRolloutReady: false,
+    staffControlledWritePilotReady: false,
     ruleConfigFingerprint: null,
     unconfirmedChannels: [],
     missingProbeAddresses: [],
@@ -195,6 +201,9 @@ export function summarizeProductionReadinessAudit(
     defaultViewsBulkAutomationSafe: requirements.defaultViewsBulkAutomationSafe === true,
     currentRuleConfigRealDataSafetyReady: requirements.currentRuleConfigRealDataSafetyReady === true,
     currentRuleConfigFingerprintPresent: requirements.currentRuleConfigFingerprintPresent === true,
+    staffWorkflowPermissionsReady: requirements.staffWorkflowPermissionsReady === true,
+    staffReadOnlyRolloutReady: requirements.staffReadOnlyRolloutReady === true,
+    staffControlledWritePilotReady: requirements.staffControlledWritePilotReady === true,
     ruleConfigFingerprint: typeof inputs.rulesConfigFingerprint === "string" ? inputs.rulesConfigFingerprint : null,
     unconfirmedChannels: stringArray(evidence.currentSharedGmailRoutingUnconfirmed),
     missingProbeAddresses: stringArray(routingProbeGate.missingAddresses),

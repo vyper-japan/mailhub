@@ -49,6 +49,9 @@ function baseReadinessAudit(overrides: Record<string, unknown> = {}) {
       defaultViewsManualReviewOnly: true,
       currentRuleConfigRealDataSafetyReady: true,
       currentRuleConfigFingerprintPresent: true,
+      staffWorkflowPermissionsReady: false,
+      staffReadOnlyRolloutReady: false,
+      staffControlledWritePilotReady: false,
     },
     inputs: {
       rulesConfigFingerprint: "sha256:abc123",
@@ -56,7 +59,7 @@ function baseReadinessAudit(overrides: Record<string, unknown> = {}) {
     gate: {
       productionReady: false,
       p0Blockers: ["current_shared_gmail_routing"],
-      p1Blockers: [],
+      p1Blockers: ["staff_workflow_permissions"],
     },
     blockers: [
       {
@@ -79,6 +82,22 @@ function baseReadinessAudit(overrides: Record<string, unknown> = {}) {
             missingSendVerifySecrets: ["MAILHUB_PROBE_SMTP_HOST"],
           },
           mxRecords: [{ exchange: "mx01.lolipop.jp", priority: 50 }],
+        },
+      },
+      {
+        id: "staff_workflow_permissions",
+        severity: "P1",
+        evidence: {
+          staffWorkflowGate: {
+            readOnlyRolloutReady: false,
+            controlledWritePilotReady: false,
+            staffWorkflowPermissionsReady: false,
+          },
+          staffWorkflowRequirements: {
+            staffWorkflowPermissionsReady: false,
+          },
+          staffWorkflowBlockers: [{ id: "not_production_env", severity: "P1" }],
+          escalatesToP0AfterRoutingProof: true,
         },
       },
     ],

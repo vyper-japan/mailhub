@@ -1,0 +1,183 @@
+{
+  "generatedAt": "2026-06-17T12:02:49.471Z",
+  "repoHead": "bb39390526d3f17551bb51bd7ff45f65226881b3",
+  "inputs": {
+    "envFile": null,
+    "assignees": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.mailhub/assignees.json",
+    "prodEvidenceDir": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/docs/pilot/prod"
+  },
+  "environment": {
+    "mailhubEnv": "local",
+    "nodeEnv": null,
+    "testMode": false,
+    "readOnly": false,
+    "readOnlyRaw": null
+  },
+  "config": {
+    "configStore": "file",
+    "activityStore": "memory",
+    "sheetsConfigured": false,
+    "missingProductionEnv": [
+      "NEXTAUTH_URL",
+      "NEXTAUTH_SECRET",
+      "GOOGLE_CLIENT_ID",
+      "GOOGLE_CLIENT_SECRET",
+      "GOOGLE_SHARED_INBOX_EMAIL",
+      "GOOGLE_SHARED_INBOX_REFRESH_TOKEN"
+    ],
+    "alertsSecretConfigured": false,
+    "gmailSendEnabled": false
+  },
+  "staff": {
+    "adminsConfigured": false,
+    "adminCount": 0,
+    "adminInvalid": [],
+    "adminNonVtj": [],
+    "teamMemberCount": 0,
+    "teamInvalid": [],
+    "teamNonVtj": [],
+    "assigneeRegistry": {
+      "count": 2,
+      "validCount": 2,
+      "invalid": [],
+      "nonVtj": [],
+      "source": "file"
+    }
+  },
+  "evidence": {
+    "dir": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/docs/pilot/prod",
+    "readonlyRequired": [
+      "mailhub-meta-topbar-readonly.png",
+      "mailhub-meta-health-readonly.png"
+    ],
+    "readonlyMissing": [
+      "mailhub-meta-topbar-readonly.png",
+      "mailhub-meta-health-readonly.png"
+    ],
+    "writeRequired": [
+      "mailhub-meta-topbar-write.png",
+      "mailhub-meta-topbar-back-to-readonly.png"
+    ],
+    "writeMissing": [
+      "mailhub-meta-topbar-write.png",
+      "mailhub-meta-topbar-back-to-readonly.png"
+    ],
+    "activityCsvCount": 0,
+    "gmailProofCount": 0,
+    "mailhubProofCount": 0,
+    "readOnlyEvidenceReady": false,
+    "writePilotEvidenceReady": false
+  },
+  "requirements": {
+    "productionEnvReady": false,
+    "adminsReady": false,
+    "assigneeRosterReady": true,
+    "durableConfigReady": false,
+    "durableActivityReady": false,
+    "readOnlyRolloutEvidenceReady": false,
+    "writePilotEvidenceReady": false,
+    "readOnlyRolloutReady": false,
+    "controlledWritePilotReady": false,
+    "staffWorkflowPermissionsReady": false
+  },
+  "blockers": [
+    {
+      "id": "not_production_env",
+      "severity": "P1",
+      "message": "Staff workflow proof must be generated from the production environment.",
+      "evidence": {
+        "mailhubEnv": "local"
+      }
+    },
+    {
+      "id": "missing_production_env",
+      "severity": "P1",
+      "message": "Required production auth/shared-inbox env is missing.",
+      "evidence": {
+        "missing": [
+          "NEXTAUTH_URL",
+          "NEXTAUTH_SECRET",
+          "GOOGLE_CLIENT_ID",
+          "GOOGLE_CLIENT_SECRET",
+          "GOOGLE_SHARED_INBOX_EMAIL",
+          "GOOGLE_SHARED_INBOX_REFRESH_TOKEN"
+        ]
+      }
+    },
+    {
+      "id": "admins_not_ready",
+      "severity": "P1",
+      "message": "MAILHUB_ADMINS must contain valid @vtj.co.jp admin addresses.",
+      "evidence": {
+        "count": 0,
+        "invalid": [],
+        "nonVtj": []
+      }
+    },
+    {
+      "id": "config_store_not_durable",
+      "severity": "P1",
+      "message": "Production staff workflow requires Sheets-backed config.",
+      "evidence": {
+        "configStore": "file",
+        "sheetsConfigured": false
+      }
+    },
+    {
+      "id": "activity_store_not_durable",
+      "severity": "P1",
+      "message": "Production staff workflow requires Sheets-backed Activity audit logging.",
+      "evidence": {
+        "activityStore": "memory",
+        "sheetsConfigured": false
+      }
+    },
+    {
+      "id": "read_only_not_enabled",
+      "severity": "P1",
+      "message": "Initial production rollout evidence must start from READ ONLY.",
+      "evidence": {}
+    },
+    {
+      "id": "readonly_evidence_missing",
+      "severity": "P1",
+      "message": "Production READ ONLY rollout evidence files are missing.",
+      "evidence": {
+        "missing": [
+          "mailhub-meta-topbar-readonly.png",
+          "mailhub-meta-health-readonly.png"
+        ]
+      }
+    },
+    {
+      "id": "write_pilot_evidence_missing",
+      "severity": "P1",
+      "message": "Controlled production WRITE pilot evidence is missing.",
+      "evidence": {
+        "missingMeta": [
+          "mailhub-meta-topbar-write.png",
+          "mailhub-meta-topbar-back-to-readonly.png"
+        ],
+        "activityCsvCount": 0,
+        "gmailProofCount": 0,
+        "mailhubProofCount": 0
+      }
+    }
+  ],
+  "gate": {
+    "readOnlyRolloutReady": false,
+    "controlledWritePilotReady": false,
+    "staffWorkflowPermissionsReady": false,
+    "p0Blockers": [],
+    "p1Blockers": [
+      "not_production_env",
+      "missing_production_env",
+      "admins_not_ready",
+      "config_store_not_durable",
+      "activity_store_not_durable",
+      "read_only_not_enabled",
+      "readonly_evidence_missing",
+      "write_pilot_evidence_missing"
+    ]
+  }
+}

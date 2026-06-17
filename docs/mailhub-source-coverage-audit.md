@@ -182,8 +182,11 @@ Current machine conclusion:
 | Default views real-data validated | pass |
 | Default views automation status | manual review only |
 | Current rule config real-data safety ready | pass |
+| Production staff workflow permissions ready | fail |
 
-The aggregate `productionReady` gate is `false`. The only current P0 blocker is `current_shared_gmail_routing`: the six zero-active-inbox channels still lack current external-mail-to-shared-Gmail proof, and DNS MX remains `50 mx01.lolipop.jp`.
+The aggregate `productionReady` gate is `false`. The current P0 blocker is `current_shared_gmail_routing`: the six zero-active-inbox channels still lack current external-mail-to-shared-Gmail proof, and DNS MX remains `50 mx01.lolipop.jp`.
+
+The current P1 blocker is `staff_workflow_permissions`. This is intentionally separate from routing proof: before production-complete can be claimed, the staff workflow audit must prove production env readiness, admin/team/assignee roster readiness, Sheets-backed config/activity durability, read-only rollout evidence, and controlled write pilot evidence. If routing proof is completed while staff workflow evidence is still missing, this blocker escalates to P0.
 
 ## Routing Probe Audit
 
