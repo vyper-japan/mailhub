@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-06-17T21:46:42.595Z",
-  "repoHead": "c9d980a19296e5b0a5accce9cf76ae9cf81785c4",
+  "generatedAt": "2026-06-17T22:01:45.072Z",
+  "repoHead": "195e7bc9d01da5ca15e34f61901b4dbd6899ca08",
   "inputs": {
     "sourceAudit": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.ai-runs/mailhub-next-phase/gmail-source-coverage-audit.json",
     "opsAudit": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.ai-runs/mailhub-next-phase/mailhub-operational-confirmations.json",
@@ -18,7 +18,7 @@
     "routingProbeAuditGeneratedAt": "2026-06-17T20:54:37.376Z",
     "routingProbePreflightGeneratedAt": "2026-06-17T20:54:36.691Z",
     "githubRoutingSecretsCheckedAt": "2026-06-17T20:54:37.163Z",
-    "githubStaffSecretsCheckedAt": "2026-06-17T20:54:37.616Z",
+    "githubStaffSecretsCheckedAt": "2026-06-17T22:01:35.623Z",
     "viewsAuditGeneratedAt": "2026-06-17T15:15:32.600Z",
     "rulesAuditGeneratedAt": "2026-06-17T20:51:39.495Z",
     "ruleSafetyAuditEnv": {
@@ -360,10 +360,10 @@
         "staffGithubConfig": {
           "source": "github_actions_config",
           "sourceTrusted": true,
-          "checkedAt": "2026-06-17T20:54:37.616Z",
-          "repoHead": "1816c3eb56eb967dd8d2c130213c5083c1912c4f",
-          "currentRepoHead": "c9d980a19296e5b0a5accce9cf76ae9cf81785c4",
-          "repoHeadMatchesCurrent": false,
+          "checkedAt": "2026-06-17T22:01:35.623Z",
+          "repoHead": "195e7bc9d01da5ca15e34f61901b4dbd6899ca08",
+          "currentRepoHead": "195e7bc9d01da5ca15e34f61901b4dbd6899ca08",
+          "repoHeadMatchesCurrent": true,
           "secretCount": 4,
           "variableCount": 0,
           "readyForProductionStaffPreflight": false,
