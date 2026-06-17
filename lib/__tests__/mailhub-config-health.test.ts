@@ -139,6 +139,12 @@ type HealthResponse = {
     missingAliases: string[];
     error: string | null;
   };
+  brainLedger: {
+    requested: string | null;
+    resolved: "memory" | "file";
+    secretConfigured: boolean;
+    sheetsConfigured: false;
+  };
 };
 
 async function readHealth(): Promise<HealthResponse> {
@@ -153,6 +159,8 @@ describe("mailhub config health Gmail send", () => {
   beforeEach(() => {
     process.env = { ...originalEnv };
     process.env.MAILHUB_SEND_ENABLED = "1";
+    delete process.env.MAILHUB_BRAIN_LEDGER_STORE;
+    delete process.env.MAILHUB_BRAIN_SECRET;
     state.acceptedAliases = [...state.requiredAliases];
     state.checkedAt = "2026-06-12T00:00:00.000Z";
     state.readOnly = false;
@@ -174,6 +182,26 @@ describe("mailhub config health Gmail send", () => {
     expect(health.gmailSendBlockedReason).toBeNull();
     expect(health.sendAs.requiredCount).toBe(16);
     expect(health.sendAs.acceptedCount).toBe(16);
+    expect(health.brainLedger).toMatchObject({
+      requested: null,
+      resolved: "memory",
+      secretConfigured: false,
+      sheetsConfigured: false,
+    });
+  });
+
+  it("reports Brain ledger store and worker secret visibility", async () => {
+    process.env.MAILHUB_BRAIN_LEDGER_STORE = "file";
+    process.env.MAILHUB_BRAIN_SECRET = "secret-1";
+
+    const health = await readHealth();
+
+    expect(health.brainLedger).toEqual({
+      requested: "file",
+      resolved: "file",
+      secretConfigured: true,
+      sheetsConfigured: false,
+    });
   });
 
   it("returns fixed TEST_MODE health when no send-as override is missing", async () => {

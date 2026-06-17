@@ -151,6 +151,26 @@ npm run typecheck
 - Post-fix focused Vitest: 2 files / 6 tests passed.
 - Post-fix `npm run typecheck`: passed.
 
+## Verification Commands Run On 2026-06-17 Brain Ledger Health Wave
+
+```bash
+npx vitest run lib/__tests__/mailhub-config-health.test.ts lib/__tests__/brainDecisionLedgerStore.test.ts lib/__tests__/brain-decisions-route.test.ts
+npm run typecheck
+npm run lint
+git diff --check
+npm run test
+npm run build
+```
+
+## 2026-06-17 Brain Ledger Health Wave Results
+
+- Focused Vitest: 3 files / 15 tests passed.
+- `npm run typecheck`: passed.
+- `npm run lint`: passed.
+- `git diff --check`: passed.
+- `npm run test`: 57 files / 514 tests passed.
+- `npm run build`: passed.
+
 ## Useful Runtime Commands
 
 Start dev server for tunnel:

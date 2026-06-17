@@ -41,5 +41,6 @@ The durable Brain decision ledger is separate from Activity and rule suggestions
 - Worker write API: `POST /api/mailhub/brain/decisions` with `Authorization: Bearer $MAILHUB_BRAIN_SECRET`
 - Evidence policy: compact summaries and hashes only; do not persist full customer body/snippet text
 - Action policy: planned actions must be non-destructive and human-approved
+- Health visibility: `GET /api/mailhub/config/health` returns `brainLedger.requested`, `brainLedger.resolved`, and `brainLedger.secretConfigured`
 
 Sheets-backed ledger storage is still a future extension.

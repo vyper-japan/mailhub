@@ -12,7 +12,7 @@ Continue from the completed INBOX-scoped source coverage and rule-safety wave:
    - `gopro-yahoo`, `vyperglobal-rakuten`, `ams-vyper`, `datacolor`: active inbox 0, all-mail historical hits found.
    - `vyperglobal-yahoo`, `ebay`: active inbox 0 and all-mail fallback 0.
 6. Collect operator feedback on the default saved views. Real Gmail audit proves `customer-inquiries` and `noise-candidates` are too broad for bulk automation, so keep them as manual-review shortcuts unless narrowed.
-7. Extend the Brain decision ledger from memory/file to production health/config visibility. Sheets-backed ledger storage is still future work.
+7. Extend Brain decision ledger storage to Sheets if production requires spreadsheet-backed audit durability. Memory/file store and health visibility are already present.
 8. Add AI reply drafting only after a knowledge evidence source is defined; keep generated drafts separate from send actions.
 9. Expand the rule-safety gate only after real-data validation: current gate protects suppressive labels from invoice/inquiry/important-looking messages and fails closed when classification text is missing, but does not yet implement a full production auto-discard policy.
 10. Optional: run a manual browser check on production/staging data for stores pagination. Forced E2E is now present and passing.
@@ -71,5 +71,6 @@ The next phase is done only when:
 - suppressive rule application cannot hide obvious invoice/inquiry/important messages without evidence
 - selected-message Brain suggestion is read-only, visible, and separated from executor/write paths
 - Brain decision ledger is separate from Activity/rule suggestions and rejects destructive planned actions
+- Brain decision ledger health/config state is visible in config health
 - verification passes
 - changes are committed and pushed

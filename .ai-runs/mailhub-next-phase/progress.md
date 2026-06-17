@@ -66,6 +66,9 @@
   - POST requires `Authorization: Bearer $MAILHUB_BRAIN_SECRET`; normal users only read through GET.
   - Ledger entries reject destructive planned actions and keep compact evidence summaries.
   - Added env examples for `MAILHUB_BRAIN_LEDGER_STORE`, `MAILHUB_BRAIN_SECRET`, and future `MAILHUB_SHEETS_TAB_BRAIN_DECISIONS`.
+- 2026-06-17 Brain ledger health wave completed:
+  - Added `brainLedger` visibility to `/api/mailhub/config/health`.
+  - Health now reports requested/resolved Brain ledger store, secret configured status, and current non-Sheets state.
 
 ## Not Done
 
@@ -74,7 +77,7 @@
 - Production pagination basic behavior is represented in API/UI metadata and forced E2E; real browser/manual production verification is still useful before staff rollout.
 - Auto-discard rules for marketing/noise are protected against obvious important/invoice/inquiry suppression and missing summary text, but a full production auto-discard policy is still intentionally not enabled.
 - Important/invoice/customer-inquiry folders exist as default saved views and are audited as manual-review shortcuts; further narrowing requires operator feedback.
-- Brain decision ledger exists for memory/file; Sheets-backed ledger health/config integration, AI reply drafting, and knowledge base integration are not implemented.
+- Brain decision ledger exists for memory/file and health visibility; Sheets-backed ledger storage, AI reply drafting, and knowledge base integration are not implemented.
 - Rakuten/Amazon/Yahoo API-based reply integration is not implemented.
 - Production staff workflow and permissions need real-data validation.
 
