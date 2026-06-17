@@ -112,6 +112,14 @@ jobs:
             --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-preflight.json
           node -e 'const p=require("./.ai-runs/mailhub-next-phase/mailhub-routing-probe-preflight.json"); console.log(JSON.stringify({mode:p.mode, probeCount:p.probeCount, sentCount:p.sent.length, readyForProductionProof:p.smtpPreflight.readyForProductionProof, missing:p.smtpPreflight.missingRequiredEnv, warnings:p.smtpPreflight.warnings}, null, 2)); if(p.probeCount!==8) process.exit(2); if(p.sent.length!==0) process.exit(3);'
 
+      - name: Refresh routing probe address plan
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run audit:routing-probes -- \
+            --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-audit.json
+          node -e 'const a=require("./.ai-runs/mailhub-next-phase/mailhub-routing-probe-audit.json"); console.log(JSON.stringify({mode:a.mode, targetChannelCount:a.gate?.targetChannelCount, targetAddressCount:a.gate?.targetAddressCount, plannedAddressProbes:a.plannedAddressProbes?.length, allExpectedAddressesConfirmed:a.gate?.allExpectedAddressesConfirmed}, null, 2)); if(a.mode!=="plan_only") process.exit(2); if(a.gate?.targetAddressCount!==8) process.exit(3); if(a.plannedAddressProbes?.length!==8) process.exit(4);'
+
       - name: Refresh readiness and next-step artifacts
         shell: bash
         run: |
