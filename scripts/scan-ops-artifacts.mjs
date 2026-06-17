@@ -11,6 +11,7 @@ const DEFAULT_TARGETS = [
   "env.example",
   "OPS_RUNBOOK.md",
   ".ai-runs/mailhub-next-phase/github-routing-secrets-readiness.json",
+  ".ai-runs/mailhub-next-phase/github-staff-secrets-readiness.json",
   ".ai-runs/mailhub-next-phase/mailhub-routing-probe-preflight.json",
   ".ai-runs/mailhub-next-phase/mailhub-routing-probe-send.json",
   ".ai-runs/mailhub-next-phase/mailhub-routing-probe-audit.json",

@@ -1,0 +1,247 @@
+#!/usr/bin/env node
+
+import { execFileSync } from "node:child_process";
+import { dirname } from "node:path";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+
+const DEFAULT_REPO = "vyper-japan/mailhub";
+
+const REQUIRED_PRODUCTION_RUNTIME = [
+  "MAILHUB_ENV",
+  "NEXTAUTH_URL",
+  "NEXTAUTH_SECRET",
+  "GOOGLE_CLIENT_ID",
+  "GOOGLE_CLIENT_SECRET",
+  "GOOGLE_SHARED_INBOX_EMAIL",
+  "GOOGLE_SHARED_INBOX_REFRESH_TOKEN",
+];
+
+const REQUIRED_STAFF_ACCESS = [
+  "MAILHUB_ADMINS",
+  "MAILHUB_TEAM_MEMBERS",
+];
+
+const REQUIRED_DURABLE_STORES = [
+  "MAILHUB_CONFIG_STORE",
+  "MAILHUB_ACTIVITY_STORE",
+];
+
+const REQUIRED_SHEETS_CONFIG = [
+  { label: "MAILHUB_SHEETS_ID or MAILHUB_SHEETS_SPREADSHEET_ID", anyOf: ["MAILHUB_SHEETS_ID", "MAILHUB_SHEETS_SPREADSHEET_ID"] },
+  "MAILHUB_SHEETS_CLIENT_EMAIL",
+  "MAILHUB_SHEETS_PRIVATE_KEY",
+];
+
+const REQUIRED_READ_ONLY_GUARD = [
+  "MAILHUB_READ_ONLY",
+];
+
+const REQUIRED_PRODUCTION_STAFF_CONFIG = [
+  ...REQUIRED_PRODUCTION_RUNTIME,
+  ...REQUIRED_STAFF_ACCESS,
+  ...REQUIRED_DURABLE_STORES,
+  ...REQUIRED_SHEETS_CONFIG,
+  ...REQUIRED_READ_ONLY_GUARD,
+];
+
+const REQUIRED_SECRET_CONFIG = [
+  "NEXTAUTH_SECRET",
+  "GOOGLE_CLIENT_SECRET",
+  "GOOGLE_SHARED_INBOX_REFRESH_TOKEN",
+  "MAILHUB_SHEETS_PRIVATE_KEY",
+];
+
+const OPTIONAL_RULE_SHEET_CONFIG = [
+  "MAILHUB_SHEETS_TAB_RULES",
+  "MAILHUB_SHEETS_TAB_ASSIGNEE_RULES",
+];
+
+function parseArgs(argv) {
+  const args = {
+    repo: DEFAULT_REPO,
+    configJson: "",
+    out: "",
+    fromEnv: false,
+    failOnMissing: true,
+  };
+  for (let i = 0; i < argv.length; i += 1) {
+    const arg = argv[i];
+    if (arg === "--repo") args.repo = argv[++i] || "";
+    else if (arg === "--config-json") args.configJson = argv[++i] || "";
+    else if (arg === "--out") args.out = argv[++i] || "";
+    else if (arg === "--from-env") args.fromEnv = true;
+    else if (arg === "--no-fail") args.failOnMissing = false;
+    else if (arg === "--help" || arg === "-h") {
+      console.log("Usage: node scripts/check-mailhub-staff-secrets.mjs [--repo owner/name] [--config-json path] [--from-env] [--out path] [--no-fail]");
+      process.exit(0);
+    }
+  }
+  return args;
+}
+
+function normalizeItems(value) {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => {
+      if (typeof item === "string") return { name: item };
+      if (item && typeof item === "object" && typeof item.name === "string") return { name: item.name, updatedAt: item.updatedAt };
+      return null;
+    })
+    .filter(Boolean);
+}
+
+function readConfigJson(path) {
+  if (!existsSync(path)) throw new Error(`missing_config_json:${path}`);
+  const parsed = JSON.parse(readFileSync(path, "utf8"));
+  if (Array.isArray(parsed)) return { secrets: normalizeItems(parsed), variables: [] };
+  return {
+    secrets: normalizeItems(parsed.secrets),
+    variables: normalizeItems(parsed.variables),
+  };
+}
+
+function readGhList(kind, repo) {
+  const args = kind === "secrets"
+    ? ["secret", "list", "--repo", repo, "--app", "actions", "--json", "name,updatedAt"]
+    : ["variable", "list", "--repo", repo, "--json", "name,updatedAt"];
+  const raw = execFileSync("gh", args, { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+  const parsed = JSON.parse(raw);
+  return normalizeItems(parsed);
+}
+
+function readGitHubConfig(repo) {
+  return {
+    secrets: readGhList("secrets", repo),
+    variables: readGhList("variables", repo),
+  };
+}
+
+function currentRepoHead() {
+  try {
+    return execFileSync("git", ["rev-parse", "HEAD"], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    }).trim();
+  } catch {
+    return null;
+  }
+}
+
+function readEnvConfig() {
+  const names = new Set([
+    ...flattenRequirements(REQUIRED_PRODUCTION_STAFF_CONFIG),
+    ...OPTIONAL_RULE_SHEET_CONFIG,
+  ]);
+  return {
+    secrets: [],
+    variables: [...names]
+      .filter((name) => typeof process.env[name] === "string" && process.env[name].trim())
+      .map((name) => ({ name })),
+  };
+}
+
+function requirementLabel(requirement) {
+  return typeof requirement === "string" ? requirement : requirement.label;
+}
+
+function flattenRequirements(requirements) {
+  return requirements.flatMap((requirement) => typeof requirement === "string" ? [requirement] : requirement.anyOf);
+}
+
+function requirementSatisfied(requirement, present) {
+  if (typeof requirement === "string") return present.has(requirement);
+  return requirement.anyOf.some((name) => present.has(name));
+}
+
+function presentRequirementNames(requirements, present) {
+  return requirements.filter((requirement) => requirementSatisfied(requirement, present)).map(requirementLabel);
+}
+
+function missingRequirementNames(requirements, present) {
+  return requirements.filter((requirement) => !requirementSatisfied(requirement, present)).map(requirementLabel);
+}
+
+function missingSecretConfigNames(names, secretNames) {
+  return names.filter((name) => !secretNames.has(name));
+}
+
+function groupReadiness(requirements, present) {
+  const required = requirements.map(requirementLabel);
+  const presentNames = presentRequirementNames(requirements, present);
+  const missing = missingRequirementNames(requirements, present);
+  return {
+    required,
+    present: presentNames,
+    missing,
+    ready: missing.length === 0,
+  };
+}
+
+function sourceForName(name, secretNames, variableNames) {
+  if (secretNames.has(name)) return "secret";
+  if (variableNames.has(name)) return "variable";
+  return null;
+}
+
+function configuredOptional(names, present) {
+  return names.filter((name) => present.has(name));
+}
+
+function main() {
+  const args = parseArgs(process.argv.slice(2));
+  const config = args.fromEnv ? readEnvConfig() : args.configJson ? readConfigJson(args.configJson) : readGitHubConfig(args.repo);
+  const secretNames = new Set(config.secrets.map((item) => item.name).filter(Boolean));
+  const variableNames = new Set(config.variables.map((item) => item.name).filter(Boolean));
+  const present = new Set([...secretNames, ...variableNames]);
+  const groups = {
+    productionRuntime: groupReadiness(REQUIRED_PRODUCTION_RUNTIME, present),
+    staffAccess: groupReadiness(REQUIRED_STAFF_ACCESS, present),
+    durableStores: groupReadiness(REQUIRED_DURABLE_STORES, present),
+    sheetsConfig: groupReadiness(REQUIRED_SHEETS_CONFIG, present),
+    readOnlyGuard: groupReadiness(REQUIRED_READ_ONLY_GUARD, present),
+    sensitiveSecrets: groupReadiness(REQUIRED_SECRET_CONFIG, secretNames),
+  };
+  const missingProductionStaffConfig = missingRequirementNames(REQUIRED_PRODUCTION_STAFF_CONFIG, present);
+  const missingSecretConfig = missingSecretConfigNames(REQUIRED_SECRET_CONFIG, secretNames);
+  const presentRequiredConfigNames = presentRequirementNames(REQUIRED_PRODUCTION_STAFF_CONFIG, present);
+  const presentRequiredConfigSources = Object.fromEntries(
+    flattenRequirements(REQUIRED_PRODUCTION_STAFF_CONFIG)
+      .filter((name) => present.has(name))
+      .map((name) => [name, sourceForName(name, secretNames, variableNames)]),
+  );
+  const result = {
+    repo: args.repo,
+    source: args.fromEnv ? "env" : args.configJson ? "json" : "github_actions_config",
+    checkedAt: new Date().toISOString(),
+    repoHead: currentRepoHead(),
+    secretCount: config.secrets.length,
+    variableCount: config.variables.length,
+    requiredProductionStaffConfig: REQUIRED_PRODUCTION_STAFF_CONFIG.map(requirementLabel),
+    requiredSecretConfig: REQUIRED_SECRET_CONFIG,
+    optionalRuleSheetConfig: OPTIONAL_RULE_SHEET_CONFIG,
+    configuredOptionalRuleSheetConfig: configuredOptional(OPTIONAL_RULE_SHEET_CONFIG, present),
+    missingProductionStaffConfig,
+    missingSecretConfig,
+    readyForSecretBackedStaffConfig: missingSecretConfig.length === 0,
+    readyForProductionStaffPreflight: missingProductionStaffConfig.length === 0 && missingSecretConfig.length === 0,
+    secretGroups: groups,
+    presentRequiredConfigNames,
+    presentRequiredConfigSources,
+    semanticWarnings: [
+      "source_policy:NEXTAUTH_SECRET, GOOGLE_CLIENT_SECRET, GOOGLE_SHARED_INBOX_REFRESH_TOKEN, and MAILHUB_SHEETS_PRIVATE_KEY must be GitHub Actions secrets, not variables",
+      "name_presence_only:MAILHUB_ENV value must be production",
+      "name_presence_only:MAILHUB_READ_ONLY value must be 1 before read-only rollout",
+      "name_presence_only:MAILHUB_CONFIG_STORE and MAILHUB_ACTIVITY_STORE values must be sheets",
+    ],
+    note: "Only GitHub Actions secret/variable names and updatedAt metadata were read; values are never accessible or printed.",
+  };
+
+  console.log(JSON.stringify(result, null, 2));
+  if (args.out) {
+    mkdirSync(dirname(args.out), { recursive: true });
+    writeFileSync(args.out, `${JSON.stringify(result, null, 2)}\n`, "utf8");
+  }
+  if (args.failOnMissing && !result.readyForProductionStaffPreflight) process.exitCode = 1;
+}
+
+main();

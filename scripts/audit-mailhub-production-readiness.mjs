@@ -13,6 +13,7 @@ const defaults = {
   routingProbeAudit: join(runDir, "mailhub-routing-probe-audit.json"),
   routingProbePreflight: join(runDir, "mailhub-routing-probe-preflight.json"),
   githubRoutingSecrets: join(runDir, "github-routing-secrets-readiness.json"),
+  githubStaffSecrets: join(runDir, "github-staff-secrets-readiness.json"),
   viewsAudit: join(runDir, "gmail-default-views-audit.json"),
   rulesAudit: join(runDir, "gmail-rule-safety-audit.json"),
   staffWorkflowAudit: join(runDir, "mailhub-staff-workflow-audit.json"),
@@ -29,12 +30,13 @@ function parseArgs(argv) {
     else if (arg === "--routing-probe-audit") out.routingProbeAudit = argv[++i];
     else if (arg === "--routing-probe-preflight") out.routingProbePreflight = argv[++i];
     else if (arg === "--github-routing-secrets") out.githubRoutingSecrets = argv[++i];
+    else if (arg === "--github-staff-secrets") out.githubStaffSecrets = argv[++i];
     else if (arg === "--views-audit") out.viewsAudit = argv[++i];
     else if (arg === "--rules-audit") out.rulesAudit = argv[++i];
     else if (arg === "--staff-workflow-audit") out.staffWorkflowAudit = argv[++i];
     else if (arg === "--out") out.out = argv[++i];
     else if (arg === "--help" || arg === "-h") {
-      console.log(`Usage: node scripts/audit-mailhub-production-readiness.mjs [--source-audit path] [--ops-audit path] [--gws-routing-audit path] [--routing-probe-audit path] [--routing-probe-preflight path] [--github-routing-secrets path] [--views-audit path] [--rules-audit path] [--staff-workflow-audit path] [--out path]`);
+      console.log(`Usage: node scripts/audit-mailhub-production-readiness.mjs [--source-audit path] [--ops-audit path] [--gws-routing-audit path] [--routing-probe-audit path] [--routing-probe-preflight path] [--github-routing-secrets path] [--github-staff-secrets path] [--views-audit path] [--rules-audit path] [--staff-workflow-audit path] [--out path]`);
       process.exit(0);
     }
   }
@@ -83,6 +85,7 @@ function main() {
   const routingProbeAudit = readOptionalJson(args.routingProbeAudit);
   const routingProbePreflight = readOptionalJson(args.routingProbePreflight);
   const githubRoutingSecrets = readOptionalJson(args.githubRoutingSecrets);
+  const githubStaffSecrets = readOptionalJson(args.githubStaffSecrets);
   const viewsAudit = readJson(args.viewsAudit);
   const rulesAudit = readJson(args.rulesAudit);
   const staffWorkflowAudit = readOptionalJson(args.staffWorkflowAudit);
@@ -123,7 +126,9 @@ function main() {
     ruleConfigSource.resolvedSource === "sheets" && ruleConfigSource.warnings.length === 0;
   const ruleSafetyReady = Boolean(rulesAudit.ruleSafetyGate?.realDataRuleRiskPass) && ruleConfigFingerprintPresent;
   const staffWorkflowPermissionsReady = Boolean(staffWorkflowAudit?.gate?.staffWorkflowPermissionsReady);
+  const staffGithubConfigReady = Boolean(githubStaffSecrets?.readyForProductionStaffPreflight);
   const staffWorkflowBlockerSeverity = currentSharedGmailRoutingReady ? "P0" : "P1";
+  const staffGithubConfigBlockerSeverity = currentSharedGmailRoutingReady ? "P0" : "P1";
 
   const blockers = [];
   if (!sourceCodeCoverageReady) {
@@ -185,6 +190,26 @@ function main() {
       escalatesToP0AfterRoutingProof: !currentSharedGmailRoutingReady,
     }));
   }
+  if (!staffGithubConfigReady) {
+    blockers.push(blocker("staff_github_config_not_ready", staffGithubConfigBlockerSeverity, "GitHub Actions production staff config is not complete or not backed by required secrets.", {
+      staffGithubConfig: githubStaffSecrets ? {
+        source: githubStaffSecrets.source ?? null,
+        checkedAt: githubStaffSecrets.checkedAt ?? null,
+        repoHead: githubStaffSecrets.repoHead ?? null,
+        secretCount: githubStaffSecrets.secretCount ?? null,
+        variableCount: githubStaffSecrets.variableCount ?? null,
+        readyForProductionStaffPreflight: githubStaffSecrets.readyForProductionStaffPreflight ?? null,
+        readyForSecretBackedStaffConfig: githubStaffSecrets.readyForSecretBackedStaffConfig ?? null,
+        missingProductionStaffConfig: githubStaffSecrets.missingProductionStaffConfig ?? [],
+        missingSecretConfig: githubStaffSecrets.missingSecretConfig ?? [],
+        presentRequiredConfigNames: githubStaffSecrets.presentRequiredConfigNames ?? [],
+        presentRequiredConfigSources: githubStaffSecrets.presentRequiredConfigSources ?? {},
+      } : {
+        missingArtifact: args.githubStaffSecrets,
+      },
+      escalatesToP0AfterRoutingProof: !currentSharedGmailRoutingReady,
+    }));
+  }
 
   const result = {
     generatedAt: new Date().toISOString(),
@@ -196,6 +221,7 @@ function main() {
       routingProbeAudit: args.routingProbeAudit,
       routingProbePreflight: args.routingProbePreflight,
       githubRoutingSecrets: args.githubRoutingSecrets,
+      githubStaffSecrets: args.githubStaffSecrets,
       viewsAudit: args.viewsAudit,
       rulesAudit: args.rulesAudit,
       staffWorkflowAudit: args.staffWorkflowAudit,
@@ -205,6 +231,7 @@ function main() {
       routingProbeAuditGeneratedAt: routingProbeAudit?.generatedAt ?? null,
       routingProbePreflightGeneratedAt: routingProbePreflight?.generatedAt ?? null,
       githubRoutingSecretsCheckedAt: githubRoutingSecrets?.checkedAt ?? null,
+      githubStaffSecretsCheckedAt: githubStaffSecrets?.checkedAt ?? null,
       viewsAuditGeneratedAt: viewsAudit.generatedAt ?? null,
       rulesAuditGeneratedAt: rulesAudit.generatedAt ?? null,
       staffWorkflowAuditGeneratedAt: staffWorkflowAudit?.generatedAt ?? null,
@@ -225,6 +252,7 @@ function main() {
       currentRuleConfigFingerprintPresent: ruleConfigFingerprintPresent,
       currentRuleConfigSourceProductionReady: ruleConfigSourceProductionReady,
       staffWorkflowPermissionsReady,
+      staffGithubConfigReady,
       staffReadOnlyRolloutReady: staffWorkflowAudit?.gate?.readOnlyRolloutReady === true,
       staffControlledWritePilotReady: staffWorkflowAudit?.gate?.controlledWritePilotReady === true,
     },
@@ -239,6 +267,7 @@ function main() {
         ruleSafetyReady &&
         ruleConfigSourceProductionReady &&
         staffWorkflowPermissionsReady &&
+        staffGithubConfigReady &&
         blockers.filter((item) => item.severity === "P0").length === 0,
       p0Blockers: blockers.filter((item) => item.severity === "P0").map((item) => item.id),
       p1Blockers: blockers.filter((item) => item.severity === "P1").map((item) => item.id),

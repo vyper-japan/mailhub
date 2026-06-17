@@ -2368,6 +2368,43 @@ npm run audit:github-routing-secrets-contract && npm run audit:mailhub-staff-wor
 - Staff workflow, staff next-step, production readiness, routing next-step, and rule-config next-step artifacts were regenerated at repo head `aad3942`.
 - Local readiness/staff/routing/rule-config contracts pass again with the same production blockers: P0 `current_shared_gmail_routing`, P1 `rule_config_source_not_production`, and P1 `staff_workflow_permissions`.
 
+## 2026-06-18 Staff GitHub Config Readiness Commands
+
+```bash
+node --check scripts/check-mailhub-staff-secrets.mjs
+node --check scripts/check-mailhub-staff-secret-readiness-contract.mjs
+node --check scripts/audit-mailhub-production-readiness.mjs
+node --check scripts/check-mailhub-readiness-contract.mjs
+npx vitest run lib/__tests__/mailhub-staff-secrets-readiness.test.ts lib/__tests__/mailhub-readiness-contract.test.ts
+npm run audit:github-staff-secrets -- --no-fail --out .ai-runs/mailhub-next-phase/github-staff-secrets-readiness.json
+npm run audit:mailhub-readiness -- --out .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json
+npm run audit:mailhub-routing-next
+npm run audit:mailhub-rule-config-next
+npm run audit:github-staff-secrets-contract
+npm run audit:mailhub-readiness-contract
+MAILHUB_ENV=production NEXTAUTH_URL=https://example.com NEXTAUTH_SECRET=x GOOGLE_CLIENT_ID=x GOOGLE_CLIENT_SECRET=x GOOGLE_SHARED_INBOX_EMAIL=x GOOGLE_SHARED_INBOX_REFRESH_TOKEN=x MAILHUB_ADMINS=a@example.com MAILHUB_TEAM_MEMBERS=b@example.com MAILHUB_CONFIG_STORE=sheets MAILHUB_ACTIVITY_STORE=sheets MAILHUB_SHEETS_ID=s MAILHUB_SHEETS_CLIENT_EMAIL=svc@example.com MAILHUB_SHEETS_PRIVATE_KEY=x MAILHUB_READ_ONLY=1 node scripts/check-mailhub-staff-secrets.mjs --from-env --no-fail
+npx vitest run lib/__tests__/mailhub-staff-secrets-readiness.test.ts lib/__tests__/mailhub-readiness-contract.test.ts lib/__tests__/mailhub-routing-probe-scripts.test.ts
+npm run typecheck
+npm run test:coverage
+npm run build
+npm run smoke && npm run security:scan && npm run security:scan-artifacts && actionlint .github/workflows/*.yml && git diff --check
+npm run security:scan-artifacts
+```
+
+## 2026-06-18 Staff GitHub Config Readiness Results
+
+- `github-staff-secrets-readiness.json` now records GitHub Actions secret/variable name presence for production staff rollout config without exposing values.
+- Current GitHub Actions config has `secretCount=4` and `variableCount=0`; the present required names are the four Gmail proof secrets only.
+- `readyForProductionStaffPreflight=false`; missing config includes `MAILHUB_ENV`, `NEXTAUTH_URL`, `NEXTAUTH_SECRET`, `MAILHUB_ADMINS`, `MAILHUB_TEAM_MEMBERS`, durable store mode, Sheets id/client/private key, and `MAILHUB_READ_ONLY`.
+- Secret-only staff config is now tracked separately with `requiredSecretConfig`; `NEXTAUTH_SECRET` and `MAILHUB_SHEETS_PRIVATE_KEY` are currently missing from GitHub Actions secrets.
+- `readyForProductionStaffPreflight` now requires both config name presence and secret-backed sensitive config, so `NEXTAUTH_SECRET`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_SHARED_INBOX_REFRESH_TOKEN`, and `MAILHUB_SHEETS_PRIVATE_KEY` cannot be satisfied by GitHub Actions variables.
+- `mailhub-production-readiness-audit.json` now consumes `github-staff-secrets-readiness.json`; the aggregate gate includes P1 `staff_github_config_not_ready` until the production staff config and required secrets are present.
+- `MailHub Readiness Contract` now runs `audit:github-staff-secrets-contract`, and the contract rejects stale repo heads, missing source provenance, and sensitive staff config supplied as variables.
+- Adversarial review found two additional false-ready paths and both were closed:
+  - A forged `productionReady=true` readiness artifact now fails unless its referenced staff GitHub artifact is also ready and secret-backed.
+  - `source=json` staff readiness artifacts are rejected by default production contracts; test fixtures must opt in with `--allow-non-github-source`.
+- Final local gates passed: `typecheck`, `test:coverage` (72 files / 633 tests), `build`, `smoke`, `security:scan`, `security:scan-artifacts`, `actionlint`, `git diff --check`, and the full readiness contract chain.
+
 ## Useful Runtime Commands
 
 Start dev server for tunnel:

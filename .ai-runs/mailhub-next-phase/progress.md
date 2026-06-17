@@ -488,6 +488,16 @@
 - 2026-06-18 qa-strict Playwright install timeout follow-up:
   - `qa-strict` for `12b66c9` reached the 20 minute job timeout after `npx playwright install --with-deps chromium` spent about 15 minutes in browser/dependency setup.
   - `.github/workflows/qa-strict.yml` now caches `~/.cache/ms-playwright`, installs Chromium without `--with-deps`, and gives the job a 30 minute timeout so QA Strict has enough execution window.
+- 2026-06-18 staff GitHub config readiness audit completed:
+  - Added `github-staff-secrets-readiness.json` to track GitHub Actions secret/variable name presence for production staff rollout config without reading or printing values.
+  - Added `audit:github-staff-secrets` and `audit:github-staff-secrets-contract`; the MailHub readiness contract workflow now checks this artifact alongside routing secret readiness.
+  - Current GitHub Actions config has the four Gmail proof secrets, but no Actions variables and no complete MailHub staff production config, so `readyForProductionStaffPreflight=false`.
+  - Secret-backed staff config is now a separate gate: `NEXTAUTH_SECRET`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_SHARED_INBOX_REFRESH_TOKEN`, and `MAILHUB_SHEETS_PRIVATE_KEY` must be GitHub Actions secrets, not variables.
+  - Current missing secret-backed staff config is `NEXTAUTH_SECRET` and `MAILHUB_SHEETS_PRIVATE_KEY`.
+  - `mailhub-production-readiness-audit.json` now consumes the staff GitHub config artifact and reports P1 `staff_github_config_not_ready` until the production staff config is complete.
+  - Missing GitHub Actions staff config now includes production mode/URL/secret, staff allowlist, durable Sheets stores, Sheets credentials, and READ ONLY guard.
+  - Adversarial review found and closed two false-ready paths: forged `productionReady=true` now cross-checks the referenced staff GitHub artifact, and `source=json` staff readiness artifacts are rejected by default production contracts.
+  - Final verification passed with `typecheck`, `test:coverage` (72 files / 633 tests), `build`, `smoke`, `security:scan`, `security:scan-artifacts`, `actionlint`, `git diff --check`, and the full readiness contract chain.
 - 2026-06-18 rule Sheets tab verification tightened:
   - `mailhub-rule-config-next-steps.json` now records `state.requiredRuleSheets` and `verify_rule_sheets_tabs.requiredSheets`, currently `ConfigRules` and `ConfigAssigneeRules`.
   - The action now separates required tabs from `missingSheets`, so a future Sheets audit can identify exactly which production tab is absent without changing the checklist shape.

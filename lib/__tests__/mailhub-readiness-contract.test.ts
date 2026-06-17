@@ -52,6 +52,7 @@ function baseReadinessAudit(overrides: Record<string, unknown> = {}) {
       currentRuleConfigFingerprintPresent: true,
       currentRuleConfigSourceProductionReady: true,
       staffWorkflowPermissionsReady: false,
+      staffGithubConfigReady: false,
       staffReadOnlyRolloutReady: false,
       staffControlledWritePilotReady: false,
     },
@@ -75,7 +76,7 @@ function baseReadinessAudit(overrides: Record<string, unknown> = {}) {
     gate: {
       productionReady: false,
       p0Blockers: ["current_shared_gmail_routing"],
-      p1Blockers: ["staff_workflow_permissions"],
+      p1Blockers: ["staff_workflow_permissions", "staff_github_config_not_ready"],
     },
     blockers: [
       {
@@ -113,6 +114,21 @@ function baseReadinessAudit(overrides: Record<string, unknown> = {}) {
             staffWorkflowPermissionsReady: false,
           },
           staffWorkflowBlockers: [{ id: "not_production_env", severity: "P1" }],
+          escalatesToP0AfterRoutingProof: true,
+        },
+      },
+      {
+        id: "staff_github_config_not_ready",
+        severity: "P1",
+        evidence: {
+          staffGithubConfig: {
+            readyForProductionStaffPreflight: false,
+            readyForSecretBackedStaffConfig: false,
+            missingProductionStaffConfig: ["MAILHUB_ENV"],
+            missingSecretConfig: ["NEXTAUTH_SECRET"],
+            presentRequiredConfigNames: [],
+            presentRequiredConfigSources: {},
+          },
           escalatesToP0AfterRoutingProof: true,
         },
       },
@@ -281,7 +297,7 @@ describe("MailHub readiness contract check", () => {
         },
         gate: {
           ...audit.gate,
-          p1Blockers: ["staff_workflow_permissions", "rule_config_source_not_production"],
+          p1Blockers: ["staff_workflow_permissions", "staff_github_config_not_ready", "rule_config_source_not_production"],
         },
         blockers: [
           ...audit.blockers,
@@ -302,6 +318,87 @@ describe("MailHub readiness contract check", () => {
 
       const result = runContract(auditPath);
       expect(result.status).toBe(0);
+    });
+  });
+
+  test("rejects missing staff GitHub config gate", () => {
+    withTempDir((dir) => {
+      const auditPath = join(dir, "readiness.json");
+      const audit = baseReadinessAudit();
+      const requirements = { ...audit.requirements };
+      delete (requirements as Record<string, unknown>).staffGithubConfigReady;
+      writeJson(auditPath, {
+        ...audit,
+        requirements,
+      });
+
+      const result = runContract(auditPath);
+      expect(result.status).toBe(1);
+      expect(result.stdout).toContain("staff_github_config_gate_missing");
+    });
+  });
+
+  test("rejects staff GitHub config gaps without blocker evidence", () => {
+    withTempDir((dir) => {
+      const auditPath = join(dir, "readiness.json");
+      const audit = baseReadinessAudit();
+      writeJson(auditPath, {
+        ...audit,
+        gate: {
+          ...audit.gate,
+          p1Blockers: ["staff_workflow_permissions"],
+        },
+        blockers: audit.blockers.filter((blocker) => blocker.id !== "staff_github_config_not_ready"),
+      });
+
+      const result = runContract(auditPath);
+      expect(result.status).toBe(1);
+      expect(result.stdout).toContain("staff_github_config_not_ready_without_blocker");
+      expect(result.stdout).toContain("staff_github_config_blocker_missing_detail");
+    });
+  });
+
+  test("rejects production-ready staff GitHub claims that contradict the referenced artifact", () => {
+    withTempDir((dir) => {
+      const auditPath = join(dir, "readiness.json");
+      const staffGithubPath = join(dir, "github-staff-secrets-readiness.json");
+      writeJson(staffGithubPath, {
+        readyForProductionStaffPreflight: false,
+        readyForSecretBackedStaffConfig: false,
+        missingProductionStaffConfig: ["MAILHUB_ENV"],
+        missingSecretConfig: ["NEXTAUTH_SECRET"],
+      });
+      const audit = baseReadinessAudit();
+      writeJson(auditPath, {
+        ...audit,
+        requirements: {
+          ...audit.requirements,
+          currentSharedGmailRoutingReady: true,
+          routingProbeReady: true,
+          routingProbePreflightReady: true,
+          routingProbeGithubSecretsReady: true,
+          staffWorkflowPermissionsReady: true,
+          staffGithubConfigReady: true,
+          staffReadOnlyRolloutReady: true,
+          staffControlledWritePilotReady: true,
+        },
+        inputs: {
+          ...audit.inputs,
+          githubStaffSecrets: staffGithubPath,
+        },
+        gate: {
+          productionReady: true,
+          p0Blockers: [],
+          p1Blockers: [],
+        },
+        blockers: [],
+      });
+
+      const result = runContract(auditPath);
+      expect(result.status).toBe(1);
+      expect(result.stdout).toContain("staff_github_config_gate_mismatch");
+      expect(result.stdout).toContain("staff_github_config_ready_without_ready_artifact");
+      expect(result.stdout).toContain("staff_github_config_ready_without_secret_artifact");
     });
   });
 

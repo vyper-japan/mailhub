@@ -43,6 +43,11 @@ function readJson(path) {
   return JSON.parse(readFileSync(path, "utf8"));
 }
 
+function readOptionalJson(path) {
+  if (!path || !existsSync(path)) return null;
+  return JSON.parse(readFileSync(path, "utf8"));
+}
+
 function stringArray(value) {
   return Array.isArray(value) ? value.filter((item) => typeof item === "string") : [];
 }
@@ -69,6 +74,8 @@ function main() {
   const requirements = objectValue(audit.requirements);
   const inputs = objectValue(audit.inputs);
   const ruleConfigSource = objectValue(inputs.ruleConfigSource);
+  const githubStaffSecretsPath = typeof inputs.githubStaffSecrets === "string" ? inputs.githubStaffSecrets : "";
+  const githubStaffSecrets = readOptionalJson(githubStaffSecretsPath);
   const ruleConfigSourceSheets = ruleSheetsFromConfig(ruleConfigSource.ruleSheets);
   const viewSafety = objectValue(audit.viewSafety);
   const gate = objectValue(audit.gate);
@@ -104,6 +111,7 @@ function main() {
     if (requirements.currentRuleConfigFingerprintPresent !== true) errors.push("production_ready_without_rule_config_fingerprint");
     if (requirements.currentRuleConfigSourceProductionReady !== true) errors.push("production_ready_without_production_rule_config_source");
     if (requirements.staffWorkflowPermissionsReady !== true) errors.push("production_ready_without_staff_workflow_permissions");
+    if (requirements.staffGithubConfigReady !== true) errors.push("production_ready_without_staff_github_config");
   } else if (p0Blockers.length === 0) {
     errors.push("not_ready_without_p0_blockers");
   }
@@ -200,6 +208,64 @@ function main() {
     }
   } else if (staffWorkflowBlocker) {
     warnings.push("staff_workflow_blocker_detail_present_when_ready");
+  }
+
+  const staffGithubConfigBlocker = blockers.find((item) => item.id === "staff_github_config_not_ready");
+  if (typeof requirements.staffGithubConfigReady !== "boolean") {
+    errors.push("staff_github_config_gate_missing");
+  }
+  if (githubStaffSecrets) {
+    const artifactReady = githubStaffSecrets.readyForProductionStaffPreflight === true;
+    if (typeof requirements.staffGithubConfigReady === "boolean" && requirements.staffGithubConfigReady !== artifactReady) {
+      errors.push("staff_github_config_gate_mismatch");
+    }
+    if (artifactReady && githubStaffSecrets.readyForSecretBackedStaffConfig !== true) {
+      errors.push("staff_github_config_ready_without_secret_backing");
+    }
+  }
+  if (requirements.staffGithubConfigReady === true || productionReady) {
+    if (!githubStaffSecretsPath) {
+      errors.push("staff_github_config_input_missing");
+    } else if (!githubStaffSecrets) {
+      errors.push("staff_github_config_input_artifact_missing");
+    } else {
+      if (githubStaffSecrets.source !== "github_actions_config") {
+        errors.push("staff_github_config_ready_without_github_actions_source");
+      }
+      if (githubStaffSecrets.readyForProductionStaffPreflight !== true) {
+        errors.push("staff_github_config_ready_without_ready_artifact");
+      }
+      if (githubStaffSecrets.readyForSecretBackedStaffConfig !== true) {
+        errors.push("staff_github_config_ready_without_secret_artifact");
+      }
+    }
+  }
+  if (requirements.staffGithubConfigReady !== true) {
+    if (!p0Blockers.includes("staff_github_config_not_ready") && !p1Blockers.includes("staff_github_config_not_ready")) {
+      errors.push("staff_github_config_not_ready_without_blocker");
+    }
+    if (!staffGithubConfigBlocker) {
+      errors.push("staff_github_config_blocker_missing_detail");
+    } else {
+      const evidence = objectValue(staffGithubConfigBlocker.evidence);
+      const staffGithubConfig = objectValue(evidence.staffGithubConfig);
+      const missingProductionStaffConfig = stringArray(staffGithubConfig.missingProductionStaffConfig);
+      const missingSecretConfig = stringArray(staffGithubConfig.missingSecretConfig);
+      if (typeof staffGithubConfig.readyForProductionStaffPreflight !== "boolean" && !staffGithubConfig.missingArtifact) {
+        errors.push("staff_github_config_blocker_missing_ready_flag");
+      }
+      if (staffGithubConfig.readyForProductionStaffPreflight !== true &&
+        missingProductionStaffConfig.length === 0 &&
+        missingSecretConfig.length === 0 &&
+        !staffGithubConfig.missingArtifact) {
+        errors.push("staff_github_config_blocker_missing_gap_detail");
+      }
+      if (requirements.currentSharedGmailRoutingReady === true && staffGithubConfigBlocker.severity !== "P0") {
+        errors.push("staff_github_config_must_be_p0_after_routing_ready");
+      }
+    }
+  } else if (staffGithubConfigBlocker) {
+    warnings.push("staff_github_config_blocker_detail_present_when_ready");
   }
 
   const routingBlocker = blockers.find((item) => item.id === "current_shared_gmail_routing");
