@@ -6,6 +6,9 @@ Last updated: 2026-06-17
 
 - `lib/channels.ts`: active MailHub production channel inventory and Gmail queries.
 - `MAIL_MIGRATION_STATUS.md`: MX migration status, GWS group design, and address triage.
+- `~/Desktop/Claude出力/mx-migration/gws_groups.json`: GWS group address inventory captured during MX migration work.
+- `~/Desktop/Claude出力/mx-migration/lolipop_inventory.json`: legacy Lolipop mailbox inventory and message counts.
+- `~/Desktop/Claude出力/mx-migration/lolipop_inbox_peek.json`: limited legacy Lolipop inbox peek evidence for selected high-risk mailboxes.
 - `mx-cutover/MX_CUTOVER_RUNBOOK.md`: cutover smoke-test requirements and documented exceptions.
 
 ## Current Coverage Decision
@@ -121,17 +124,17 @@ Command:
 npm run audit:mailhub-ops -- --out .ai-runs/mailhub-next-phase/mailhub-operational-confirmations.json
 ```
 
-This combines the real Gmail source audit with `MAIL_MIGRATION_STATUS.md`, which is the MX/source-of-truth status file for this project.
+This combines the real Gmail source audit with `MAIL_MIGRATION_STATUS.md` and the local MX migration evidence JSONs. Migration evidence proves source inventory, not current shared Gmail routing. Production-complete source coverage requires current shared Gmail evidence: each in-scope channel must have active `INBOX` evidence or an explicit current routing confirmation to `mailhub@vtj.co.jp`. Historical all-mail, Lolipop, or GWS inventory evidence must not satisfy shared Gmail routing coverage.
 
 Current machine conclusion:
 
-| Channel | Shared Gmail evidence | Source-of-truth evidence | Required confirmation |
+| Channel | Shared Gmail evidence | Source inventory evidence | Required confirmation |
 |---|---|---|---|
-| `gopro-yahoo` | historical all-mail evidence, no active INBOX | not independently proven by this audit | confirm no active inbox work |
-| `vyperglobal-rakuten` | historical all-mail evidence, no active INBOX | found in `MAIL_MIGRATION_STATUS.md` | confirm no active inbox work |
-| `vyperglobal-yahoo` | none | missing | confirm whether the source still exists; remove or keep the channel only after operator confirmation |
-| `ams-vyper` | historical all-mail evidence, no active INBOX | found in `MAIL_MIGRATION_STATUS.md` | confirm no active inbox work |
-| `datacolor` | historical all-mail evidence, no active INBOX | not independently proven by this audit | confirm no active inbox work |
-| `ebay` | none | found in `MAIL_MIGRATION_STATUS.md` as `存続（eBay登録ID）` | verify GWS group membership / MX routing to `mailhub@` or confirm that eBay remains outside the shared Gmail workbench |
+| `gopro-yahoo` | historical all-mail evidence, no active INBOX | GWS groups found; Lolipop inventory `gopro_y@` 7,421 and `gopro_order_yahoo@` 11,867 | confirm current shared Gmail routing or confirm no active inbox work |
+| `vyperglobal-rakuten` | historical all-mail evidence, no active INBOX | `MAIL_MIGRATION_STATUS.md`; GWS groups found; Lolipop inventory `vyper_rakuten@` 40,527 | confirm current shared Gmail routing or confirm no active inbox work |
+| `vyperglobal-yahoo` | none | GWS group found; Lolipop inventory `vyperglobal_y@` 7,058 | verify current GWS group membership / MX routing to `mailhub@`, or explicitly document that it remains outside the shared Gmail workbench |
+| `ams-vyper` | historical all-mail evidence, no active INBOX | `MAIL_MIGRATION_STATUS.md`; GWS group found; Lolipop inventory 3,085; Lolipop peek dates through `26/06/05` | confirm current shared Gmail routing or confirm no active inbox work |
+| `datacolor` | historical all-mail evidence, no active INBOX | GWS group found; Lolipop inventory `datacolor_shopify@` 166 | confirm current shared Gmail routing or confirm no active inbox work |
+| `ebay` | none | `MAIL_MIGRATION_STATUS.md`; GWS group found; Lolipop inventory 221; Lolipop peek dates through `26/05/28` | verify current GWS group membership / MX routing to `mailhub@`, or explicitly document that it remains outside the shared Gmail workbench |
 
-The production-complete source coverage claim is not ready until the no-shared-inbox evidence items are resolved operationally. The current code coverage claim is ready: the audit has no known query/address code gaps.
+The production-complete source coverage claim is not ready. The current machine gate has `sourceInventoryMissing: []`, but `currentSharedGmailRoutingUnconfirmed` still contains all six zero-active-inbox channels. The current code coverage claim is ready: the audit has no known query/address code gaps.

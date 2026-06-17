@@ -137,13 +137,21 @@
   - `ebay` has source-of-truth evidence in `MAIL_MIGRATION_STATUS.md` (`存続（eBay登録ID）`) but no shared Gmail evidence, so it requires GWS group / MX / mailhub routing confirmation.
   - `vyperglobal-yahoo` has no shared Gmail evidence and no source-of-truth evidence in `MAIL_MIGRATION_STATUS.md`, so it requires source-existence confirmation or channel removal.
   - `gopro-yahoo` and `datacolor` have historical shared Gmail evidence but no source-of-truth line in `MAIL_MIGRATION_STATUS.md`; current required action is confirming no active inbox work.
+- 2026-06-17 migration evidence integration wave completed:
+  - Extended `scripts/audit-mailhub-operational-confirmations.mjs` to read local MX migration evidence JSONs: `gws_groups.json`, `lolipop_inventory.json`, and `lolipop_inbox_peek.json`.
+  - Source inventory is now independently proven for all six zero-active-inbox channels via `MAIL_MIGRATION_STATUS.md` and/or migration evidence.
+  - `sourceInventoryMissing` is now empty.
+  - The gate intentionally separates source inventory from current shared Gmail routing, so historical all-mail, Lolipop, or GWS inventory evidence cannot satisfy production-complete shared Gmail routing coverage.
+  - `currentSharedGmailRoutingUnconfirmed` still contains all six zero-active-inbox channels: `gopro-yahoo`, `vyperglobal-rakuten`, `vyperglobal-yahoo`, `ams-vyper`, `datacolor`, `ebay`.
+  - `productionCompleteClaimReady` remains `false` until each channel has active shared Gmail `INBOX` evidence or explicit current routing confirmation to `mailhub@vtj.co.jp`.
 
 ## Not Done
 
 - Remaining zero-active-inbox channels are now classified as operational confirmation items, not known query/code gaps.
-- `npm run audit:mailhub-ops` currently reports `productionCompleteClaimReady=false` because `vyperglobal-yahoo` and `ebay` have no shared Gmail evidence.
-- Confirm whether `vyperglobal-yahoo` exists as a real source; if not, remove or hide the channel after operator approval.
-- Verify `ebay@vtj.co.jp` GWS group membership / MX routing to `mailhub@` or confirm that eBay remains outside the shared Gmail workbench.
+- `npm run audit:mailhub-ops` currently reports `productionCompleteClaimReady=false` because all six zero-active-inbox channels still lack current shared Gmail routing confirmation.
+- `vyperglobal-yahoo` is proven as a real source by migration evidence, but has no shared Gmail active or historical evidence; verify current GWS membership/MX routing to `mailhub@`, or explicitly document that it remains outside the workbench.
+- `ebay@vtj.co.jp` is proven as a real source by `MAIL_MIGRATION_STATUS.md` and migration evidence, but has no shared Gmail active or historical evidence; verify current GWS membership/MX routing to `mailhub@`, or explicitly document that it remains outside the workbench.
+- For `gopro-yahoo`, `vyperglobal-rakuten`, `ams-vyper`, and `datacolor`, historical shared Gmail evidence exists, but active `INBOX` is zero; confirm current routing/dormancy before production-complete source coverage is claimed.
 - Production pagination basic behavior is represented in API/UI metadata and forced E2E; real browser/manual production verification is still useful before staff rollout.
 - Auto-discard rules for marketing/noise are protected against obvious important/invoice/inquiry suppression and missing summary text, but a full production auto-discard policy is still intentionally not enabled.
 - Real-data rule safety audit exists and passes for the current local file config because no rules are configured. Re-run with `MAILHUB_CONFIG_STORE=sheets` and production Sheets credentials when production rule config is enabled.

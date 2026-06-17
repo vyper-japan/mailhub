@@ -1,8 +1,22 @@
 {
-  "generatedAt": "2026-06-17T01:07:06.360Z",
+  "generatedAt": "2026-06-17T01:19:41.050Z",
   "inputs": {
     "sourceAudit": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.ai-runs/mailhub-next-phase/gmail-source-coverage-audit.json",
     "migrationStatus": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/MAIL_MIGRATION_STATUS.md",
+    "migrationEvidence": {
+      "gwsGroups": {
+        "path": "/Users/takayukisuzuki/Desktop/Claude出力/mx-migration/gws_groups.json",
+        "exists": true
+      },
+      "lolipopInventory": {
+        "path": "/Users/takayukisuzuki/Desktop/Claude出力/mx-migration/lolipop_inventory.json",
+        "exists": true
+      },
+      "lolipopPeek": {
+        "path": "/Users/takayukisuzuki/Desktop/Claude出力/mx-migration/lolipop_inbox_peek.json",
+        "exists": true
+      }
+    },
     "sourceAuditGeneratedAt": "2026-06-17T01:03:24.561Z"
   },
   "sourceCoverage": {
@@ -28,8 +42,28 @@
       ],
       "sourceAuditStatus": "active_inbox_zero_historical_found",
       "sharedInboxEvidence": "historical_all_mail",
-      "sourceOfTruthStatus": "missing",
-      "sourceOfTruthReferences": [],
+      "sourceInventoryStatus": "found",
+      "sourceInventoryEvidence": {
+        "markdownReferences": [],
+        "gwsGroups": [
+          "gopro_y@vtj.co.jp",
+          "gopro_order_yahoo@vtj.co.jp"
+        ],
+        "lolipopInventory": [
+          {
+            "mail": "gopro_y@vtj.co.jp",
+            "usage": "158.85 MB",
+            "count": "7421"
+          },
+          {
+            "mail": "gopro_order_yahoo@vtj.co.jp",
+            "usage": "66.88 MB",
+            "count": "11867"
+          }
+        ],
+        "lolipopInboxPeek": []
+      },
+      "currentSharedGmailRoutingStatus": "unconfirmed",
       "recommendedAction": "confirm_no_active_inbox_work",
       "severity": "operator"
     },
@@ -42,39 +76,54 @@
       ],
       "sourceAuditStatus": "active_inbox_zero_historical_found",
       "sharedInboxEvidence": "historical_all_mail",
-      "sourceOfTruthStatus": "found",
-      "sourceOfTruthReferences": [
-        {
-          "file": "MAIL_MIGRATION_STATUS.md",
-          "line": 41,
-          "text": "| MX後統合予定 | 3件 | gopro_order_rakuten/gopro_rakuten → **gopro_r@**、vyper_rakuten → **vyper_r@** |"
-        },
-        {
-          "file": "MAIL_MIGRATION_STATUS.md",
-          "line": 59,
-          "text": "| VYPER GLOBAL | ⚠️ vyper_rakuten@vtj.co.jp | t_inoue@ |"
-        },
-        {
-          "file": "MAIL_MIGRATION_STATUS.md",
-          "line": 61,
-          "text": "→ cricut_r@/vyper_rakuten@ はGWSグループ作成済み、t_inoue@/c_fujita@ は §6-1 参照。"
-        },
-        {
-          "file": "MAIL_MIGRATION_STATUS.md",
-          "line": 92,
-          "text": "### 6-2. gopro_r@ / vyper_r@ への統合（MX切替時に実施）"
-        },
-        {
-          "file": "MAIL_MIGRATION_STATUS.md",
-          "line": 94,
-          "text": "- vyper_rakuten@ → vyper_r@ に統合（NE連携アドレスも削除）"
-        },
-        {
-          "file": "MAIL_MIGRATION_STATUS.md",
-          "line": 95,
-          "text": "- RMS側の登録メール変更が必要（楽天会員ID cricut_r@/vyper_rakuten@ は変更せず存続でも可）"
-        }
-      ],
+      "sourceInventoryStatus": "found",
+      "sourceInventoryEvidence": {
+        "markdownReferences": [
+          {
+            "file": "MAIL_MIGRATION_STATUS.md",
+            "line": 41,
+            "text": "| MX後統合予定 | 3件 | gopro_order_rakuten/gopro_rakuten → **gopro_r@**、vyper_rakuten → **vyper_r@** |"
+          },
+          {
+            "file": "MAIL_MIGRATION_STATUS.md",
+            "line": 59,
+            "text": "| VYPER GLOBAL | ⚠️ vyper_rakuten@vtj.co.jp | t_inoue@ |"
+          },
+          {
+            "file": "MAIL_MIGRATION_STATUS.md",
+            "line": 61,
+            "text": "→ cricut_r@/vyper_rakuten@ はGWSグループ作成済み、t_inoue@/c_fujita@ は §6-1 参照。"
+          },
+          {
+            "file": "MAIL_MIGRATION_STATUS.md",
+            "line": 92,
+            "text": "### 6-2. gopro_r@ / vyper_r@ への統合（MX切替時に実施）"
+          },
+          {
+            "file": "MAIL_MIGRATION_STATUS.md",
+            "line": 94,
+            "text": "- vyper_rakuten@ → vyper_r@ に統合（NE連携アドレスも削除）"
+          },
+          {
+            "file": "MAIL_MIGRATION_STATUS.md",
+            "line": 95,
+            "text": "- RMS側の登録メール変更が必要（楽天会員ID cricut_r@/vyper_rakuten@ は変更せず存続でも可）"
+          }
+        ],
+        "gwsGroups": [
+          "vyper_r@vtj.co.jp",
+          "vyper_rakuten@vtj.co.jp"
+        ],
+        "lolipopInventory": [
+          {
+            "mail": "vyper_rakuten@vtj.co.jp",
+            "usage": "450.93 MB",
+            "count": "40527"
+          }
+        ],
+        "lolipopInboxPeek": []
+      },
+      "currentSharedGmailRoutingStatus": "unconfirmed",
       "recommendedAction": "confirm_no_active_inbox_work",
       "severity": "operator"
     },
@@ -86,10 +135,24 @@
       ],
       "sourceAuditStatus": "no_shared_inbox_evidence",
       "sharedInboxEvidence": "none",
-      "sourceOfTruthStatus": "missing",
-      "sourceOfTruthReferences": [],
-      "recommendedAction": "confirm_source_exists_or_remove_channel",
-      "severity": "source_of_truth_confirmation"
+      "sourceInventoryStatus": "found",
+      "sourceInventoryEvidence": {
+        "markdownReferences": [],
+        "gwsGroups": [
+          "vyperglobal_y@vtj.co.jp"
+        ],
+        "lolipopInventory": [
+          {
+            "mail": "vyperglobal_y@vtj.co.jp",
+            "usage": "70.10 MB",
+            "count": "7058"
+          }
+        ],
+        "lolipopInboxPeek": []
+      },
+      "currentSharedGmailRoutingStatus": "unconfirmed",
+      "recommendedAction": "verify_gws_group_membership_or_mx_routing",
+      "severity": "routing_confirmation"
     },
     {
       "id": "ams-vyper",
@@ -99,14 +162,45 @@
       ],
       "sourceAuditStatus": "active_inbox_zero_historical_found",
       "sharedInboxEvidence": "historical_all_mail",
-      "sourceOfTruthStatus": "found",
-      "sourceOfTruthReferences": [
-        {
-          "file": "MAIL_MIGRATION_STATUS.md",
-          "line": 75,
-          "text": "| ams_vyper@ | 3,085 | 6/5 毎日 | Amazon Ads請求書（AMS/Prasad運用） | 現役・存続必須 |"
-        }
-      ],
+      "sourceInventoryStatus": "found",
+      "sourceInventoryEvidence": {
+        "markdownReferences": [
+          {
+            "file": "MAIL_MIGRATION_STATUS.md",
+            "line": 75,
+            "text": "| ams_vyper@ | 3,085 | 6/5 毎日 | Amazon Ads請求書（AMS/Prasad運用） | 現役・存続必須 |"
+          }
+        ],
+        "gwsGroups": [
+          "ams_vyper@vtj.co.jp"
+        ],
+        "lolipopInventory": [
+          {
+            "mail": "ams_vyper@vtj.co.jp",
+            "usage": "1.08 GB",
+            "count": "3085"
+          }
+        ],
+        "lolipopInboxPeek": [
+          {
+            "mail": "ams_vyper@vtj.co.jp",
+            "rowCount": 18,
+            "dateSnippets": [
+              "26/06/05",
+              "26/06/04",
+              "26/06/03",
+              "26/06/02",
+              "26/06/01",
+              "26/05/31",
+              "26/05/30",
+              "26/05/29",
+              "26/05/28",
+              "26/05/27"
+            ]
+          }
+        ]
+      },
+      "currentSharedGmailRoutingStatus": "unconfirmed",
       "recommendedAction": "confirm_no_active_inbox_work",
       "severity": "operator"
     },
@@ -118,8 +212,22 @@
       ],
       "sourceAuditStatus": "active_inbox_zero_historical_found",
       "sharedInboxEvidence": "historical_all_mail",
-      "sourceOfTruthStatus": "missing",
-      "sourceOfTruthReferences": [],
+      "sourceInventoryStatus": "found",
+      "sourceInventoryEvidence": {
+        "markdownReferences": [],
+        "gwsGroups": [
+          "datacolor_shopify@vtj.co.jp"
+        ],
+        "lolipopInventory": [
+          {
+            "mail": "datacolor_shopify@vtj.co.jp",
+            "usage": "21.58 MB",
+            "count": "166"
+          }
+        ],
+        "lolipopInboxPeek": []
+      },
+      "currentSharedGmailRoutingStatus": "unconfirmed",
       "recommendedAction": "confirm_no_active_inbox_work",
       "severity": "operator"
     },
@@ -131,14 +239,45 @@
       ],
       "sourceAuditStatus": "no_shared_inbox_evidence",
       "sharedInboxEvidence": "none",
-      "sourceOfTruthStatus": "found",
-      "sourceOfTruthReferences": [
-        {
-          "file": "MAIL_MIGRATION_STATUS.md",
-          "line": 78,
-          "text": "| ebay@ | 221 | 5/28 | eBay規約通知のみ | 存続（eBay登録ID） |"
-        }
-      ],
+      "sourceInventoryStatus": "found",
+      "sourceInventoryEvidence": {
+        "markdownReferences": [
+          {
+            "file": "MAIL_MIGRATION_STATUS.md",
+            "line": 78,
+            "text": "| ebay@ | 221 | 5/28 | eBay規約通知のみ | 存続（eBay登録ID） |"
+          }
+        ],
+        "gwsGroups": [
+          "ebay@vtj.co.jp"
+        ],
+        "lolipopInventory": [
+          {
+            "mail": "ebay@vtj.co.jp",
+            "usage": "14.77 MB",
+            "count": "221"
+          }
+        ],
+        "lolipopInboxPeek": [
+          {
+            "mail": "ebay@vtj.co.jp",
+            "rowCount": 18,
+            "dateSnippets": [
+              "26/05/28",
+              "26/01/22",
+              "26/01/20",
+              "25/12/18",
+              "25/11/05",
+              "25/10/31",
+              "25/10/21",
+              "25/09/25",
+              "25/08/06",
+              "25/07/30"
+            ]
+          }
+        ]
+      },
+      "currentSharedGmailRoutingStatus": "unconfirmed",
       "recommendedAction": "verify_gws_group_membership_or_mx_routing",
       "severity": "routing_confirmation"
     }
@@ -150,12 +289,17 @@
       "ebay"
     ],
     "routingConfirmationRequired": [
+      "vyperglobal-yahoo",
       "ebay"
     ],
-    "sourceOfTruthMissing": [
+    "sourceInventoryMissing": [],
+    "currentSharedGmailRoutingUnconfirmed": [
       "gopro-yahoo",
+      "vyperglobal-rakuten",
       "vyperglobal-yahoo",
-      "datacolor"
+      "ams-vyper",
+      "datacolor",
+      "ebay"
     ],
     "productionCompleteClaimReady": false
   }

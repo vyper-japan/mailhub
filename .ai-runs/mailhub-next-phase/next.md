@@ -11,9 +11,11 @@ Continue from the completed INBOX-scoped source coverage and rule-safety wave:
 5. Run or inspect `npm run audit:mailhub-ops -- --out .ai-runs/mailhub-next-phase/mailhub-operational-confirmations.json`.
    - Latest machine gate: `sourceCoverage.codeCoveragePass=true`, `knownCodeGaps=[]`.
    - `productionCompleteClaimReady=false` until operational confirmations are resolved.
-   - `ebay`: `MAIL_MIGRATION_STATUS.md` says the address should persist, but shared Gmail has no active or historical evidence. Verify GWS group membership / MX routing to `mailhub@`, or explicitly document that it remains outside the shared Gmail workbench.
-   - `vyperglobal-yahoo`: no shared Gmail evidence and no `MAIL_MIGRATION_STATUS.md` source-of-truth evidence. Confirm whether it exists as a real source; remove/hide the channel only after operator approval.
-   - `gopro-yahoo` and `datacolor`: historical shared Gmail evidence exists but no current active inbox work; confirm no active inbox work.
+   - Migration evidence now proves source inventory for all six zero-active-inbox channels, so `sourceInventoryMissing=[]`.
+   - The complete gate intentionally requires current shared Gmail coverage; historical all-mail, Lolipop, or GWS inventory evidence is source inventory only.
+   - `currentSharedGmailRoutingUnconfirmed`: `gopro-yahoo`, `vyperglobal-rakuten`, `vyperglobal-yahoo`, `ams-vyper`, `datacolor`, `ebay`.
+   - `vyperglobal-yahoo` and `ebay`: source exists but shared Gmail has no active or historical evidence. Verify current GWS group membership / MX routing to `mailhub@`, or explicitly document that the source remains outside the shared Gmail workbench.
+   - `gopro-yahoo`, `vyperglobal-rakuten`, `ams-vyper`, and `datacolor`: historical shared Gmail evidence exists but active `INBOX` is zero. Confirm current routing/dormancy before production-complete source coverage is claimed.
 6. Collect operator feedback on the default saved views. Real Gmail audit proves `customer-inquiries` and `noise-candidates` are too broad for bulk automation, so keep them as manual-review shortcuts unless narrowed.
 7. Re-run `npm run audit:gmail-rules -- --out .ai-runs/mailhub-next-phase/gmail-rule-safety-audit.json --max 100` whenever production file/Sheets rules are added or changed.
 8. Add AI reply drafting only after a knowledge evidence source is defined; keep generated drafts separate from send actions.
@@ -71,6 +73,7 @@ The next phase is done only when:
 - actual app coverage is verified against that inventory
 - at least one concrete missing-mail/root-cause class is fixed or proven absent
 - source audit machine gate distinguishes code gaps from operational follow-ups
+- operational confirmation gate distinguishes source inventory from current shared Gmail routing coverage
 - UI clearly communicates source/filter state
 - suppressive rule application cannot hide obvious invoice/inquiry/important messages without evidence
 - real-data rule safety audit can verify configured label/assignee rules against the shared Gmail inbox

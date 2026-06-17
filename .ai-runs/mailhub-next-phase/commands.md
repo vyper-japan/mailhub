@@ -213,6 +213,36 @@ node -e 'const a=require("./.ai-runs/mailhub-next-phase/gmail-source-coverage-au
 - `npm run test`: 57 files / 517 tests passed.
 - Source coverage gate assertion command: passed.
 
+## Verification Commands Run On 2026-06-17 Migration Evidence Ops Gate Wave
+
+```bash
+node --check scripts/audit-mailhub-operational-confirmations.mjs
+npm run audit:mailhub-ops -- --out .ai-runs/mailhub-next-phase/mailhub-operational-confirmations.json
+node -e 'const a=require("./.ai-runs/mailhub-next-phase/mailhub-operational-confirmations.json"); if(!a.gate.codeCoveragePass) process.exit(1); if(a.gate.sourceInventoryMissing.length) process.exit(2); if(!a.gate.currentSharedGmailRoutingUnconfirmed.includes("vyperglobal-yahoo")) process.exit(3); if(!a.gate.currentSharedGmailRoutingUnconfirmed.includes("ebay")) process.exit(4); if(a.gate.productionCompleteClaimReady) process.exit(5); console.log("ops gate safe", JSON.stringify(a.gate));'
+git diff --check
+npm run typecheck
+npm run lint
+npm run test
+npm run build
+```
+
+## 2026-06-17 Migration Evidence Ops Gate Results
+
+- `node --check`: passed.
+- `npm run audit:mailhub-ops`: passed.
+- Latest gate:
+  - `codeCoveragePass`: `true`
+  - `sourceInventoryMissing`: `[]`
+  - `noSharedInboxEvidence`: `vyperglobal-yahoo`, `ebay`
+  - `routingConfirmationRequired`: `vyperglobal-yahoo`, `ebay`
+  - `currentSharedGmailRoutingUnconfirmed`: `gopro-yahoo`, `vyperglobal-rakuten`, `vyperglobal-yahoo`, `ams-vyper`, `datacolor`, `ebay`
+  - `productionCompleteClaimReady`: `false`
+- `git diff --check`: passed.
+- `npm run typecheck`: passed.
+- `npm run lint`: passed.
+- `npm run test`: 60 files / 531 tests passed.
+- `npm run build`: passed.
+
 ## Verification Commands Run On 2026-06-17 Rule Safety Real-Data Gate Wave
 
 ```bash
