@@ -36,6 +36,7 @@ const REQUIRED_WRITE_EVIDENCE = [
   "gmail-*-*.png",
   "mailhub-*-*.png",
 ];
+const STAFF_ENV_PREFLIGHT_COMMAND = "npm run setup:mailhub-staff-env";
 
 function parseArgs(argv) {
   const out = { ...defaults, strict: false };
@@ -166,6 +167,7 @@ function main() {
         status: status(productionEnvReady),
         description: "Run the staff workflow audit against the production MailHub environment with required auth and shared Gmail env present.",
         requiredEnv: productionEnvReady ? [] : (missingProductionEnv.length ? missingProductionEnv : REQUIRED_PRODUCTION_ENV),
+        commands: productionEnvReady ? [] : [STAFF_ENV_PREFLIGHT_COMMAND],
       },
       {
         id: "configure_staff_access_allowlist",
@@ -175,6 +177,7 @@ function main() {
           ...(adminsReady ? [] : ["MAILHUB_ADMINS"]),
           ...(staffAccessAllowlistReady ? [] : ["MAILHUB_TEAM_MEMBERS"]),
         ],
+        commands: adminsReady && staffAccessAllowlistReady ? [] : [STAFF_ENV_PREFLIGHT_COMMAND],
       },
       {
         id: "configure_staff_roster",
@@ -190,6 +193,7 @@ function main() {
           ...(durableActivityReady ? [] : ["MAILHUB_ACTIVITY_STORE=sheets"]),
           ...((durableConfigReady && durableActivityReady) ? [] : REQUIRED_SHEETS_ENV),
         ],
+        commands: durableConfigReady && durableActivityReady ? [] : [STAFF_ENV_PREFLIGHT_COMMAND],
       },
       {
         id: "capture_readonly_rollout_evidence",
@@ -197,6 +201,7 @@ function main() {
         description: "Capture production READ ONLY rollout evidence before any controlled write pilot.",
         requiredEnv: readOnlyEnabled ? [] : ["MAILHUB_READ_ONLY=1"],
         requiredEvidence: readOnlyRolloutEvidenceReady ? [] : (readOnlyEvidenceIssues.length ? readOnlyEvidenceIssues : (readonlyMissing.length ? readonlyMissing : REQUIRED_READONLY_EVIDENCE)),
+        commands: readOnlyRolloutEvidenceReady ? [] : [STAFF_ENV_PREFLIGHT_COMMAND],
       },
       {
         id: "capture_controlled_write_pilot",

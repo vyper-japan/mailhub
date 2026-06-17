@@ -142,7 +142,7 @@ describe("MailHub staff workflow next steps", () => {
       const out = JSON.parse(readFileSync(outPath, "utf8")) as {
         state: Record<string, boolean>;
         missing: Record<string, string[]>;
-        nextActions: Array<{ id: string; status: string; requiredEnv?: string[]; requiredEvidence?: string[] }>;
+        nextActions: Array<{ id: string; status: string; requiredEnv?: string[]; requiredEvidence?: string[]; commands?: string[] }>;
       };
       expect(out.state.staffWorkflowPermissionsReady).toBe(false);
       expect(out.state.canCaptureReadOnlyRolloutEvidence).toBe(false);
@@ -155,6 +155,18 @@ describe("MailHub staff workflow next steps", () => {
         "activity-YYYYMMDD-prod.csv",
         "gmail-*-*.png",
         "mailhub-*-*.png",
+      ]);
+      expect(out.nextActions.find((action) => action.id === "configure_production_env")?.commands).toEqual([
+        "npm run setup:mailhub-staff-env",
+      ]);
+      expect(out.nextActions.find((action) => action.id === "configure_staff_access_allowlist")?.commands).toEqual([
+        "npm run setup:mailhub-staff-env",
+      ]);
+      expect(out.nextActions.find((action) => action.id === "configure_durable_staff_stores")?.commands).toEqual([
+        "npm run setup:mailhub-staff-env",
+      ]);
+      expect(out.nextActions.find((action) => action.id === "capture_readonly_rollout_evidence")?.commands).toEqual([
+        "npm run setup:mailhub-staff-env",
       ]);
       expect(out.nextActions.find((action) => action.id === "capture_readonly_rollout_evidence")?.status).toBe("blocked");
       expect(JSON.stringify(out)).not.toContain("refresh_token");
@@ -213,7 +225,7 @@ describe("MailHub staff workflow next steps", () => {
       expect(runStaffNext(["--audit", auditPath, "--out", outPath]).status).toBe(0);
 
       const artifact = JSON.parse(readFileSync(outPath, "utf8")) as {
-        nextActions: Array<{ id: string; status: string }>;
+        nextActions: Array<{ id: string; status: string; commands?: string[] }>;
       };
       const action = artifact.nextActions.find((item) => item.id === "capture_readonly_rollout_evidence");
       expect(action).toBeTruthy();
@@ -232,6 +244,36 @@ describe("MailHub staff workflow next steps", () => {
       ]);
       expect(contract.status).toBe(1);
       expect(contract.stdout).toContain("next_action_status_mismatch:capture_readonly_rollout_evidence");
+    });
+  });
+
+  test("contract rejects missing staff env preflight commands", () => {
+    withTempDir((dir) => {
+      const auditPath = join(dir, "staff-audit.json");
+      const outPath = join(dir, "staff-next.json");
+      writeJson(auditPath, blockedAudit());
+      expect(runStaffNext(["--audit", auditPath, "--out", outPath]).status).toBe(0);
+
+      const artifact = JSON.parse(readFileSync(outPath, "utf8")) as {
+        nextActions: Array<{ id: string; status: string; commands?: string[] }>;
+      };
+      const action = artifact.nextActions.find((item) => item.id === "configure_production_env");
+      expect(action).toBeTruthy();
+      action!.commands = [];
+      writeJson(outPath, artifact);
+
+      const contract = runStaffNextContract([
+        "--next",
+        outPath,
+        "--audit",
+        auditPath,
+        "--repo-head",
+        "HEAD",
+        "--repo-parent-head",
+        "HEAD^",
+      ]);
+      expect(contract.status).toBe(1);
+      expect(contract.stdout).toContain("missing_staff_env_preflight_command:configure_production_env");
     });
   });
 });

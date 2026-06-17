@@ -2111,6 +2111,49 @@ git diff --check
 - Coverage passed 69 files / 605 tests with global coverage above threshold.
 - Typecheck, lint, build, smoke, security scan, artifact secret scan, actionlint, `git diff --check`, and all readiness/routing/staff contracts passed after artifact regeneration.
 
+## 2026-06-17 Staff Env Preflight Helper Commands
+
+```bash
+node --check scripts/setup-mailhub-staff-env.mjs
+node --check scripts/write-mailhub-staff-workflow-next-steps.mjs
+node --check scripts/check-mailhub-staff-next-contract.mjs
+npm run setup:mailhub-staff-env -- --out .ai-runs/mailhub-next-phase/mailhub-staff-env-readiness.json
+npx vitest run lib/__tests__/mailhub-staff-env-setup.test.ts lib/__tests__/mailhub-staff-workflow-next-steps.test.ts lib/__tests__/ops-artifact-secret-scan.test.ts
+npm run audit:mailhub-staff-workflow -- --out .ai-runs/mailhub-next-phase/mailhub-staff-workflow-audit.json
+npm run audit:mailhub-staff-next -- --out .ai-runs/mailhub-next-phase/mailhub-staff-workflow-next-steps.json
+npm run audit:mailhub-readiness -- --out .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json
+npm run audit:mailhub-routing-next -- --strict --out .ai-runs/mailhub-next-phase/mailhub-routing-next-steps.json
+npm run audit:github-routing-secrets-contract
+npm run audit:mailhub-staff-workflow-contract
+npm run audit:mailhub-staff-next-contract
+npm run audit:mailhub-readiness-contract
+npm run audit:mailhub-routing-next-contract
+npm run audit:mailhub-routing-proof-contract
+npm run typecheck
+npm run lint
+npm run test
+npm run build
+npm run smoke
+npm run security:scan
+npm run security:scan-artifacts
+npm run test:coverage
+actionlint .github/workflows/*.yml
+git diff --check
+```
+
+## 2026-06-17 Staff Env Preflight Helper Results
+
+- Added `npm run setup:mailhub-staff-env` as a secret-safe production staff rollout env preflight.
+- The helper reads process env / `.env.local` by default and writes `mailhub-staff-env-readiness.json` with only key names, booleans, counts, and validation issues. It does not print secret values.
+- Added `.ai-runs/mailhub-next-phase/mailhub-staff-env-readiness.json` to the default ops artifact secret scan.
+- `mailhub-staff-workflow-next-steps.json` now points production env, staff allowlist, durable Sheets store, and READ ONLY rollout actions to `npm run setup:mailhub-staff-env`.
+- The staff next-step contract now rejects those actions when the staff env preflight command is missing.
+- Current local staff env preflight is not ready: production mode, team members, Sheets config/activity, and READ ONLY remain missing; admin count is visible only as a count.
+- Focused tests passed 3 files / 18 tests.
+- Full Vitest passed 70 files / 609 tests.
+- Coverage passed 70 files / 609 tests with global coverage above threshold.
+- Typecheck, lint, build, smoke, security scan, artifact secret scan, actionlint, `git diff --check`, and all readiness/routing/staff contracts passed after artifact regeneration.
+
 ## Useful Runtime Commands
 
 Start dev server for tunnel:

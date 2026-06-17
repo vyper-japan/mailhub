@@ -1,9 +1,9 @@
 {
-  "generatedAt": "2026-06-17T14:32:33.388Z",
+  "generatedAt": "2026-06-17T14:53:47.146Z",
   "inputs": {
     "audit": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.ai-runs/mailhub-next-phase/mailhub-staff-workflow-audit.json",
-    "auditGeneratedAt": "2026-06-17T14:32:33.275Z",
-    "auditRepoHead": "026905449fa917d4888e5872801f40259963dc5b",
+    "auditGeneratedAt": "2026-06-17T14:53:47.017Z",
+    "auditRepoHead": "f9e65d316d01f6093c5d3fa3abf1f7d0ef364702",
     "errors": [],
     "warnings": []
   },
@@ -87,6 +87,9 @@
         "GOOGLE_CLIENT_SECRET",
         "GOOGLE_SHARED_INBOX_EMAIL",
         "GOOGLE_SHARED_INBOX_REFRESH_TOKEN"
+      ],
+      "commands": [
+        "npm run setup:mailhub-staff-env"
       ]
     },
     {
@@ -96,6 +99,9 @@
       "requiredEnv": [
         "MAILHUB_ADMINS",
         "MAILHUB_TEAM_MEMBERS"
+      ],
+      "commands": [
+        "npm run setup:mailhub-staff-env"
       ]
     },
     {
@@ -113,6 +119,9 @@
         "MAILHUB_SHEETS_ID or MAILHUB_SHEETS_SPREADSHEET_ID",
         "MAILHUB_SHEETS_CLIENT_EMAIL",
         "MAILHUB_SHEETS_PRIVATE_KEY"
+      ],
+      "commands": [
+        "npm run setup:mailhub-staff-env"
       ]
     },
     {
@@ -127,6 +136,9 @@
         "mailhub-meta-health-readonly.png",
         "staff-workflow-evidence-manifest.json",
         "manifest:missing_staff_workflow_evidence_manifest"
+      ],
+      "commands": [
+        "npm run setup:mailhub-staff-env"
       ]
     },
     {

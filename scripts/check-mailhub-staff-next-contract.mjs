@@ -18,6 +18,7 @@ const REQUIRED_ACTION_IDS = [
   "capture_controlled_write_pilot",
   "refresh_staff_and_readiness_artifacts",
 ];
+const STAFF_ENV_PREFLIGHT_COMMAND = "npm run setup:mailhub-staff-env";
 
 function parseArgs(argv) {
   const out = {
@@ -91,6 +92,19 @@ function expectActionStatus({ actions, id, expected, errors }) {
   }
   if (action.status !== expected) {
     errors.push(`next_action_status_mismatch:${id}:expected_${expected}:actual_${action.status ?? "missing"}`);
+  }
+}
+
+function actionCommands(action) {
+  if (!action || typeof action !== "object") return [];
+  return Array.isArray(action.commands) ? action.commands.filter((item) => typeof item === "string") : [];
+}
+
+function expectStaffEnvPreflightCommand({ actions, id, required, errors }) {
+  const action = actions.get(id);
+  if (!action || !required) return;
+  if (!actionCommands(action).includes(STAFF_ENV_PREFLIGHT_COMMAND)) {
+    errors.push(`missing_staff_env_preflight_command:${id}`);
   }
 }
 
@@ -226,10 +240,22 @@ function main() {
     expected: productionEnvReady ? "done" : "required",
     errors,
   });
+  expectStaffEnvPreflightCommand({
+    actions,
+    id: "configure_production_env",
+    required: !productionEnvReady,
+    errors,
+  });
   expectActionStatus({
     actions,
     id: "configure_staff_access_allowlist",
     expected: adminsReady && staffAccessAllowlistReady ? "done" : "required",
+    errors,
+  });
+  expectStaffEnvPreflightCommand({
+    actions,
+    id: "configure_staff_access_allowlist",
+    required: !(adminsReady && staffAccessAllowlistReady),
     errors,
   });
   expectActionStatus({
@@ -244,10 +270,22 @@ function main() {
     expected: durableConfigReady && durableActivityReady ? "done" : "required",
     errors,
   });
+  expectStaffEnvPreflightCommand({
+    actions,
+    id: "configure_durable_staff_stores",
+    required: !(durableConfigReady && durableActivityReady),
+    errors,
+  });
   expectActionStatus({
     actions,
     id: "capture_readonly_rollout_evidence",
     expected: readOnlyRolloutEvidenceReady ? "done" : (!basePrerequisitesReady || !readOnlyEnabled ? "blocked" : "required"),
+    errors,
+  });
+  expectStaffEnvPreflightCommand({
+    actions,
+    id: "capture_readonly_rollout_evidence",
+    required: !readOnlyRolloutEvidenceReady,
     errors,
   });
   expectActionStatus({

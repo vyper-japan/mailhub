@@ -1,0 +1,59 @@
+{
+  "generatedAt": "2026-06-17T14:53:30.985Z",
+  "inputs": {
+    "envFile": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.env.local",
+    "envFileLoaded": true,
+    "valuePolicy": "Secret values are never printed; this artifact contains only key names, booleans, counts, and validation issues."
+  },
+  "state": {
+    "readyForReadOnlyRolloutPreflight": false,
+    "productionEnvModeReady": false,
+    "testModeDisabled": true,
+    "productionRequiredEnvReady": true,
+    "adminsReady": true,
+    "staffAccessAllowlistReady": false,
+    "durableConfigReady": false,
+    "durableActivityReady": false,
+    "readOnlyEnabled": false
+  },
+  "missing": {
+    "productionEnvMode": [
+      "MAILHUB_ENV=production"
+    ],
+    "productionEnv": [],
+    "staffAdmins": [],
+    "staffTeamMembers": [
+      "MAILHUB_TEAM_MEMBERS"
+    ],
+    "durableConfig": [
+      "MAILHUB_CONFIG_STORE=sheets",
+      "MAILHUB_SHEETS_ID or MAILHUB_SHEETS_SPREADSHEET_ID",
+      "MAILHUB_SHEETS_CLIENT_EMAIL",
+      "MAILHUB_SHEETS_PRIVATE_KEY"
+    ],
+    "durableActivity": [
+      "MAILHUB_ACTIVITY_STORE=sheets",
+      "MAILHUB_SHEETS_ID or MAILHUB_SHEETS_SPREADSHEET_ID",
+      "MAILHUB_SHEETS_CLIENT_EMAIL",
+      "MAILHUB_SHEETS_PRIVATE_KEY"
+    ],
+    "readOnlyFlag": [
+      "MAILHUB_READ_ONLY=1"
+    ]
+  },
+  "present": {
+    "adminCount": 2,
+    "teamMemberCount": 0,
+    "sheetsIdConfigured": false,
+    "sheetsClientEmailConfigured": false,
+    "sheetsPrivateKeyConfigured": false,
+    "configStore": null,
+    "activityStore": null
+  },
+  "issues": {
+    "adminInvalid": [],
+    "adminNonVtj": [],
+    "teamInvalid": [],
+    "teamNonVtj": []
+  }
+}

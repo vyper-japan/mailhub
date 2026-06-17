@@ -450,6 +450,13 @@
   - Strengthened `scripts/check-mailhub-readiness-contract.mjs` so `defaultViewsBulkAutomationSafe=false` must be paired with `defaultViewsManualReviewOnly=true` and non-empty `bulkUnsafeViews` evidence.
   - Updated Ops readiness summary and Ops Board to show the bulk-unsafe view count/list, not only the boolean manual-only state.
   - Current regenerated readiness artifact records `bulkUnsafeViews=["customer-inquiries","noise-candidates"]`; these remain manual-review shortcuts and cannot silently become bulk automation queues.
+- 2026-06-17 staff env preflight helper wave completed:
+  - Added `scripts/setup-mailhub-staff-env.mjs` and `npm run setup:mailhub-staff-env`.
+  - The helper checks production mode, required auth/shared Gmail env names, `MAILHUB_ADMINS`, `MAILHUB_TEAM_MEMBERS`, Sheets config/activity env, and `MAILHUB_READ_ONLY=1` without printing secret values.
+  - Added `.ai-runs/mailhub-next-phase/mailhub-staff-env-readiness.json` to the committed ops artifacts and default secret scan.
+  - `mailhub-staff-workflow-next-steps.json` now points production env, staff allowlist, durable store, and READ ONLY rollout actions to `npm run setup:mailhub-staff-env`.
+  - Strengthened `scripts/check-mailhub-staff-next-contract.mjs` so those next actions cannot silently lose the staff env preflight command.
+  - Current local staff env preflight is intentionally not ready: production mode, team members, Sheets config/activity, and READ ONLY are still missing; secret values are not recorded.
 
 ## Not Done
 
@@ -470,6 +477,7 @@
 - `npm run setup:mailhub-routing-secrets` / `npm run setup:mailhub-routing-secrets -- --apply` can now check and set those external SMTP proof secrets once real values are available locally, but no such values are currently present.
 - The routing next-step artifact now shows the exact remaining action list through the safe setup helper, but it remains red because external SMTP proof setup has not been provided.
 - The staff workflow next-step artifact now shows the exact remaining P1 action list, but it remains red because production env/staff config/durable stores and production evidence have not been provided.
+- `npm run setup:mailhub-staff-env` now shows the remaining staff rollout env gaps without printing values; current artifact still needs production mode, team members, Sheets config/activity, and READ ONLY before READ ONLY evidence capture can start.
 - The staff workflow next-step contract now guards that action list in CI, so the P1 staff workflow checklist cannot drift from the audit artifact unnoticed.
 - Staff workflow production evidence now requires `docs/pilot/prod/staff-workflow-evidence-manifest.json`; screenshots/CSV alone cannot make the READ ONLY rollout or controlled WRITE pilot ready.
 - `npm run setup:mailhub-staff-manifest` can now generate that manifest once real production reviewer/actor/messageId/date values exist.
