@@ -1971,6 +1971,44 @@ git diff --check
 - Coverage passed 68 files / 600 tests with global coverage above threshold.
 - Typecheck, lint, build, smoke, security scan, artifact secret scan, actionlint, `git diff --check`, and all readiness/routing/staff contracts passed after artifact regeneration.
 
+## 2026-06-17 Staff Workflow Manifest Writer Commands
+
+```bash
+node --check scripts/write-mailhub-staff-evidence-manifest.mjs
+node --check scripts/write-mailhub-staff-workflow-next-steps.mjs
+npx vitest run lib/__tests__/mailhub-staff-evidence-manifest.test.ts lib/__tests__/mailhub-staff-workflow-next-steps.test.ts lib/__tests__/mailhub-staff-workflow-audit.test.ts
+npm run audit:mailhub-staff-workflow -- --out .ai-runs/mailhub-next-phase/mailhub-staff-workflow-audit.json
+npm run audit:mailhub-staff-next -- --out .ai-runs/mailhub-next-phase/mailhub-staff-workflow-next-steps.json
+npm run audit:mailhub-readiness -- --out .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json
+npm run audit:mailhub-routing-next -- --strict --out .ai-runs/mailhub-next-phase/mailhub-routing-next-steps.json
+npm run audit:mailhub-staff-workflow-contract
+npm run audit:mailhub-staff-next-contract
+npm run audit:mailhub-readiness-contract
+npm run audit:mailhub-routing-next-contract
+npm run typecheck
+npm run test
+npm run test:coverage
+npm run lint
+npm run security:scan
+npm run security:scan-artifacts
+npm run build
+npm run smoke
+npm run audit:github-routing-secrets-contract
+npm run audit:mailhub-routing-proof-contract
+actionlint .github/workflows/*.yml
+git diff --check
+```
+
+## 2026-06-17 Staff Workflow Manifest Writer Results
+
+- Added `npm run setup:mailhub-staff-manifest`.
+- The CLI writes a production `staff-workflow-evidence-manifest.json` with exact filenames expected by the staff workflow audit.
+- The CLI rejects invalid production reviewer/actor inputs before writing.
+- Focused staff manifest/audit/next-step tests passed 3 files / 10 tests.
+- Full Vitest passed 69 files / 602 tests.
+- Coverage passed 69 files / 602 tests with global coverage above threshold.
+- Typecheck, lint, build, smoke, security scan, artifact secret scan, actionlint, `git diff --check`, and all readiness/routing/staff contracts passed after artifact regeneration.
+
 ## Useful Runtime Commands
 
 Start dev server for tunnel:

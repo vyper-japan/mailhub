@@ -1,9 +1,9 @@
 {
-  "generatedAt": "2026-06-17T13:34:46.750Z",
+  "generatedAt": "2026-06-17T13:52:20.210Z",
   "inputs": {
     "audit": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.ai-runs/mailhub-next-phase/mailhub-staff-workflow-audit.json",
-    "auditGeneratedAt": "2026-06-17T13:34:46.630Z",
-    "auditRepoHead": "caf2c3d345db5eb4ca1b3f4304f70ab9093ed28c",
+    "auditGeneratedAt": "2026-06-17T13:52:19.892Z",
+    "auditRepoHead": "f3eeabc5259e14064e3b6070fdfaeefade8132c8",
     "errors": [],
     "warnings": []
   },
@@ -71,7 +71,7 @@
   "present": {
     "adminCount": 0,
     "teamMemberCount": 0,
-    "assigneeRegistryValidCount": 2,
+    "assigneeRegistryValidCount": 1,
     "configStore": "file",
     "activityStore": "memory"
   },
@@ -141,6 +141,9 @@
         "gmail-*-*.png",
         "mailhub-*-*.png",
         "manifest:missing_staff_workflow_evidence_manifest"
+      ],
+      "commands": [
+        "npm run setup:mailhub-staff-manifest -- --captured-by admin@vtj.co.jp --staff-email staff@vtj.co.jp --actor-email staff@vtj.co.jp --message-id <messageId> --action assign --date <YYYYMMDD>"
       ]
     },
     {

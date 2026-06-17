@@ -152,6 +152,18 @@ action（ファイル名用）：
 
 ### manifest雛形
 
+手書きより先に、次のCLIで生成してください。
+
+```bash
+npm run setup:mailhub-staff-manifest -- \
+  --captured-by admin@vtj.co.jp \
+  --staff-email staff@vtj.co.jp \
+  --actor-email staff@vtj.co.jp \
+  --message-id message-id \
+  --action assign \
+  --date 20260617
+```
+
 ```json
 {
   "schema": "mailhub.staff-workflow-evidence.v1",

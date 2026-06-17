@@ -203,6 +203,9 @@ function main() {
         status: status(writePilotEvidenceReady, !basePrerequisitesReady || !readOnlyRolloutEvidenceReady),
         description: "Capture a controlled production write pilot with MailHub, Gmail, and Activity evidence.",
         requiredEvidence: writePilotEvidenceReady ? [] : (writePilotEvidenceIssues.length ? writePilotEvidenceIssues : (writeEvidenceMissing.length ? writeEvidenceMissing : REQUIRED_WRITE_EVIDENCE)),
+        commands: [
+          "npm run setup:mailhub-staff-manifest -- --captured-by admin@vtj.co.jp --staff-email staff@vtj.co.jp --actor-email staff@vtj.co.jp --message-id <messageId> --action assign --date <YYYYMMDD>",
+        ],
       },
       {
         id: "refresh_staff_and_readiness_artifacts",

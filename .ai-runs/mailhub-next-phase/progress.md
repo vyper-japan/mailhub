@@ -432,6 +432,11 @@
   - `mailhub-staff-workflow-next-steps.json` now reports manifest issues directly in the required READ ONLY and WRITE evidence lists.
   - Staff workflow contracts now reject `ready=true` artifacts that still carry manifest/evidence issues.
   - Updated `docs/pilot/NAMING.md` and `docs/pilot/PROD_WRITE_QA_CHECKLIST.md` with the manifest filename and JSON template.
+- 2026-06-17 staff workflow manifest writer wave completed:
+  - Added `scripts/write-mailhub-staff-evidence-manifest.mjs` and `npm run setup:mailhub-staff-manifest`.
+  - The CLI generates the exact production staff workflow manifest shape from `capturedBy`, staff reviewer, write actor, messageId, action, and YYYYMMDD date.
+  - The CLI rejects non-`@vtj.co.jp` reviewer/actor inputs, invalid dates, missing messageId, and unsupported action values before writing a file.
+  - `mailhub-staff-workflow-next-steps.json`, `docs/pilot/NAMING.md`, and `docs/pilot/PROD_WRITE_QA_CHECKLIST.md` now point operators to the generator instead of hand-writing JSON first.
 
 ## Not Done
 
@@ -454,6 +459,7 @@
 - The staff workflow next-step artifact now shows the exact remaining P1 action list, but it remains red because production env/staff config/durable stores and production evidence have not been provided.
 - The staff workflow next-step contract now guards that action list in CI, so the P1 staff workflow checklist cannot drift from the audit artifact unnoticed.
 - Staff workflow production evidence now requires `docs/pilot/prod/staff-workflow-evidence-manifest.json`; screenshots/CSV alone cannot make the READ ONLY rollout or controlled WRITE pilot ready.
+- `npm run setup:mailhub-staff-manifest` can now generate that manifest once real production reviewer/actor/messageId/date values exist.
 - GitHub Actions routing probe artifacts now include the next-step artifact, but `send_verify` remains blocked until the external SMTP proof secrets are configured.
 - All GitHub workflow YAML now passes local `actionlint`; the remaining GitHub-side risk is secret/config availability for the manual external routing probe, not workflow syntax.
 - Production pagination basic behavior is represented in API/UI metadata and forced E2E; real browser/manual production verification is still useful before staff rollout.
