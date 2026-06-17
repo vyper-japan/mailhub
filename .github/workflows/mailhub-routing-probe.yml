@@ -81,7 +81,8 @@ jobs:
             .ai-runs/mailhub-next-phase/mailhub-routing-probe-preflight.json \
             .ai-runs/mailhub-next-phase/mailhub-routing-probe-send.json \
             .ai-runs/mailhub-next-phase/mailhub-routing-probe-audit.json \
-            .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json
+            .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json \
+            .ai-runs/mailhub-next-phase/mailhub-routing-next-steps.json
 
       - name: Validate send confirmation
         if: github.event.inputs.mode == 'send_verify'
@@ -101,9 +102,7 @@ jobs:
             --from-env \
             --no-fail \
             --out .ai-runs/mailhub-next-phase/github-routing-secrets-readiness.json
-          node -e 'const r=require("./.ai-runs/mailhub-next-phase/github-routing-secrets-readiness.json"); console.log(JSON.stringify({source:r.source, secretCount:r.secretCount, readyForPreflightProductionProof:r.readyForPreflightProductionProof, readyForSendVerify:r.readyForSendVerify, missingPreflightSecrets:r.missingPreflightSecrets, missingSendVerifySecrets:r.missingSendVerifySecrets}, null, 2)); if(process.env.MAILHUB_ROUTING_PROBE_REQUIRE_SEND_VERIFY==="1" && !r.readyForSendVerify) process.exit(4);'
-        env:
-          MAILHUB_ROUTING_PROBE_REQUIRE_SEND_VERIFY: ${{ github.event.inputs.mode == 'send_verify' && '1' || '0' }}
+          node -e 'const r=require("./.ai-runs/mailhub-next-phase/github-routing-secrets-readiness.json"); console.log(JSON.stringify({source:r.source, secretCount:r.secretCount, readyForPreflightProductionProof:r.readyForPreflightProductionProof, readyForSendVerify:r.readyForSendVerify, missingPreflightSecrets:r.missingPreflightSecrets, missingSendVerifySecrets:r.missingSendVerifySecrets}, null, 2));'
 
       - name: Run routing probe preflight
         shell: bash
@@ -111,9 +110,25 @@ jobs:
           set -euo pipefail
           npm run probe:routing-preflight -- \
             --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-preflight.json
-          node -e 'const p=require("./.ai-runs/mailhub-next-phase/mailhub-routing-probe-preflight.json"); console.log(JSON.stringify({mode:p.mode, probeCount:p.probeCount, sentCount:p.sent.length, readyForProductionProof:p.smtpPreflight.readyForProductionProof, missing:p.smtpPreflight.missingRequiredEnv, warnings:p.smtpPreflight.warnings}, null, 2)); if(p.probeCount!==8) process.exit(2); if(p.sent.length!==0) process.exit(3); if(process.env.MAILHUB_ROUTING_PROBE_REQUIRE_READY==="1" && !p.smtpPreflight.readyForProductionProof) process.exit(4);'
-        env:
-          MAILHUB_ROUTING_PROBE_REQUIRE_READY: ${{ github.event.inputs.mode == 'send_verify' && '1' || '0' }}
+          node -e 'const p=require("./.ai-runs/mailhub-next-phase/mailhub-routing-probe-preflight.json"); console.log(JSON.stringify({mode:p.mode, probeCount:p.probeCount, sentCount:p.sent.length, readyForProductionProof:p.smtpPreflight.readyForProductionProof, missing:p.smtpPreflight.missingRequiredEnv, warnings:p.smtpPreflight.warnings}, null, 2)); if(p.probeCount!==8) process.exit(2); if(p.sent.length!==0) process.exit(3);'
+
+      - name: Refresh readiness and next-step artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run audit:mailhub-readiness -- \
+            --out .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json
+          npm run audit:mailhub-routing-next -- \
+            --out .ai-runs/mailhub-next-phase/mailhub-routing-next-steps.json
+          npm run audit:mailhub-readiness-contract
+          node -e 'const n=require("./.ai-runs/mailhub-next-phase/mailhub-routing-next-steps.json"); console.log(JSON.stringify({productionReady:n.state.productionReady, canRunSendVerify:n.state.canRunSendVerify, missingExternalSmtpSecrets:n.missing.externalSmtpSecrets, runGithubSendVerify:n.nextActions.find((a)=>a.id==="run_github_send_verify")?.status}, null, 2));'
+
+      - name: Validate send_verify readiness gates
+        if: github.event.inputs.mode == 'send_verify'
+        shell: bash
+        run: |
+          set -euo pipefail
+          node -e 'const r=require("./.ai-runs/mailhub-next-phase/github-routing-secrets-readiness.json"); const p=require("./.ai-runs/mailhub-next-phase/mailhub-routing-probe-preflight.json"); const n=require("./.ai-runs/mailhub-next-phase/mailhub-routing-next-steps.json"); if(!r.readyForSendVerify) { console.error("send_verify blocked: GitHub routing secrets are incomplete"); process.exit(4); } if(!p.smtpPreflight?.readyForProductionProof) { console.error("send_verify blocked: SMTP preflight is not ready for production proof"); process.exit(5); } if(!n.state?.canRunSendVerify) { console.error("send_verify blocked: routing next-step gate is not ready"); process.exit(6); }'
 
       - name: Send and verify external routing probes
         if: github.event.inputs.mode == 'send_verify'
@@ -128,12 +143,15 @@ jobs:
             --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-send.json
           node -e 'const s=require("./.ai-runs/mailhub-next-phase/mailhub-routing-probe-send.json"); if(s.mode!=="sent") process.exit(1); if(s.probeCount!==8) process.exit(2); if(s.sent.length!==8) process.exit(3); if(!s.verification) process.exit(4); if(!s.verification.allExpectedAddressesConfirmed) process.exit(5); if(!s.verification.productionReady) process.exit(6); console.log(JSON.stringify({marker:s.marker, sent:s.sent.length, verification:s.verification}, null, 2));'
 
-      - name: Refresh readiness contract
+      - name: Refresh readiness contract after send_verify
+        if: github.event.inputs.mode == 'send_verify'
         shell: bash
         run: |
           set -euo pipefail
           npm run audit:mailhub-readiness -- \
             --out .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json
+          npm run audit:mailhub-routing-next -- \
+            --out .ai-runs/mailhub-next-phase/mailhub-routing-next-steps.json
           npm run audit:mailhub-readiness-contract
 
       - name: Upload routing probe artifacts
@@ -147,5 +165,6 @@ jobs:
             .ai-runs/mailhub-next-phase/mailhub-routing-probe-audit.json
             .ai-runs/mailhub-next-phase/github-routing-secrets-readiness.json
             .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json
+            .ai-runs/mailhub-next-phase/mailhub-routing-next-steps.json
           if-no-files-found: ignore
           retention-days: 14

@@ -1241,6 +1241,38 @@ git diff --check
 - `npm run security:scan-artifacts`: passed.
 - `git diff --check`: passed.
 
+## Verification Commands Run On 2026-06-17 Routing Probe Workflow Next-Step Artifact Wave
+
+```bash
+actionlint .github/workflows/mailhub-routing-probe.yml
+ruby -e 'require "yaml"; YAML.load_file(".github/workflows/mailhub-routing-probe.yml"); puts "yaml ok"'
+npm run audit:github-routing-secrets -- --from-env --no-fail --out /tmp/mailhub-gh-env-readiness.json
+npm run probe:routing-preflight -- --out /tmp/mailhub-routing-preflight.json
+npm run audit:mailhub-readiness -- --out /tmp/mailhub-readiness.json
+npm run audit:mailhub-routing-next -- --readiness /tmp/mailhub-readiness.json --github-secrets /tmp/mailhub-gh-env-readiness.json --preflight /tmp/mailhub-routing-preflight.json --out /tmp/mailhub-next-steps.json
+node -e '<assert /tmp/mailhub-next-steps.json canRunSendVerify=false and run_github_send_verify=blocked>'
+npm run audit:mailhub-readiness-contract
+npm run lint
+npm run test
+npm run build
+npm run security:scan-artifacts
+git diff --check
+```
+
+## 2026-06-17 Routing Probe Workflow Next-Step Artifact Wave Results
+
+- `actionlint`: passed.
+- Workflow YAML parse: passed.
+- Workflow-equivalent no-send chain: passed.
+- Generated `/tmp/mailhub-next-steps.json` with `canRunSendVerify=false`, `run_github_send_verify=blocked`, and the four external SMTP proof keys missing.
+- No external mail was sent.
+- Readiness contract: passed.
+- `npm run lint`: passed.
+- `npm run test`: 63 files / 556 tests passed.
+- `npm run build`: passed.
+- `npm run security:scan-artifacts`: passed.
+- `git diff --check`: passed.
+
 ## Useful Runtime Commands
 
 Start dev server for tunnel:

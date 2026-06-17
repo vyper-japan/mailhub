@@ -513,6 +513,7 @@ npm run audit:mailhub-routing-next -- --out .ai-runs/mailhub-next-phase/mailhub-
 
 `send_verify` は confirm 文字列が一致しないと送信前に失敗する。preflight が production proof として未準備の場合も送信前に失敗する。
 workflow 内でも injected env の secret readiness を値なしで監査し、`send_verify` では `readyForSendVerify=true` でない限り送信前に失敗する。
+workflow は送信前に `mailhub-routing-next-steps.json` も生成して artifact に含める。`send_verify` が不足secretやpreflight未準備で止まった場合は、このJSONの `missing` と `nextActions` を次の修正リストとして使う。
 
 ### 5. 外部probeをローカルから送信
 ```bash

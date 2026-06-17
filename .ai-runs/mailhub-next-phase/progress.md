@@ -277,6 +277,10 @@
   - The remaining required setup is still the same four external SMTP proof secrets/env keys: `MAILHUB_PROBE_SMTP_HOST`, `MAILHUB_PROBE_SMTP_USER`, `MAILHUB_PROBE_SMTP_PASS`, and `MAILHUB_PROBE_FROM`.
   - The script is read-only with respect to mail delivery; `externalMailWillBeSentByThisScript=false` and the generated `run_github_send_verify` action remains `blocked` until readiness inputs turn green.
   - `OPS_RUNBOOK.md` and `next.md` now point operators at `npm run audit:mailhub-routing-next` before attempting `send_verify`.
+- 2026-06-17 routing probe workflow next-step artifact wave completed:
+  - Hardened `.github/workflows/mailhub-routing-probe.yml` so the manual workflow now generates `mailhub-routing-next-steps.json` before the `send_verify` readiness gate.
+  - `send_verify` still fails before sending when GitHub secret readiness, SMTP production preflight, or the next-step gate is not green.
+  - Blocked manual runs now upload the fresh next-step artifact instead of only the secret-readiness artifact, so the artifact bundle contains the exact missing setup list.
 
 ## Not Done
 
@@ -294,6 +298,7 @@
 - GitHub Actions can now run the final external probe once the required SMTP/Gmail secrets are configured, without depending on local `.env.local`.
 - GitHub Actions has the four Gmail proof secrets, but still lacks the four external SMTP proof secrets required before running `send_verify`.
 - The routing next-step artifact now shows the exact remaining action list, but it remains red because external SMTP proof setup has not been provided.
+- GitHub Actions routing probe artifacts now include the next-step artifact, but `send_verify` remains blocked until the external SMTP proof secrets are configured.
 - All GitHub workflow YAML now passes local `actionlint`; the remaining GitHub-side risk is secret/config availability for the manual external routing probe, not workflow syntax.
 - Production pagination basic behavior is represented in API/UI metadata and forced E2E; real browser/manual production verification is still useful before staff rollout.
 - Auto-discard rules for marketing/noise are protected against obvious important/invoice/inquiry suppression and missing summary text, but a full production auto-discard policy is still intentionally not enabled.
