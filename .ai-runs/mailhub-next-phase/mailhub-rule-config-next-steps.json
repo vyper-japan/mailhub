@@ -1,13 +1,13 @@
 {
-  "generatedAt": "2026-06-17T19:24:48.906Z",
+  "generatedAt": "2026-06-17T19:39:42.135Z",
   "inputs": {
     "readiness": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json",
     "rulesAudit": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.ai-runs/mailhub-next-phase/gmail-rule-safety-audit.json",
-    "readinessGeneratedAt": "2026-06-17T19:24:48.652Z",
-    "readinessRepoHead": "4dbaaa2903580ca2a4d444f9f70931d83fee55db",
+    "readinessGeneratedAt": "2026-06-17T19:39:41.801Z",
+    "readinessRepoHead": "7d0792217ff5040a5ee972365ae643ad96d72e48",
     "rulesAuditGeneratedAt": "2026-06-17T15:15:29.590Z",
-    "repoHead": "4dbaaa2903580ca2a4d444f9f70931d83fee55db",
-    "repoParentHead": "23a7ec4019a9b4a065bb87bbb1f48a542b0d3ee6",
+    "repoHead": "7d0792217ff5040a5ee972365ae643ad96d72e48",
+    "repoParentHead": "4dbaaa2903580ca2a4d444f9f70931d83fee55db",
     "localEnvFile": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.env.local",
     "localEnvFileLoaded": true,
     "valuePolicy": "Secret values are never printed; this artifact contains only key names, booleans, counts, commands, and validation issues.",

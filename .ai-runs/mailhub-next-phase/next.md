@@ -1,5 +1,42 @@
 # MailHub Next Phase Next Actions
 
+## 2026-06-18 Current Priority
+
+Use `.ai-runs/mailhub-next-phase/complete-handoff.md` as the authoritative handoff for the next session.
+
+The latest pushed commit is `7d07922 feat: add MailHub staff GitHub config setup gate`; both `MailHub Readiness Contract` and `qa-strict` passed on GitHub Actions.
+
+Current worktree has uncommitted `.ai-runs/mailhub-next-phase/` artifact/handoff refresh diffs only. First action in the new session:
+
+```bash
+git status -sb
+git diff --stat
+npm run audit:github-staff-secrets-contract
+npm run audit:mailhub-staff-workflow-contract
+npm run audit:mailhub-staff-next-contract
+npm run audit:mailhub-readiness-contract
+npm run audit:mailhub-rule-config-next-contract
+npm run audit:mailhub-routing-next-contract
+npm run audit:mailhub-routing-proof-contract
+```
+
+If the diff is still only current-HEAD `.ai-runs` refresh and contracts pass, commit/push it:
+
+```bash
+git add .ai-runs/mailhub-next-phase
+git commit -m "chore: refresh MailHub next-phase handoff artifacts"
+git push
+```
+
+Then continue with shield mode: large-team waves for routing proof, rule Sheets config, staff workflow evidence, and staff GitHub config readiness. Do not proceed as solo-only work for important production-readiness decisions.
+
+Current readiness remains:
+
+- P0 `current_shared_gmail_routing`
+- P1 `rule_config_source_not_production`
+- P1 `staff_workflow_permissions`
+- P1 `staff_github_config_not_ready`
+
 ## Immediate Next Step
 
 Continue from the completed INBOX-scoped source coverage and rule-safety wave:

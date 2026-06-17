@@ -2,42 +2,92 @@
 
 ## Objective
 
-MailHubをメールディーラー代替として実運用に近づける。直近の実装フェーズでは、Gmailライクな一覧/詳細UI、サイドバー密度、ヘッダー軽量化、添付ファイル表示/取得、TEST_MODE検索、対象E2E安定化まで完了した。
-
-次フェーズの主目的は、実データで「全ストア/全メールアドレスのメールが本当に集約されているか」を確認し、そのうえで不要メールの自動破棄、重要分類、担当者運用、AI返信支援へ進むこと。
+MailHubを production-complete に近づける。ゴールは、ソース/ルーティング/ルール/スタッフ運用/証跡が実データと本番相当設定で検証され、本番readyを機械的に偽陽性で通せない状態にすること。
 
 ## Current Baseline
 
 - Repository: `/Users/takayukisuzuki/VYPER-Dev/Mailhub`
 - Branch: `main`
-- Latest pushed commit: `1987a6b Polish MailHub inbox density and attachments`
-- Tunnel URL: `https://hansen-bangkok-magnetic-projected.trycloudflare.com`
-- Dev server port: `3001`
-- Cloudflare tunnel process observed: `cloudflared tunnel --no-autoupdate --protocol http2 --url http://localhost:3001`
+- Latest pushed commit: `7d07922 feat: add MailHub staff GitHub config setup gate`
+- Latest CI:
+  - `MailHub Readiness Contract`: success
+  - `qa-strict`: success
+- Current artifact repo head: `7d0792217ff5040a5ee972365ae643ad96d72e48`
+- Current worktree: dirty only because `.ai-runs/mailhub-next-phase/` artifacts/handoff files were refreshed after the latest commit.
 
-## Verification Baseline
+## Current Readiness Gate
 
-Completed before checkpoint:
+`mailhub-production-readiness-audit.json`:
 
-- `git diff --check` PASS
-- `npm run typecheck` PASS
-- `npm run lint` PASS
-- `npm run test` PASS: 51 files / 488 tests
-- Targeted Playwright E2E 16 tests PASS with `--retries=0`
-- `npm run build` PASS
-- Desktop/mobile Playwright visual metrics checked:
-  - desktop 1280x720: 20 rows, no console errors, sidebar overflow 0, search width 407px
-  - mobile 390x844: 20 rows in DOM, no console errors, search width 370px, secondary actions collapsed into More
-- Tunnel HEAD request returned `HTTP/2 200`
+- `productionReady=false`
+- P0:
+  - `current_shared_gmail_routing`
+- P1:
+  - `rule_config_source_not_production`
+  - `staff_workflow_permissions`
+  - `staff_github_config_not_ready`
 
-## Next Phase Shape
+## Completed Technical Foundation
 
-Use a large specialist-team mindset, but do not blindly spawn many agents at once. The desired behavior is "50-person quality of perspective" with controlled execution:
+- Source code coverage gaps are classified separately from operational routing confirmations.
+- External routing probe scripts and contracts exist.
+- Routing next-step artifact exists and blocks send until external SMTP proof settings are ready.
+- Staff workflow audit and next-step artifacts exist.
+- Staff GitHub config audit, safe setup helper, and contracts exist.
+- Production readiness aggregates source/routing/rule/staff/staff-GitHub gates.
+- Readiness contracts reject stale/forged ready staff artifacts.
+- GitHub Actions readiness and qa-strict are green on `7d07922`.
 
-- Phase A: real ingestion/source audit
-- Phase B: Gmail/source query and pagination correctness
-- Phase C: filtering and discard/important-folder design
-- Phase D: AI-assisted reply and knowledge base design
-- Phase E: UI/UX human-operator review and implementation
-- Phase F: verification, build, commit, push
+## Shield Mode Plan
 
+Use大規模Codexチーム as controlled waves:
+
+1. Recon wave
+   - Routing proof path
+   - Rule Sheets config path
+   - Staff workflow evidence path
+   - Staff GitHub config path
+
+2. Critic wave
+   - false-ready / stale artifact
+   - secret leakage
+   - unsafe external mail send path
+   - aggregate readiness mismatch
+
+3. Implementation wave
+   - only disjoint file ownership
+   - no overlapping edits
+   - prefer contract/evidence hardening where external values are unavailable
+
+4. Verification wave
+   - focused tests
+   - contract chain
+   - artifact secret scan
+   - typecheck/build when code changes
+   - commit/push and CI watch
+
+## Next Practical Step
+
+First, commit or intentionally keep the current `.ai-runs` current-HEAD refresh after checking:
+
+```bash
+git status -sb
+git diff --stat
+npm run audit:github-staff-secrets-contract
+npm run audit:mailhub-staff-workflow-contract
+npm run audit:mailhub-staff-next-contract
+npm run audit:mailhub-readiness-contract
+npm run audit:mailhub-rule-config-next-contract
+npm run audit:mailhub-routing-next-contract
+npm run audit:mailhub-routing-proof-contract
+```
+
+If clean except `.ai-runs` refresh and contracts pass:
+
+```bash
+git add .ai-runs/mailhub-next-phase
+git commit -m "chore: refresh MailHub next-phase handoff artifacts"
+git push
+```
+
+Then start a shield wave to identify the next external-value-free improvement.

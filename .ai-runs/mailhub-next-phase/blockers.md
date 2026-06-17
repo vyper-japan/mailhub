@@ -1,31 +1,100 @@
 # MailHub Next Phase Blockers
 
-## Current Blockers
+## P0
 
-- Real Gmail/source coverage is not yet audited. We need to know which store addresses and labels/aliases should be collected.
-- Production mail ingestion may depend on credentials/OAuth/shared inbox configuration outside TEST_MODE.
-- Some desired future features require external service/API decisions:
-  - Rakuten RMS/API reply path
-  - Amazon reply path
-  - Yahoo/store-specific reply path
-  - AI knowledge base source of truth
+### current_shared_gmail_routing
+
+Current external routing into the shared Gmail/MailHub workbench is not fully proven.
+
+Evidence:
+
+- `mailhub-production-readiness-audit.json` keeps P0 `current_shared_gmail_routing`.
+- `mailhub-routing-next-steps.json` has:
+  - `canRunGithubWorkflowDispatch=false`
+  - `canRunLocalSendVerify=false`
+  - `canRunSendVerify=false`
+- GitHub routing secrets have Gmail proof secrets, but external SMTP proof secrets are missing.
+
+Missing external SMTP proof secrets:
+
+- `MAILHUB_PROBE_SMTP_HOST`
+- `MAILHUB_PROBE_SMTP_USER`
+- `MAILHUB_PROBE_SMTP_PASS`
+- `MAILHUB_PROBE_FROM`
+
+Do not close this with GWS group membership alone. `vtj.co.jp` MX still routes through Lolipop, so current external path proof requires controlled external probe or equivalent Lolipop forwarding/MX evidence.
+
+## P1
+
+### rule_config_source_not_production
+
+Current real-data rule safety is proven against local file config, not Sheets-backed production config.
+
+Needs:
+
+- `MAILHUB_CONFIG_STORE=sheets`
+- Sheets id/client/private key env
+- required tabs:
+  - `ConfigRules`
+  - `ConfigAssigneeRules`
+- Sheets-backed `audit:gmail-rules`
+- refreshed readiness and rule-config next-step artifacts
+
+### staff_workflow_permissions
+
+Staff workflow production permissions/evidence are not ready.
+
+Current state:
+
+- admins ready
+- assignee roster ready
+- production env not ready
+- staff allowlist not ready
+- durable config/activity stores not ready
+- read-only not enabled
+- read-only evidence missing
+- controlled write pilot evidence missing
+
+This escalates to P0 once routing proof is complete if still unresolved.
+
+### staff_github_config_not_ready
+
+GitHub Actions staff production config is incomplete.
+
+Current state from `github-staff-secrets-readiness.json`:
+
+- `secretCount=4`
+- `variableCount=0`
+- `readyForProductionStaffPreflight=false`
+- `readyForSecretBackedStaffConfig=false`
+
+Missing secret-backed staff config:
+
+- `NEXTAUTH_SECRET`
+- `MAILHUB_SHEETS_PRIVATE_KEY`
+
+Missing production staff variables/config include:
+
+- `MAILHUB_ENV`
+- `NEXTAUTH_URL`
+- `MAILHUB_ADMINS`
+- `MAILHUB_TEAM_MEMBERS`
+- `MAILHUB_CONFIG_STORE`
+- `MAILHUB_ACTIVITY_STORE`
+- Sheets id/client/private key
+- `MAILHUB_READ_ONLY`
+
+Use only the safe setup helper:
+
+```bash
+npm run setup:mailhub-staff-github-config
+npm run setup:mailhub-staff-github-config -- --apply
+```
 
 ## Process Risks
 
-- Large agent spawning can exhaust thread/agent limits.
-- Old agents can hang on close/wait and freeze visible progress.
-- E2E can kill/restart port `3001`, which can make the tunnel appear broken unless the dev server is restarted.
-- The Cloudflare quick tunnel URL can become stale; if it stops working, check both `cloudflared` and the local dev server.
-
-## Required First Clarification or Discovery
-
-Do not ask the user for a spreadsheet immediately if the information can be discovered in existing config. First inspect:
-
-- `lib/channels.ts`
-- Gmail/source config files
-- label/rule configs
-- existing docs/runbooks
-- current environment assumptions without printing secrets
-
-If source coverage still cannot be inferred, ask the user for the authoritative list of store email addresses/accounts.
-
+- The user expects "shield" to mean large-team operation. Do not silently fall back to solo work for important decisions.
+- Subagent close/wait may hang. Use bounded waits and keep moving.
+- Do not expose `.env.local` values.
+- Do not send external mail without explicit readiness and user intent.
+- Do not mark production-complete while any P0/P1 above remains.

@@ -509,6 +509,10 @@
   - A ready staff GitHub config artifact must match the current repo HEAD; parent-HEAD tolerance is allowed only for not-ready artifacts.
   - Aggregate production readiness now requires the referenced staff GitHub artifact to be `github_actions_config`, current-HEAD, secret-backed, ready, and free of semantic issues before `staffGithubConfigReady=true`.
   - Current GitHub Actions staff state remains not ready: `variableCount=0`, missing production staff variables, and missing secret-backed `NEXTAUTH_SECRET` / `MAILHUB_SHEETS_PRIVATE_KEY`.
+- 2026-06-18 current-HEAD artifact refresh completed:
+  - Refreshed staff GitHub config, staff workflow, production readiness, routing next-step, and rule-config next-step artifacts to repo head `7d0792217ff5040a5ee972365ae643ad96d72e48`.
+  - Re-ran the full readiness contract chain after regeneration; all contracts pass on current-HEAD artifacts.
+  - Production readiness remains intentionally blocked by P0 `current_shared_gmail_routing` plus P1 `rule_config_source_not_production`, `staff_workflow_permissions`, and `staff_github_config_not_ready`.
 - 2026-06-18 rule Sheets tab verification tightened:
   - `mailhub-rule-config-next-steps.json` now records `state.requiredRuleSheets` and `verify_rule_sheets_tabs.requiredSheets`, currently `ConfigRules` and `ConfigAssigneeRules`.
   - The action now separates required tabs from `missingSheets`, so a future Sheets audit can identify exactly which production tab is absent without changing the checklist shape.

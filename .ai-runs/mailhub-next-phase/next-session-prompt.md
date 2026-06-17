@@ -1,106 +1,113 @@
-# Prompt For New Session
+# Prompt For New MailHub Session
 
-MailHub の次フェーズを開始してください。
+MailHub 続き。シールド全開=大規模Codexチーム運用で進める。
 
-最初に以下を読んでください:
+## First Read
 
 1. `AGENTS.md`
-2. `.ai-runs/mailhub-next-phase/plan.md`
-3. `.ai-runs/mailhub-next-phase/progress.md`
-4. `.ai-runs/mailhub-next-phase/decisions.md`
+2. `.ai-runs/mailhub-next-phase/complete-handoff.md`
+3. `.ai-runs/mailhub-next-phase/plan.md`
+4. `.ai-runs/mailhub-next-phase/progress.md`
 5. `.ai-runs/mailhub-next-phase/blockers.md`
 6. `.ai-runs/mailhub-next-phase/commands.md`
 7. `.ai-runs/mailhub-next-phase/next.md`
 8. `git status -sb`
+9. `git diff --stat`
 
-重要方針:
+## Important Interpretation
 
-- 大規模チームで贅沢にレビューする方針は維持する。
-- ただしエージェントを無制限に同時起動して詰まらせない。
-- 3-6並列の wave で回し、各 wave に timeout/watchdog を置く。
-- エージェント wait/close がハングしたら、そのまま固まらずローカル実行へ切り替える。
-- Esc 中断が起きたら、実行中プロセスと git 状態を確認して、最新の検証済み地点から復帰する。
-- 30秒以上かかる作業では短い進捗報告を出す。
+「シールド全開」は単独作業ではなく、大規模チーム運用の意味。
 
-次の最優先タスク:
+次セッションでは、探索・実装・敵対レビュー・検証を分離して、4-6並列の wave で進める。無制限にspawnして詰まらせるのではなく、各waveに timeout/watchdog を置く。
 
-今回の next-phase wave のコミットを確認し、以下を続けてください:
+## Current State
 
-1. 残り INBOX zero-estimate channels を実運用観点で確認する:
-   `gopro-yahoo`, `vyperglobal-rakuten`, `vyperglobal-yahoo`, `ams-vyper`, `datacolor`, `ebay`
-   - `gopro-yahoo`, `vyperglobal-rakuten`, `ams-vyper`, `datacolor`: active inbox 0 / all-mail historical hitsあり
-   - `vyperglobal-yahoo`, `ebay`: active inbox 0 / all-mail fallback 0
-   - latest source audit gate: `knownCodeGaps: []`, `codeCoveragePass: true`
-2. 新規 default views (`invoice-docs`, `customer-inquiries`, `noise-candidates`) は `todo` ベースに変更済み。実データ監査では `invoice-docs` は 552件、`customer-inquiries`/`noise-candidates` は 1000件下限かつ続きあり。現状は automation queue ではなく manual-review shortcut として扱い、チューニングは operator feedback 後に行う
-3. suppressive rule safety gate は explicit `messageIds` + `messageSummaries` 対応済み。summary 欠落時は fail closed。production auto-discard policy はまだ有効化せず、real-data validation 後に進める
-4. Brain suggestion は selected message に対する read-only deterministic UI/API まで追加済み
-5. Brain decision ledger は Activity/rule suggestions から分離した append-only memory/file/sheets store と `GET/POST /api/mailhub/brain/decisions` まで追加済み。`/api/mailhub/config/health` でも store/secret/Sheets 状態を見られる
-6. 任意: production/staging実データで stores pagination の手動ブラウザ確認。forced E2E は追加済み
+- repo: `/Users/takayukisuzuki/VYPER-Dev/Mailhub`
+- branch: `main`
+- latest pushed commit: `7d07922 feat: add MailHub staff GitHub config setup gate`
+- CI for latest commit:
+  - `MailHub Readiness Contract`: success
+  - `qa-strict`: success
+- current worktree: dirty, only `.ai-runs/mailhub-next-phase/` artifact/handoff refresh diffs
+- current refreshed artifact repo head: `7d0792217ff5040a5ee972365ae643ad96d72e48`
 
-直近の完了地点:
+Because this handoff was created under `ai-checkpoint`, the current artifact refresh was not committed. First confirm the diff; if it is still only `.ai-runs` current-HEAD refresh/handoff content and contracts pass, commit/push it before starting the next implementation wave.
 
-- commit `5e0bead fix: verify MailHub pagination and Yahoo source coverage`
-- completion-push commit: `fix: harden MailHub rule safety and audit views`
-- brain suggestion commit: `feat: add read-only MailHub brain suggestions`
-- brain ledger commit: `feat: add MailHub brain decision ledger`
-- brain ledger health commit: `feat: expose MailHub brain ledger health`
-- brain ledger sheets commit: `feat: support Sheets-backed MailHub brain ledger`
-- source coverage gate commit: `fix: classify MailHub source coverage gaps`
-- prior commit `16e703a fix: clarify MailHub source scope and rule safety`
-- source coverage commits already present:
-  - `0e9f358 fix: include AMS source in MailHub coverage`
-  - `fdcd3ac fix: audit real Gmail source coverage`
-- follow-on wave verification:
-  - focused Vitest 6 files / 38 tests PASS
-  - forced pagination E2E Step104-1 PASS
-  - `npm run typecheck` PASS
-  - `npm run lint` PASS
-  - `npm run test` 53 files / 500 tests PASS
-  - `npm run build` PASS
-  - `npm run audit:gmail-sources -- --out .ai-runs/mailhub-next-phase/gmail-source-coverage-audit.json --max-pages 3` PASS with corrected INBOX scope
-- completion-push wave verification:
-  - focused Vitest 3 files / 12 tests PASS
-  - `npm run typecheck` PASS
-  - `npm run audit:gmail-views -- --out .ai-runs/mailhub-next-phase/gmail-default-views-audit.json --max-pages 10` PASS
-  - `git diff --check` PASS
-  - `npm run lint` PASS
-  - `npm run test` 53 files / 502 tests PASS
-  - `npm run build` PASS
-- brain suggestion wave verification:
-  - focused Vitest 4 files / 58 tests PASS
-  - `npm run typecheck` PASS
-  - `npm run lint` PASS
-  - `git diff --check` PASS
-  - `npm run test` 55 files / 507 tests PASS
-  - `npm run build` PASS
-- brain ledger wave verification:
-  - focused Vitest 4 files / 11 tests PASS
-  - `npm run typecheck` PASS
-  - `npm run lint` PASS
-  - `git diff --check` PASS
-  - `npm run test` 57 files / 513 tests PASS
-  - `npm run build` PASS
-  - post-fix focused Vitest 2 files / 6 tests PASS
-  - post-fix `npm run typecheck` PASS
-- brain ledger health wave verification:
-  - focused Vitest 3 files / 15 tests PASS
-  - `npm run typecheck` PASS
-  - `npm run lint` PASS
-  - `git diff --check` PASS
-  - `npm run test` 57 files / 514 tests PASS
-  - `npm run build` PASS
-- brain ledger sheets wave verification:
-  - focused Vitest 3 files / 18 tests PASS
-  - `npm run typecheck` PASS
-  - `npm run lint` PASS
-  - `git diff --check` PASS
-  - `npm run test` 57 files / 517 tests PASS
-  - `npm run build` PASS
-- source coverage gate wave verification:
-  - `npm run audit:gmail-sources -- --out .ai-runs/mailhub-next-phase/gmail-source-coverage-audit.json --max-pages 3` PASS
-  - latest audit generatedAt `2026-06-17T00:08:49.123Z`
-  - `zeroEstimateAnalysis.knownCodeGaps` empty
-  - `zeroEstimateAnalysis.coverageGate.codeCoveragePass` true
-  - `zeroEstimateAnalysis.noEvidenceOperationalFollowups`: `vyperglobal-yahoo`, `ebay`
-- build PASS
-- tunnel URL: `https://hansen-bangkok-magnetic-projected.trycloudflare.com`
+Suggested checkpoint commit:
+
+```bash
+git add .ai-runs/mailhub-next-phase
+git commit -m "chore: refresh MailHub next-phase handoff artifacts"
+git push
+```
+
+## Current Production Readiness
+
+`mailhub-production-readiness-audit.json` says:
+
+- `productionReady=false`
+- P0:
+  - `current_shared_gmail_routing`
+- P1:
+  - `rule_config_source_not_production`
+  - `staff_workflow_permissions`
+  - `staff_github_config_not_ready`
+
+Do not mark production-complete while these remain.
+
+## Remaining Work
+
+1. `current_shared_gmail_routing`
+   - needs external routing proof, not just GWS group membership
+   - external SMTP proof secrets are missing
+   - safe setup: `npm run setup:mailhub-routing-secrets`
+
+2. `rule_config_source_not_production`
+   - current rule safety audit is local file config, not production Sheets
+   - needs Sheets env and tabs `ConfigRules`, `ConfigAssigneeRules`
+   - next artifact: `mailhub-rule-config-next-steps.json`
+
+3. `staff_workflow_permissions`
+   - needs production env, staff allowlist, durable Sheets stores, READ ONLY, read-only evidence, controlled write pilot evidence
+   - safe setup: `npm run setup:mailhub-staff-env`
+   - next artifact: `mailhub-staff-workflow-next-steps.json`
+
+4. `staff_github_config_not_ready`
+   - GitHub Actions staff config currently has `secretCount=4`, `variableCount=0`
+   - missing secret-backed `NEXTAUTH_SECRET` and `MAILHUB_SHEETS_PRIVATE_KEY`
+   - safe setup: `npm run setup:mailhub-staff-github-config`
+
+## Team Wave To Start With
+
+Run a real shield wave before editing:
+
+- Explorer A: routing proof path and routing-next artifact
+- Explorer B: rule Sheets config path and tab evidence
+- Explorer C: staff workflow evidence/config path
+- Explorer D: staff GitHub config readiness/setup path
+- Critic A: false-ready/stale artifact risk
+- Critic B: secret leakage/unsafe command risk
+
+Then implement only the highest-value improvement that can be done without external secrets/SMTP/Sheets values.
+
+## Hard Rules
+
+- Do not print `.env.local` values.
+- Do not send external mail unless readiness gates are green and the user explicitly wants it.
+- Do not fake external SMTP/Sheets/GitHub secret readiness.
+- Do not use raw `gh secret set` command lists in artifacts when safe helper scripts exist.
+- Do not wait forever on stuck subagents; timeout and continue locally.
+
+## First Commands
+
+```bash
+git status -sb
+git diff --stat
+npm run audit:github-staff-secrets-contract
+npm run audit:mailhub-staff-workflow-contract
+npm run audit:mailhub-staff-next-contract
+npm run audit:mailhub-readiness-contract
+npm run audit:mailhub-rule-config-next-contract
+npm run audit:mailhub-routing-next-contract
+npm run audit:mailhub-routing-proof-contract
+```

@@ -2468,6 +2468,32 @@ git diff --check
 - Focused tests passed: 28 tests for staff/readiness contracts, 45 tests including staff workflow next-step and ops artifact secret scan, and 30 routing-probe tests after updating the production-ready fixture to current-HEAD staff GitHub evidence.
 - Final local gates passed: `test:coverage` (72 files / 639 tests), `lint`, `typecheck`, `build`, `smoke`, `security:scan`, `security:scan-artifacts`, `actionlint`, `git diff --check`, and the full readiness contract chain.
 
+## 2026-06-18 Current-HEAD Artifact Refresh Commands
+
+```bash
+npm run audit:github-staff-secrets -- --no-fail --out .ai-runs/mailhub-next-phase/github-staff-secrets-readiness.json
+npm run audit:mailhub-staff-workflow
+npm run audit:mailhub-staff-next
+npm run audit:mailhub-readiness -- --out .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json
+npm run audit:mailhub-routing-next
+npm run audit:mailhub-rule-config-next
+npm run audit:github-routing-secrets-contract
+npm run audit:github-staff-secrets-contract
+npm run audit:mailhub-staff-workflow-contract
+npm run audit:mailhub-staff-next-contract
+npm run audit:mailhub-readiness-contract
+npm run audit:mailhub-rule-config-next-contract
+npm run audit:mailhub-routing-next-contract
+npm run audit:mailhub-routing-proof-contract
+```
+
+## 2026-06-18 Current-HEAD Artifact Refresh Results
+
+- Refreshed staff GitHub config, staff workflow, production readiness, routing next-step, and rule-config next-step artifacts to repo head `7d0792217ff5040a5ee972365ae643ad96d72e48`.
+- Contract chain passes with current-HEAD artifacts.
+- Production readiness remains intentionally blocked: P0 `current_shared_gmail_routing`; P1 `rule_config_source_not_production`, `staff_workflow_permissions`, and `staff_github_config_not_ready`.
+- Current GitHub Actions staff config remains unchanged: `secretCount=4`, `variableCount=0`, missing `NEXTAUTH_SECRET` and `MAILHUB_SHEETS_PRIVATE_KEY` as secret-backed staff config, and missing production staff variables.
+
 ## Useful Runtime Commands
 
 Start dev server for tunnel:
