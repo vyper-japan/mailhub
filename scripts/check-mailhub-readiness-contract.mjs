@@ -89,8 +89,13 @@ function main() {
     if (requirements.sourceInventoryReady !== true) errors.push("production_ready_without_source_inventory");
     if (requirements.defaultViewsRealDataValidated !== true) errors.push("production_ready_without_default_views_validation");
     if (requirements.currentRuleConfigRealDataSafetyReady !== true) errors.push("production_ready_without_rule_safety");
+    if (requirements.currentRuleConfigFingerprintPresent !== true) errors.push("production_ready_without_rule_config_fingerprint");
   } else if (p0Blockers.length === 0) {
     errors.push("not_ready_without_p0_blockers");
+  }
+
+  if (requirements.currentRuleConfigRealDataSafetyReady === true && requirements.currentRuleConfigFingerprintPresent !== true) {
+    errors.push("rule_safety_ready_without_config_fingerprint");
   }
 
   const routingBlocker = blockers.find((item) => item.id === "current_shared_gmail_routing");

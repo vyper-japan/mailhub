@@ -32,6 +32,7 @@ For Sheets config it reads the existing `ConfigRules` and `ConfigAssigneeRules` 
 | Suppressive label rules | 0 |
 | Protected suppressive matches | 0 |
 | Missing-summary suppressive matches | 0 |
+| Rule set fingerprint | `sha256:64ce3c152193...` |
 | Gate | pass |
 
 ## Gate
@@ -42,6 +43,8 @@ For Sheets config it reads the existing `ConfigRules` and `ConfigAssigneeRules` 
 - a rule matching at least 80% of an inspected sample of 20 or more messages
 - suppressive labels like `MailHub/Muted`, `noise`, or `処理不要` hitting protected invoice, inquiry, or important-looking mail
 - suppressive matches where subject/snippet text is missing and classification would be unsafe
+
+The audit also records `config.ruleSetFingerprint`, a SHA-256 hash of the normalized label and assignee rules inspected by the audit. Production readiness requires this fingerprint to be present, so a green rule-safety gate is tied to a specific rule configuration.
 
 ## Decision
 

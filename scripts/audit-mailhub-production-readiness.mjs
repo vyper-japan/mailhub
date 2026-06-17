@@ -97,7 +97,12 @@ function main() {
       (view) => view.risk === "broad_manual_review_only" || view.hasMoreAfterMaxPages === true,
     );
   const defaultViewsBulkAutomationSafe = viewsAudit.gate?.bulkAutomationSafe === true;
-  const ruleSafetyReady = Boolean(rulesAudit.ruleSafetyGate?.realDataRuleRiskPass);
+  const rulesConfigFingerprint =
+    typeof rulesAudit.config?.ruleSetFingerprint === "string" && rulesAudit.config.ruleSetFingerprint.startsWith("sha256:")
+      ? rulesAudit.config.ruleSetFingerprint
+      : null;
+  const ruleConfigFingerprintPresent = Boolean(rulesConfigFingerprint);
+  const ruleSafetyReady = Boolean(rulesAudit.ruleSafetyGate?.realDataRuleRiskPass) && ruleConfigFingerprintPresent;
 
   const blockers = [];
   if (!sourceCodeCoverageReady) {
@@ -139,6 +144,8 @@ function main() {
   if (!ruleSafetyReady) {
     blockers.push(blocker("rule_safety_real_data", "P0", "Real-data rule safety gate is not passing.", {
       ruleSafetyGate: rulesAudit.ruleSafetyGate ?? null,
+      ruleSetFingerprint: rulesConfigFingerprint,
+      fingerprintPresent: ruleConfigFingerprintPresent,
     }));
   }
 
@@ -162,6 +169,7 @@ function main() {
       githubRoutingSecretsCheckedAt: githubRoutingSecrets?.checkedAt ?? null,
       viewsAuditGeneratedAt: viewsAudit.generatedAt ?? null,
       rulesAuditGeneratedAt: rulesAudit.generatedAt ?? null,
+      rulesConfigFingerprint,
     },
     requirements: {
       sourceCodeCoverageReady,
@@ -174,6 +182,7 @@ function main() {
       defaultViewsManualReviewOnly: viewsManualReviewOnly,
       defaultViewsBulkAutomationSafe,
       currentRuleConfigRealDataSafetyReady: ruleSafetyReady,
+      currentRuleConfigFingerprintPresent: ruleConfigFingerprintPresent,
     },
     blockers,
     gate: {

@@ -22,6 +22,8 @@ export type OpsReadinessSummary = {
   defaultViewsManualReviewOnly: boolean;
   defaultViewsBulkAutomationSafe: boolean;
   currentRuleConfigRealDataSafetyReady: boolean;
+  currentRuleConfigFingerprintPresent: boolean;
+  ruleConfigFingerprint: string | null;
   unconfirmedChannels: string[];
   missingProbeAddresses: string[];
   missingProbeSmtpEnv: string[];
@@ -52,6 +54,8 @@ export function unavailableOpsReadinessSummary(): OpsReadinessSummary {
     defaultViewsManualReviewOnly: false,
     defaultViewsBulkAutomationSafe: false,
     currentRuleConfigRealDataSafetyReady: false,
+    currentRuleConfigFingerprintPresent: false,
+    ruleConfigFingerprint: null,
     unconfirmedChannels: [],
     missingProbeAddresses: [],
     missingProbeSmtpEnv: [],
@@ -110,6 +114,9 @@ export function summarizeProductionReadinessAudit(
   const gate = (audit.gate && typeof audit.gate === "object")
     ? audit.gate as Record<string, unknown>
     : {};
+  const inputs = (audit.inputs && typeof audit.inputs === "object")
+    ? audit.inputs as Record<string, unknown>
+    : {};
   const blockers = Array.isArray(audit.blockers) ? audit.blockers : [];
   const routingBlocker = blockers
     .filter((item): item is Record<string, unknown> => Boolean(item && typeof item === "object"))
@@ -147,6 +154,8 @@ export function summarizeProductionReadinessAudit(
     defaultViewsManualReviewOnly: requirements.defaultViewsManualReviewOnly === true,
     defaultViewsBulkAutomationSafe: requirements.defaultViewsBulkAutomationSafe === true,
     currentRuleConfigRealDataSafetyReady: requirements.currentRuleConfigRealDataSafetyReady === true,
+    currentRuleConfigFingerprintPresent: requirements.currentRuleConfigFingerprintPresent === true,
+    ruleConfigFingerprint: typeof inputs.rulesConfigFingerprint === "string" ? inputs.rulesConfigFingerprint : null,
     unconfirmedChannels: stringArray(evidence.currentSharedGmailRoutingUnconfirmed),
     missingProbeAddresses: stringArray(routingProbeGate.missingAddresses),
     missingProbeSmtpEnv: stringArray(routingProbePreflight.missingRequiredEnv),

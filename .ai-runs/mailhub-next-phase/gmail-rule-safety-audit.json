@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-17T07:42:18.124Z",
+  "generatedAt": "2026-06-17T08:10:18.407Z",
   "sharedInboxEmailMasked": "inf***@vtj.co.jp",
   "config": {
     "requestedSource": "file",
@@ -8,7 +8,12 @@
     "lastUpdatedAt": {
       "labelRules": null,
       "assigneeRules": null
-    }
+    },
+    "ruleSetFingerprint": "sha256:64ce3c152193b489c6d1b48a3c89ad4ea195b7824e0c25c5412db1c4a1cababd",
+    "fingerprintIncludes": [
+      "normalized_label_rules",
+      "normalized_assignee_rules"
+    ]
   },
   "sample": {
     "labelIds": [

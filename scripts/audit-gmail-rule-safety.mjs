@@ -102,6 +102,20 @@ function hashId(value) {
   return createHash("sha256").update(String(value)).digest("hex").slice(0, 12);
 }
 
+function stableJson(value) {
+  if (Array.isArray(value)) return `[${value.map(stableJson).join(",")}]`;
+  if (!value || typeof value !== "object") return JSON.stringify(value);
+  const entries = Object.entries(value)
+    .filter(([, entryValue]) => entryValue !== undefined)
+    .sort(([a], [b]) => a.localeCompare(b));
+  return `{${entries.map(([key, entryValue]) => `${JSON.stringify(key)}:${stableJson(entryValue)}`).join(",")}}`;
+}
+
+function ruleSetFingerprint(labelRules, assigneeRules) {
+  const canonical = stableJson({ assigneeRules, labelRules });
+  return `sha256:${createHash("sha256").update(canonical).digest("hex")}`;
+}
+
 function labelsForRule(rule) {
   if (Array.isArray(rule.labelNames)) return rule.labelNames.filter((v) => typeof v === "string" && v.trim());
   if (typeof rule.labelName === "string" && rule.labelName.trim()) return [rule.labelName];
@@ -424,6 +438,7 @@ async function main() {
   const { gmail, sharedInboxEmail } = createGmailClient();
   const sample = await fetchInboxMessages(gmail, sharedInboxEmail, max);
   const inspected = inspectRuleInventory(rules.labelRules, rules.assigneeRules, sample.messages);
+  const fingerprint = ruleSetFingerprint(rules.labelRules, rules.assigneeRules);
   const blockingFindings = [
     ...(inspected.findings.dangerousBroadRules.length ? ["dangerous_broad_rules"] : []),
     ...(inspected.findings.tooManyMatches.length ? ["too_many_matches"] : []),
@@ -439,6 +454,8 @@ async function main() {
       resolvedSource: rules.resolved,
       warnings: rules.warnings,
       lastUpdatedAt: rules.lastUpdatedAt,
+      ruleSetFingerprint: fingerprint,
+      fingerprintIncludes: ["normalized_label_rules", "normalized_assignee_rules"],
     },
     sample: {
       labelIds: ["INBOX"],

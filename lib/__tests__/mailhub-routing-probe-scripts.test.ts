@@ -137,6 +137,9 @@ function writeReadinessFixtures(dir: string, routingProbeGate: Record<string, un
   });
   writeJson(paths.rules, {
     generatedAt: "2026-06-17T00:00:00.000Z",
+    config: {
+      ruleSetFingerprint: "sha256:fixture-rules",
+    },
     ruleSafetyGate: { realDataRuleRiskPass: true },
   });
   return paths;

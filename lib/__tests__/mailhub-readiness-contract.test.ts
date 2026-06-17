@@ -48,6 +48,10 @@ function baseReadinessAudit(overrides: Record<string, unknown> = {}) {
       defaultViewsRealDataValidated: true,
       defaultViewsManualReviewOnly: true,
       currentRuleConfigRealDataSafetyReady: true,
+      currentRuleConfigFingerprintPresent: true,
+    },
+    inputs: {
+      rulesConfigFingerprint: "sha256:abc123",
     },
     gate: {
       productionReady: false,
@@ -172,6 +176,25 @@ describe("MailHub readiness contract check", () => {
       const result = runContract(auditPath);
       expect(result.status).toBe(1);
       expect(result.stdout).toContain("routing_blocker_missing_github_secret_gap");
+    });
+  });
+
+  test("rejects rule safety readiness without a config fingerprint", () => {
+    withTempDir((dir) => {
+      const auditPath = join(dir, "readiness.json");
+      const audit = baseReadinessAudit();
+      writeJson(auditPath, {
+        ...audit,
+        requirements: {
+          ...audit.requirements,
+          currentRuleConfigFingerprintPresent: false,
+        },
+        inputs: {},
+      });
+
+      const result = runContract(auditPath);
+      expect(result.status).toBe(1);
+      expect(result.stdout).toContain("rule_safety_ready_without_config_fingerprint");
     });
   });
 

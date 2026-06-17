@@ -310,6 +310,13 @@
   - Production readiness now records `requirements.defaultViewsBulkAutomationSafe=false` instead of only the weaker `defaultViewsManualReviewOnly=true`.
   - Ops Board readiness summary now exposes default view syntax, manual-only status, bulk automation safety, and rule safety.
   - Refreshed real-data artifacts; the only P0 remains `current_shared_gmail_routing`.
+- 2026-06-17 rule-safety fingerprint wave completed:
+  - `scripts/audit-gmail-rule-safety.mjs` now records `config.ruleSetFingerprint`, a SHA-256 hash of the normalized label and assignee rules inspected by the real-data audit.
+  - Production readiness now requires `currentRuleConfigFingerprintPresent=true` before `currentRuleConfigRealDataSafetyReady` can pass.
+  - `scripts/check-mailhub-readiness-contract.mjs` rejects artifacts that claim rule safety without a rule config fingerprint.
+  - Ops Board readiness summary now exposes rule fingerprint presence and a short rule hash.
+  - Current file config has no label/assignee rules and fingerprints to `sha256:64ce3c152193...`; rule safety remains green for that exact empty config.
+  - Current production gate remains intentionally blocked only by P0 `current_shared_gmail_routing`.
 
 ## Not Done
 

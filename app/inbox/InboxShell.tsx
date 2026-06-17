@@ -154,6 +154,8 @@ type OpsReadinessView = {
   defaultViewsManualReviewOnly: boolean;
   defaultViewsBulkAutomationSafe: boolean;
   currentRuleConfigRealDataSafetyReady: boolean;
+  currentRuleConfigFingerprintPresent: boolean;
+  ruleConfigFingerprint: string | null;
   unconfirmedChannels: string[];
   missingProbeAddresses: string[];
   missingProbeSmtpEnv: string[];
@@ -8661,6 +8663,12 @@ export default function InboxShell({
                               </div>
                               <div className="rounded border border-slate-700/60 bg-slate-950/30 px-2 py-1">
                                 手動View: {opsSummary.productionReadiness.defaultViewsManualReviewOnly ? "あり" : "なし"}
+                              </div>
+                              <div className="rounded border border-slate-700/60 bg-slate-950/30 px-2 py-1">
+                                Rule指紋: {opsSummary.productionReadiness.currentRuleConfigFingerprintPresent ? "OK" : "なし"}
+                              </div>
+                              <div className="rounded border border-slate-700/60 bg-slate-950/30 px-2 py-1 truncate">
+                                Rule hash: {opsSummary.productionReadiness.ruleConfigFingerprint?.slice(7, 19) || "未取得"}
                               </div>
                               {opsSummary.productionReadiness.missingProbeSmtpEnv.length > 0 && (
                                 <div className="col-span-2 rounded border border-slate-700/60 bg-slate-950/30 px-2 py-1 break-words">

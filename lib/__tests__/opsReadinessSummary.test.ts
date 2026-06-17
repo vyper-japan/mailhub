@@ -20,6 +20,10 @@ describe("opsReadinessSummary", () => {
         defaultViewsManualReviewOnly: true,
         defaultViewsBulkAutomationSafe: false,
         currentRuleConfigRealDataSafetyReady: true,
+        currentRuleConfigFingerprintPresent: true,
+      },
+      inputs: {
+        rulesConfigFingerprint: "sha256:abc123",
       },
       gate: {
         productionReady: false,
@@ -68,6 +72,8 @@ describe("opsReadinessSummary", () => {
       defaultViewsManualReviewOnly: true,
       defaultViewsBulkAutomationSafe: false,
       currentRuleConfigRealDataSafetyReady: true,
+      currentRuleConfigFingerprintPresent: true,
+      ruleConfigFingerprint: "sha256:abc123",
       unconfirmedChannels: ["gopro-yahoo", "ebay"],
       missingProbeAddresses: ["gopro_y@vtj.co.jp", "ebay@vtj.co.jp"],
       missingProbeSmtpEnv: ["MAILHUB_PROBE_SMTP_HOST"],
