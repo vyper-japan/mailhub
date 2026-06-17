@@ -1361,6 +1361,39 @@ npm run audit:mailhub-routing-next -- --out .ai-runs/mailhub-next-phase/mailhub-
 - Production readiness refresh: passed with `productionReady=false` and the same P0 `current_shared_gmail_routing`.
 - Routing next-step refresh: passed with `canRunSendVerify=false`; the same four external SMTP proof secrets are still missing.
 
+## 2026-06-17 Routing Next-Step Integrity Wave Commands
+
+```bash
+node --check scripts/write-mailhub-routing-next-steps.mjs
+npx vitest run lib/__tests__/mailhub-routing-probe-scripts.test.ts
+npm run audit:github-routing-secrets -- --no-fail --out .ai-runs/mailhub-next-phase/github-routing-secrets-readiness.json
+npm run probe:routing-preflight -- --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-preflight.json
+npm run audit:routing-probes -- --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-audit.json
+npm run audit:gmail-sources -- --out .ai-runs/mailhub-next-phase/gmail-source-coverage-audit.json
+npm run audit:gmail-views -- --out .ai-runs/mailhub-next-phase/gmail-default-views-audit.json
+npm run audit:gmail-rules -- --out .ai-runs/mailhub-next-phase/gmail-rule-safety-audit.json
+npm run audit:mailhub-ops -- --out .ai-runs/mailhub-next-phase/mailhub-operational-confirmations.json
+npm run audit:gws-routing -- --out .ai-runs/mailhub-next-phase/mailhub-gws-routing-audit.json
+npm run audit:mailhub-readiness -- --out .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json
+npm run audit:mailhub-routing-next -- --strict --out .ai-runs/mailhub-next-phase/mailhub-routing-next-steps.json
+npm run audit:mailhub-readiness-contract
+actionlint .github/workflows/mailhub-routing-probe.yml
+npm run security:scan-artifacts
+git diff --check
+npm run test
+```
+
+## 2026-06-17 Routing Next-Step Integrity Wave Results
+
+- `write-mailhub-routing-next-steps.mjs --strict` now records `readinessRepoHead`, `repoHead`, `repoParentHead`, `inputs.errors`, and `inputs.warnings`.
+- Strict mode rejects stale readiness repo heads and accepts current/direct-parent readiness heads; focused Vitest passed 21/21.
+- `.github/workflows/mailhub-routing-probe.yml` now uses strict routing-next generation before preflight upload and after `send_verify`.
+- `actionlint .github/workflows/mailhub-routing-probe.yml`: passed.
+- `npm run audit:mailhub-routing-next -- --strict`: passed with `inputErrors=[]`, `inputWarnings=[]`, `canRunSendVerify=false`.
+- `npm run test`: 63 files / 561 tests passed.
+- Real-data audits refreshed; source code coverage and view/rule safety gates remain green.
+- Production readiness remains blocked only by P0 `current_shared_gmail_routing`; missing external SMTP proof setup is unchanged.
+
 ## Useful Runtime Commands
 
 Start dev server for tunnel:

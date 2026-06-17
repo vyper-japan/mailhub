@@ -598,6 +598,104 @@ describe("MailHub routing probe CLI gates", () => {
     });
   });
 
+  test("routing next-step strict mode rejects stale readiness repo head", () => {
+    withTempDir((dir) => {
+      const readinessPath = join(dir, "readiness.json");
+      const githubSecretsPath = join(dir, "github-secrets.json");
+      const preflightPath = join(dir, "preflight.json");
+      const outPath = join(dir, "next.json");
+      writeJson(readinessPath, {
+        generatedAt: "2026-06-17T00:00:00.000Z",
+        repoHead: "old-head",
+        gate: { productionReady: false, p0Blockers: ["current_shared_gmail_routing"] },
+      });
+      writeJson(githubSecretsPath, {
+        checkedAt: "2026-06-17T00:00:00.000Z",
+        readyForSendVerify: false,
+        missingSendVerifySecrets: ["MAILHUB_PROBE_SMTP_HOST"],
+        presentRequiredSecretNames: ["GOOGLE_CLIENT_ID"],
+      });
+      writeJson(preflightPath, {
+        generatedAt: "2026-06-17T00:00:00.000Z",
+        smtpPreflight: {
+          readyForProductionProof: false,
+          missingRequiredEnv: ["MAILHUB_PROBE_SMTP_HOST"],
+        },
+      });
+
+      const result = runNodeScript(routingNextStepsPath, [
+        "--readiness",
+        readinessPath,
+        "--github-secrets",
+        githubSecretsPath,
+        "--preflight",
+        preflightPath,
+        "--out",
+        outPath,
+        "--strict",
+        "--repo-head",
+        "current-head",
+        "--repo-parent-head",
+        "parent-head",
+      ]);
+
+      expect(result.status).toBe(1);
+      const out = readJson<{ inputs: { errors: string[]; readinessRepoHead: string; repoHead: string; repoParentHead: string } }>(outPath);
+      expect(out.inputs.readinessRepoHead).toBe("old-head");
+      expect(out.inputs.repoHead).toBe("current-head");
+      expect(out.inputs.repoParentHead).toBe("parent-head");
+      expect(out.inputs.errors).toContain("stale_readiness_repo_head");
+    });
+  });
+
+  test("routing next-step strict mode accepts current or parent readiness repo head", () => {
+    withTempDir((dir) => {
+      const readinessPath = join(dir, "readiness.json");
+      const githubSecretsPath = join(dir, "github-secrets.json");
+      const preflightPath = join(dir, "preflight.json");
+      const outPath = join(dir, "next.json");
+      writeJson(readinessPath, {
+        generatedAt: "2026-06-17T00:00:00.000Z",
+        repoHead: "parent-head",
+        gate: { productionReady: false, p0Blockers: ["current_shared_gmail_routing"] },
+      });
+      writeJson(githubSecretsPath, {
+        checkedAt: "2026-06-17T00:00:00.000Z",
+        readyForSendVerify: false,
+        missingSendVerifySecrets: ["MAILHUB_PROBE_SMTP_HOST"],
+        presentRequiredSecretNames: ["GOOGLE_CLIENT_ID"],
+      });
+      writeJson(preflightPath, {
+        generatedAt: "2026-06-17T00:00:00.000Z",
+        smtpPreflight: {
+          readyForProductionProof: false,
+          missingRequiredEnv: ["MAILHUB_PROBE_SMTP_HOST"],
+        },
+      });
+
+      const result = runNodeScript(routingNextStepsPath, [
+        "--readiness",
+        readinessPath,
+        "--github-secrets",
+        githubSecretsPath,
+        "--preflight",
+        preflightPath,
+        "--out",
+        outPath,
+        "--strict",
+        "--repo-head",
+        "current-head",
+        "--repo-parent-head",
+        "parent-head",
+      ]);
+
+      expect(result.status).toBe(0);
+      const out = readJson<{ inputs: { errors: string[]; readinessRepoHead: string } }>(outPath);
+      expect(out.inputs.readinessRepoHead).toBe("parent-head");
+      expect(out.inputs.errors).toEqual([]);
+    });
+  });
+
   test("plan-only routing probe audit reports every target address, not just channels", () => {
     withTempDir((dir) => {
       const opsPath = join(dir, "ops.json");

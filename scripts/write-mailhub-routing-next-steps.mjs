@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
@@ -20,15 +21,18 @@ const REQUIRED_EXTERNAL_SMTP_SECRETS = [
 ];
 
 function parseArgs(argv) {
-  const out = { ...defaults };
+  const out = { ...defaults, strict: false, repoHead: "", repoParentHead: "" };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     if (arg === "--readiness") out.readiness = argv[++i];
     else if (arg === "--github-secrets") out.githubSecrets = argv[++i];
     else if (arg === "--preflight") out.preflight = argv[++i];
     else if (arg === "--out") out.out = argv[++i];
+    else if (arg === "--strict") out.strict = true;
+    else if (arg === "--repo-head") out.repoHead = argv[++i];
+    else if (arg === "--repo-parent-head") out.repoParentHead = argv[++i];
     else if (arg === "--help" || arg === "-h") {
-      console.log("Usage: node scripts/write-mailhub-routing-next-steps.mjs [--readiness path] [--github-secrets path] [--preflight path] [--out path]");
+      console.log("Usage: node scripts/write-mailhub-routing-next-steps.mjs [--readiness path] [--github-secrets path] [--preflight path] [--out path] [--strict] [--repo-head sha] [--repo-parent-head sha]");
       process.exit(0);
     }
   }
@@ -48,11 +52,36 @@ function unique(values) {
   return [...new Set(values)];
 }
 
+function gitRevParse(ref) {
+  try {
+    return execFileSync("git", ["rev-parse", ref], {
+      cwd: repoRoot,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    }).trim();
+  } catch {
+    return null;
+  }
+}
+
 function main() {
   const args = parseArgs(process.argv.slice(2));
   const readiness = readOptionalJson(args.readiness);
   const githubSecrets = readOptionalJson(args.githubSecrets);
   const preflight = readOptionalJson(args.preflight);
+  const repoHead = args.repoHead || gitRevParse("HEAD");
+  const repoParentHead = args.repoParentHead || gitRevParse("HEAD^");
+  const readinessRepoHead = typeof readiness?.repoHead === "string" ? readiness.repoHead : null;
+  const inputErrors = [];
+  const inputWarnings = [];
+  if (!readiness) inputErrors.push("missing_readiness_artifact");
+  if (!githubSecrets) inputWarnings.push("missing_github_secrets_artifact");
+  if (!preflight) inputWarnings.push("missing_preflight_artifact");
+  if (readiness && !readinessRepoHead) inputErrors.push("readiness_missing_repo_head");
+  if (readinessRepoHead && repoHead && readinessRepoHead !== repoHead && readinessRepoHead !== repoParentHead) {
+    inputErrors.push("stale_readiness_repo_head");
+  }
+
   const p0Blockers = stringArray(readiness?.gate?.p0Blockers);
   const productionReady = readiness?.gate?.productionReady === true;
   const missingGithubSecrets = githubSecrets
@@ -83,8 +112,13 @@ function main() {
       githubSecrets: args.githubSecrets,
       preflight: args.preflight,
       readinessGeneratedAt: readiness?.generatedAt ?? null,
+      readinessRepoHead,
+      repoHead,
+      repoParentHead,
       githubSecretsCheckedAt: githubSecrets?.checkedAt ?? null,
       preflightGeneratedAt: preflight?.generatedAt ?? null,
+      errors: inputErrors,
+      warnings: inputWarnings,
     },
     state: {
       productionReady,
@@ -139,7 +173,10 @@ function main() {
     productionReady,
     canRunSendVerify,
     missingExternalSmtpSecrets,
+    inputErrors,
+    inputWarnings,
   }, null, 2));
+  if (args.strict && inputErrors.length > 0) process.exitCode = 1;
 }
 
 main();

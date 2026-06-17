@@ -127,6 +127,7 @@ jobs:
           npm run audit:mailhub-readiness -- \
             --out .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json
           npm run audit:mailhub-routing-next -- \
+            --strict \
             --out .ai-runs/mailhub-next-phase/mailhub-routing-next-steps.json
           npm run audit:mailhub-readiness-contract
           node -e 'const n=require("./.ai-runs/mailhub-next-phase/mailhub-routing-next-steps.json"); console.log(JSON.stringify({productionReady:n.state.productionReady, canRunSendVerify:n.state.canRunSendVerify, missingExternalSmtpSecrets:n.missing.externalSmtpSecrets, runGithubSendVerify:n.nextActions.find((a)=>a.id==="run_github_send_verify")?.status}, null, 2));'
@@ -159,6 +160,7 @@ jobs:
           npm run audit:mailhub-readiness -- \
             --out .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json
           npm run audit:mailhub-routing-next -- \
+            --strict \
             --out .ai-runs/mailhub-next-phase/mailhub-routing-next-steps.json
           npm run audit:mailhub-readiness-contract
 

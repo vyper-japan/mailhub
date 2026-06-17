@@ -296,6 +296,14 @@
   - `npm run qa:strict` passed once with only two retries before final de-flake; targeted rechecks for those two tests then passed on first attempt.
   - After GitHub `qa-strict` exposed CI-only timing gaps, hardened `Step97`, `21`, and `Step111` to assert final UI/API state instead of mandatory incidental response timing.
   - Latest pushed recovery commit `1bf31ac` passed both required GitHub gates: `MailHub Readiness Contract` and `qa-strict` (`27671054720`, 12m14s).
+- 2026-06-17 routing next-step integrity wave completed:
+  - Added `--strict` mode to `scripts/write-mailhub-routing-next-steps.mjs`.
+  - The routing next-step artifact now records the readiness artifact repo head, current repo head, parent repo head, input errors, and input warnings.
+  - Strict mode fails on stale readiness input, preventing local or workflow runs from publishing a next-step artifact assembled from an out-of-date production readiness audit.
+  - The manual routing probe workflow now uses strict routing-next generation before both preflight artifact upload and post-`send_verify` readiness refresh.
+  - Added focused tests for stale readiness rejection and current/parent readiness acceptance.
+  - Refreshed source coverage, default views, rule safety, operational confirmation, GWS routing, routing probe, GitHub secret readiness, SMTP preflight, production readiness, and routing next-step artifacts with current real-data evidence.
+  - Current gate remains intentionally blocked: `productionReady=false`, P0 `current_shared_gmail_routing`, `canRunSendVerify=false`, and the four external SMTP proof secrets are still missing.
 
 ## Not Done
 
