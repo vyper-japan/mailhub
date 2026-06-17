@@ -215,4 +215,35 @@ describe("MailHub readiness contract check", () => {
       expect(result.stdout).toContain("production_ready_without_current_shared_gmail_routing");
     });
   });
+
+  test("rejects shared routing readiness without address-level routing probe proof", () => {
+    withTempDir((dir) => {
+      const auditPath = join(dir, "readiness.json");
+      writeJson(auditPath, baseReadinessAudit({
+        requirements: {
+          sourceCodeCoverageReady: true,
+          sourceInventoryReady: true,
+          currentSharedGmailRoutingReady: true,
+          routingProbeReady: false,
+          routingProbePreflightReady: true,
+          routingProbeGithubSecretsReady: true,
+          defaultViewsRealDataValidated: true,
+          defaultViewsManualReviewOnly: true,
+          currentRuleConfigRealDataSafetyReady: true,
+          currentRuleConfigFingerprintPresent: true,
+        },
+        gate: {
+          productionReady: true,
+          p0Blockers: [],
+          p1Blockers: [],
+        },
+        blockers: [],
+      }));
+
+      const result = runContract(auditPath);
+      expect(result.status).toBe(1);
+      expect(result.stdout).toContain("production_ready_without_routing_probe_proof");
+      expect(result.stdout).toContain("shared_routing_ready_without_routing_probe_proof");
+    });
+  });
 });

@@ -1,15 +1,17 @@
 {
-  "generatedAt": "2026-06-17T10:48:47.676Z",
+  "generatedAt": "2026-06-17T11:16:29.407Z",
   "inputs": {
     "readiness": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json",
     "githubSecrets": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.ai-runs/mailhub-next-phase/github-routing-secrets-readiness.json",
     "preflight": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.ai-runs/mailhub-next-phase/mailhub-routing-probe-preflight.json",
-    "readinessGeneratedAt": "2026-06-17T10:48:36.663Z",
-    "readinessRepoHead": "f505adbc2e114a3caf14f245731166b9d1dd5b0d",
-    "repoHead": "f505adbc2e114a3caf14f245731166b9d1dd5b0d",
-    "repoParentHead": "222cb497bfaf1f509de06beb3fd0d6d49b69fc12",
+    "readinessGeneratedAt": "2026-06-17T11:16:12.913Z",
+    "readinessRepoHead": "52807bf6f8141b02e17ba3444f11166d1394d0fb",
+    "repoHead": "52807bf6f8141b02e17ba3444f11166d1394d0fb",
+    "repoParentHead": "f505adbc2e114a3caf14f245731166b9d1dd5b0d",
     "githubSecretsCheckedAt": "2026-06-17T08:38:38.855Z",
-    "preflightGeneratedAt": "2026-06-17T08:38:39.053Z",
+    "preflightGeneratedAt": "2026-06-17T11:16:05.913Z",
+    "localEnvFile": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.env.local",
+    "localEnvFileLoaded": true,
     "errors": [],
     "warnings": []
   },
@@ -21,6 +23,7 @@
     "currentSharedGmailRoutingBlocked": true,
     "readyForGithubSendVerify": false,
     "readyForLocalProductionProof": false,
+    "readyForLocalGmailVerification": true,
     "canRunGithubWorkflowDispatch": false,
     "canRunLocalSendVerify": false,
     "canRunSendVerify": false,
@@ -44,7 +47,8 @@
       "MAILHUB_PROBE_SMTP_USER",
       "MAILHUB_PROBE_SMTP_PASS",
       "MAILHUB_PROBE_FROM"
-    ]
+    ],
+    "localGmailVerificationEnv": []
   },
   "present": {
     "githubRequiredSecrets": [
@@ -94,7 +98,7 @@
       "id": "run_local_send_verify",
       "status": "blocked",
       "command": "npm run probe:routing-send -- --send --verify-after-send --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-send.json",
-      "expected": "local env preflight is production-proof ready, then sends 8 external probes and verifies all expected addresses"
+      "expected": "local SMTP preflight and local Gmail verification env are ready, then sends 8 external probes and verifies all expected addresses"
     }
   ]
 }

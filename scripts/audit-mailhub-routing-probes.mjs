@@ -129,14 +129,14 @@ async function main() {
       channelId: target.id,
       label: target.label,
       address,
-      manualProbeSubject: marker || "MAILHUB-ROUTING-PROBE-<YYYYMMDD-HHMMSS>",
+      manualProbeSubject: marker || "MAILHUB-ROUTING-PROBE-YYYYMMDDTHHMMSSZ",
     })),
   );
   const probePlan = targets.map((target) => ({
     channelId: target.id,
     label: target.label,
     addresses: target.addresses,
-    manualProbeSubject: marker || "MAILHUB-ROUTING-PROBE-<YYYYMMDD-HHMMSS>",
+    manualProbeSubject: marker || "MAILHUB-ROUTING-PROBE-YYYYMMDDTHHMMSSZ",
     sendOneProbeToEachAddress: target.addresses,
   }));
 

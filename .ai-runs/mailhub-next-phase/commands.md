@@ -1668,6 +1668,59 @@ npm run audit:mailhub-routing-proof-contract
   - typecheck, lint, build, security scan, and artifact secret scan
 - First `npm run typecheck` failed before `next build` because `.next/types` referenced stale generated files; after `next build` regenerated `.next/types`, `npm run typecheck` passed.
 
+## 2026-06-17 Routing Proof P1 Hardening Commands
+
+```bash
+node --check scripts/audit-mailhub-production-readiness.mjs
+node --check scripts/check-mailhub-readiness-contract.mjs
+node --check scripts/send-mailhub-routing-probes.mjs
+node --check scripts/write-mailhub-routing-next-steps.mjs
+node --check scripts/check-mailhub-routing-next-contract.mjs
+node --check scripts/check-mailhub-routing-proof-contract.mjs
+node --check scripts/audit-mailhub-routing-probes.mjs
+npx vitest run lib/__tests__/mailhub-readiness-contract.test.ts lib/__tests__/mailhub-routing-probe-scripts.test.ts
+actionlint .github/workflows/mailhub-routing-probe.yml
+npm run audit:routing-probes -- --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-audit.json
+npm run probe:routing-preflight -- --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-preflight.json
+npm run probe:routing-send -- --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-send.json
+npm run audit:mailhub-readiness -- --out .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json
+npm run audit:mailhub-routing-next -- --strict --out .ai-runs/mailhub-next-phase/mailhub-routing-next-steps.json
+npm run audit:github-routing-secrets-contract
+npm run audit:mailhub-readiness-contract
+npm run audit:mailhub-routing-next-contract
+npm run audit:mailhub-routing-proof-contract
+npm run typecheck
+npm run lint
+npm run test
+npm run build
+npm run security:scan
+npm run security:scan-artifacts
+npx vitest run lib/__tests__/ops-artifact-secret-scan.test.ts
+npm run test:coverage
+git diff --check
+```
+
+## 2026-06-17 Routing Proof P1 Hardening Results
+
+- Closed the P1 review findings from the workflow/docs/contracts critic wave:
+  - readiness now requires 8-address routing probe proof to close `current_shared_gmail_routing`
+  - local `--verify-after-send` now checks Gmail verification env before any SMTP send
+  - routing proof contract now rejects sent/audit marker mismatches
+  - routing probe workflow artifact upload now includes hidden `.ai-runs` files and errors if proof files are absent
+  - `.env.example`, `OPS_RUNBOOK.md`, and `docs/mailhub-source-coverage-audit.md` now match the current routing proof flow
+- Focused routing/readiness tests passed 37/37.
+- Full Vitest passed 63 files / 572 tests.
+- Coverage run passed 63 files / 572 tests.
+- Typecheck, lint, build, actionlint, security scan, artifact secret scan, and all four MailHub artifact contracts passed.
+- Default artifact secret scan now includes 9 files, including `.env.example`.
+- First `npm run typecheck` failed before `next build` because `.next/types` referenced stale generated files; after `next build` regenerated `.next/types`, `npm run typecheck` passed.
+- Current final artifact state remains blocked as expected:
+  - `productionReady=false`
+  - P0 `current_shared_gmail_routing`
+  - `canRunGithubWorkflowDispatch=false`
+  - `canRunLocalSendVerify=false`
+  - missing external SMTP proof values: `MAILHUB_PROBE_SMTP_HOST`, `MAILHUB_PROBE_SMTP_USER`, `MAILHUB_PROBE_SMTP_PASS`, `MAILHUB_PROBE_FROM`
+
 ## Useful Runtime Commands
 
 Start dev server for tunnel:

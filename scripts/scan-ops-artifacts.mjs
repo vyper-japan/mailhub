@@ -7,6 +7,7 @@ import { fileURLToPath } from "url";
 const rootDir = resolve(fileURLToPath(new URL("..", import.meta.url)));
 
 const DEFAULT_TARGETS = [
+  ".env.example",
   "env.example",
   "OPS_RUNBOOK.md",
   ".ai-runs/mailhub-next-phase/github-routing-secrets-readiness.json",
@@ -82,7 +83,7 @@ function isKeyNameOnly(line) {
 
 function shouldScanFile(filePath) {
   const base = filePath.split(/[\\/]/).pop() ?? "";
-  if (base === "env.example" || base === "OPS_RUNBOOK.md") return true;
+  if (base === ".env.example" || base === "env.example" || base === "OPS_RUNBOOK.md") return true;
   return SCANNABLE_EXTENSIONS.has(extname(base));
 }
 

@@ -209,10 +209,10 @@ npm run probe:routing-send -- --send
 
 The sender rejects `@vtj.co.jp` senders by default because they can prove internal GWS group delivery without proving the current external Lolipop/MX path.
 
-After controlled probe messages are sent to each listed address, verify shared Gmail arrival with:
+After controlled probe messages are sent to each listed address, copy the exact `marker` from `mailhub-routing-probe-send.json` and verify shared Gmail arrival with:
 
 ```bash
-npm run audit:routing-probes -- --marker MAILHUB-ROUTING-PROBE-<YYYYMMDD-HHMMSS> --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-audit.json
+npm run audit:routing-probes -- --marker MAILHUB-ROUTING-PROBE-YYYYMMDDTHHMMSSZ --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-audit.json
 npm run audit:mailhub-readiness -- --out .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json
 ```
 

@@ -442,7 +442,8 @@ npm run probe:routing-send -- --out .ai-runs/mailhub-next-phase/mailhub-routing-
 確認:
 - `mode` が `dry_run`
 - `probeCount` が `8`
-- `sentCount` が `0`
+- CLI summary の `sentCount` が `0`
+- JSON artifact の `sent.length` が `0`
 - `addressProbes` に以下が含まれる:
   - `gopro_y@vtj.co.jp`
   - `gopro_order_yahoo@vtj.co.jp`
@@ -477,7 +478,8 @@ npm run probe:routing-preflight -- --out .ai-runs/mailhub-next-phase/mailhub-rou
 合格条件:
 - `mode=preflight`
 - `probeCount=8`
-- `sentCount=0`
+- CLI summary の `sentCount=0`
+- JSON artifact の `sent.length=0`
 - `smtpPreflight.readyForProductionProof=true`
 - `smtpPreflight.missingRequiredEnv=[]`
 

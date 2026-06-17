@@ -190,5 +190,6 @@ jobs:
             .ai-runs/mailhub-next-phase/github-routing-secrets-readiness.json
             .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json
             .ai-runs/mailhub-next-phase/mailhub-routing-next-steps.json
-          if-no-files-found: ignore
+          include-hidden-files: true
+          if-no-files-found: error
           retention-days: 14

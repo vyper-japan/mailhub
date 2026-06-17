@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-17T08:12:01.645Z",
+  "generatedAt": "2026-06-17T11:16:06.380Z",
   "inputs": {
     "opsAudit": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.ai-runs/mailhub-next-phase/mailhub-operational-confirmations.json",
     "opsAuditGeneratedAt": "2026-06-17T08:12:00.457Z",
@@ -15,7 +15,7 @@
         "gopro_y@vtj.co.jp",
         "gopro_order_yahoo@vtj.co.jp"
       ],
-      "manualProbeSubject": "MAILHUB-ROUTING-PROBE-<YYYYMMDD-HHMMSS>",
+      "manualProbeSubject": "MAILHUB-ROUTING-PROBE-YYYYMMDDTHHMMSSZ",
       "sendOneProbeToEachAddress": [
         "gopro_y@vtj.co.jp",
         "gopro_order_yahoo@vtj.co.jp"
@@ -28,7 +28,7 @@
         "vyper_r@vtj.co.jp",
         "vyper_rakuten@vtj.co.jp"
       ],
-      "manualProbeSubject": "MAILHUB-ROUTING-PROBE-<YYYYMMDD-HHMMSS>",
+      "manualProbeSubject": "MAILHUB-ROUTING-PROBE-YYYYMMDDTHHMMSSZ",
       "sendOneProbeToEachAddress": [
         "vyper_r@vtj.co.jp",
         "vyper_rakuten@vtj.co.jp"
@@ -40,7 +40,7 @@
       "addresses": [
         "vyperglobal_y@vtj.co.jp"
       ],
-      "manualProbeSubject": "MAILHUB-ROUTING-PROBE-<YYYYMMDD-HHMMSS>",
+      "manualProbeSubject": "MAILHUB-ROUTING-PROBE-YYYYMMDDTHHMMSSZ",
       "sendOneProbeToEachAddress": [
         "vyperglobal_y@vtj.co.jp"
       ]
@@ -51,7 +51,7 @@
       "addresses": [
         "ams_vyper@vtj.co.jp"
       ],
-      "manualProbeSubject": "MAILHUB-ROUTING-PROBE-<YYYYMMDD-HHMMSS>",
+      "manualProbeSubject": "MAILHUB-ROUTING-PROBE-YYYYMMDDTHHMMSSZ",
       "sendOneProbeToEachAddress": [
         "ams_vyper@vtj.co.jp"
       ]
@@ -62,7 +62,7 @@
       "addresses": [
         "datacolor_shopify@vtj.co.jp"
       ],
-      "manualProbeSubject": "MAILHUB-ROUTING-PROBE-<YYYYMMDD-HHMMSS>",
+      "manualProbeSubject": "MAILHUB-ROUTING-PROBE-YYYYMMDDTHHMMSSZ",
       "sendOneProbeToEachAddress": [
         "datacolor_shopify@vtj.co.jp"
       ]
@@ -73,7 +73,7 @@
       "addresses": [
         "ebay@vtj.co.jp"
       ],
-      "manualProbeSubject": "MAILHUB-ROUTING-PROBE-<YYYYMMDD-HHMMSS>",
+      "manualProbeSubject": "MAILHUB-ROUTING-PROBE-YYYYMMDDTHHMMSSZ",
       "sendOneProbeToEachAddress": [
         "ebay@vtj.co.jp"
       ]
@@ -84,49 +84,49 @@
       "channelId": "gopro-yahoo",
       "label": "GoPro Yahoo",
       "address": "gopro_y@vtj.co.jp",
-      "manualProbeSubject": "MAILHUB-ROUTING-PROBE-<YYYYMMDD-HHMMSS>"
+      "manualProbeSubject": "MAILHUB-ROUTING-PROBE-YYYYMMDDTHHMMSSZ"
     },
     {
       "channelId": "gopro-yahoo",
       "label": "GoPro Yahoo",
       "address": "gopro_order_yahoo@vtj.co.jp",
-      "manualProbeSubject": "MAILHUB-ROUTING-PROBE-<YYYYMMDD-HHMMSS>"
+      "manualProbeSubject": "MAILHUB-ROUTING-PROBE-YYYYMMDDTHHMMSSZ"
     },
     {
       "channelId": "vyperglobal-rakuten",
       "label": "VYPER GLOBAL 楽天",
       "address": "vyper_r@vtj.co.jp",
-      "manualProbeSubject": "MAILHUB-ROUTING-PROBE-<YYYYMMDD-HHMMSS>"
+      "manualProbeSubject": "MAILHUB-ROUTING-PROBE-YYYYMMDDTHHMMSSZ"
     },
     {
       "channelId": "vyperglobal-rakuten",
       "label": "VYPER GLOBAL 楽天",
       "address": "vyper_rakuten@vtj.co.jp",
-      "manualProbeSubject": "MAILHUB-ROUTING-PROBE-<YYYYMMDD-HHMMSS>"
+      "manualProbeSubject": "MAILHUB-ROUTING-PROBE-YYYYMMDDTHHMMSSZ"
     },
     {
       "channelId": "vyperglobal-yahoo",
       "label": "VYPER GLOBAL Yahoo",
       "address": "vyperglobal_y@vtj.co.jp",
-      "manualProbeSubject": "MAILHUB-ROUTING-PROBE-<YYYYMMDD-HHMMSS>"
+      "manualProbeSubject": "MAILHUB-ROUTING-PROBE-YYYYMMDDTHHMMSSZ"
     },
     {
       "channelId": "ams-vyper",
       "label": "Amazon Ads (AMS)",
       "address": "ams_vyper@vtj.co.jp",
-      "manualProbeSubject": "MAILHUB-ROUTING-PROBE-<YYYYMMDD-HHMMSS>"
+      "manualProbeSubject": "MAILHUB-ROUTING-PROBE-YYYYMMDDTHHMMSSZ"
     },
     {
       "channelId": "datacolor",
       "label": "Datacolor Shopify",
       "address": "datacolor_shopify@vtj.co.jp",
-      "manualProbeSubject": "MAILHUB-ROUTING-PROBE-<YYYYMMDD-HHMMSS>"
+      "manualProbeSubject": "MAILHUB-ROUTING-PROBE-YYYYMMDDTHHMMSSZ"
     },
     {
       "channelId": "ebay",
       "label": "eBay",
       "address": "ebay@vtj.co.jp",
-      "manualProbeSubject": "MAILHUB-ROUTING-PROBE-<YYYYMMDD-HHMMSS>"
+      "manualProbeSubject": "MAILHUB-ROUTING-PROBE-YYYYMMDDTHHMMSSZ"
     }
   ],
   "probes": [],

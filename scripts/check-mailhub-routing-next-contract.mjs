@@ -112,6 +112,7 @@ function main() {
   const readinessP1Blockers = stringArray(readinessGate.p1Blockers);
   const githubMissing = stringArray(missing.githubSendVerifySecrets);
   const localMissing = stringArray(missing.localPreflightEnv);
+  const localGmailMissing = stringArray(missing.localGmailVerificationEnv);
   const externalMissing = stringArray(missing.externalSmtpSecrets);
 
   if (inputErrors.length > 0) errors.push(...inputErrors.map((error) => `input_error:${error}`));
@@ -132,6 +133,7 @@ function main() {
 
   const readyForGithub = state.readyForGithubSendVerify === true;
   const readyForLocal = state.readyForLocalProductionProof === true;
+  const readyForLocalGmail = state.readyForLocalGmailVerification === true;
   const canRunGithub = state.canRunGithubWorkflowDispatch === true;
   const canRunLocal = state.canRunLocalSendVerify === true;
   const canRunBoth = state.canRunSendVerify === true;
@@ -142,12 +144,16 @@ function main() {
   if (JSON.stringify(stringArray(state.p1Blockers)) !== JSON.stringify(readinessP1Blockers)) errors.push("p1_blockers_mismatch");
   if (state.externalMailWillBeSentByThisScript !== false) errors.push("routing_next_must_not_claim_to_send_mail");
   if (canRunGithub !== readyForGithub) errors.push("github_dispatch_gate_mismatch");
-  if (canRunLocal !== readyForLocal) errors.push("local_send_gate_mismatch");
-  if (canRunBoth !== (readyForGithub && readyForLocal)) errors.push("combined_send_gate_mismatch");
+  if (canRunLocal !== (readyForLocal && readyForLocalGmail)) errors.push("local_send_gate_mismatch");
+  if (canRunBoth !== (readyForGithub && canRunLocal)) errors.push("combined_send_gate_mismatch");
   if (readyForGithub && githubMissing.length > 0) errors.push("github_ready_with_missing_secrets");
   if (!readyForGithub && githubMissing.length === 0 && !state.productionReady) errors.push("github_not_ready_without_missing_secrets");
   if (readyForLocal && localMissing.length > 0) errors.push("local_ready_with_missing_env");
   if (!readyForLocal && localMissing.length === 0 && !state.productionReady) errors.push("local_not_ready_without_missing_env");
+  if (readyForLocalGmail && localGmailMissing.length > 0) errors.push("local_gmail_ready_with_missing_env");
+  if (!readyForLocalGmail && localGmailMissing.length === 0 && !state.productionReady) {
+    errors.push("local_gmail_not_ready_without_missing_env");
+  }
   if (state.currentSharedGmailRoutingBlocked === true && !p0Blockers.includes("current_shared_gmail_routing")) {
     errors.push("routing_blocked_without_p0");
   }

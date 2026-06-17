@@ -84,12 +84,7 @@ function main() {
   const routingProbeReady = Boolean(routingProbeAudit?.gate?.allExpectedAddressesConfirmed);
   const routingProbePreflightReady = Boolean(routingProbePreflight?.smtpPreflight?.readyForProductionProof);
   const routingProbeGithubSecretsReady = Boolean(githubRoutingSecrets?.readyForSendVerify);
-  const currentSharedGmailRoutingReady =
-    (
-      Boolean(opsAudit.gate?.productionCompleteClaimReady) &&
-      Boolean(gwsRoutingAudit.gate?.currentSharedGmailRoutingConfirmed)
-    ) ||
-    routingProbeReady;
+  const currentSharedGmailRoutingReady = routingProbeReady;
   const viewSyntaxReady = viewsAudit.gate?.syntaxReady === true ||
     (viewsAudit.views ?? []).every((view) => view.syntaxAccepted === true && !view.error);
   const viewsManualReviewOnly = viewsAudit.gate?.manualReviewOnly === true ||

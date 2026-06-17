@@ -85,6 +85,7 @@ function main() {
   if (productionReady) {
     if (p0Blockers.length > 0) errors.push("production_ready_with_p0_blockers");
     if (requirements.currentSharedGmailRoutingReady !== true) errors.push("production_ready_without_current_shared_gmail_routing");
+    if (requirements.routingProbeReady !== true) errors.push("production_ready_without_routing_probe_proof");
     if (requirements.sourceCodeCoverageReady !== true) errors.push("production_ready_without_source_code_coverage");
     if (requirements.sourceInventoryReady !== true) errors.push("production_ready_without_source_inventory");
     if (requirements.defaultViewsRealDataValidated !== true) errors.push("production_ready_without_default_views_validation");
@@ -92,6 +93,10 @@ function main() {
     if (requirements.currentRuleConfigFingerprintPresent !== true) errors.push("production_ready_without_rule_config_fingerprint");
   } else if (p0Blockers.length === 0) {
     errors.push("not_ready_without_p0_blockers");
+  }
+
+  if (requirements.currentSharedGmailRoutingReady === true && requirements.routingProbeReady !== true) {
+    errors.push("shared_routing_ready_without_routing_probe_proof");
   }
 
   if (requirements.currentRuleConfigRealDataSafetyReady === true && requirements.currentRuleConfigFingerprintPresent !== true) {

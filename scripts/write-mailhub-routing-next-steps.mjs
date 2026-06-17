@@ -19,24 +19,53 @@ const REQUIRED_EXTERNAL_SMTP_SECRETS = [
   "MAILHUB_PROBE_SMTP_PASS",
   "MAILHUB_PROBE_FROM",
 ];
+const REQUIRED_LOCAL_GMAIL_ENV = [
+  "GOOGLE_CLIENT_ID",
+  "GOOGLE_CLIENT_SECRET",
+  "GOOGLE_SHARED_INBOX_EMAIL",
+  "GOOGLE_SHARED_INBOX_REFRESH_TOKEN",
+];
 
 function parseArgs(argv) {
-  const out = { ...defaults, strict: false, repoHead: "", repoParentHead: "" };
+  const out = { ...defaults, localEnvFile: join(repoRoot, ".env.local"), strict: false, repoHead: "", repoParentHead: "" };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     if (arg === "--readiness") out.readiness = argv[++i];
     else if (arg === "--github-secrets") out.githubSecrets = argv[++i];
     else if (arg === "--preflight") out.preflight = argv[++i];
     else if (arg === "--out") out.out = argv[++i];
+    else if (arg === "--local-env-file") out.localEnvFile = argv[++i];
     else if (arg === "--strict") out.strict = true;
     else if (arg === "--repo-head") out.repoHead = argv[++i];
     else if (arg === "--repo-parent-head") out.repoParentHead = argv[++i];
     else if (arg === "--help" || arg === "-h") {
-      console.log("Usage: node scripts/write-mailhub-routing-next-steps.mjs [--readiness path] [--github-secrets path] [--preflight path] [--out path] [--strict] [--repo-head sha] [--repo-parent-head sha]");
+      console.log("Usage: node scripts/write-mailhub-routing-next-steps.mjs [--readiness path] [--github-secrets path] [--preflight path] [--out path] [--local-env-file path] [--strict] [--repo-head sha] [--repo-parent-head sha]");
       process.exit(0);
     }
   }
   return out;
+}
+
+function loadEnvFile(path) {
+  if (!path || !existsSync(path)) return false;
+  const raw = readFileSync(path, "utf8");
+  for (const line of raw.split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+    const match = trimmed.match(/^([A-Z0-9_]+)=(.*)$/);
+    if (!match) continue;
+    const [, key, rawValue] = match;
+    if (process.env[key]) continue;
+    let value = rawValue.trim();
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1);
+    }
+    process.env[key] = value.replace(/\\n/g, "\n");
+  }
+  return true;
 }
 
 function readOptionalJson(path) {
@@ -50,6 +79,10 @@ function stringArray(value) {
 
 function unique(values) {
   return [...new Set(values)];
+}
+
+function missingEnv(keys) {
+  return keys.filter((key) => !process.env[key]?.trim());
 }
 
 function gitRevParse(ref) {
@@ -66,6 +99,7 @@ function gitRevParse(ref) {
 
 function main() {
   const args = parseArgs(process.argv.slice(2));
+  const localEnvFileLoaded = loadEnvFile(args.localEnvFile);
   const readiness = readOptionalJson(args.readiness);
   const githubSecrets = readOptionalJson(args.githubSecrets);
   const preflight = readOptionalJson(args.preflight);
@@ -97,15 +131,17 @@ function main() {
   const missingPreflightEnv = preflight
     ? stringArray(preflight.smtpPreflight?.missingRequiredEnv)
     : REQUIRED_EXTERNAL_SMTP_SECRETS;
+  const missingLocalGmailEnv = missingEnv(REQUIRED_LOCAL_GMAIL_ENV);
   const missingExternalSmtpSecrets = unique([
     ...REQUIRED_EXTERNAL_SMTP_SECRETS.filter((name) => missingGithubSecrets.includes(name)),
     ...REQUIRED_EXTERNAL_SMTP_SECRETS.filter((name) => missingPreflightEnv.includes(name)),
   ]);
   const readyForGithubSendVerify = githubSecrets?.readyForSendVerify === true;
   const readyForLocalProductionProof = preflight?.smtpPreflight?.readyForProductionProof === true;
+  const readyForLocalGmailVerification = missingLocalGmailEnv.length === 0;
   const canRunGithubWorkflowDispatch = readyForGithubSendVerify;
-  const canRunLocalSendVerify = readyForLocalProductionProof;
-  const canRunSendVerify = readyForGithubSendVerify && readyForLocalProductionProof;
+  const canRunLocalSendVerify = readyForLocalProductionProof && readyForLocalGmailVerification;
+  const canRunSendVerify = readyForGithubSendVerify && canRunLocalSendVerify;
 
   const result = {
     generatedAt: new Date().toISOString(),
@@ -119,6 +155,8 @@ function main() {
       repoParentHead,
       githubSecretsCheckedAt: githubSecrets?.checkedAt ?? null,
       preflightGeneratedAt: preflight?.generatedAt ?? null,
+      localEnvFile: args.localEnvFile,
+      localEnvFileLoaded,
       errors: inputErrors,
       warnings: inputWarnings,
     },
@@ -128,6 +166,7 @@ function main() {
       currentSharedGmailRoutingBlocked: p0Blockers.includes("current_shared_gmail_routing"),
       readyForGithubSendVerify,
       readyForLocalProductionProof,
+      readyForLocalGmailVerification,
       canRunGithubWorkflowDispatch,
       canRunLocalSendVerify,
       canRunSendVerify,
@@ -137,6 +176,7 @@ function main() {
       externalSmtpSecrets: missingExternalSmtpSecrets,
       githubSendVerifySecrets: missingGithubSecrets,
       localPreflightEnv: missingPreflightEnv,
+      localGmailVerificationEnv: missingLocalGmailEnv,
     },
     present: {
       githubRequiredSecrets: presentGithubSecrets,
@@ -171,7 +211,7 @@ function main() {
         id: "run_local_send_verify",
         status: canRunLocalSendVerify ? "ready" : "blocked",
         command: "npm run probe:routing-send -- --send --verify-after-send --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-send.json",
-        expected: "local env preflight is production-proof ready, then sends 8 external probes and verifies all expected addresses",
+        expected: "local SMTP preflight and local Gmail verification env are ready, then sends 8 external probes and verifies all expected addresses",
       },
     ],
   };

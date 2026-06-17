@@ -94,6 +94,7 @@ describe("ops artifact secret scan", () => {
 
     expect(result.status).toBe(0);
     expect(result.stdout).toContain("PASS CR-F9-R007 ops artifact secret scan");
+    expect(result.stdout).toContain("- .env.example");
     expect(result.stdout).toContain("- env.example");
     expect(result.stdout).toContain("- OPS_RUNBOOK.md");
     expect(result.stdout).toContain("- .ai-runs/mailhub-next-phase/github-routing-secrets-readiness.json");

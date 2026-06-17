@@ -687,6 +687,7 @@ describe("MailHub routing probe CLI gates", () => {
       const githubSecretsPath = join(dir, "github-secrets.json");
       const preflightPath = join(dir, "preflight.json");
       const outPath = join(dir, "next.json");
+      const localEnvPath = join(dir, "missing.env");
       writeJson(readinessPath, {
         generatedAt: "2026-06-17T00:00:00.000Z",
         gate: { productionReady: false, p0Blockers: ["current_shared_gmail_routing"] },
@@ -714,6 +715,8 @@ describe("MailHub routing probe CLI gates", () => {
         preflightPath,
         "--out",
         outPath,
+        "--local-env-file",
+        localEnvPath,
       ]);
 
       expect(result.status).toBe(0);
@@ -725,7 +728,7 @@ describe("MailHub routing probe CLI gates", () => {
           currentSharedGmailRoutingBlocked: boolean;
           externalMailWillBeSentByThisScript: boolean;
         };
-        missing: { externalSmtpSecrets: string[] };
+        missing: { externalSmtpSecrets: string[]; localGmailVerificationEnv: string[] };
         nextActions: Array<{ id: string; status: string; requiredSecrets?: string[] }>;
       }>(outPath);
       expect(out.state.canRunSendVerify).toBe(false);
@@ -737,6 +740,12 @@ describe("MailHub routing probe CLI gates", () => {
         "MAILHUB_PROBE_SMTP_HOST",
         "MAILHUB_PROBE_SMTP_PASS",
         "MAILHUB_PROBE_FROM",
+      ]);
+      expect(out.missing.localGmailVerificationEnv).toEqual([
+        "GOOGLE_CLIENT_ID",
+        "GOOGLE_CLIENT_SECRET",
+        "GOOGLE_SHARED_INBOX_EMAIL",
+        "GOOGLE_SHARED_INBOX_REFRESH_TOKEN",
       ]);
       expect(out.nextActions.find((item) => item.id === "set_external_smtp_secrets")).toMatchObject({
         status: "required",
@@ -754,6 +763,7 @@ describe("MailHub routing probe CLI gates", () => {
   test("routing next-step artifact treats missing input artifacts as blocked", () => {
     withTempDir((dir) => {
       const outPath = join(dir, "next.json");
+      const localEnvPath = join(dir, "missing.env");
       const result = runNodeScript(routingNextStepsPath, [
         "--readiness",
         join(dir, "missing-readiness.json"),
@@ -763,6 +773,8 @@ describe("MailHub routing probe CLI gates", () => {
         join(dir, "missing-preflight.json"),
         "--out",
         outPath,
+        "--local-env-file",
+        localEnvPath,
       ]);
 
       expect(result.status).toBe(0);
@@ -773,8 +785,14 @@ describe("MailHub routing probe CLI gates", () => {
           canRunLocalSendVerify: boolean;
           readyForGithubSendVerify: boolean;
           readyForLocalProductionProof: boolean;
+          readyForLocalGmailVerification: boolean;
         };
-        missing: { externalSmtpSecrets: string[]; githubSendVerifySecrets: string[]; localPreflightEnv: string[] };
+        missing: {
+          externalSmtpSecrets: string[];
+          githubSendVerifySecrets: string[];
+          localPreflightEnv: string[];
+          localGmailVerificationEnv: string[];
+        };
         nextActions: Array<{ id: string; status: string }>;
       }>(outPath);
       expect(out.state.canRunSendVerify).toBe(false);
@@ -782,6 +800,7 @@ describe("MailHub routing probe CLI gates", () => {
       expect(out.state.canRunLocalSendVerify).toBe(false);
       expect(out.state.readyForGithubSendVerify).toBe(false);
       expect(out.state.readyForLocalProductionProof).toBe(false);
+      expect(out.state.readyForLocalGmailVerification).toBe(false);
       expect(out.missing.externalSmtpSecrets).toEqual([
         "MAILHUB_PROBE_SMTP_HOST",
         "MAILHUB_PROBE_SMTP_USER",
@@ -804,6 +823,12 @@ describe("MailHub routing probe CLI gates", () => {
         "MAILHUB_PROBE_SMTP_PASS",
         "MAILHUB_PROBE_FROM",
       ]);
+      expect(out.missing.localGmailVerificationEnv).toEqual([
+        "GOOGLE_CLIENT_ID",
+        "GOOGLE_CLIENT_SECRET",
+        "GOOGLE_SHARED_INBOX_EMAIL",
+        "GOOGLE_SHARED_INBOX_REFRESH_TOKEN",
+      ]);
       expect(out.nextActions.find((item) => item.id === "set_external_smtp_secrets")).toMatchObject({
         status: "required",
       });
@@ -822,6 +847,7 @@ describe("MailHub routing probe CLI gates", () => {
       const githubSecretsPath = join(dir, "github-secrets.json");
       const preflightPath = join(dir, "preflight.json");
       const outPath = join(dir, "next.json");
+      const localEnvPath = join(dir, "missing.env");
       writeJson(readinessPath, {
         generatedAt: "2026-06-17T00:00:00.000Z",
         gate: { productionReady: false, p0Blockers: ["current_shared_gmail_routing"] },
@@ -858,6 +884,8 @@ describe("MailHub routing probe CLI gates", () => {
         preflightPath,
         "--out",
         outPath,
+        "--local-env-file",
+        localEnvPath,
       ]);
 
       expect(result.status).toBe(0);
@@ -887,6 +915,17 @@ describe("MailHub routing probe CLI gates", () => {
       const githubSecretsPath = join(dir, "github-secrets.json");
       const preflightPath = join(dir, "preflight.json");
       const outPath = join(dir, "next.json");
+      const localEnvPath = join(dir, "local.env");
+      writeFileSync(
+        localEnvPath,
+        [
+          "GOOGLE_CLIENT_ID=client-id",
+          "GOOGLE_CLIENT_SECRET=client-secret",
+          "GOOGLE_SHARED_INBOX_EMAIL=mailhub@vtj.co.jp",
+          "GOOGLE_SHARED_INBOX_REFRESH_TOKEN=refresh-token",
+        ].join("\n"),
+        "utf8",
+      );
       writeJson(readinessPath, {
         generatedAt: "2026-06-17T00:00:00.000Z",
         gate: { productionReady: false, p0Blockers: ["current_shared_gmail_routing"] },
@@ -923,18 +962,27 @@ describe("MailHub routing probe CLI gates", () => {
         preflightPath,
         "--out",
         outPath,
+        "--local-env-file",
+        localEnvPath,
       ]);
 
       expect(result.status).toBe(0);
       const out = readJson<{
-        state: { canRunSendVerify: boolean; canRunGithubWorkflowDispatch: boolean; canRunLocalSendVerify: boolean };
-        missing: { externalSmtpSecrets: string[] };
+        state: {
+          canRunSendVerify: boolean;
+          canRunGithubWorkflowDispatch: boolean;
+          canRunLocalSendVerify: boolean;
+          readyForLocalGmailVerification: boolean;
+        };
+        missing: { externalSmtpSecrets: string[]; localGmailVerificationEnv: string[] };
         nextActions: Array<{ id: string; status: string }>;
       }>(outPath);
       expect(out.state.canRunSendVerify).toBe(true);
       expect(out.state.canRunGithubWorkflowDispatch).toBe(true);
       expect(out.state.canRunLocalSendVerify).toBe(true);
+      expect(out.state.readyForLocalGmailVerification).toBe(true);
       expect(out.missing.externalSmtpSecrets).toEqual([]);
+      expect(out.missing.localGmailVerificationEnv).toEqual([]);
       expect(out.nextActions.find((item) => item.id === "run_github_send_verify")).toMatchObject({
         status: "ready",
       });
@@ -950,6 +998,7 @@ describe("MailHub routing probe CLI gates", () => {
       const githubSecretsPath = join(dir, "github-secrets.json");
       const preflightPath = join(dir, "preflight.json");
       const outPath = join(dir, "next.json");
+      const localEnvPath = join(dir, "missing.env");
       writeJson(readinessPath, {
         generatedAt: "2026-06-17T00:00:00.000Z",
         repoHead: "old-head",
@@ -983,6 +1032,8 @@ describe("MailHub routing probe CLI gates", () => {
         "current-head",
         "--repo-parent-head",
         "parent-head",
+        "--local-env-file",
+        localEnvPath,
       ]);
 
       expect(result.status).toBe(1);
@@ -1000,6 +1051,7 @@ describe("MailHub routing probe CLI gates", () => {
       const githubSecretsPath = join(dir, "github-secrets.json");
       const preflightPath = join(dir, "preflight.json");
       const outPath = join(dir, "next.json");
+      const localEnvPath = join(dir, "missing.env");
       writeJson(readinessPath, {
         generatedAt: "2026-06-17T00:00:00.000Z",
         repoHead: "parent-head",
@@ -1033,6 +1085,8 @@ describe("MailHub routing probe CLI gates", () => {
         "current-head",
         "--repo-parent-head",
         "parent-head",
+        "--local-env-file",
+        localEnvPath,
       ]);
 
       expect(result.status).toBe(0);
@@ -1069,6 +1123,7 @@ describe("MailHub routing probe CLI gates", () => {
           currentSharedGmailRoutingBlocked: true,
           readyForGithubSendVerify: false,
           readyForLocalProductionProof: false,
+          readyForLocalGmailVerification: false,
           canRunGithubWorkflowDispatch: false,
           canRunLocalSendVerify: false,
           canRunSendVerify: false,
@@ -1078,6 +1133,7 @@ describe("MailHub routing probe CLI gates", () => {
           externalSmtpSecrets: ["MAILHUB_PROBE_SMTP_HOST"],
           githubSendVerifySecrets: ["MAILHUB_PROBE_SMTP_HOST"],
           localPreflightEnv: ["MAILHUB_PROBE_SMTP_HOST"],
+          localGmailVerificationEnv: ["GOOGLE_CLIENT_ID"],
         },
         nextActions: [
           { id: "set_external_smtp_secrets", status: "required" },
@@ -1137,6 +1193,7 @@ describe("MailHub routing probe CLI gates", () => {
           currentSharedGmailRoutingBlocked: true,
           readyForGithubSendVerify: false,
           readyForLocalProductionProof: false,
+          readyForLocalGmailVerification: false,
           canRunGithubWorkflowDispatch: true,
           canRunLocalSendVerify: false,
           canRunSendVerify: true,
@@ -1146,6 +1203,7 @@ describe("MailHub routing probe CLI gates", () => {
           externalSmtpSecrets: ["MAILHUB_PROBE_SMTP_HOST"],
           githubSendVerifySecrets: ["MAILHUB_PROBE_SMTP_HOST"],
           localPreflightEnv: ["MAILHUB_PROBE_SMTP_HOST"],
+          localGmailVerificationEnv: ["GOOGLE_CLIENT_ID"],
         },
         nextActions: [
           { id: "set_external_smtp_secrets", status: "done" },
@@ -1360,6 +1418,91 @@ describe("MailHub routing probe CLI gates", () => {
       expect(result.stdout).toContain("plan_only_must_not_match_addresses");
       expect(result.stdout).toContain("production_ready_without_confirmed_routing_probe");
       expect(result.stdout).toContain("unconfirmed_routing_without_readiness_p0");
+    });
+  });
+
+  test("routing proof contract rejects sent artifacts verified with a different marker", () => {
+    withTempDir((dir) => {
+      const preflightPath = join(dir, "preflight.json");
+      const sendPath = join(dir, "send.json");
+      const auditPath = join(dir, "audit.json");
+      const readinessPath = join(dir, "readiness.json");
+      const addresses = [
+        "gopro_y@vtj.co.jp",
+        "gopro_order_yahoo@vtj.co.jp",
+        "vyper_r@vtj.co.jp",
+        "vyper_rakuten@vtj.co.jp",
+        "vyperglobal_y@vtj.co.jp",
+        "ams_vyper@vtj.co.jp",
+        "datacolor_shopify@vtj.co.jp",
+        "ebay@vtj.co.jp",
+      ];
+      const sentMarker = "MAILHUB-ROUTING-PROBE-20260617T000000Z";
+      const auditMarker = "MAILHUB-ROUTING-PROBE-20260617T000100Z";
+      const probes = addresses.map((address, index) => ({
+        channelId: `channel-${index}`,
+        label: `Channel ${index}`,
+        address,
+        subject: sentMarker,
+      }));
+
+      writeJson(preflightPath, {
+        mode: "preflight",
+        marker: sentMarker,
+        inputs: { preflight: true, verifyAfterSend: false },
+        smtpPreflight: {
+          missingRequiredEnv: [],
+          readyForProductionProof: true,
+          fromIsVtj: false,
+        },
+        probeCount: probes.length,
+        addressProbes: probes,
+        sent: [],
+      });
+      writeJson(sendPath, {
+        mode: "sent",
+        marker: sentMarker,
+        probeCount: probes.length,
+        addressProbes: probes,
+        sent: probes.map(({ channelId, address }) => ({ channelId, address })),
+        verification: {
+          allExpectedAddressesConfirmed: true,
+          productionReady: true,
+        },
+      });
+      writeJson(auditPath, {
+        mode: "verify_marker",
+        inputs: { marker: auditMarker },
+        plannedAddressProbes: probes.map(({ channelId, label, address }) => ({ channelId, label, address })),
+        gate: {
+          markerProvided: true,
+          targetAddressCount: addresses.length,
+          matchedAddresses: addresses,
+          missingAddresses: [],
+          allExpectedAddressesConfirmed: true,
+        },
+      });
+      writeJson(readinessPath, {
+        gate: {
+          productionReady: true,
+          p0Blockers: [],
+        },
+        blockers: [],
+      });
+
+      const result = runNodeScript(routingProofContractPath, [
+        "--preflight",
+        preflightPath,
+        "--send",
+        sendPath,
+        "--audit",
+        auditPath,
+        "--readiness",
+        readinessPath,
+      ]);
+
+      expect(result.status).toBe(1);
+      expect(result.stdout).toContain("sent_audit_marker_mismatch");
     });
   });
 
@@ -1650,6 +1793,10 @@ describe("MailHub routing probe CLI gates", () => {
           MAILHUB_PROBE_SMTP_USER: "probe-user",
           MAILHUB_PROBE_SMTP_PASS: "probe-pass",
           MAILHUB_PROBE_FROM: "external-probe@example.com",
+          GOOGLE_CLIENT_ID: "",
+          GOOGLE_CLIENT_SECRET: "",
+          GOOGLE_SHARED_INBOX_EMAIL: "",
+          GOOGLE_SHARED_INBOX_REFRESH_TOKEN: "",
         },
       );
 
@@ -1744,6 +1891,42 @@ describe("MailHub routing probe CLI gates", () => {
 
       expect(result.status).toBe(1);
       expect(result.stderr).toContain("verify_after_send_requires_send");
+    });
+  });
+
+  test("routing probe sender validates Gmail verification env before sending with --verify-after-send", () => {
+    withTempDir((dir) => {
+      const opsPath = join(dir, "ops.json");
+      const outPath = join(dir, "send-plan.json");
+      writeJson(opsPath, opsAuditFixture());
+
+      const result = runNodeScript(
+        routingProbeSenderPath,
+        [
+          "--ops-audit",
+          opsPath,
+          "--out",
+          outPath,
+          "--send",
+          "--verify-after-send",
+          "--probe-env-file",
+          join(dir, "missing.env"),
+        ],
+        {
+          MAILHUB_PROBE_SMTP_HOST: "smtp.example.com",
+          MAILHUB_PROBE_SMTP_USER: "probe-user",
+          MAILHUB_PROBE_SMTP_PASS: "probe-pass",
+          MAILHUB_PROBE_FROM: "external-probe@example.com",
+          GOOGLE_CLIENT_ID: "",
+          GOOGLE_CLIENT_SECRET: "",
+          GOOGLE_SHARED_INBOX_EMAIL: "",
+          GOOGLE_SHARED_INBOX_REFRESH_TOKEN: "",
+        },
+      );
+
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain("missing_env_for_verify_after_send");
+      expect(result.stderr).toContain("GOOGLE_CLIENT_ID");
     });
   });
 

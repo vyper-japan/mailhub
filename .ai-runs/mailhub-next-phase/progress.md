@@ -371,6 +371,17 @@
   - Local reproduction of the new dry-run send artifact passed with `mode=dry_run`, `probeCount=8`, `sentCount=0`, and missing external SMTP proof env unchanged.
   - Refreshed production readiness, routing next-step, and dry-run send artifacts to repo head `f505adb` so the next commit's CI accepts them as the parent artifact state.
   - Current state remains intentionally blocked: `productionReady=false`, P0 `current_shared_gmail_routing`, and missing external SMTP proof values `MAILHUB_PROBE_SMTP_HOST`, `MAILHUB_PROBE_SMTP_USER`, `MAILHUB_PROBE_SMTP_PASS`, and `MAILHUB_PROBE_FROM`.
+- 2026-06-17 routing proof P1 hardening wave completed:
+  - Tightened production readiness so `currentSharedGmailRoutingReady` can only become true from confirmed 8-address routing probe evidence, not from legacy ops/GWS membership evidence alone.
+  - Strengthened the readiness contract to reject any production-ready or shared-routing-ready claim that lacks `requirements.routingProbeReady=true`.
+  - Added local `--verify-after-send` pre-send Gmail env validation so the SMTP probe sender fails before sending if shared Gmail verification cannot run.
+  - Extended routing next-step artifacts with `readyForLocalGmailVerification` and `missing.localGmailVerificationEnv`, and made local send readiness require both SMTP preflight and local Gmail verification env.
+  - Bound sent proof artifacts to the verification audit marker in `audit:mailhub-routing-proof-contract`, preventing a sent marker and stale verified marker from being paired.
+  - Hardened `MailHub Routing Probe` artifact upload with `include-hidden-files: true` and `if-no-files-found: error`, so `.ai-runs/...` proof JSON upload cannot silently disappear.
+  - Fixed operator docs/env samples: `.env.example` now includes routing proof SMTP vars, Runbook clarifies CLI `sentCount` vs JSON `sent.length`, and manual marker examples now match `MAILHUB-ROUTING-PROBE-YYYYMMDDTHHMMSSZ`.
+  - Added `.env.example` to the default ops artifact secret scan and blanked its `NEXTAUTH_SECRET` placeholder so templates remain scanner-clean.
+  - Refreshed routing probe audit, preflight, dry-run send, readiness, and routing-next artifacts under the new gates.
+  - Current state remains intentionally blocked only by P0 `current_shared_gmail_routing` and the same missing external SMTP proof values.
 
 ## Not Done
 

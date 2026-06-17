@@ -101,6 +101,7 @@ function main() {
   const auditGate = objectValue(audit.gate);
   const readinessGate = objectValue(readiness.gate);
   const readinessBlockers = Array.isArray(readiness.blockers) ? readiness.blockers.filter((item) => item && typeof item === "object") : [];
+  const auditMarker = typeof audit.inputs?.marker === "string" ? audit.inputs.marker : null;
 
   if (preflight.mode !== "preflight") errors.push("preflight_mode_mismatch");
   if (preflight.inputs?.preflight !== true) errors.push("preflight_input_flag_missing");
@@ -120,6 +121,14 @@ function main() {
     if (sendSent.length !== send.probeCount) errors.push("sent_mode_sent_count_mismatch");
     if (!send.verification || typeof send.verification !== "object") errors.push("sent_mode_missing_verification");
     if (send.verification && send.verification.allExpectedAddressesConfirmed !== true) errors.push("sent_mode_without_address_confirmation");
+    if (!auditMarker) errors.push("sent_mode_missing_audit_marker");
+    else if (send.marker !== auditMarker) errors.push("sent_audit_marker_mismatch");
+    if (
+      send.verification &&
+      auditGate.allExpectedAddressesConfirmed !== send.verification.allExpectedAddressesConfirmed
+    ) {
+      errors.push("sent_verification_audit_confirmation_mismatch");
+    }
   }
 
   const preflightAddresses = validateProbeList({

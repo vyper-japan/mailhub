@@ -12,6 +12,12 @@ const defaultOpsAuditPath = join(runDir, "mailhub-operational-confirmations.json
 const defaultOutPath = join(runDir, "mailhub-routing-probe-send.json");
 const defaultRoutingAuditOutPath = join(runDir, "mailhub-routing-probe-audit.json");
 const defaultReadinessOutPath = join(runDir, "mailhub-production-readiness-audit.json");
+const REQUIRED_GMAIL_VERIFY_ENV = [
+  "GOOGLE_CLIENT_ID",
+  "GOOGLE_CLIENT_SECRET",
+  "GOOGLE_SHARED_INBOX_EMAIL",
+  "GOOGLE_SHARED_INBOX_REFRESH_TOKEN",
+];
 
 function parseArgs(argv) {
   const out = {
@@ -27,6 +33,7 @@ function parseArgs(argv) {
     routingAuditOut: defaultRoutingAuditOutPath,
     readinessOut: defaultReadinessOutPath,
     maxResults: 10,
+    envFile: envPath,
   };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
@@ -42,8 +49,9 @@ function parseArgs(argv) {
     else if (arg === "--routing-audit-out") out.routingAuditOut = argv[++i];
     else if (arg === "--readiness-out") out.readinessOut = argv[++i];
     else if (arg === "--max-results") out.maxResults = Math.max(1, Math.min(50, Number(argv[++i]) || 10));
+    else if (arg === "--probe-env-file") out.envFile = argv[++i] || "";
     else if (arg === "--help" || arg === "-h") {
-      console.log(`Usage: node scripts/send-mailhub-routing-probes.mjs [--ops-audit path] [--out path] [--marker MAILHUB-ROUTING-PROBE-...] [--preflight] [--send] [--allow-vtj-from] [--verify-after-send] [--wait-seconds 300] [--poll-seconds 15]
+      console.log(`Usage: node scripts/send-mailhub-routing-probes.mjs [--ops-audit path] [--out path] [--marker MAILHUB-ROUTING-PROBE-...] [--preflight] [--send] [--allow-vtj-from] [--verify-after-send] [--wait-seconds 300] [--poll-seconds 15] [--probe-env-file .env.local]
 
 Environment for --send:
   MAILHUB_PROBE_SMTP_HOST
@@ -87,6 +95,10 @@ function requireEnv(key) {
   const value = process.env[key]?.trim();
   if (!value) throw new Error(`missing_env:${key}`);
   return value;
+}
+
+function missingEnv(keys) {
+  return keys.filter((key) => !process.env[key]?.trim());
 }
 
 function readJson(path) {
@@ -274,10 +286,16 @@ async function main() {
     })),
   );
 
-  loadEnvFile(envPath);
+  loadEnvFile(args.envFile);
   const from = process.env.MAILHUB_PROBE_FROM?.trim() || null;
   const smtpPreflight = smtpPreflightFromEnv({ allowVtjFrom: args.allowVtjFrom });
   if (args.verifyAfterSend && !args.send) throw new Error("verify_after_send_requires_send");
+  if (args.verifyAfterSend) {
+    const missingGmailEnv = missingEnv(REQUIRED_GMAIL_VERIFY_ENV);
+    if (missingGmailEnv.length > 0) {
+      throw new Error(`missing_env_for_verify_after_send:${missingGmailEnv.join(",")}`);
+    }
+  }
   if (args.send && !from) throw new Error("missing_env:MAILHUB_PROBE_FROM");
   if (args.send && isVtjAddress(from) && !args.allowVtjFrom) {
     throw new Error("vtj_from_not_external_route_proof: use a non-vtj external sender or pass --allow-vtj-from for a non-production-proof smoke");
