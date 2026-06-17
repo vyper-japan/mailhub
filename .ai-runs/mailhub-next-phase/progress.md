@@ -170,6 +170,12 @@
   - The sender defaults to dry-run and writes the exact eight-address probe plan plus marker without sending mail.
   - Actual sending requires explicit `--send` and external SMTP env vars (`MAILHUB_PROBE_SMTP_*`, `MAILHUB_PROBE_FROM`).
   - `@vtj.co.jp` senders are rejected by default because they can prove only internal GWS routing, not the external Lolipop/MX path.
+- 2026-06-17 routing probe regression test wave completed:
+  - Added `lib/__tests__/mailhub-routing-probe-scripts.test.ts`.
+  - The tests prove plan-only audits count every target address, not just target channels.
+  - The tests prove production readiness rejects channel-level probe success when one expected address is missing.
+  - The tests prove complete address-level probe evidence can satisfy the routing readiness path.
+  - The tests prove the sender dry-run sends zero messages and the sender rejects `@vtj.co.jp` as external-route proof by default.
 
 ## Not Done
 

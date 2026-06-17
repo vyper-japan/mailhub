@@ -578,6 +578,30 @@ git diff --check
 - `npm run build`: passed.
 - `git diff --check`: passed.
 
+## Verification Commands Run On 2026-06-17 Routing Probe Regression Test Wave
+
+```bash
+npx vitest run lib/__tests__/mailhub-routing-probe-scripts.test.ts
+node --check scripts/audit-mailhub-routing-probes.mjs
+node --check scripts/audit-mailhub-production-readiness.mjs
+node --check scripts/send-mailhub-routing-probes.mjs
+npm run typecheck
+npm run lint
+npm run test
+npm run build
+git diff --check
+```
+
+## 2026-06-17 Routing Probe Regression Test Wave Results
+
+- Focused Vitest: 1 file / 5 tests passed.
+- Script syntax checks: passed.
+- `npm run typecheck`: passed.
+- `npm run lint`: passed.
+- `npm run test`: 61 files / 536 tests passed.
+- `npm run build`: passed.
+- `git diff --check`: passed.
+
 ## Useful Runtime Commands
 
 Start dev server for tunnel:
