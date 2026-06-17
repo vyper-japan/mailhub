@@ -1494,6 +1494,23 @@ npm run audit:mailhub-routing-next -- --strict --out .ai-runs/mailhub-next-phase
 - `run_local_send_verify` remains blocked by missing local external SMTP env vars.
 - Targeted Vitest passed 22/22.
 
+## 2026-06-17 Routing Next-Step Contract Commands
+
+```bash
+node --check scripts/check-mailhub-routing-next-contract.mjs
+npx vitest run lib/__tests__/mailhub-routing-probe-scripts.test.ts
+npm run audit:mailhub-routing-next-contract
+npm run audit:mailhub-readiness-contract
+```
+
+## 2026-06-17 Routing Next-Step Contract Results
+
+- Added `npm run audit:mailhub-routing-next-contract`.
+- Routing next-step contract validates freshness, input errors, required next actions, and GitHub/local execution gate consistency.
+- Focused Vitest passed 24/24.
+- Current artifact contract passed with `canRunGithubWorkflowDispatch=false`, `canRunLocalSendVerify=false`, and P0 `current_shared_gmail_routing`.
+- CI readiness contract workflow now runs both readiness and routing-next contracts.
+
 ## Useful Runtime Commands
 
 Start dev server for tunnel:

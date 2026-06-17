@@ -9,6 +9,7 @@ const readinessAuditPath = resolve(process.cwd(), "scripts/audit-mailhub-product
 const routingProbeSenderPath = resolve(process.cwd(), "scripts/send-mailhub-routing-probes.mjs");
 const routingProbeSecretsPath = resolve(process.cwd(), "scripts/check-mailhub-routing-probe-secrets.mjs");
 const routingNextStepsPath = resolve(process.cwd(), "scripts/write-mailhub-routing-next-steps.mjs");
+const routingNextContractPath = resolve(process.cwd(), "scripts/check-mailhub-routing-next-contract.mjs");
 const routingSecretSetupPath = resolve(process.cwd(), "scripts/setup-mailhub-routing-probe-secrets.mjs");
 
 function withTempDir<T>(fn: (dir: string) => T): T {
@@ -863,6 +864,116 @@ describe("MailHub routing probe CLI gates", () => {
       const out = readJson<{ inputs: { errors: string[]; readinessRepoHead: string } }>(outPath);
       expect(out.inputs.readinessRepoHead).toBe("parent-head");
       expect(out.inputs.errors).toEqual([]);
+    });
+  });
+
+  test("routing next-step contract accepts a consistent blocked artifact", () => {
+    withTempDir((dir) => {
+      const nextPath = join(dir, "next.json");
+      writeJson(nextPath, {
+        inputs: {
+          repoHead: "parent-head",
+          readinessRepoHead: "parent-head",
+          errors: [],
+          warnings: [],
+        },
+        state: {
+          productionReady: false,
+          p0Blockers: ["current_shared_gmail_routing"],
+          currentSharedGmailRoutingBlocked: true,
+          readyForGithubSendVerify: false,
+          readyForLocalProductionProof: false,
+          canRunGithubWorkflowDispatch: false,
+          canRunLocalSendVerify: false,
+          canRunSendVerify: false,
+          externalMailWillBeSentByThisScript: false,
+        },
+        missing: {
+          externalSmtpSecrets: ["MAILHUB_PROBE_SMTP_HOST"],
+          githubSendVerifySecrets: ["MAILHUB_PROBE_SMTP_HOST"],
+          localPreflightEnv: ["MAILHUB_PROBE_SMTP_HOST"],
+        },
+        nextActions: [
+          { id: "set_external_smtp_secrets", status: "required" },
+          { id: "verify_secret_readiness", status: "required" },
+          { id: "run_no_send_preflight", status: "required" },
+          { id: "run_github_send_verify", status: "blocked" },
+          { id: "run_local_send_verify", status: "blocked" },
+        ],
+      });
+
+      const result = runNodeScript(routingNextContractPath, [
+        "--next",
+        nextPath,
+        "--repo-head",
+        "current-head",
+        "--repo-parent-head",
+        "parent-head",
+      ]);
+
+      expect(result.status).toBe(0);
+      expect(JSON.parse(result.stdout)).toMatchObject({
+        ok: true,
+        artifactRepoHead: "parent-head",
+        readinessRepoHead: "parent-head",
+        canRunGithubWorkflowDispatch: false,
+        canRunLocalSendVerify: false,
+      });
+    });
+  });
+
+  test("routing next-step contract rejects stale and contradictory execution gates", () => {
+    withTempDir((dir) => {
+      const nextPath = join(dir, "next.json");
+      writeJson(nextPath, {
+        inputs: {
+          repoHead: "old-head",
+          readinessRepoHead: "old-head",
+          errors: [],
+          warnings: [],
+        },
+        state: {
+          productionReady: false,
+          p0Blockers: ["current_shared_gmail_routing"],
+          currentSharedGmailRoutingBlocked: true,
+          readyForGithubSendVerify: false,
+          readyForLocalProductionProof: false,
+          canRunGithubWorkflowDispatch: true,
+          canRunLocalSendVerify: false,
+          canRunSendVerify: true,
+          externalMailWillBeSentByThisScript: true,
+        },
+        missing: {
+          externalSmtpSecrets: ["MAILHUB_PROBE_SMTP_HOST"],
+          githubSendVerifySecrets: ["MAILHUB_PROBE_SMTP_HOST"],
+          localPreflightEnv: ["MAILHUB_PROBE_SMTP_HOST"],
+        },
+        nextActions: [
+          { id: "set_external_smtp_secrets", status: "done" },
+          { id: "verify_secret_readiness", status: "done" },
+          { id: "run_no_send_preflight", status: "required" },
+          { id: "run_github_send_verify", status: "blocked" },
+          { id: "run_local_send_verify", status: "blocked" },
+        ],
+      });
+
+      const result = runNodeScript(routingNextContractPath, [
+        "--next",
+        nextPath,
+        "--repo-head",
+        "current-head",
+        "--repo-parent-head",
+        "parent-head",
+      ]);
+
+      expect(result.status).toBe(1);
+      expect(result.stdout).toContain("stale_artifact_repo_head");
+      expect(result.stdout).toContain("stale_readiness_repo_head");
+      expect(result.stdout).toContain("routing_next_must_not_claim_to_send_mail");
+      expect(result.stdout).toContain("github_dispatch_gate_mismatch");
+      expect(result.stdout).toContain("combined_send_gate_mismatch");
+      expect(result.stdout).toContain("next_action_status_mismatch:set_external_smtp_secrets");
+      expect(result.stdout).toContain("next_action_status_mismatch:run_github_send_verify");
     });
   });
 

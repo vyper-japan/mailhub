@@ -329,6 +329,12 @@
   - `run_github_send_verify` is now gated by GitHub Actions secret readiness, while `run_local_send_verify` is gated by local SMTP production preflight readiness.
   - This prevents a local `.env.local` gap from being confused with GitHub workflow dispatch readiness after Actions secrets are configured.
   - Current artifact remains blocked for both execution modes because the same four external SMTP proof secrets/env vars are missing.
+- 2026-06-17 routing next-step contract wave completed:
+  - Added `scripts/check-mailhub-routing-next-contract.mjs` and `npm run audit:mailhub-routing-next-contract`.
+  - The contract validates routing-next artifact freshness, empty input errors, execution-mode gate consistency, required next actions, and action statuses.
+  - `.github/workflows/mailhub-readiness-contract.yml` now runs both the production readiness contract and the routing next-step contract.
+  - Focused routing probe script tests now cover both a consistent blocked artifact and stale/contradictory execution gates.
+  - Current routing-next contract passes with `canRunGithubWorkflowDispatch=false`, `canRunLocalSendVerify=false`, and P0 `current_shared_gmail_routing`.
 
 ## Not Done
 
