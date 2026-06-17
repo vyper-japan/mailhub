@@ -79,6 +79,14 @@
   - Latest real Gmail audit reports `knownCodeGaps: []` and `coverageGate.codeCoveragePass: true`.
   - Remaining zero-estimate channels are machine-classified as operational follow-up, not code gaps.
   - `vyperglobal-yahoo` and `ebay` remain the only `no_shared_inbox_evidence` operational confirmations.
+- 2026-06-17 rule safety real-data gate wave completed:
+  - Added `scripts/audit-gmail-rule-safety.mjs` and `npm run audit:gmail-rules`.
+  - The audit loads the current MailHub rule config from file or Sheets JSON blob stores and samples the real shared Gmail `INBOX` read-only.
+  - Saved latest result at `.ai-runs/mailhub-next-phase/gmail-rule-safety-audit.json`.
+  - Latest run inspected 100 real INBOX messages with result size estimate 201.
+  - Current config source resolved to `file`; no label or assignee rules are configured.
+  - `ruleSafetyGate.realDataRuleRiskPass` is true, with no dangerous broad rules, no too-many-match rules, and no protected suppressive matches.
+  - Documented the gate in `docs/mailhub-rule-safety-audit.md`.
 
 ## Not Done
 
@@ -86,6 +94,7 @@
 - Confirm whether `vyperglobal-yahoo` and `ebay` are still routed/real sources; the audit found no active or historical shared-inbox evidence for the configured addresses.
 - Production pagination basic behavior is represented in API/UI metadata and forced E2E; real browser/manual production verification is still useful before staff rollout.
 - Auto-discard rules for marketing/noise are protected against obvious important/invoice/inquiry suppression and missing summary text, but a full production auto-discard policy is still intentionally not enabled.
+- Real-data rule safety audit exists and passes for the current local file config because no rules are configured. Re-run with `MAILHUB_CONFIG_STORE=sheets` and production Sheets credentials when production rule config is enabled.
 - Important/invoice/customer-inquiry folders exist as default saved views and are audited as manual-review shortcuts; further narrowing requires operator feedback.
 - Brain decision ledger exists for memory/file/sheets and health visibility; AI reply drafting and knowledge base integration are not implemented.
 - Rakuten/Amazon/Yahoo API-based reply integration is not implemented.

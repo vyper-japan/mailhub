@@ -1,0 +1,43 @@
+{
+  "generatedAt": "2026-06-17T00:15:05.753Z",
+  "sharedInboxEmailMasked": "inf***@vtj.co.jp",
+  "config": {
+    "requestedSource": "file",
+    "resolvedSource": "file",
+    "warnings": [],
+    "lastUpdatedAt": {
+      "labelRules": null,
+      "assigneeRules": null
+    }
+  },
+  "sample": {
+    "labelIds": [
+      "INBOX"
+    ],
+    "requestedMax": 100,
+    "inspectedCount": 100,
+    "resultSizeEstimate": 201,
+    "hasMoreAfterSample": true
+  },
+  "rulesConfigured": false,
+  "inventory": {
+    "labelRuleCount": 0,
+    "enabledLabelRuleCount": 0,
+    "suppressiveLabelRuleCount": 0,
+    "assigneeRuleCount": 0,
+    "enabledAssigneeRuleCount": 0
+  },
+  "findings": {
+    "dangerousBroadRules": [],
+    "tooManyMatches": [],
+    "inactiveRules": [],
+    "protectedSuppressiveMatches": [],
+    "missingSummarySuppressiveMatches": [],
+    "ruleHitCounts": []
+  },
+  "ruleSafetyGate": {
+    "realDataRuleRiskPass": true,
+    "suppressiveAutoApplySafe": true,
+    "blockingFindings": []
+  }
+}

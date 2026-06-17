@@ -13,6 +13,7 @@
     "smoke": "node scripts/smoke.mjs",
     "audit:gmail-sources": "node scripts/audit-gmail-source-coverage.mjs",
     "audit:gmail-views": "node scripts/audit-gmail-default-views.mjs",
+    "audit:gmail-rules": "node scripts/audit-gmail-rule-safety.mjs",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:watch": "vitest",

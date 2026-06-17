@@ -213,6 +213,34 @@ node -e 'const a=require("./.ai-runs/mailhub-next-phase/gmail-source-coverage-au
 - `npm run test`: 57 files / 517 tests passed.
 - Source coverage gate assertion command: passed.
 
+## Verification Commands Run On 2026-06-17 Rule Safety Real-Data Gate Wave
+
+```bash
+node --check scripts/audit-gmail-rule-safety.mjs
+npm run audit:gmail-rules -- --out .ai-runs/mailhub-next-phase/gmail-rule-safety-audit.json --max 100
+git diff --check
+node -e 'const a=require("./.ai-runs/mailhub-next-phase/gmail-rule-safety-audit.json"); if(!a.ruleSafetyGate?.realDataRuleRiskPass) process.exit(1); if(a.ruleSafetyGate.blockingFindings.length) process.exit(2); console.log("rule safety gate pass", a.sample.inspectedCount, a.inventory.labelRuleCount, a.inventory.assigneeRuleCount);'
+npm run typecheck
+npm run lint
+npm run test
+```
+
+## 2026-06-17 Rule Safety Real-Data Gate Wave Results
+
+- `node --check scripts/audit-gmail-rule-safety.mjs`: passed.
+- `npm run audit:gmail-rules`: passed.
+- `git diff --check`: passed.
+- Rule safety gate assertion command: passed.
+- `npm run typecheck`: passed.
+- `npm run lint`: passed.
+- `npm run test`: 57 files / 517 tests passed.
+- Latest generatedAt: `2026-06-17T00:15:05.753Z`.
+- Config source: requested `file`, resolved `file`.
+- Real Gmail sample: 100 shared-INBOX messages inspected, result size estimate 201, more messages remain after the sample.
+- Current rule inventory: 0 label rules, 0 assignee rules, 0 suppressive label rules.
+- `ruleSafetyGate.realDataRuleRiskPass`: `true`.
+- `ruleSafetyGate.blockingFindings`: `[]`.
+
 ## Useful Runtime Commands
 
 Start dev server for tunnel:
