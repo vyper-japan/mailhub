@@ -20,6 +20,7 @@
     "audit:github-routing-secrets": "node scripts/check-mailhub-routing-probe-secrets.mjs",
     "audit:mailhub-readiness": "node scripts/audit-mailhub-production-readiness.mjs",
     "audit:mailhub-readiness-contract": "node scripts/check-mailhub-readiness-contract.mjs",
+    "audit:mailhub-routing-next": "node scripts/write-mailhub-routing-next-steps.mjs",
     "probe:routing-preflight": "node scripts/send-mailhub-routing-probes.mjs --preflight",
     "probe:routing-send": "node scripts/send-mailhub-routing-probes.mjs",
     "test": "vitest run",

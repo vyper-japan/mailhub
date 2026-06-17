@@ -270,6 +270,13 @@
   - Production readiness artifacts now include `requirements.routingProbeGithubSecretsReady` and routing blocker evidence for missing GitHub `send_verify` secrets.
   - `scripts/check-mailhub-readiness-contract.mjs` rejects routing blockers that omit GitHub secret gap evidence.
   - Ops Board readiness summary now exposes GitHub Actions secret readiness and missing `send_verify` secret count separately from local SMTP preflight env.
+- 2026-06-17 routing next-step artifact wave completed:
+  - Added `scripts/write-mailhub-routing-next-steps.mjs` and `npm run audit:mailhub-routing-next`.
+  - The new artifact `.ai-runs/mailhub-next-phase/mailhub-routing-next-steps.json` combines production readiness, GitHub Actions routing secret readiness, and local SMTP preflight state into one operator checklist.
+  - Current artifact state is intentionally blocked: `productionReady=false`, `canRunSendVerify=false`, and `currentSharedGmailRoutingBlocked=true`.
+  - The remaining required setup is still the same four external SMTP proof secrets/env keys: `MAILHUB_PROBE_SMTP_HOST`, `MAILHUB_PROBE_SMTP_USER`, `MAILHUB_PROBE_SMTP_PASS`, and `MAILHUB_PROBE_FROM`.
+  - The script is read-only with respect to mail delivery; `externalMailWillBeSentByThisScript=false` and the generated `run_github_send_verify` action remains `blocked` until readiness inputs turn green.
+  - `OPS_RUNBOOK.md` and `next.md` now point operators at `npm run audit:mailhub-routing-next` before attempting `send_verify`.
 
 ## Not Done
 
@@ -286,6 +293,7 @@
 - The readiness contract workflow now guards against accidentally shipping a stale or under-evidenced `mailhub-production-readiness-audit.json`.
 - GitHub Actions can now run the final external probe once the required SMTP/Gmail secrets are configured, without depending on local `.env.local`.
 - GitHub Actions has the four Gmail proof secrets, but still lacks the four external SMTP proof secrets required before running `send_verify`.
+- The routing next-step artifact now shows the exact remaining action list, but it remains red because external SMTP proof setup has not been provided.
 - All GitHub workflow YAML now passes local `actionlint`; the remaining GitHub-side risk is secret/config availability for the manual external routing probe, not workflow syntax.
 - Production pagination basic behavior is represented in API/UI metadata and forced E2E; real browser/manual production verification is still useful before staff rollout.
 - Auto-discard rules for marketing/noise are protected against obvious important/invoice/inquiry suppression and missing summary text, but a full production auto-discard policy is still intentionally not enabled.

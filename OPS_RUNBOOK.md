@@ -488,6 +488,7 @@ npm run probe:routing-preflight -- --out .ai-runs/mailhub-next-phase/mailhub-rou
 
 ```bash
 npm run audit:github-routing-secrets -- --no-fail --out .ai-runs/mailhub-next-phase/github-routing-secrets-readiness.json
+npm run audit:mailhub-routing-next -- --out .ai-runs/mailhub-next-phase/mailhub-routing-next-steps.json
 ```
 
 必要な GitHub Actions Secrets:
@@ -503,7 +504,7 @@ npm run audit:github-routing-secrets -- --no-fail --out .ai-runs/mailhub-next-ph
 - `MAILHUB_PROBE_FROM`（`@vtj.co.jp` 以外）
 
 手順:
-0. `npm run audit:github-routing-secrets -- --no-fail --out .ai-runs/mailhub-next-phase/github-routing-secrets-readiness.json` で `readyForSendVerify=true` を確認する
+0. `npm run audit:github-routing-secrets -- --no-fail --out .ai-runs/mailhub-next-phase/github-routing-secrets-readiness.json` と `npm run audit:mailhub-routing-next -- --out .ai-runs/mailhub-next-phase/mailhub-routing-next-steps.json` で `readyForSendVerify=true` / `canRunSendVerify=true` を確認する
 1. Actions → `MailHub Routing Probe` → `Run workflow`
 2. まず `mode=preflight` で実行し、artifact `mailhub-routing-probe-<run_id>` を確認する
 3. `readyForProductionProof=true` になったら、`mode=send_verify` を選ぶ

@@ -1,0 +1,87 @@
+{
+  "generatedAt": "2026-06-17T03:53:14.861Z",
+  "inputs": {
+    "readiness": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json",
+    "githubSecrets": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.ai-runs/mailhub-next-phase/github-routing-secrets-readiness.json",
+    "preflight": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.ai-runs/mailhub-next-phase/mailhub-routing-probe-preflight.json",
+    "readinessGeneratedAt": "2026-06-17T03:53:14.727Z",
+    "githubSecretsCheckedAt": "2026-06-17T03:53:14.421Z",
+    "preflightGeneratedAt": "2026-06-17T03:53:14.616Z"
+  },
+  "state": {
+    "productionReady": false,
+    "p0Blockers": [
+      "current_shared_gmail_routing"
+    ],
+    "currentSharedGmailRoutingBlocked": true,
+    "readyForGithubSendVerify": false,
+    "readyForLocalProductionProof": false,
+    "canRunSendVerify": false,
+    "externalMailWillBeSentByThisScript": false
+  },
+  "missing": {
+    "externalSmtpSecrets": [
+      "MAILHUB_PROBE_SMTP_HOST",
+      "MAILHUB_PROBE_SMTP_USER",
+      "MAILHUB_PROBE_SMTP_PASS",
+      "MAILHUB_PROBE_FROM"
+    ],
+    "githubSendVerifySecrets": [
+      "MAILHUB_PROBE_SMTP_HOST",
+      "MAILHUB_PROBE_SMTP_USER",
+      "MAILHUB_PROBE_SMTP_PASS",
+      "MAILHUB_PROBE_FROM"
+    ],
+    "localPreflightEnv": [
+      "MAILHUB_PROBE_SMTP_HOST",
+      "MAILHUB_PROBE_SMTP_USER",
+      "MAILHUB_PROBE_SMTP_PASS",
+      "MAILHUB_PROBE_FROM"
+    ]
+  },
+  "present": {
+    "githubRequiredSecrets": [
+      "GOOGLE_CLIENT_ID",
+      "GOOGLE_CLIENT_SECRET",
+      "GOOGLE_SHARED_INBOX_EMAIL",
+      "GOOGLE_SHARED_INBOX_REFRESH_TOKEN"
+    ]
+  },
+  "nextActions": [
+    {
+      "id": "set_external_smtp_secrets",
+      "status": "required",
+      "description": "Add a non-@vtj.co.jp external SMTP proof sender to GitHub Actions secrets.",
+      "requiredSecrets": [
+        "MAILHUB_PROBE_SMTP_HOST",
+        "MAILHUB_PROBE_SMTP_USER",
+        "MAILHUB_PROBE_SMTP_PASS",
+        "MAILHUB_PROBE_FROM"
+      ],
+      "commands": [
+        "gh secret set MAILHUB_PROBE_SMTP_HOST --repo vyper-japan/mailhub --app actions",
+        "gh secret set MAILHUB_PROBE_SMTP_USER --repo vyper-japan/mailhub --app actions",
+        "gh secret set MAILHUB_PROBE_SMTP_PASS --repo vyper-japan/mailhub --app actions",
+        "gh secret set MAILHUB_PROBE_FROM --repo vyper-japan/mailhub --app actions"
+      ]
+    },
+    {
+      "id": "verify_secret_readiness",
+      "status": "required",
+      "command": "npm run audit:github-routing-secrets -- --no-fail --out .ai-runs/mailhub-next-phase/github-routing-secrets-readiness.json",
+      "expected": "readyForSendVerify=true"
+    },
+    {
+      "id": "run_no_send_preflight",
+      "status": "required",
+      "command": "npm run probe:routing-preflight -- --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-preflight.json",
+      "expected": "smtpPreflight.readyForProductionProof=true and sentCount=0"
+    },
+    {
+      "id": "run_github_send_verify",
+      "status": "blocked",
+      "command": "gh workflow run mailhub-routing-probe.yml --repo vyper-japan/mailhub -f mode=send_verify -f confirmSend=SEND_EXTERNAL_MAILHUB_ROUTING_PROBES -f waitSeconds=300 -f pollSeconds=15",
+      "expected": "sends 8 external probes, verifies all expected addresses, refreshes readiness, and uploads artifacts"
+    }
+  ]
+}

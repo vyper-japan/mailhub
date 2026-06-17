@@ -28,6 +28,7 @@ Continue from the completed INBOX-scoped source coverage and rule-safety wave:
    - Generate the exact address-level send plan with `npm run probe:routing-send`.
    - Before sending, run `npm run probe:routing-preflight -- --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-preflight.json`; proceed only when `smtpPreflight.readyForProductionProof=true`.
    - Re-run `npm run audit:mailhub-readiness -- --out .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json` after preflight; Ops Board will show `SMTP不足env` until the external SMTP proof config is complete.
+   - Run `npm run audit:mailhub-routing-next -- --out .ai-runs/mailhub-next-phase/mailhub-routing-next-steps.json` to generate the single operator next-step artifact; `state.canRunSendVerify` must be `true` before `send_verify`.
    - GitHub Actionsから実行する場合は manual-only workflow `MailHub Routing Probe` を使う。まず `npm run audit:github-routing-secrets -- --no-fail --out .ai-runs/mailhub-next-phase/github-routing-secrets-readiness.json` で Secrets readiness を確認し、`mode=preflight`、Secrets が揃った後に `mode=send_verify` + `confirmSend=SEND_EXTERNAL_MAILHUB_ROUTING_PROBES` を指定する。
    - The workflow also audits injected env secret readiness internally and blocks `send_verify` before sending unless `readyForSendVerify=true`.
    - 2026-06-17時点で GitHub Actions側の Gmail proof secrets 4件は投入済み。残作業は外部SMTP proof secrets 4件（`MAILHUB_PROBE_SMTP_HOST`, `MAILHUB_PROBE_SMTP_USER`, `MAILHUB_PROBE_SMTP_PASS`, `MAILHUB_PROBE_FROM`）の投入。
