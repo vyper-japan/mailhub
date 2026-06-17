@@ -2,8 +2,15 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const gmailMockState = vi.hoisted(() => ({
   listCalls: [] as Array<{ userId?: string }>,
-  messageListCalls: [] as Array<{ userId?: string; maxResults?: number; q?: string; pageToken?: string }>,
+  messageListCalls: [] as Array<{
+    userId?: string;
+    maxResults?: number;
+    q?: string;
+    pageToken?: string;
+    labelIds?: string[];
+  }>,
   messageGetCalls: [] as Array<{ userId?: string; id?: string }>,
+  labelGetCalls: [] as Array<{ userId?: string; id?: string }>,
   createCalls: [] as Array<{
     userId?: string;
     requestBody?: {
@@ -16,7 +23,9 @@ const gmailMockState = vi.hoisted(() => ({
   messageListResponses: [] as Array<{
     messages?: Array<{ id?: string; threadId?: string }>;
     nextPageToken?: string;
+    resultSizeEstimate?: number;
   }>,
+  labelTotals: {} as Record<string, number>,
   createConflict: false,
 }));
 
@@ -33,7 +42,13 @@ vi.mock("googleapis", () => {
     gmail: () => ({
       users: {
         messages: {
-          list: async (args: { userId?: string; maxResults?: number; q?: string; pageToken?: string }) => {
+          list: async (args: {
+            userId?: string;
+            maxResults?: number;
+            q?: string;
+            pageToken?: string;
+            labelIds?: string[];
+          }) => {
             gmailMockState.messageListCalls.push(args);
             const response = gmailMockState.messageListResponses.shift() ?? { messages: [] };
             return { data: response };
@@ -64,6 +79,10 @@ vi.mock("googleapis", () => {
             const labels = gmailMockState.listResponses.shift() ?? [];
             return { data: { labels } };
           },
+          get: async (args: { userId?: string; id?: string }) => {
+            gmailMockState.labelGetCalls.push(args);
+            return { data: { messagesTotal: args.id ? (gmailMockState.labelTotals[args.id] ?? 0) : 0 } };
+          },
           create: async (args: {
             userId?: string;
             requestBody?: {
@@ -91,7 +110,16 @@ vi.mock("googleapis", () => {
   return { google };
 });
 
-import { ensureLabelId, listLatestInboxMessages, MAILHUB_LABEL_WAITING } from "@/lib/gmail";
+import {
+  ensureLabelId,
+  getMessageCounts,
+  listLatestInboxMessages,
+  MAILHUB_LABEL_ASSIGNEE_PREFIX,
+  MAILHUB_LABEL_DONE,
+  MAILHUB_LABEL_MUTED,
+  MAILHUB_LABEL_SNOOZED,
+  MAILHUB_LABEL_WAITING,
+} from "@/lib/gmail";
 
 describe("ensureLabelId", () => {
   const originalEnv = { ...process.env };
@@ -107,9 +135,11 @@ describe("ensureLabelId", () => {
     gmailMockState.listCalls = [];
     gmailMockState.messageListCalls = [];
     gmailMockState.messageGetCalls = [];
+    gmailMockState.labelGetCalls = [];
     gmailMockState.createCalls = [];
     gmailMockState.listResponses = [];
     gmailMockState.messageListResponses = [];
+    gmailMockState.labelTotals = {};
     gmailMockState.createConflict = false;
   });
 
@@ -166,5 +196,53 @@ describe("ensureLabelId", () => {
     expect(second.nextPageToken).toBe("token-next-page");
     expect(second.messages.map((m) => m.id)).toEqual(["msg-cache-1"]);
     expect(gmailMockState.messageListCalls).toHaveLength(1);
+  });
+
+  it("counts production assignee load across every MailHub assignee label", async () => {
+    const labels = [
+      { id: "waiting-id", name: MAILHUB_LABEL_WAITING },
+      { id: "done-id", name: MAILHUB_LABEL_DONE },
+      { id: "muted-id", name: MAILHUB_LABEL_MUTED },
+      { id: "snoozed-id", name: MAILHUB_LABEL_SNOOZED },
+      { id: "assignee-mine-id", name: `${MAILHUB_LABEL_ASSIGNEE_PREFIX}me_at_vtj_co_jp` },
+      { id: "assignee-other-id", name: `${MAILHUB_LABEL_ASSIGNEE_PREFIX}other_at_vtj_co_jp` },
+    ];
+    gmailMockState.listResponses = [labels];
+    gmailMockState.labelTotals = {
+      INBOX: 10,
+      "waiting-id": 4,
+      "done-id": 3,
+      "muted-id": 2,
+      "snoozed-id": 1,
+      "assignee-mine-id": 7,
+    };
+    gmailMockState.messageListResponses = [
+      { resultSizeEstimate: 3 },
+      { resultSizeEstimate: 1 },
+      { resultSizeEstimate: 2 },
+      { resultSizeEstimate: 2 },
+    ];
+
+    const counts = await getMessageCounts("me@vtj.co.jp");
+
+    expect(counts).toMatchObject({
+      todo: 10,
+      waiting: 4,
+      done: 3,
+      muted: 2,
+      snoozed: 1,
+      assignedMine: 7,
+      assigneeLoadBySlug: {
+        me_at_vtj_co_jp: 4,
+        other_at_vtj_co_jp: 4,
+      },
+      unassignedLoad: 6,
+    });
+    expect(gmailMockState.messageListCalls.map((call) => call.labelIds)).toEqual([
+      ["INBOX", "assignee-mine-id"],
+      ["waiting-id", "assignee-mine-id"],
+      ["INBOX", "assignee-other-id"],
+      ["waiting-id", "assignee-other-id"],
+    ]);
   });
 });

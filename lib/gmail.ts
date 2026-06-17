@@ -1788,6 +1788,19 @@ function getAssigneeFromLabelIds(
   return null;
 }
 
+function getAssigneeLabelEntries(
+  idToName: Map<string, string>,
+): Array<{ id: string; slug: string }> {
+  const entries: Array<{ id: string; slug: string }> = [];
+  for (const [id, labelName] of idToName.entries()) {
+    if (!labelName.startsWith(MAILHUB_LABEL_ASSIGNEE_PREFIX)) continue;
+    const slug = labelName.slice(MAILHUB_LABEL_ASSIGNEE_PREFIX.length).trim();
+    if (!slug) continue;
+    entries.push({ id, slug });
+  }
+  return entries;
+}
+
 /**
  * 担当者ラベルのIDを取得または作成
  */
@@ -2001,35 +2014,32 @@ export async function getMessageCounts(userEmail: string): Promise<{
     getLabelTotal(assigneeLabelId),
   ]);
 
-  // Step 65: assignee負荷計算（MailHub/Assignee/*ラベルを列挙）
-  // 本番では labels.list で prefix走査し、各assigneeの負荷を計算
-  // TODO: 本番環境向けに Gmail API で実装（現在はTEST_MODEのみ対応）
+  const labelsMap = await listLabelsMap();
   const assigneeLoadBySlug: Record<string, number> = {};
-  // 簡易実装: mineSlugの負荷のみ計算（TODO+Waitingの合計件数）
-  if (assigneeLabelId && waitingId) {
-    // INBOXとassigneeLabelIdの交差、WaitingとassigneeLabelIdの交差
-    const theWaitingId = waitingId; // non-null assertion via reassignment
-    const theAssigneeLabelId = assigneeLabelId;
-    const [inboxLoad, waitingLoad] = await Promise.all([
-      (async () => {
-        const res = await gmail.users.messages.list({
-          userId: sharedInboxEmail,
-          labelIds: ["INBOX", theAssigneeLabelId],
-          maxResults: 1,
-        });
-        return res.data.resultSizeEstimate ?? 0;
-      })(),
-      (async () => {
-        const res = await gmail.users.messages.list({
-          userId: sharedInboxEmail,
-          labelIds: [theWaitingId, theAssigneeLabelId],
-          maxResults: 1,
-        });
-        return res.data.resultSizeEstimate ?? 0;
-      })(),
-    ]);
-    assigneeLoadBySlug[mineSlug] = inboxLoad + waitingLoad;
-  }
+  await Promise.all(
+    getAssigneeLabelEntries(labelsMap.idToName).map(async ({ id: labelId, slug }) => {
+      const [inboxLoad, waitingLoad] = await Promise.all([
+        (async () => {
+          const res = await gmail.users.messages.list({
+            userId: sharedInboxEmail,
+            labelIds: ["INBOX", labelId],
+            maxResults: 1,
+          });
+          return res.data.resultSizeEstimate ?? 0;
+        })(),
+        (async () => {
+          if (!waitingId) return 0;
+          const res = await gmail.users.messages.list({
+            userId: sharedInboxEmail,
+            labelIds: [waitingId, labelId],
+            maxResults: 1,
+          });
+          return res.data.resultSizeEstimate ?? 0;
+        })(),
+      ]);
+      assigneeLoadBySlug[slug] = inboxLoad + waitingLoad;
+    }),
+  );
   // unassignedLoad = (todo + waiting) - 全assignee負荷
   const totalAssignedLoad = Object.values(assigneeLoadBySlug).reduce((a, b) => a + b, 0);
   const unassignedLoad = Math.max(0, todo + waiting - totalAssignedLoad);

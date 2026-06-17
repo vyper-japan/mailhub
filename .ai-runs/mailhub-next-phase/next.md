@@ -17,7 +17,7 @@ Continue from the completed INBOX-scoped source coverage and rule-safety wave:
 8. Close the remaining production-readiness P1s:
    - durable Gmail send idempotency across serverless instances/cold starts
    - fail-closed or prominently blocked audit persistence for production mutations
-   - unassigned list/count accuracy across pages and all assignees
+   - unassigned list pagination accuracy across pages
    - autonomous SLA schedule enablement after Vercel protection/bypass is decided
 9. Add AI reply drafting only after a knowledge evidence source is defined; keep generated drafts separate from send actions.
 10. Expand the rule-safety gate only after production rule config exists and passes the real-data audit. Current code protects suppressive labels from invoice/inquiry/important-looking messages and fails closed when classification text is missing, but does not implement a full production auto-discard policy.
