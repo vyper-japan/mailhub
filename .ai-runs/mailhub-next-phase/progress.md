@@ -283,6 +283,10 @@
   - Blocked manual runs now upload the fresh next-step artifact instead of only the secret-readiness artifact, so the artifact bundle contains the exact missing setup list.
   - First manual preflight after the change (`27664847772`) exposed a missing plan-only probe audit regeneration after stale-artifact cleanup; fixed by adding `Refresh routing probe address plan`.
   - Confirmed with manual preflight run `27666835940` on commit `9fb9788`: workflow passed, skipped external sending, and uploaded `mailhub-routing-next-steps.json` with `canRunSendVerify=false`.
+- 2026-06-17 routing secret setup helper wave completed:
+  - Added `scripts/setup-mailhub-routing-probe-secrets.mjs` and `npm run setup:mailhub-routing-secrets`.
+  - The helper defaults to dry-run, writes GitHub Actions secrets only with `--apply`, rejects `@vtj.co.jp` probe senders unless explicitly overridden, and passes secret values to `gh secret set` via stdin without printing values.
+  - Added focused tests proving dry-run/apply output does not leak SMTP/Gmail secret values and that apply mode only records secret names plus stdin length in the fake `gh` harness.
 
 ## Not Done
 
@@ -299,6 +303,7 @@
 - The readiness contract workflow now guards against accidentally shipping a stale or under-evidenced `mailhub-production-readiness-audit.json`.
 - GitHub Actions can now run the final external probe once the required SMTP/Gmail secrets are configured, without depending on local `.env.local`.
 - GitHub Actions has the four Gmail proof secrets, but still lacks the four external SMTP proof secrets required before running `send_verify`.
+- `npm run setup:mailhub-routing-secrets -- --apply` can now set those external SMTP proof secrets once real values are available locally, but no such values are currently present.
 - The routing next-step artifact now shows the exact remaining action list, but it remains red because external SMTP proof setup has not been provided.
 - GitHub Actions routing probe artifacts now include the next-step artifact, but `send_verify` remains blocked until the external SMTP proof secrets are configured.
 - All GitHub workflow YAML now passes local `actionlint`; the remaining GitHub-side risk is secret/config availability for the manual external routing probe, not workflow syntax.

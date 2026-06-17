@@ -503,6 +503,15 @@ npm run audit:mailhub-routing-next -- --out .ai-runs/mailhub-next-phase/mailhub-
 - `MAILHUB_PROBE_SMTP_PASS`
 - `MAILHUB_PROBE_FROM`（`@vtj.co.jp` 以外）
 
+外部SMTP値をローカル環境変数または `.env.local` に入れた後、GitHub Actions Secrets へ値を表示せずに投入できる。既定は dry-run なので、投入前に対象secret名だけを確認する。
+
+```bash
+npm run setup:mailhub-routing-secrets
+npm run setup:mailhub-routing-secrets -- --apply
+```
+
+Gmail proof secrets も同時に再投入する場合のみ `--include-gmail` を付ける。値は標準出力にもコマンドラインにも出さず、`gh secret set` の stdin 経由で渡す。
+
 手順:
 0. `npm run audit:github-routing-secrets -- --no-fail --out .ai-runs/mailhub-next-phase/github-routing-secrets-readiness.json` と `npm run audit:mailhub-routing-next -- --out .ai-runs/mailhub-next-phase/mailhub-routing-next-steps.json` で `readyForSendVerify=true` / `canRunSendVerify=true` を確認する
 1. Actions → `MailHub Routing Probe` → `Run workflow`

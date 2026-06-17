@@ -1287,6 +1287,49 @@ git diff --check
 - `npm run security:scan-artifacts`: passed.
 - `git diff --check`: passed.
 
+## Verification Commands Run On 2026-06-17 Routing Secret Setup Helper Wave
+
+```bash
+node --check scripts/setup-mailhub-routing-probe-secrets.mjs
+npx vitest run lib/__tests__/mailhub-routing-probe-scripts.test.ts
+node scripts/setup-mailhub-routing-probe-secrets.mjs --help
+npm run setup:mailhub-routing-secrets
+npm run audit:github-routing-secrets -- --no-fail --out .ai-runs/mailhub-next-phase/github-routing-secrets-readiness.json
+npm run probe:routing-preflight -- --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-preflight.json
+npm run audit:routing-probes -- --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-audit.json
+npm run audit:mailhub-readiness -- --out .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json
+npm run audit:mailhub-routing-next -- --out .ai-runs/mailhub-next-phase/mailhub-routing-next-steps.json
+npm run audit:mailhub-readiness-contract
+npm run typecheck
+npm run lint
+npm run test
+npm run build
+npm run security:scan-artifacts
+npm run security:scan
+git diff --check
+```
+
+## 2026-06-17 Routing Secret Setup Helper Wave Results
+
+- `node --check`: passed.
+- Focused Vitest: 1 file / 19 tests passed.
+- Help output confirms the non-conflicting `--probe-env-file` option, default dry-run behavior, `--apply` requirement, and stdin-based secret setting note.
+- The focused tests cover dry-run no-leak output, `@vtj.co.jp` sender refusal before apply, and fake-`gh` apply via stdin without printing secret values.
+- Local dry-run helper check: passed with `readyToApply=false`; no SMTP values are present locally and no secret values were printed.
+- GitHub routing secret readiness refresh: passed with the Gmail proof secrets present and the four external SMTP proof secrets missing.
+- Local routing preflight refresh: passed with `sentCount=0`; the same four external SMTP proof env keys are missing.
+- Plan-only routing probe audit refresh: passed with 6 target channels and 8 target addresses.
+- Production readiness refresh: passed with `productionReady=false` and P0 `current_shared_gmail_routing`.
+- Routing next-step artifact refresh: passed with `canRunSendVerify=false` and `run_github_send_verify=blocked`.
+- Readiness contract: passed.
+- `npm run typecheck`: passed.
+- `npm run lint`: passed.
+- `npm run test`: 63 files / 559 tests passed.
+- `npm run build`: passed.
+- `npm run security:scan-artifacts`: passed.
+- `npm run security:scan`: passed.
+- `git diff --check`: passed.
+
 ## Useful Runtime Commands
 
 Start dev server for tunnel:
