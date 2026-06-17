@@ -1,9 +1,14 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { execFileSync } from "node:child_process";
 
 export type OpsReadinessSummary = {
   available: boolean;
   generatedAt: string | null;
+  auditRepoHead: string | null;
+  currentRepoHead: string | null;
+  currentRepoParentHead: string | null;
+  repoHeadMatches: boolean | null;
   productionReady: boolean;
   p0Blockers: string[];
   p1Blockers: string[];
@@ -22,6 +27,10 @@ export function unavailableOpsReadinessSummary(): OpsReadinessSummary {
   return {
     available: false,
     generatedAt: null,
+    auditRepoHead: null,
+    currentRepoHead: null,
+    currentRepoParentHead: null,
+    repoHeadMatches: null,
     productionReady: false,
     p0Blockers: [],
     p1Blockers: [],
@@ -35,6 +44,23 @@ export function unavailableOpsReadinessSummary(): OpsReadinessSummary {
     missingProbeAddresses: [],
     mxRecords: [],
   };
+}
+
+function gitRevParse(ref: string): string | null {
+  try {
+    return execFileSync("git", ["rev-parse", ref], {
+      cwd: process.cwd(),
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    }).trim();
+  } catch {
+    return null;
+  }
+}
+
+function repoHeadMatchesAudit(auditRepoHead: string | null, currentHead: string | null, currentParentHead: string | null): boolean | null {
+  if (!auditRepoHead || !currentHead) return null;
+  return auditRepoHead === currentHead || auditRepoHead === currentParentHead;
 }
 
 function stringArray(value: unknown): string[] {
@@ -53,9 +79,15 @@ function mxRecords(value: unknown): Array<{ exchange: string; priority: number }
     .filter((item): item is { exchange: string; priority: number } => item !== null);
 }
 
-export function summarizeProductionReadinessAudit(value: unknown): OpsReadinessSummary {
+export function summarizeProductionReadinessAudit(
+  value: unknown,
+  currentHead: string | null = null,
+  currentParentHead: string | null = null,
+): OpsReadinessSummary {
   if (!value || typeof value !== "object") return unavailableOpsReadinessSummary();
   const audit = value as Record<string, unknown>;
+  const auditRepoHead = typeof audit.repoHead === "string" ? audit.repoHead : null;
+  const repoHeadMatches = repoHeadMatchesAudit(auditRepoHead, currentHead, currentParentHead);
   const requirements = (audit.requirements && typeof audit.requirements === "object")
     ? audit.requirements as Record<string, unknown>
     : {};
@@ -76,6 +108,10 @@ export function summarizeProductionReadinessAudit(value: unknown): OpsReadinessS
   return {
     available: true,
     generatedAt: typeof audit.generatedAt === "string" ? audit.generatedAt : null,
+    auditRepoHead,
+    currentRepoHead: currentHead,
+    currentRepoParentHead: currentParentHead,
+    repoHeadMatches,
     productionReady: gate.productionReady === true,
     p0Blockers: stringArray(gate.p0Blockers),
     p1Blockers: stringArray(gate.p1Blockers),
@@ -94,7 +130,11 @@ export function summarizeProductionReadinessAudit(value: unknown): OpsReadinessS
 export function readOpsReadinessSummary(path = join(process.cwd(), ".ai-runs", "mailhub-next-phase", "mailhub-production-readiness-audit.json")): OpsReadinessSummary {
   if (!existsSync(path)) return unavailableOpsReadinessSummary();
   try {
-    return summarizeProductionReadinessAudit(JSON.parse(readFileSync(path, "utf8")));
+    return summarizeProductionReadinessAudit(
+      JSON.parse(readFileSync(path, "utf8")),
+      gitRevParse("HEAD"),
+      gitRevParse("HEAD^"),
+    );
   } catch {
     return unavailableOpsReadinessSummary();
   }

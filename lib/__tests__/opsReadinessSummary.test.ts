@@ -8,6 +8,7 @@ describe("opsReadinessSummary", () => {
   test("summarizes production readiness blockers for the Ops Board", () => {
     const summary = summarizeProductionReadinessAudit({
       generatedAt: "2026-06-17T00:00:00.000Z",
+      repoHead: "abc123",
       requirements: {
         sourceCodeCoverageReady: true,
         sourceInventoryReady: true,
@@ -34,11 +35,15 @@ describe("opsReadinessSummary", () => {
           },
         },
       ],
-    });
+    }, "abc123", "parent123");
 
     expect(summary).toMatchObject({
       available: true,
       generatedAt: "2026-06-17T00:00:00.000Z",
+      auditRepoHead: "abc123",
+      currentRepoHead: "abc123",
+      currentRepoParentHead: "parent123",
+      repoHeadMatches: true,
       productionReady: false,
       p0Blockers: ["current_shared_gmail_routing"],
       sourceCodeCoverageReady: true,
@@ -55,5 +60,27 @@ describe("opsReadinessSummary", () => {
 
   test("returns an unavailable summary for malformed audit input", () => {
     expect(summarizeProductionReadinessAudit(null)).toEqual(unavailableOpsReadinessSummary());
+  });
+
+  test("treats the current parent head as fresh for committed audit artifacts", () => {
+    const summary = summarizeProductionReadinessAudit({
+      repoHead: "parent123",
+      requirements: {},
+      gate: { productionReady: false, p0Blockers: [], p1Blockers: [] },
+      blockers: [],
+    }, "current123", "parent123");
+
+    expect(summary.repoHeadMatches).toBe(true);
+  });
+
+  test("marks the readiness summary stale when audit and current lineage differ", () => {
+    const summary = summarizeProductionReadinessAudit({
+      repoHead: "old123",
+      requirements: {},
+      gate: { productionReady: false, p0Blockers: [], p1Blockers: [] },
+      blockers: [],
+    }, "current123", "parent123");
+
+    expect(summary.repoHeadMatches).toBe(false);
   });
 });

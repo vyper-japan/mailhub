@@ -137,6 +137,10 @@ type OpsSummaryBucketView = {
 type OpsReadinessView = {
   available: boolean;
   generatedAt: string | null;
+  auditRepoHead: string | null;
+  currentRepoHead: string | null;
+  currentRepoParentHead: string | null;
+  repoHeadMatches: boolean | null;
   productionReady: boolean;
   p0Blockers: string[];
   p1Blockers: string[];
@@ -8578,7 +8582,9 @@ export default function InboxShell({
                   {opsSummary.productionReadiness && (
                     <div
                       className={`rounded-lg border p-3 ${
-                        opsSummary.productionReadiness.productionReady
+                        opsSummary.productionReadiness.repoHeadMatches === false
+                          ? "border-yellow-500/30 bg-yellow-500/10"
+                          : opsSummary.productionReadiness.productionReady
                           ? "border-emerald-500/30 bg-emerald-500/10"
                           : "border-red-500/30 bg-red-500/10"
                       }`}
@@ -8587,25 +8593,35 @@ export default function InboxShell({
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <div className={`flex items-center gap-2 text-sm font-bold ${
-                            opsSummary.productionReadiness.productionReady ? "text-emerald-300" : "text-red-300"
+                            opsSummary.productionReadiness.repoHeadMatches === false
+                              ? "text-yellow-300"
+                              : opsSummary.productionReadiness.productionReady
+                                ? "text-emerald-300"
+                                : "text-red-300"
                           }`}>
-                            {opsSummary.productionReadiness.productionReady ? (
+                            {opsSummary.productionReadiness.productionReady && opsSummary.productionReadiness.repoHeadMatches !== false ? (
                               <CheckCircle className="h-4 w-4 shrink-0" />
                             ) : (
                               <AlertTriangle className="h-4 w-4 shrink-0" />
                             )}
                             <span>
-                              {opsSummary.productionReadiness.productionReady ? "本番判定 OK" : "本番判定 保留"}
+                              {opsSummary.productionReadiness.repoHeadMatches === false
+                                ? "本番判定 再監査必要"
+                                : opsSummary.productionReadiness.productionReady
+                                  ? "本番判定 OK"
+                                  : "本番判定 保留"}
                             </span>
                           </div>
                           <div className="mt-1 text-xs leading-relaxed text-slate-300">
                             {opsSummary.productionReadiness.available
-                              ? opsSummary.productionReadiness.productionReady
+                              ? opsSummary.productionReadiness.repoHeadMatches === false
+                                ? "readiness 監査成果物が現在のコードHEADと一致していません。監査を再実行してください。"
+                                : opsSummary.productionReadiness.productionReady
                                 ? "source coverage・routing・view/rule safety のゲートを通過しています。"
                                 : `残P0: ${opsSummary.productionReadiness.p0Blockers.join(", ") || "なし"}`
                               : "readiness 監査成果物がありません。"}
                           </div>
-                          {!opsSummary.productionReadiness.productionReady && opsSummary.productionReadiness.available && (
+                          {opsSummary.productionReadiness.available && (
                             <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-slate-300">
                               <div className="rounded border border-slate-700/60 bg-slate-950/30 px-2 py-1">
                                 未確認チャンネル: {opsSummary.productionReadiness.unconfirmedChannels.length}
@@ -8616,6 +8632,14 @@ export default function InboxShell({
                               <div className="col-span-2 rounded border border-slate-700/60 bg-slate-950/30 px-2 py-1">
                                 MX: {opsSummary.productionReadiness.mxRecords.map((record) => `${record.priority} ${record.exchange}`).join(", ") || "未取得"}
                               </div>
+                              {opsSummary.productionReadiness.auditRepoHead && (
+                                <div className="col-span-2 rounded border border-slate-700/60 bg-slate-950/30 px-2 py-1">
+                                  audit HEAD: {opsSummary.productionReadiness.auditRepoHead.slice(0, 7)}
+                                  {opsSummary.productionReadiness.currentRepoHead
+                                    ? ` / current: ${opsSummary.productionReadiness.currentRepoHead.slice(0, 7)}`
+                                    : " / current: 不明"}
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>

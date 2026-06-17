@@ -2,6 +2,7 @@
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
+import { execFileSync } from "node:child_process";
 
 const repoRoot = process.cwd();
 const runDir = join(repoRoot, ".ai-runs", "mailhub-next-phase");
@@ -46,6 +47,18 @@ function readOptionalJson(path) {
 
 function blocker(id, severity, message, evidence = {}) {
   return { id, severity, message, evidence };
+}
+
+function currentRepoHead() {
+  try {
+    return execFileSync("git", ["rev-parse", "HEAD"], {
+      cwd: repoRoot,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    }).trim();
+  } catch {
+    return null;
+  }
 }
 
 function main() {
@@ -110,6 +123,7 @@ function main() {
 
   const result = {
     generatedAt: new Date().toISOString(),
+    repoHead: currentRepoHead(),
     inputs: {
       sourceAudit: args.sourceAudit,
       opsAudit: args.opsAudit,

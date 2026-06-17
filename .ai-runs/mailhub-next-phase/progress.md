@@ -182,6 +182,11 @@
   - The Ops Board drawer now shows a production readiness banner before SLA lists.
   - This makes the remaining P0 (`current_shared_gmail_routing`) visible in the operator workflow instead of only in CLI artifacts.
   - Added `lib/__tests__/opsReadinessSummary.test.ts`.
+- 2026-06-17 readiness audit freshness wave completed:
+  - `scripts/audit-mailhub-production-readiness.mjs` now records the git `repoHead` used when the readiness gate was generated.
+  - `lib/opsReadinessSummary.ts` compares the audit head with the current repo head, allowing the direct parent for committed audit-artifact refreshes.
+  - The Ops Board banner now shows `再監査必要` when the readiness artifact is stale against the current code lineage.
+  - This prevents old green/red readiness artifacts from being treated as current operational evidence after code changes.
 
 ## Not Done
 

@@ -622,6 +622,26 @@ git diff --check
 - `npm run build`: passed.
 - `git diff --check`: passed.
 
+## Verification Commands Run On 2026-06-17 Readiness Audit Freshness Wave
+
+```bash
+npx vitest run lib/__tests__/opsReadinessSummary.test.ts lib/__tests__/mailhub-routing-probe-scripts.test.ts
+npm run typecheck
+npm run lint
+npm run test
+npm run build
+git diff --check
+```
+
+## 2026-06-17 Readiness Audit Freshness Wave Results
+
+- Focused Vitest: 2 files / 9 tests passed.
+- `npm run typecheck`: passed.
+- `npm run lint`: passed.
+- `npm run test`: 62 files / 540 tests passed.
+- `npm run build`: passed.
+- `git diff --check`: passed.
+
 ## Useful Runtime Commands
 
 Start dev server for tunnel:
