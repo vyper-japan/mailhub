@@ -2909,6 +2909,7 @@ export default function InboxShell({
           }
         }
         await postJsonOrThrow("/api/mailhub/rules", { match, labelNames: [labelName], enabled: true });
+        lastRulesApplyKeyRef.current = "";
         showToast("ラベルを付与しました（ルール保存）", "success");
       } else {
         showToast(shouldRemove ? "ラベルを解除しました" : "ラベルを付与しました", "success");
