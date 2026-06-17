@@ -68,6 +68,7 @@ describe("MailHub staff evidence manifest writer", () => {
         controlledWritePilot: {
           actorEmail: string;
           messageId: string;
+          action: string;
           gmailProof: string;
           returnedToReadOnly: boolean;
         };
@@ -78,8 +79,51 @@ describe("MailHub staff evidence manifest writer", () => {
       expect(manifest.controlledWritePilot).toMatchObject({
         actorEmail: "ops@vtj.co.jp",
         messageId: "msg-001",
+        action: "assign",
         gmailProof: "gmail-msg-001-assign.png",
         returnedToReadOnly: true,
+      });
+    });
+  });
+
+  test("writes proof filenames that include the requested message id and action", () => {
+    withTempDir((dir) => {
+      const outPath = join(dir, "staff-workflow-evidence-manifest.json");
+      const result = runManifestWriter([
+        "--out",
+        outPath,
+        "--captured-at",
+        "2026-06-17T12:00:00.000Z",
+        "--captured-by",
+        "Admin@vtj.co.jp",
+        "--staff-email",
+        "Maki@vtj.co.jp",
+        "--actor-email",
+        "Ops@vtj.co.jp",
+        "--message-id",
+        "msg-002",
+        "--action",
+        "label-add",
+        "--date",
+        "20260618",
+      ]);
+
+      expect(result.status).toBe(0);
+      const manifest = JSON.parse(readFileSync(outPath, "utf8")) as {
+        controlledWritePilot: {
+          messageId: string;
+          action: string;
+          gmailProof: string;
+          mailhubProof: string;
+          activityCsv: string;
+        };
+      };
+      expect(manifest.controlledWritePilot).toMatchObject({
+        messageId: "msg-002",
+        action: "label-add",
+        gmailProof: "gmail-msg-002-label-add.png",
+        mailhubProof: "mailhub-msg-002-label-add.png",
+        activityCsv: "activity-20260618-prod.csv",
       });
     });
   });

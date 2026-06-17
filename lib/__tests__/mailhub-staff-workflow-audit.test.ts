@@ -20,6 +20,27 @@ function writeJson(path: string, value: unknown) {
   writeFileSync(path, `${JSON.stringify(value, null, 2)}\n`, "utf8");
 }
 
+const validPng = Buffer.concat(
+  [
+    Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=",
+      "base64",
+    ),
+    Buffer.alloc(1200),
+  ],
+);
+
+function writePng(path: string) {
+  writeFileSync(path, validPng);
+}
+
+function writeActivityCsv(path: string, overrides: Partial<{ actor: string; action: string; messageId: string }> = {}) {
+  writeFileSync(path, [
+    "timeISO,actor,action,messageId,subject,channel,status,label,metaJSON,reason",
+    `2026-06-17T12:01:00.000Z,${overrides.actor ?? "maki@vtj.co.jp"},${overrides.action ?? "assign"},${overrides.messageId ?? "msg-001"},Pilot,stores,ok,MailHub/Todo,{},pilot`,
+  ].join("\n"), "utf8");
+}
+
 function runNodeScript(scriptPath: string, args: string[], env: Partial<NodeJS.ProcessEnv> = {}) {
   return spawnSync(process.execPath, [scriptPath, ...args], {
     cwd: process.cwd(),
@@ -50,10 +71,10 @@ function writeProductionEvidence(dir: string) {
     "mailhub-meta-topbar-back-to-readonly.png",
     "gmail-msg-001-assign.png",
     "mailhub-msg-001-assign.png",
-    "activity-20260617-prod.csv",
   ]) {
-    writeFileSync(join(dir, name), "evidence", "utf8");
+    writePng(join(dir, name));
   }
+  writeActivityCsv(join(dir, "activity-20260617-prod.csv"));
   writeJson(join(dir, "staff-workflow-evidence-manifest.json"), {
     schema: "mailhub.staff-workflow-evidence.v1",
     capturedAt: "2026-06-17T12:00:00.000Z",
@@ -67,6 +88,7 @@ function writeProductionEvidence(dir: string) {
     },
     controlledWritePilot: {
       messageId: "msg-001",
+      action: "assign",
       actorEmail: "maki@vtj.co.jp",
       mailhubWriteTopbar: "mailhub-meta-topbar-write.png",
       mailhubBackToReadOnlyTopbar: "mailhub-meta-topbar-back-to-readonly.png",
@@ -245,6 +267,134 @@ describe("MailHub staff workflow audit", () => {
     });
   });
 
+  test("rejects staff evidence files with invalid PNG bytes", () => {
+    withTempDir((dir) => {
+      const outPath = join(dir, "staff.json");
+      const evidenceDir = join(dir, "prod");
+      const assigneesPath = join(dir, "assignees.json");
+      writeProductionEvidence(evidenceDir);
+      writeFileSync(join(evidenceDir, "gmail-msg-001-assign.png"), "evidence", "utf8");
+      writeJson(assigneesPath, [{ email: "yuka@vtj.co.jp", displayName: "Yuka" }]);
+
+      const result = runNodeScript(staffAuditPath, [
+        "--out",
+        outPath,
+        "--prod-evidence-dir",
+        evidenceDir,
+        "--assignees",
+        assigneesPath,
+      ], productionEnv);
+
+      expect(result.status).toBe(0);
+      const artifact = JSON.parse(readFileSync(outPath, "utf8")) as {
+        requirements: { writePilotEvidenceReady: boolean };
+        evidence: { writePilotEvidenceIssues: string[]; manifest: { writePilotManifestReady: boolean } };
+        gate: { staffWorkflowPermissionsReady: boolean; p1Blockers: string[] };
+        repoHead: string;
+      };
+      expect(artifact.requirements.writePilotEvidenceReady).toBe(false);
+      expect(artifact.evidence.manifest.writePilotManifestReady).toBe(false);
+      expect(artifact.evidence.writePilotEvidenceIssues).toContain("manifest:png_too_small_write_gmail_proof:gmail-msg-001-assign.png");
+      expect(artifact.gate.staffWorkflowPermissionsReady).toBe(false);
+      expect(artifact.gate.p1Blockers).toContain("write_pilot_evidence_missing");
+
+      const contract = runNodeScript(staffContractPath, [
+        "--audit",
+        outPath,
+        "--repo-head",
+        artifact.repoHead,
+      ]);
+      expect(contract.status).toBe(0);
+    });
+  });
+
+  test("rejects staff evidence manifest when Activity CSV does not contain the controlled write pilot", () => {
+    withTempDir((dir) => {
+      const outPath = join(dir, "staff.json");
+      const evidenceDir = join(dir, "prod");
+      const assigneesPath = join(dir, "assignees.json");
+      writeProductionEvidence(evidenceDir);
+      writeActivityCsv(join(evidenceDir, "activity-20260617-prod.csv"), {
+        actor: "other@vtj.co.jp",
+        action: "done",
+        messageId: "msg-other",
+      });
+      writeJson(assigneesPath, [{ email: "yuka@vtj.co.jp", displayName: "Yuka" }]);
+
+      const result = runNodeScript(staffAuditPath, [
+        "--out",
+        outPath,
+        "--prod-evidence-dir",
+        evidenceDir,
+        "--assignees",
+        assigneesPath,
+      ], productionEnv);
+
+      expect(result.status).toBe(0);
+      const artifact = JSON.parse(readFileSync(outPath, "utf8")) as {
+        requirements: { writePilotEvidenceReady: boolean };
+        evidence: { writePilotEvidenceIssues: string[] };
+        gate: { staffWorkflowPermissionsReady: boolean };
+      };
+      expect(artifact.requirements.writePilotEvidenceReady).toBe(false);
+      expect(artifact.evidence.writePilotEvidenceIssues).toContain("manifest:activity_csv_missing_controlled_write_row:activity-20260617-prod.csv");
+      expect(artifact.gate.staffWorkflowPermissionsReady).toBe(false);
+    });
+  });
+
+  test("rejects staff evidence manifest when proof filenames disagree with message id or action", () => {
+    withTempDir((dir) => {
+      const outPath = join(dir, "staff.json");
+      const evidenceDir = join(dir, "prod");
+      const assigneesPath = join(dir, "assignees.json");
+      writeProductionEvidence(evidenceDir);
+      writePng(join(evidenceDir, "gmail-msg-001-done.png"));
+      writeJson(join(evidenceDir, "staff-workflow-evidence-manifest.json"), {
+        schema: "mailhub.staff-workflow-evidence.v1",
+        capturedAt: "2026-06-17T12:00:00.000Z",
+        capturedBy: "admin@vtj.co.jp",
+        environment: "production",
+        readOnlyRollout: {
+          readOnly: true,
+          mailhubTopbar: "mailhub-meta-topbar-readonly.png",
+          mailhubHealth: "mailhub-meta-health-readonly.png",
+          verifiedStaffEmails: ["maki@vtj.co.jp"],
+        },
+        controlledWritePilot: {
+          messageId: "msg-001",
+          action: "assign",
+          actorEmail: "maki@vtj.co.jp",
+          mailhubWriteTopbar: "mailhub-meta-topbar-write.png",
+          mailhubBackToReadOnlyTopbar: "mailhub-meta-topbar-back-to-readonly.png",
+          activityCsv: "activity-20260617-prod.csv",
+          gmailProof: "gmail-msg-001-done.png",
+          mailhubProof: "mailhub-msg-001-assign.png",
+          returnedToReadOnly: true,
+        },
+      });
+      writeJson(assigneesPath, [{ email: "yuka@vtj.co.jp", displayName: "Yuka" }]);
+
+      const result = runNodeScript(staffAuditPath, [
+        "--out",
+        outPath,
+        "--prod-evidence-dir",
+        evidenceDir,
+        "--assignees",
+        assigneesPath,
+      ], productionEnv);
+
+      expect(result.status).toBe(0);
+      const artifact = JSON.parse(readFileSync(outPath, "utf8")) as {
+        requirements: { writePilotEvidenceReady: boolean };
+        evidence: { writePilotEvidenceIssues: string[] };
+        gate: { staffWorkflowPermissionsReady: boolean };
+      };
+      expect(artifact.requirements.writePilotEvidenceReady).toBe(false);
+      expect(artifact.evidence.writePilotEvidenceIssues).toContain("manifest:unexpected_write_gmail_proof:gmail-msg-001-done.png");
+      expect(artifact.gate.staffWorkflowPermissionsReady).toBe(false);
+    });
+  });
+
   test("keeps local or incomplete rollout evidence blocked with explicit reasons", () => {
     withTempDir((dir) => {
       const outPath = join(dir, "staff.json");
@@ -373,6 +523,7 @@ describe("MailHub staff workflow audit", () => {
         },
         controlledWritePilot: {
           messageId: "msg-001",
+          action: "assign",
           actorEmail: "maki@vtj.co.jp",
           mailhubWriteTopbar: "mailhub-meta-topbar-write.png",
           mailhubBackToReadOnlyTopbar: "mailhub-meta-topbar-back-to-readonly.png",

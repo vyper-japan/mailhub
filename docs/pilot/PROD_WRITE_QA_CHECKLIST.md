@@ -103,7 +103,7 @@ action（ファイル名用）：
 - [ ] Gmail側：`docs/pilot/prod/gmail-<messageId>-<action>.png`
 - [ ] MailHub側：`docs/pilot/prod/mailhub-<messageId>-<action>.png`
 - [ ] Activity CSV：`docs/pilot/prod/activity-<YYYYMMDD>-prod.csv`
-- [ ] `docs/pilot/prod/staff-workflow-evidence-manifest.json` の `controlledWritePilot` に messageId、操作担当、上記3ファイル名を記録
+- [ ] `docs/pilot/prod/staff-workflow-evidence-manifest.json` の `controlledWritePilot` に messageId、action、操作担当、上記3ファイル名を記録
 
 ### 復帰（必須）
 - [ ] `MAILHUB_READ_ONLY=1` に戻して再デプロイ（緊急停止）
@@ -178,6 +178,7 @@ npm run setup:mailhub-staff-manifest -- \
   },
   "controlledWritePilot": {
     "messageId": "message-id",
+    "action": "assign",
     "actorEmail": "staff@vtj.co.jp",
     "mailhubWriteTopbar": "mailhub-meta-topbar-write.png",
     "mailhubBackToReadOnlyTopbar": "mailhub-meta-topbar-back-to-readonly.png",

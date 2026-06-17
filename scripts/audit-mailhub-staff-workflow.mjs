@@ -39,6 +39,9 @@ const REQUIRED_PROD_WRITE_EVIDENCE = [
 
 const EVIDENCE_MANIFEST_FILE = "staff-workflow-evidence-manifest.json";
 const EVIDENCE_MANIFEST_SCHEMA = "mailhub.staff-workflow-evidence.v1";
+const VALID_WRITE_ACTIONS = new Set(["assign", "waiting", "done", "mute", "label-add", "label-remove"]);
+const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+const MIN_PNG_BYTES = 1024;
 
 function parseArgs(argv) {
   const out = {
@@ -230,11 +233,101 @@ function readJson(path) {
 function requireManifestFile({ files, filename, field, expected, pattern, errors }) {
   if (typeof filename !== "string" || !filename.trim()) {
     errors.push(`missing_${field}`);
-    return;
+    return false;
   }
   if (expected && filename !== expected) errors.push(`unexpected_${field}:${filename}`);
   if (pattern && !pattern.test(filename)) errors.push(`invalid_${field}:${filename}`);
   if (!files.includes(filename)) errors.push(`missing_manifest_file:${filename}`);
+  return files.includes(filename) && (!expected || filename === expected) && (!pattern || pattern.test(filename));
+}
+
+function validatePngEvidenceFile({ dir, files, filename, field, errors }) {
+  if (typeof filename !== "string" || !files.includes(filename)) return;
+  try {
+    const bytes = readFileSync(join(dir, filename));
+    if (bytes.length < MIN_PNG_BYTES) {
+      errors.push(`png_too_small_${field}:${filename}`);
+      return;
+    }
+    if (bytes.subarray(0, PNG_SIGNATURE.length).compare(PNG_SIGNATURE) !== 0) {
+      errors.push(`invalid_png_${field}:${filename}`);
+    }
+  } catch (e) {
+    errors.push(`png_read_error_${field}:${filename}:${e instanceof Error ? e.message : String(e)}`);
+  }
+}
+
+function parseCsvLine(line) {
+  const cells = [];
+  let current = "";
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i += 1) {
+    const char = line[i];
+    if (char === '"') {
+      if (inQuotes && line[i + 1] === '"') {
+        current += '"';
+        i += 1;
+      } else {
+        inQuotes = !inQuotes;
+      }
+    } else if (char === "," && !inQuotes) {
+      cells.push(current);
+      current = "";
+    } else {
+      current += char;
+    }
+  }
+  cells.push(current);
+  return cells.map((cell) => cell.trim());
+}
+
+function parseCsv(raw) {
+  return raw
+    .split(/\r?\n/)
+    .filter((line) => line.trim())
+    .map(parseCsvLine);
+}
+
+function normalizedHeader(value) {
+  return String(value ?? "").toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+function headerIndex(headers, candidates) {
+  const normalizedCandidates = new Set(candidates.map(normalizedHeader));
+  return headers.findIndex((header) => normalizedCandidates.has(normalizedHeader(header)));
+}
+
+function validateActivityCsv({ dir, files, filename, expected, errors }) {
+  if (typeof filename !== "string" || !files.includes(filename)) return;
+  try {
+    const rows = parseCsv(readFileSync(join(dir, filename), "utf8"));
+    if (rows.length < 2) {
+      errors.push(`activity_csv_no_data_rows:${filename}`);
+      return;
+    }
+    const [headers, ...dataRows] = rows;
+    const messageIndex = headerIndex(headers, ["messageId", "message_id"]);
+    const actorIndex = headerIndex(headers, ["actorEmail", "actor", "email"]);
+    const actionIndex = headerIndex(headers, ["action"]);
+    const missing = [];
+    if (messageIndex < 0) missing.push("messageId");
+    if (actorIndex < 0) missing.push("actorEmail");
+    if (actionIndex < 0) missing.push("action");
+    if (missing.length > 0) {
+      errors.push(`activity_csv_missing_headers:${filename}:${missing.join(",")}`);
+      return;
+    }
+    const expectedActor = expected.actorEmail.toLowerCase();
+    const expectedAction = expected.action.toLowerCase();
+    const matched = dataRows.some((row) =>
+      String(row[messageIndex] ?? "").trim() === expected.messageId &&
+      String(row[actorIndex] ?? "").trim().toLowerCase() === expectedActor &&
+      String(row[actionIndex] ?? "").trim().toLowerCase() === expectedAction
+    );
+    if (!matched) errors.push(`activity_csv_missing_controlled_write_row:${filename}`);
+  } catch (e) {
+    errors.push(`activity_csv_read_error:${filename}:${e instanceof Error ? e.message : String(e)}`);
+  }
 }
 
 function prodEvidenceManifest(path, files) {
@@ -293,9 +386,16 @@ function prodEvidenceManifest(path, files) {
 
   const controlledWritePilot = objectValue(manifest.controlledWritePilot);
   const writePilotManifestErrors = [...commonErrors];
-  if (typeof controlledWritePilot.messageId !== "string" || !controlledWritePilot.messageId.trim()) {
+  const writeMessageId = typeof controlledWritePilot.messageId === "string" ? controlledWritePilot.messageId.trim() : "";
+  const writeAction = typeof controlledWritePilot.action === "string" ? controlledWritePilot.action.trim() : "";
+  const writeActorEmail = typeof controlledWritePilot.actorEmail === "string" ? controlledWritePilot.actorEmail.trim().toLowerCase() : "";
+  if (!writeMessageId) {
     writePilotManifestErrors.push("missing_write_pilot_message_id");
   }
+  if (writeMessageId.includes("/") || writeMessageId.includes("\\")) {
+    writePilotManifestErrors.push("invalid_write_pilot_message_id");
+  }
+  if (!VALID_WRITE_ACTIONS.has(writeAction)) writePilotManifestErrors.push(`invalid_write_pilot_action:${writeAction || "<missing>"}`);
   if (!validVtjEmail(controlledWritePilot.actorEmail)) writePilotManifestErrors.push("invalid_write_pilot_actor_email");
   if (controlledWritePilot.returnedToReadOnly !== true) {
     writePilotManifestErrors.push("write_pilot_not_returned_to_readonly");
@@ -307,11 +407,25 @@ function prodEvidenceManifest(path, files) {
     expected: "mailhub-meta-topbar-write.png",
     errors: writePilotManifestErrors,
   });
+  validatePngEvidenceFile({
+    dir: path,
+    files,
+    filename: controlledWritePilot.mailhubWriteTopbar,
+    field: "write_mailhub_topbar",
+    errors: writePilotManifestErrors,
+  });
   requireManifestFile({
     files,
     filename: controlledWritePilot.mailhubBackToReadOnlyTopbar,
     field: "write_mailhub_back_to_readonly_topbar",
     expected: "mailhub-meta-topbar-back-to-readonly.png",
+    errors: writePilotManifestErrors,
+  });
+  validatePngEvidenceFile({
+    dir: path,
+    files,
+    filename: controlledWritePilot.mailhubBackToReadOnlyTopbar,
+    field: "write_mailhub_back_to_readonly_topbar",
     errors: writePilotManifestErrors,
   });
   requireManifestFile({
@@ -321,19 +435,69 @@ function prodEvidenceManifest(path, files) {
     pattern: /^activity-\d{8}-prod\.csv$/,
     errors: writePilotManifestErrors,
   });
+  if (writeMessageId && writeActorEmail && VALID_WRITE_ACTIONS.has(writeAction)) {
+    validateActivityCsv({
+      dir: path,
+      files,
+      filename: controlledWritePilot.activityCsv,
+      expected: {
+        messageId: writeMessageId,
+        actorEmail: writeActorEmail,
+        action: writeAction,
+      },
+      errors: writePilotManifestErrors,
+    });
+  }
+  const expectedGmailProof = writeMessageId && VALID_WRITE_ACTIONS.has(writeAction)
+    ? `gmail-${writeMessageId}-${writeAction}.png`
+    : null;
+  const expectedMailhubProof = writeMessageId && VALID_WRITE_ACTIONS.has(writeAction)
+    ? `mailhub-${writeMessageId}-${writeAction}.png`
+    : null;
   requireManifestFile({
     files,
     filename: controlledWritePilot.gmailProof,
     field: "write_gmail_proof",
-    pattern: /^gmail-.+-.+\.png$/,
+    expected: expectedGmailProof,
+    pattern: expectedGmailProof ? null : /^gmail-.+-.+\.png$/,
+    errors: writePilotManifestErrors,
+  });
+  validatePngEvidenceFile({
+    dir: path,
+    files,
+    filename: controlledWritePilot.gmailProof,
+    field: "write_gmail_proof",
     errors: writePilotManifestErrors,
   });
   requireManifestFile({
     files,
     filename: controlledWritePilot.mailhubProof,
     field: "write_mailhub_proof",
-    pattern: /^mailhub-.+-.+\.png$/,
+    expected: expectedMailhubProof,
+    pattern: expectedMailhubProof ? null : /^mailhub-.+-.+\.png$/,
     errors: writePilotManifestErrors,
+  });
+  validatePngEvidenceFile({
+    dir: path,
+    files,
+    filename: controlledWritePilot.mailhubProof,
+    field: "write_mailhub_proof",
+    errors: writePilotManifestErrors,
+  });
+
+  validatePngEvidenceFile({
+    dir: path,
+    files,
+    filename: readOnlyRollout.mailhubTopbar,
+    field: "readonly_mailhub_topbar",
+    errors: readOnlyManifestErrors,
+  });
+  validatePngEvidenceFile({
+    dir: path,
+    files,
+    filename: readOnlyRollout.mailhubHealth,
+    field: "readonly_mailhub_health",
+    errors: readOnlyManifestErrors,
   });
 
   return {

@@ -2494,6 +2494,43 @@ npm run audit:mailhub-routing-proof-contract
 - Production readiness remains intentionally blocked: P0 `current_shared_gmail_routing`; P1 `rule_config_source_not_production`, `staff_workflow_permissions`, and `staff_github_config_not_ready`.
 - Current GitHub Actions staff config remains unchanged: `secretCount=4`, `variableCount=0`, missing `NEXTAUTH_SECRET` and `MAILHUB_SHEETS_PRIVATE_KEY` as secret-backed staff config, and missing production staff variables.
 
+## 2026-06-18 Staff Workflow Evidence Integrity Gate Commands
+
+```bash
+node --check scripts/audit-mailhub-staff-workflow.mjs
+node --check scripts/write-mailhub-staff-evidence-manifest.mjs
+npm run test -- lib/__tests__/mailhub-staff-workflow-audit.test.ts lib/__tests__/mailhub-staff-evidence-manifest.test.ts
+npm run audit:mailhub-staff-workflow -- --out .ai-runs/mailhub-next-phase/mailhub-staff-workflow-audit.json
+npm run audit:mailhub-staff-next -- --out .ai-runs/mailhub-next-phase/mailhub-staff-workflow-next-steps.json
+npm run audit:mailhub-readiness -- --out .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json
+npm run audit:mailhub-staff-workflow-contract
+npm run audit:mailhub-staff-next-contract
+npm run audit:mailhub-readiness-contract
+npm run security:scan-artifacts
+git diff --check
+npm run audit:github-staff-secrets-contract
+npm run audit:mailhub-rule-config-next -- --out .ai-runs/mailhub-next-phase/mailhub-rule-config-next-steps.json
+npm run audit:mailhub-routing-next -- --out .ai-runs/mailhub-next-phase/mailhub-routing-next-steps.json
+npm run audit:mailhub-rule-config-next-contract
+npm run audit:mailhub-routing-next-contract
+npm run audit:mailhub-routing-proof-contract
+npm run lint
+npm run typecheck
+npm run test:coverage
+npm run security:scan
+```
+
+## 2026-06-18 Staff Workflow Evidence Integrity Gate Results
+
+- Focused staff evidence tests passed: 2 files / 12 tests.
+- Staff workflow audit artifacts were refreshed to repo head `c9d980a19296e5b0a5accce9cf76ae9cf81785c4`.
+- Staff workflow contract, staff next-step contract, readiness contract, GitHub staff contract, rule-config next-step contract, routing next-step contract, and routing proof contract all passed after artifact refresh.
+- `security:scan-artifacts`, `lint`, `typecheck`, and `git diff --check` passed.
+- Full coverage passed: 73 files / 650 tests.
+- `security:scan` passed: `.env.local` is untracked, client files do not expose secrets, no `dangerouslySetInnerHTML`, and no token logging.
+- A transient rule/routing next-step contract failure occurred immediately after refreshing readiness because the corresponding next-step artifacts still referenced the prior readiness timestamp/head. Regenerating `mailhub-rule-config-next-steps.json` and `mailhub-routing-next-steps.json` resolved it.
+- Production readiness remains intentionally blocked: P0 `current_shared_gmail_routing`; P1 `rule_config_source_not_production`, `staff_workflow_permissions`, and `staff_github_config_not_ready`.
+
 ## Useful Runtime Commands
 
 Start dev server for tunnel:

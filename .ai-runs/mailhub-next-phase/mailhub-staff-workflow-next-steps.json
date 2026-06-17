@@ -1,9 +1,9 @@
 {
-  "generatedAt": "2026-06-17T20:54:43.880Z",
+  "generatedAt": "2026-06-17T21:46:42.575Z",
   "inputs": {
     "audit": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.ai-runs/mailhub-next-phase/mailhub-staff-workflow-audit.json",
-    "auditGeneratedAt": "2026-06-17T20:54:36.657Z",
-    "auditRepoHead": "1816c3eb56eb967dd8d2c130213c5083c1912c4f",
+    "auditGeneratedAt": "2026-06-17T21:46:35.763Z",
+    "auditRepoHead": "c9d980a19296e5b0a5accce9cf76ae9cf81785c4",
     "errors": [],
     "warnings": []
   },

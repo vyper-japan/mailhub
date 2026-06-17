@@ -69,6 +69,7 @@ function buildManifest(args) {
     },
     controlledWritePilot: {
       messageId,
+      action,
       actorEmail: args.actorEmail.toLowerCase().trim(),
       mailhubWriteTopbar: "mailhub-meta-topbar-write.png",
       mailhubBackToReadOnlyTopbar: "mailhub-meta-topbar-back-to-readonly.png",

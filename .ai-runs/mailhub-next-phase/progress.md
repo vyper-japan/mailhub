@@ -540,6 +540,14 @@
   - Rule-config next-step commands and docs now use `--env-file .env.local` so future Sheets-backed rule audits are reproducible.
   - Current rule audit remains intentionally non-production: `requestedSource=file`, `resolvedSource=file`, P1 `rule_config_source_not_production` is still open until real Sheets env/tabs are configured.
   - Verification passed: focused rule/readiness/routing tests (59 tests), full readiness contract chain, routing proof contract, `test:coverage` (73 files / 646 tests), `lint`, `build`, `typecheck`, `smoke`, `security:scan`, `security:scan-artifacts`, and `git diff --check`.
+- 2026-06-18 staff workflow evidence integrity gate completed:
+  - `audit:mailhub-staff-workflow` now validates manifest-referenced PNG proof files by PNG signature and minimum byte size, so text placeholders with `.png` names cannot make READ ONLY or controlled WRITE evidence ready.
+  - `staff-workflow-evidence-manifest.json` now includes `controlledWritePilot.action`, and the audit requires Gmail/MailHub proof filenames to match the manifest `messageId` and `action`.
+  - Controlled WRITE pilot Activity CSV now must contain a row matching the manifest `messageId`, `actorEmail`, and `action`; mismatched or stale proof bundles remain blocked.
+  - Updated production evidence docs so the required manifest fields and audit behavior are explicit.
+  - Refreshed staff workflow, staff next-step, production readiness, routing next-step, and rule-config next-step artifacts to repo head `c9d980a19296e5b0a5accce9cf76ae9cf81785c4`.
+  - Production readiness remains intentionally false: P0 `current_shared_gmail_routing`; P1 `rule_config_source_not_production`, `staff_workflow_permissions`, and `staff_github_config_not_ready`.
+  - Verification passed: `node --check` for both staff evidence scripts, focused staff evidence tests (12 tests), `test:coverage` (73 files / 650 tests), staff/readiness/rule/routing contract chain, `lint`, `typecheck`, `security:scan`, `security:scan-artifacts`, and `git diff --check`.
 
 ## Not Done
 
