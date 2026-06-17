@@ -1721,6 +1721,22 @@ git diff --check
   - `canRunLocalSendVerify=false`
   - missing external SMTP proof values: `MAILHUB_PROBE_SMTP_HOST`, `MAILHUB_PROBE_SMTP_USER`, `MAILHUB_PROBE_SMTP_PASS`, `MAILHUB_PROBE_FROM`
 
+## 2026-06-17 CI env isolation fix
+
+```bash
+gh run view 27685335375 --repo vyper-japan/mailhub --log-failed
+GOOGLE_CLIENT_ID=dummy GOOGLE_CLIENT_SECRET=dummy GOOGLE_SHARED_INBOX_EMAIL=inbox@vtj.co.jp GOOGLE_SHARED_INBOX_REFRESH_TOKEN=dummy npx vitest run lib/__tests__/mailhub-routing-probe-scripts.test.ts
+GOOGLE_CLIENT_ID=dummy GOOGLE_CLIENT_SECRET=dummy GOOGLE_SHARED_INBOX_EMAIL=inbox@vtj.co.jp GOOGLE_SHARED_INBOX_REFRESH_TOKEN=dummy npm run test:coverage
+GOOGLE_CLIENT_ID=dummy GOOGLE_CLIENT_SECRET=dummy GOOGLE_SHARED_INBOX_EMAIL=inbox@vtj.co.jp GOOGLE_SHARED_INBOX_REFRESH_TOKEN=dummy NEXTAUTH_SECRET=dummy NEXTAUTH_URL=http://localhost:3000 NEXTAUTH_TRUST_HOST=true MAILHUB_TEST_MODE=1 npm run qa:strict
+```
+
+- Root cause: GitHub `qa-strict` injects dummy `GOOGLE_*` env globally, so two routing next-step tests that expected missing local Gmail verification env were process-env dependent.
+- Fixed the tests by clearing the local Gmail verification env in the child process for the missing-env scenarios.
+- Local CI-equivalent verification passed:
+  - focused routing probe script tests: 30/30
+  - coverage: 63 files / 572 tests
+  - full `qa:strict`: PASS, including 131 Playwright E2E tests
+
 ## Useful Runtime Commands
 
 Start dev server for tunnel:

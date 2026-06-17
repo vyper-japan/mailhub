@@ -382,6 +382,11 @@
   - Added `.env.example` to the default ops artifact secret scan and blanked its `NEXTAUTH_SECRET` placeholder so templates remain scanner-clean.
   - Refreshed routing probe audit, preflight, dry-run send, readiness, and routing-next artifacts under the new gates.
   - Current state remains intentionally blocked only by P0 `current_shared_gmail_routing` and the same missing external SMTP proof values.
+- 2026-06-17 CI env isolation fix completed:
+  - Investigated failed `qa-strict` run `27685335375`.
+  - Failure was limited to two routing next-step tests whose missing-local-Gmail-env expectations were polluted by CI's dummy `GOOGLE_*` environment.
+  - Added explicit child-process env clearing for those missing-env scenarios so the tests are deterministic locally and in CI.
+  - Reproduced the CI env locally and passed the focused test, full coverage, and full `qa:strict` including 131 E2E tests.
 
 ## Not Done
 

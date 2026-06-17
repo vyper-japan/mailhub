@@ -39,6 +39,13 @@ function runNodeScript(scriptPath: string, args: string[], env: Partial<NodeJS.P
   });
 }
 
+const missingLocalGmailEnv = {
+  GOOGLE_CLIENT_ID: "",
+  GOOGLE_CLIENT_SECRET: "",
+  GOOGLE_SHARED_INBOX_EMAIL: "",
+  GOOGLE_SHARED_INBOX_REFRESH_TOKEN: "",
+};
+
 function opsAuditFixture() {
   return {
     generatedAt: "2026-06-17T00:00:00.000Z",
@@ -717,7 +724,7 @@ describe("MailHub routing probe CLI gates", () => {
         outPath,
         "--local-env-file",
         localEnvPath,
-      ]);
+      ], missingLocalGmailEnv);
 
       expect(result.status).toBe(0);
       const out = readJson<{
@@ -775,7 +782,7 @@ describe("MailHub routing probe CLI gates", () => {
         outPath,
         "--local-env-file",
         localEnvPath,
-      ]);
+      ], missingLocalGmailEnv);
 
       expect(result.status).toBe(0);
       const out = readJson<{
