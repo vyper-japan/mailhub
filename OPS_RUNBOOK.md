@@ -515,7 +515,7 @@ npm run setup:mailhub-routing-secrets -- --apply
 Gmail proof secrets も同時に再投入する場合のみ `--include-gmail` を付ける。値は標準出力にもコマンドラインにも出さず、`gh secret set` の stdin 経由で渡す。
 
 手順:
-0. `npm run audit:github-routing-secrets -- --no-fail --out .ai-runs/mailhub-next-phase/github-routing-secrets-readiness.json` と `npm run audit:mailhub-routing-next -- --out .ai-runs/mailhub-next-phase/mailhub-routing-next-steps.json` で `readyForSendVerify=true` / `canRunSendVerify=true` を確認する
+0. `npm run audit:github-routing-secrets -- --no-fail --out .ai-runs/mailhub-next-phase/github-routing-secrets-readiness.json` と `npm run audit:mailhub-routing-next -- --out .ai-runs/mailhub-next-phase/mailhub-routing-next-steps.json` で `readyForSendVerify=true` / `canRunGithubWorkflowDispatch=true` を確認する。ローカルから送信する場合は別途 `canRunLocalSendVerify=true` を確認する
 1. Actions → `MailHub Routing Probe` → `Run workflow`
 2. まず `mode=preflight` で実行し、artifact `mailhub-routing-probe-<run_id>` を確認する
 3. `readyForProductionProof=true` になったら、`mode=send_verify` を選ぶ

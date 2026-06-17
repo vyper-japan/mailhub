@@ -323,6 +323,12 @@
   - Ops Board now separates `Actions SMTP` from `Actions Gmail`, so the current state shows Gmail proof ready while external SMTP proof remains missing.
   - Refreshed GitHub secret readiness, SMTP preflight, production readiness, and routing next-step artifacts with the grouped evidence.
   - Current GitHub Actions secret state: Gmail proof ready, external SMTP proof missing `MAILHUB_PROBE_SMTP_HOST`, `MAILHUB_PROBE_SMTP_USER`, `MAILHUB_PROBE_SMTP_PASS`, and `MAILHUB_PROBE_FROM`.
+- 2026-06-17 routing execution-mode split wave completed:
+  - `scripts/write-mailhub-routing-next-steps.mjs` now separates GitHub workflow dispatch readiness from local SMTP send readiness.
+  - New state fields: `canRunGithubWorkflowDispatch` and `canRunLocalSendVerify`; legacy `canRunSendVerify` remains true only when both are ready.
+  - `run_github_send_verify` is now gated by GitHub Actions secret readiness, while `run_local_send_verify` is gated by local SMTP production preflight readiness.
+  - This prevents a local `.env.local` gap from being confused with GitHub workflow dispatch readiness after Actions secrets are configured.
+  - Current artifact remains blocked for both execution modes because the same four external SMTP proof secrets/env vars are missing.
 
 ## Not Done
 

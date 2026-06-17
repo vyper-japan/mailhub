@@ -103,6 +103,8 @@ function main() {
   ]);
   const readyForGithubSendVerify = githubSecrets?.readyForSendVerify === true;
   const readyForLocalProductionProof = preflight?.smtpPreflight?.readyForProductionProof === true;
+  const canRunGithubWorkflowDispatch = readyForGithubSendVerify;
+  const canRunLocalSendVerify = readyForLocalProductionProof;
   const canRunSendVerify = readyForGithubSendVerify && readyForLocalProductionProof;
 
   const result = {
@@ -126,6 +128,8 @@ function main() {
       currentSharedGmailRoutingBlocked: p0Blockers.includes("current_shared_gmail_routing"),
       readyForGithubSendVerify,
       readyForLocalProductionProof,
+      canRunGithubWorkflowDispatch,
+      canRunLocalSendVerify,
       canRunSendVerify,
       externalMailWillBeSentByThisScript: false,
     },
@@ -159,9 +163,15 @@ function main() {
       },
       {
         id: "run_github_send_verify",
-        status: canRunSendVerify ? "ready" : "blocked",
+        status: canRunGithubWorkflowDispatch ? "ready" : "blocked",
         command: "gh workflow run mailhub-routing-probe.yml --repo vyper-japan/mailhub -f mode=send_verify -f confirmSend=SEND_EXTERNAL_MAILHUB_ROUTING_PROBES -f waitSeconds=300 -f pollSeconds=15",
-        expected: "sends 8 external probes, verifies all expected addresses, refreshes readiness, and uploads artifacts",
+        expected: "GitHub Actions re-runs injected-env preflight, sends 8 external probes, verifies all expected addresses, refreshes readiness, and uploads artifacts",
+      },
+      {
+        id: "run_local_send_verify",
+        status: canRunLocalSendVerify ? "ready" : "blocked",
+        command: "npm run probe:routing-send -- --send --verify-after-send --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-send.json",
+        expected: "local env preflight is production-proof ready, then sends 8 external probes and verifies all expected addresses",
       },
     ],
   };
@@ -171,6 +181,8 @@ function main() {
   console.log(JSON.stringify({
     outPath: args.out,
     productionReady,
+    canRunGithubWorkflowDispatch,
+    canRunLocalSendVerify,
     canRunSendVerify,
     missingExternalSmtpSecrets,
     inputErrors,

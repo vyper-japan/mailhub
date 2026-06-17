@@ -1478,6 +1478,22 @@ npm run audit:mailhub-readiness-contract
 - Missing external SMTP proof secrets remain `MAILHUB_PROBE_SMTP_HOST`, `MAILHUB_PROBE_SMTP_USER`, `MAILHUB_PROBE_SMTP_PASS`, and `MAILHUB_PROBE_FROM`.
 - Targeted Vitest passed 25/25.
 
+## 2026-06-17 Routing Execution-Mode Split Commands
+
+```bash
+node --check scripts/write-mailhub-routing-next-steps.mjs
+npx vitest run lib/__tests__/mailhub-routing-probe-scripts.test.ts
+npm run audit:mailhub-routing-next -- --strict --out .ai-runs/mailhub-next-phase/mailhub-routing-next-steps.json
+```
+
+## 2026-06-17 Routing Execution-Mode Split Results
+
+- Routing next-step state now includes `canRunGithubWorkflowDispatch` and `canRunLocalSendVerify`.
+- Current artifact: `canRunGithubWorkflowDispatch=false`, `canRunLocalSendVerify=false`, `canRunSendVerify=false`.
+- `run_github_send_verify` remains blocked by missing GitHub external SMTP proof secrets.
+- `run_local_send_verify` remains blocked by missing local external SMTP env vars.
+- Targeted Vitest passed 22/22.
+
 ## Useful Runtime Commands
 
 Start dev server for tunnel:

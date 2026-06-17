@@ -544,6 +544,8 @@ describe("MailHub routing probe CLI gates", () => {
       const out = readJson<{
         state: {
           canRunSendVerify: boolean;
+          canRunGithubWorkflowDispatch: boolean;
+          canRunLocalSendVerify: boolean;
           currentSharedGmailRoutingBlocked: boolean;
           externalMailWillBeSentByThisScript: boolean;
         };
@@ -551,6 +553,8 @@ describe("MailHub routing probe CLI gates", () => {
         nextActions: Array<{ id: string; status: string; requiredSecrets?: string[] }>;
       }>(outPath);
       expect(out.state.canRunSendVerify).toBe(false);
+      expect(out.state.canRunGithubWorkflowDispatch).toBe(false);
+      expect(out.state.canRunLocalSendVerify).toBe(false);
       expect(out.state.currentSharedGmailRoutingBlocked).toBe(true);
       expect(out.state.externalMailWillBeSentByThisScript).toBe(false);
       expect(out.missing.externalSmtpSecrets).toEqual([
@@ -563,6 +567,9 @@ describe("MailHub routing probe CLI gates", () => {
         requiredSecrets: ["MAILHUB_PROBE_SMTP_HOST", "MAILHUB_PROBE_SMTP_PASS", "MAILHUB_PROBE_FROM"],
       });
       expect(out.nextActions.find((item) => item.id === "run_github_send_verify")).toMatchObject({
+        status: "blocked",
+      });
+      expect(out.nextActions.find((item) => item.id === "run_local_send_verify")).toMatchObject({
         status: "blocked",
       });
     });
@@ -584,11 +591,19 @@ describe("MailHub routing probe CLI gates", () => {
 
       expect(result.status).toBe(0);
       const out = readJson<{
-        state: { canRunSendVerify: boolean; readyForGithubSendVerify: boolean; readyForLocalProductionProof: boolean };
+        state: {
+          canRunSendVerify: boolean;
+          canRunGithubWorkflowDispatch: boolean;
+          canRunLocalSendVerify: boolean;
+          readyForGithubSendVerify: boolean;
+          readyForLocalProductionProof: boolean;
+        };
         missing: { externalSmtpSecrets: string[]; githubSendVerifySecrets: string[]; localPreflightEnv: string[] };
         nextActions: Array<{ id: string; status: string }>;
       }>(outPath);
       expect(out.state.canRunSendVerify).toBe(false);
+      expect(out.state.canRunGithubWorkflowDispatch).toBe(false);
+      expect(out.state.canRunLocalSendVerify).toBe(false);
       expect(out.state.readyForGithubSendVerify).toBe(false);
       expect(out.state.readyForLocalProductionProof).toBe(false);
       expect(out.missing.externalSmtpSecrets).toEqual([
@@ -617,6 +632,74 @@ describe("MailHub routing probe CLI gates", () => {
         status: "required",
       });
       expect(out.nextActions.find((item) => item.id === "run_github_send_verify")).toMatchObject({
+        status: "blocked",
+      });
+      expect(out.nextActions.find((item) => item.id === "run_local_send_verify")).toMatchObject({
+        status: "blocked",
+      });
+    });
+  });
+
+  test("routing next-step separates GitHub workflow readiness from local SMTP preflight readiness", () => {
+    withTempDir((dir) => {
+      const readinessPath = join(dir, "readiness.json");
+      const githubSecretsPath = join(dir, "github-secrets.json");
+      const preflightPath = join(dir, "preflight.json");
+      const outPath = join(dir, "next.json");
+      writeJson(readinessPath, {
+        generatedAt: "2026-06-17T00:00:00.000Z",
+        gate: { productionReady: false, p0Blockers: ["current_shared_gmail_routing"] },
+      });
+      writeJson(githubSecretsPath, {
+        checkedAt: "2026-06-17T00:00:00.000Z",
+        readyForSendVerify: true,
+        missingSendVerifySecrets: [],
+        presentRequiredSecretNames: [
+          "GOOGLE_CLIENT_ID",
+          "GOOGLE_CLIENT_SECRET",
+          "GOOGLE_SHARED_INBOX_EMAIL",
+          "GOOGLE_SHARED_INBOX_REFRESH_TOKEN",
+          "MAILHUB_PROBE_SMTP_HOST",
+          "MAILHUB_PROBE_SMTP_USER",
+          "MAILHUB_PROBE_SMTP_PASS",
+          "MAILHUB_PROBE_FROM",
+        ],
+      });
+      writeJson(preflightPath, {
+        generatedAt: "2026-06-17T00:00:00.000Z",
+        smtpPreflight: {
+          readyForProductionProof: false,
+          missingRequiredEnv: ["MAILHUB_PROBE_SMTP_HOST"],
+        },
+      });
+
+      const result = runNodeScript(routingNextStepsPath, [
+        "--readiness",
+        readinessPath,
+        "--github-secrets",
+        githubSecretsPath,
+        "--preflight",
+        preflightPath,
+        "--out",
+        outPath,
+      ]);
+
+      expect(result.status).toBe(0);
+      const out = readJson<{
+        state: {
+          canRunSendVerify: boolean;
+          canRunGithubWorkflowDispatch: boolean;
+          canRunLocalSendVerify: boolean;
+        };
+        nextActions: Array<{ id: string; status: string }>;
+      }>(outPath);
+      expect(out.state.canRunSendVerify).toBe(false);
+      expect(out.state.canRunGithubWorkflowDispatch).toBe(true);
+      expect(out.state.canRunLocalSendVerify).toBe(false);
+      expect(out.nextActions.find((item) => item.id === "run_github_send_verify")).toMatchObject({
+        status: "ready",
+      });
+      expect(out.nextActions.find((item) => item.id === "run_local_send_verify")).toMatchObject({
         status: "blocked",
       });
     });
@@ -668,13 +751,18 @@ describe("MailHub routing probe CLI gates", () => {
 
       expect(result.status).toBe(0);
       const out = readJson<{
-        state: { canRunSendVerify: boolean };
+        state: { canRunSendVerify: boolean; canRunGithubWorkflowDispatch: boolean; canRunLocalSendVerify: boolean };
         missing: { externalSmtpSecrets: string[] };
         nextActions: Array<{ id: string; status: string }>;
       }>(outPath);
       expect(out.state.canRunSendVerify).toBe(true);
+      expect(out.state.canRunGithubWorkflowDispatch).toBe(true);
+      expect(out.state.canRunLocalSendVerify).toBe(true);
       expect(out.missing.externalSmtpSecrets).toEqual([]);
       expect(out.nextActions.find((item) => item.id === "run_github_send_verify")).toMatchObject({
+        status: "ready",
+      });
+      expect(out.nextActions.find((item) => item.id === "run_local_send_verify")).toMatchObject({
         status: "ready",
       });
     });
