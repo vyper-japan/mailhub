@@ -554,6 +554,30 @@ npm run build
 - `npm run test`: 60 files / 531 tests passed.
 - `npm run build`: passed.
 
+## Verification Commands Run On 2026-06-17 Routing Probe Sender Wave
+
+```bash
+node --check scripts/send-mailhub-routing-probes.mjs
+npm run probe:routing-send -- --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-send.json
+node -e 'const p=require("./.ai-runs/mailhub-next-phase/mailhub-routing-probe-send.json"); if(p.mode!=="dry_run") process.exit(1); if(p.probeCount!==8) process.exit(2); if(p.sent.length!==0) process.exit(3); if(!p.nextVerificationCommand.includes(p.marker)) process.exit(4); console.log("routing probe sender dry-run safe", JSON.stringify({mode:p.mode, probeCount:p.probeCount, sentCount:p.sent.length, marker:p.marker}));'
+npm run typecheck
+npm run lint
+npm run test
+npm run build
+git diff --check
+```
+
+## 2026-06-17 Routing Probe Sender Wave Results
+
+- Script syntax check: passed.
+- Dry-run probe sender: generated eight address-level probes and sent zero messages.
+- Dry-run assertion: passed.
+- `npm run typecheck`: passed.
+- `npm run lint`: passed.
+- `npm run test`: 60 files / 531 tests passed.
+- `npm run build`: passed.
+- `git diff --check`: passed.
+
 ## Useful Runtime Commands
 
 Start dev server for tunnel:

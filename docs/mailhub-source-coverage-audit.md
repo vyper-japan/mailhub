@@ -195,7 +195,21 @@ npm run audit:routing-probes -- --out .ai-runs/mailhub-next-phase/mailhub-routin
 
 Without `--marker`, this generates a non-sending probe plan for the six current routing-unconfirmed channels and their eight target addresses. It lists the target addresses and a subject marker pattern. It does not send mail.
 
-After a controlled probe message is sent to each listed address, verify shared Gmail arrival with:
+To generate the exact address-level send plan without sending mail:
+
+```bash
+npm run probe:routing-send
+```
+
+To send production-proof probes, configure an external non-`@vtj.co.jp` SMTP sender with `MAILHUB_PROBE_SMTP_*` and `MAILHUB_PROBE_FROM`, then run:
+
+```bash
+npm run probe:routing-send -- --send
+```
+
+The sender rejects `@vtj.co.jp` senders by default because they can prove internal GWS group delivery without proving the current external Lolipop/MX path.
+
+After controlled probe messages are sent to each listed address, verify shared Gmail arrival with:
 
 ```bash
 npm run audit:routing-probes -- --marker MAILHUB-ROUTING-PROBE-<YYYYMMDD-HHMMSS> --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-audit.json
