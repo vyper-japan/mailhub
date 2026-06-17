@@ -6,6 +6,7 @@ import { join } from "node:path";
 
 const repoRoot = process.cwd();
 const defaultNextPath = join(repoRoot, ".ai-runs", "mailhub-next-phase", "mailhub-routing-next-steps.json");
+const defaultReadinessPath = join(repoRoot, ".ai-runs", "mailhub-next-phase", "mailhub-production-readiness-audit.json");
 
 const REQUIRED_ACTION_IDS = [
   "set_external_smtp_secrets",
@@ -18,16 +19,18 @@ const REQUIRED_ACTION_IDS = [
 function parseArgs(argv) {
   const out = {
     next: defaultNextPath,
+    readiness: defaultReadinessPath,
     repoHead: "",
     repoParentHead: "",
   };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     if (arg === "--next") out.next = argv[++i];
+    else if (arg === "--readiness") out.readiness = argv[++i];
     else if (arg === "--repo-head") out.repoHead = argv[++i];
     else if (arg === "--repo-parent-head") out.repoParentHead = argv[++i];
     else if (arg === "--help" || arg === "-h") {
-      console.log("Usage: node scripts/check-mailhub-routing-next-contract.mjs [--next path] [--repo-head sha] [--repo-parent-head sha]");
+      console.log("Usage: node scripts/check-mailhub-routing-next-contract.mjs [--next path] [--readiness path] [--repo-head sha] [--repo-parent-head sha]");
       process.exit(0);
     }
   }
@@ -87,6 +90,7 @@ function expectActionStatus({ actions, id, expected, errors }) {
 function main() {
   const args = parseArgs(process.argv.slice(2));
   const artifact = readJson(args.next);
+  const readiness = readJson(args.readiness);
   const errors = [];
   const warnings = [];
   const repoHead = args.repoHead || gitRevParse("HEAD");
@@ -97,9 +101,15 @@ function main() {
   const actions = actionsById(artifact.nextActions);
   const inputErrors = stringArray(inputs.errors);
   const inputWarnings = stringArray(inputs.warnings);
+  const readinessGate = objectValue(readiness.gate);
   const artifactRepoHead = typeof inputs.repoHead === "string" ? inputs.repoHead : null;
   const readinessRepoHead = typeof inputs.readinessRepoHead === "string" ? inputs.readinessRepoHead : null;
+  const actualReadinessRepoHead = typeof readiness.repoHead === "string" ? readiness.repoHead : null;
+  const readinessGeneratedAt = typeof readiness.generatedAt === "string" ? readiness.generatedAt : null;
+  const inputReadinessGeneratedAt = typeof inputs.readinessGeneratedAt === "string" ? inputs.readinessGeneratedAt : null;
   const p0Blockers = stringArray(state.p0Blockers);
+  const readinessP0Blockers = stringArray(readinessGate.p0Blockers);
+  const readinessP1Blockers = stringArray(readinessGate.p1Blockers);
   const githubMissing = stringArray(missing.githubSendVerifySecrets);
   const localMissing = stringArray(missing.localPreflightEnv);
   const externalMissing = stringArray(missing.externalSmtpSecrets);
@@ -109,6 +119,12 @@ function main() {
   else if (!isFresh(artifactRepoHead, repoHead, repoParentHead)) errors.push("stale_artifact_repo_head");
   if (!readinessRepoHead) errors.push("missing_readiness_repo_head");
   else if (!isFresh(readinessRepoHead, repoHead, repoParentHead)) errors.push("stale_readiness_repo_head");
+  if (!actualReadinessRepoHead) errors.push("missing_actual_readiness_repo_head");
+  else if (readinessRepoHead && actualReadinessRepoHead !== readinessRepoHead) errors.push("readiness_repo_head_mismatch");
+  if (!inputReadinessGeneratedAt) errors.push("missing_input_readiness_generated_at");
+  else if (readinessGeneratedAt && inputReadinessGeneratedAt !== readinessGeneratedAt) {
+    errors.push("readiness_generated_at_mismatch");
+  }
 
   for (const id of REQUIRED_ACTION_IDS) {
     if (!actions.has(id)) errors.push(`missing_next_action:${id}`);
@@ -119,7 +135,11 @@ function main() {
   const canRunGithub = state.canRunGithubWorkflowDispatch === true;
   const canRunLocal = state.canRunLocalSendVerify === true;
   const canRunBoth = state.canRunSendVerify === true;
+  const readinessProductionReady = readinessGate.productionReady === true;
 
+  if ((state.productionReady === true) !== readinessProductionReady) errors.push("production_ready_mismatch");
+  if (JSON.stringify(p0Blockers) !== JSON.stringify(readinessP0Blockers)) errors.push("p0_blockers_mismatch");
+  if (JSON.stringify(stringArray(state.p1Blockers)) !== JSON.stringify(readinessP1Blockers)) errors.push("p1_blockers_mismatch");
   if (state.externalMailWillBeSentByThisScript !== false) errors.push("routing_next_must_not_claim_to_send_mail");
   if (canRunGithub !== readyForGithub) errors.push("github_dispatch_gate_mismatch");
   if (canRunLocal !== readyForLocal) errors.push("local_send_gate_mismatch");
@@ -165,10 +185,12 @@ function main() {
 
   const result = {
     nextPath: args.next,
+    readinessPath: args.readiness,
     repoHead,
     repoParentHead,
     artifactRepoHead,
     readinessRepoHead,
+    actualReadinessRepoHead,
     productionReady: state.productionReady === true,
     p0Blockers,
     canRunGithubWorkflowDispatch: canRunGithub,

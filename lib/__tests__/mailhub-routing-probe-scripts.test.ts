@@ -870,10 +870,21 @@ describe("MailHub routing probe CLI gates", () => {
   test("routing next-step contract accepts a consistent blocked artifact", () => {
     withTempDir((dir) => {
       const nextPath = join(dir, "next.json");
+      const readinessPath = join(dir, "readiness.json");
+      writeJson(readinessPath, {
+        generatedAt: "2026-06-17T00:00:00.000Z",
+        repoHead: "parent-head",
+        gate: {
+          productionReady: false,
+          p0Blockers: ["current_shared_gmail_routing"],
+          p1Blockers: [],
+        },
+      });
       writeJson(nextPath, {
         inputs: {
           repoHead: "parent-head",
           readinessRepoHead: "parent-head",
+          readinessGeneratedAt: "2026-06-17T00:00:00.000Z",
           errors: [],
           warnings: [],
         },
@@ -905,6 +916,8 @@ describe("MailHub routing probe CLI gates", () => {
       const result = runNodeScript(routingNextContractPath, [
         "--next",
         nextPath,
+        "--readiness",
+        readinessPath,
         "--repo-head",
         "current-head",
         "--repo-parent-head",
@@ -925,10 +938,21 @@ describe("MailHub routing probe CLI gates", () => {
   test("routing next-step contract rejects stale and contradictory execution gates", () => {
     withTempDir((dir) => {
       const nextPath = join(dir, "next.json");
+      const readinessPath = join(dir, "readiness.json");
+      writeJson(readinessPath, {
+        generatedAt: "2026-06-17T00:00:00.000Z",
+        repoHead: "parent-head",
+        gate: {
+          productionReady: false,
+          p0Blockers: ["current_shared_gmail_routing"],
+          p1Blockers: [],
+        },
+      });
       writeJson(nextPath, {
         inputs: {
           repoHead: "old-head",
           readinessRepoHead: "old-head",
+          readinessGeneratedAt: "2026-06-17T00:00:00.000Z",
           errors: [],
           warnings: [],
         },
@@ -960,6 +984,8 @@ describe("MailHub routing probe CLI gates", () => {
       const result = runNodeScript(routingNextContractPath, [
         "--next",
         nextPath,
+        "--readiness",
+        readinessPath,
         "--repo-head",
         "current-head",
         "--repo-parent-head",

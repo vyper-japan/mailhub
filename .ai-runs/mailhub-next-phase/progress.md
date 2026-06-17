@@ -335,6 +335,10 @@
   - `.github/workflows/mailhub-readiness-contract.yml` now runs both the production readiness contract and the routing next-step contract.
   - Focused routing probe script tests now cover both a consistent blocked artifact and stale/contradictory execution gates.
   - Current routing-next contract passes with `canRunGithubWorkflowDispatch=false`, `canRunLocalSendVerify=false`, and P0 `current_shared_gmail_routing`.
+- 2026-06-17 routing/readiness cross-artifact contract wave completed:
+  - Strengthened `scripts/check-mailhub-routing-next-contract.mjs` so it reads `mailhub-production-readiness-audit.json` directly, not only the embedded routing-next inputs.
+  - The contract now rejects readiness repo head mismatch, readiness generated-at mismatch, production-ready mismatch, and P0/P1 blocker mismatches between readiness and routing-next artifacts.
+  - Current artifacts pass the cross-artifact contract: both point at repo head `50c0a7e`, both keep `productionReady=false`, and both expose P0 `current_shared_gmail_routing`.
 
 ## Not Done
 

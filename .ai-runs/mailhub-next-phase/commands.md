@@ -1511,6 +1511,22 @@ npm run audit:mailhub-readiness-contract
 - Current artifact contract passed with `canRunGithubWorkflowDispatch=false`, `canRunLocalSendVerify=false`, and P0 `current_shared_gmail_routing`.
 - CI readiness contract workflow now runs both readiness and routing-next contracts.
 
+## 2026-06-17 Routing/Readiness Cross-Artifact Contract Commands
+
+```bash
+node --check scripts/check-mailhub-routing-next-contract.mjs
+npx vitest run lib/__tests__/mailhub-routing-probe-scripts.test.ts
+npm run audit:mailhub-routing-next-contract
+npm run audit:mailhub-readiness-contract
+```
+
+## 2026-06-17 Routing/Readiness Cross-Artifact Contract Results
+
+- Routing next-step contract now reads the production readiness audit directly.
+- It verifies `inputs.readinessRepoHead` equals the readiness artifact `repoHead`, `inputs.readinessGeneratedAt` equals readiness `generatedAt`, and production/P0/P1 states match.
+- Focused Vitest passed 24/24.
+- Current artifacts passed: readiness and routing-next both point at `50c0a7e`, both remain not-ready, and both show P0 `current_shared_gmail_routing`.
+
 ## Useful Runtime Commands
 
 Start dev server for tunnel:
