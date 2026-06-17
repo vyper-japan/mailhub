@@ -2049,6 +2049,29 @@ git diff --check
 - Coverage passed 69 files / 602 tests with global coverage above threshold.
 - Typecheck, lint, build, smoke, security scan, artifact secret scan, actionlint, `git diff --check`, and all readiness/routing/staff contracts passed after artifact regeneration.
 
+## 2026-06-17 Staff Artifact Stale-Head Repair Commands
+
+```bash
+gh run view 27695345578 --repo vyper-japan/mailhub --log-failed
+npm run audit:mailhub-staff-workflow -- --out .ai-runs/mailhub-next-phase/mailhub-staff-workflow-audit.json
+npm run audit:mailhub-staff-next -- --out .ai-runs/mailhub-next-phase/mailhub-staff-workflow-next-steps.json
+npm run audit:mailhub-readiness -- --out .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json
+npm run audit:mailhub-routing-next -- --strict --out .ai-runs/mailhub-next-phase/mailhub-routing-next-steps.json
+npm run audit:github-routing-secrets-contract
+npm run audit:mailhub-staff-workflow-contract
+npm run audit:mailhub-staff-next-contract
+npm run audit:mailhub-readiness-contract
+npm run audit:mailhub-routing-next-contract
+npm run audit:mailhub-routing-proof-contract
+git diff --check
+```
+
+## 2026-06-17 Staff Artifact Stale-Head Repair Results
+
+- CI run `27695345578` failed `MailHub Readiness Contract` because `mailhub-staff-workflow-audit.json` still referenced stale repo head `f3eeabc5259e14064e3b6070fdfaeefade8132c8`.
+- Regenerated staff workflow audit, staff next-step, production readiness, and routing next-step artifacts against commit `d466aadc5f99fac4b142743bbc75a721b8746acd`.
+- Local GitHub routing secrets, staff workflow, staff next-step, readiness, routing next-step, routing proof contracts, and `git diff --check` passed after regeneration.
+
 ## Useful Runtime Commands
 
 Start dev server for tunnel:

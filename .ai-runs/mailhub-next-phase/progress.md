@@ -441,6 +441,10 @@
   - Changed `scripts/write-mailhub-routing-next-steps.mjs` so `set_external_smtp_secrets` points to `npm run setup:mailhub-routing-secrets` and `npm run setup:mailhub-routing-secrets -- --apply` instead of raw per-secret `gh secret set` commands.
   - Strengthened `scripts/check-mailhub-routing-next-contract.mjs` so routing-next artifacts with missing external SMTP proof must include the safe setup dry-run/apply commands and must not reintroduce raw `gh secret set` command lists.
   - Refreshed `mailhub-production-readiness-audit.json` and `mailhub-routing-next-steps.json`; current P0 remains unchanged because the external SMTP proof values are still not configured.
+- 2026-06-17 staff artifact stale-head repair completed:
+  - CI readiness run `27695345578` caught that `mailhub-staff-workflow-audit.json` was stale after the routing-next safe setup commit.
+  - Regenerated staff workflow audit, staff next-step, production readiness, and routing next-step artifacts against commit `d466aadc5f99fac4b142743bbc75a721b8746acd`.
+  - Local readiness/routing/staff contracts passed after the artifact refresh; readiness remains blocked only by the same P0/P1 production evidence gaps.
 
 ## Not Done
 
