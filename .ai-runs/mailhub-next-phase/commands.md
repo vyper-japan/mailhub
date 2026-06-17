@@ -790,6 +790,21 @@ git diff --check
 - `npm run build`: passed.
 - `git diff --check`: passed.
 
+## Verification Commands Run On 2026-06-17 Post Preflight Visibility Readiness Refresh
+
+```bash
+npm run audit:mailhub-readiness -- --out .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json
+node -e 'const r=require("./.ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json"); const head=require("child_process").execFileSync("git",["rev-parse","HEAD"],{encoding:"utf8"}).trim(); if(r.repoHead!==head) process.exit(1); if(r.gate.productionReady) process.exit(2); if(r.gate.p0Blockers.join(",")!=="current_shared_gmail_routing") process.exit(3); console.log("readiness refreshed", JSON.stringify({repoHead:r.repoHead.slice(0,7), productionReady:r.gate.productionReady, p0Blockers:r.gate.p0Blockers, routingProbePreflightReady:r.requirements.routingProbePreflightReady}));'
+```
+
+## 2026-06-17 Post Preflight Visibility Readiness Refresh Results
+
+- `npm run audit:mailhub-readiness`: passed.
+- `repoHead`: `5f85405`.
+- `productionReady`: `false`.
+- P0 blockers: `current_shared_gmail_routing`.
+- `routingProbePreflightReady`: `false`.
+
 ## Useful Runtime Commands
 
 Start dev server for tunnel:
