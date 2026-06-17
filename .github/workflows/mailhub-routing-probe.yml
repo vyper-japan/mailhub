@@ -137,6 +137,8 @@ jobs:
           npm run audit:mailhub-routing-next -- \
             --strict \
             --out .ai-runs/mailhub-next-phase/mailhub-routing-next-steps.json
+          npm run audit:mailhub-staff-next -- \
+            --out .ai-runs/mailhub-next-phase/mailhub-staff-workflow-next-steps.json
           npm run audit:github-routing-secrets-contract
           npm run audit:mailhub-staff-workflow-contract
           npm run audit:mailhub-readiness-contract
@@ -174,6 +176,8 @@ jobs:
           npm run audit:mailhub-routing-next -- \
             --strict \
             --out .ai-runs/mailhub-next-phase/mailhub-routing-next-steps.json
+          npm run audit:mailhub-staff-next -- \
+            --out .ai-runs/mailhub-next-phase/mailhub-staff-workflow-next-steps.json
           npm run audit:github-routing-secrets-contract
           npm run audit:mailhub-staff-workflow-contract
           npm run audit:mailhub-readiness-contract
@@ -192,6 +196,7 @@ jobs:
             .ai-runs/mailhub-next-phase/github-routing-secrets-readiness.json
             .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json
             .ai-runs/mailhub-next-phase/mailhub-routing-next-steps.json
+            .ai-runs/mailhub-next-phase/mailhub-staff-workflow-next-steps.json
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 14

@@ -424,6 +424,64 @@ curl --fail --retry 3 --max-time 20 \
 - “Apply now” 系は admin必須 + confirm必須を維持する
 - UIは補助。サーバ側403が本体（直接API叩きでも事故らない）
 
+## Staff Workflow Proof（スタッフ運用証跡）
+
+### 目的
+`staff_workflow_permissions` を、設定・READ ONLY ロールアウト・制御された write pilot の3段階で閉じる。外部ルーティングP0が解消された後、この項目が未完了ならP0へ昇格するため、routing probe と並行して準備する。
+
+### 次アクション artifact
+スタッフ運用の不足項目は、値を出さずに次のJSONへ集約する。
+
+```bash
+npm run audit:mailhub-staff-workflow -- --out .ai-runs/mailhub-next-phase/mailhub-staff-workflow-audit.json
+npm run audit:mailhub-staff-next -- --out .ai-runs/mailhub-next-phase/mailhub-staff-workflow-next-steps.json
+```
+
+確認する主なフィールド:
+- `state.staffWorkflowPermissionsReady`
+- `state.canCaptureReadOnlyRolloutEvidence`
+- `state.canCaptureControlledWritePilotEvidence`
+- `missing.productionEnv`
+- `missing.staffAdmins`
+- `missing.staffTeamMembers`
+- `missing.durableConfig`
+- `missing.durableActivity`
+- `missing.readOnlyEvidence`
+- `missing.writePilotEvidence`
+- `nextActions[].status`
+
+### 必須設定
+- `MAILHUB_ENV=production`
+- `MAILHUB_TEST_MODE` は無効
+- `MAILHUB_ADMINS`
+- `MAILHUB_TEAM_MEMBERS`
+- `MAILHUB_CONFIG_STORE=sheets`
+- `MAILHUB_ACTIVITY_STORE=sheets`
+- `MAILHUB_SHEETS_ID` または `MAILHUB_SHEETS_SPREADSHEET_ID`
+- `MAILHUB_SHEETS_CLIENT_EMAIL`
+- `MAILHUB_SHEETS_PRIVATE_KEY`
+- production auth / shared Gmail env
+
+### 必須証跡
+証跡は `docs/pilot/prod/` に保存する。
+
+READ ONLY rollout:
+- `mailhub-meta-topbar-readonly.png`
+- `mailhub-meta-health-readonly.png`
+
+Controlled write pilot:
+- `mailhub-meta-topbar-write.png`
+- `mailhub-meta-topbar-back-to-readonly.png`
+- `activity-YYYYMMDD-prod.csv`
+- `gmail-*-*.png`
+- `mailhub-*-*.png`
+
+最後に aggregate readiness を更新する。
+
+```bash
+npm run audit:mailhub-readiness -- --out .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json
+```
+
 ## External Routing Probe（本番到達証跡）
 
 ### 目的

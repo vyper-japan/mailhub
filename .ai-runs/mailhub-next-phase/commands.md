@@ -1858,6 +1858,43 @@ git diff --check
 - Coverage passed 67 files / 594 tests with global coverage above threshold.
 - Typecheck, build, lint, smoke, security scan, artifact secret scan, `git diff --check`, and all readiness/routing/staff artifact contracts passed.
 
+## 2026-06-17 Staff Workflow Next-Step Artifact Commands
+
+```bash
+node --check scripts/write-mailhub-staff-workflow-next-steps.mjs
+npm run audit:mailhub-staff-next -- --out .ai-runs/mailhub-next-phase/mailhub-staff-workflow-next-steps.json
+npx vitest run lib/__tests__/mailhub-staff-workflow-next-steps.test.ts lib/__tests__/ops-artifact-secret-scan.test.ts
+npm run typecheck
+npm run test
+npm run test:coverage
+npm run lint
+npm run build
+npm run smoke
+npm run security:scan
+npm run security:scan-artifacts
+actionlint .github/workflows/mailhub-routing-probe.yml .github/workflows/mailhub-readiness-contract.yml
+npm run audit:mailhub-staff-workflow -- --out .ai-runs/mailhub-next-phase/mailhub-staff-workflow-audit.json
+npm run audit:mailhub-readiness -- --out .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json
+npm run audit:mailhub-routing-next -- --strict --out .ai-runs/mailhub-next-phase/mailhub-routing-next-steps.json
+npm run audit:github-routing-secrets-contract
+npm run audit:mailhub-staff-workflow-contract
+npm run audit:mailhub-readiness-contract
+npm run audit:mailhub-routing-next-contract
+npm run audit:mailhub-routing-proof-contract
+git diff --check
+```
+
+## 2026-06-17 Staff Workflow Next-Step Artifact Results
+
+- Added `npm run audit:mailhub-staff-next`.
+- Generated `.ai-runs/mailhub-next-phase/mailhub-staff-workflow-next-steps.json`.
+- The artifact reports `staffWorkflowPermissionsReady=false`, `canCaptureReadOnlyRolloutEvidence=false`, and `canCaptureControlledWritePilotEvidence=false`.
+- Current required actions: `configure_production_env`, `configure_staff_access_allowlist`, `configure_durable_staff_stores`, `capture_readonly_rollout_evidence`, `capture_controlled_write_pilot`, and `refresh_staff_and_readiness_artifacts`.
+- Focused tests passed 2 files / 13 tests after the new artifact was generated.
+- Full Vitest passed 68 files / 597 tests.
+- Coverage passed 68 files / 597 tests with global coverage above threshold.
+- Typecheck, lint, build, smoke, security scan, artifact secret scan, actionlint, readiness/routing/staff contracts, and `git diff --check` passed.
+
 ## Useful Runtime Commands
 
 Start dev server for tunnel:

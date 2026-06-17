@@ -1,0 +1,148 @@
+{
+  "generatedAt": "2026-06-17T12:55:48.506Z",
+  "inputs": {
+    "audit": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.ai-runs/mailhub-next-phase/mailhub-staff-workflow-audit.json",
+    "auditGeneratedAt": "2026-06-17T12:55:47.872Z",
+    "auditRepoHead": "2538dba078f6d673a78d6ecdd2e53070f36bdc5a",
+    "errors": [],
+    "warnings": []
+  },
+  "state": {
+    "staffWorkflowPermissionsReady": false,
+    "readOnlyRolloutReady": false,
+    "controlledWritePilotReady": false,
+    "canCaptureReadOnlyRolloutEvidence": false,
+    "canCaptureControlledWritePilotEvidence": false,
+    "productionEnvReady": false,
+    "adminsReady": false,
+    "staffAccessAllowlistReady": false,
+    "assigneeRosterReady": true,
+    "durableConfigReady": false,
+    "durableActivityReady": false,
+    "readOnlyEnabled": false
+  },
+  "missing": {
+    "productionEnv": [
+      "NEXTAUTH_URL",
+      "NEXTAUTH_SECRET",
+      "GOOGLE_CLIENT_ID",
+      "GOOGLE_CLIENT_SECRET",
+      "GOOGLE_SHARED_INBOX_EMAIL",
+      "GOOGLE_SHARED_INBOX_REFRESH_TOKEN"
+    ],
+    "staffAdmins": [
+      "MAILHUB_ADMINS"
+    ],
+    "staffTeamMembers": [
+      "MAILHUB_TEAM_MEMBERS"
+    ],
+    "assigneeRoster": [],
+    "durableConfig": [
+      "MAILHUB_CONFIG_STORE=sheets",
+      "MAILHUB_SHEETS_ID or MAILHUB_SHEETS_SPREADSHEET_ID",
+      "MAILHUB_SHEETS_CLIENT_EMAIL",
+      "MAILHUB_SHEETS_PRIVATE_KEY"
+    ],
+    "durableActivity": [
+      "MAILHUB_ACTIVITY_STORE=sheets",
+      "MAILHUB_SHEETS_ID or MAILHUB_SHEETS_SPREADSHEET_ID",
+      "MAILHUB_SHEETS_CLIENT_EMAIL",
+      "MAILHUB_SHEETS_PRIVATE_KEY"
+    ],
+    "readOnlyFlag": [
+      "MAILHUB_READ_ONLY=1"
+    ],
+    "readOnlyEvidence": [
+      "mailhub-meta-topbar-readonly.png",
+      "mailhub-meta-health-readonly.png"
+    ],
+    "writePilotEvidence": [
+      "mailhub-meta-topbar-write.png",
+      "mailhub-meta-topbar-back-to-readonly.png",
+      "activity-YYYYMMDD-prod.csv",
+      "gmail-*-*.png",
+      "mailhub-*-*.png"
+    ]
+  },
+  "present": {
+    "adminCount": 0,
+    "teamMemberCount": 0,
+    "assigneeRegistryValidCount": 2,
+    "configStore": "file",
+    "activityStore": "memory"
+  },
+  "nextActions": [
+    {
+      "id": "configure_production_env",
+      "status": "required",
+      "description": "Run the staff workflow audit against the production MailHub environment with required auth and shared Gmail env present.",
+      "requiredEnv": [
+        "NEXTAUTH_URL",
+        "NEXTAUTH_SECRET",
+        "GOOGLE_CLIENT_ID",
+        "GOOGLE_CLIENT_SECRET",
+        "GOOGLE_SHARED_INBOX_EMAIL",
+        "GOOGLE_SHARED_INBOX_REFRESH_TOKEN"
+      ]
+    },
+    {
+      "id": "configure_staff_access_allowlist",
+      "status": "required",
+      "description": "Configure explicit MailHub staff access through admin and team member env.",
+      "requiredEnv": [
+        "MAILHUB_ADMINS",
+        "MAILHUB_TEAM_MEMBERS"
+      ]
+    },
+    {
+      "id": "configure_staff_roster",
+      "status": "done",
+      "description": "Configure at least one valid @vtj.co.jp assignee through MAILHUB_TEAM_MEMBERS or the assignee registry."
+    },
+    {
+      "id": "configure_durable_staff_stores",
+      "status": "required",
+      "description": "Use Sheets-backed config and Activity stores before production staff rollout or write pilot.",
+      "requiredEnv": [
+        "MAILHUB_CONFIG_STORE=sheets",
+        "MAILHUB_ACTIVITY_STORE=sheets",
+        "MAILHUB_SHEETS_ID or MAILHUB_SHEETS_SPREADSHEET_ID",
+        "MAILHUB_SHEETS_CLIENT_EMAIL",
+        "MAILHUB_SHEETS_PRIVATE_KEY"
+      ]
+    },
+    {
+      "id": "capture_readonly_rollout_evidence",
+      "status": "blocked",
+      "description": "Capture production READ ONLY rollout evidence before any controlled write pilot.",
+      "requiredEnv": [
+        "MAILHUB_READ_ONLY=1"
+      ],
+      "requiredEvidence": [
+        "mailhub-meta-topbar-readonly.png",
+        "mailhub-meta-health-readonly.png"
+      ]
+    },
+    {
+      "id": "capture_controlled_write_pilot",
+      "status": "blocked",
+      "description": "Capture a controlled production write pilot with MailHub, Gmail, and Activity evidence.",
+      "requiredEvidence": [
+        "mailhub-meta-topbar-write.png",
+        "mailhub-meta-topbar-back-to-readonly.png",
+        "activity-YYYYMMDD-prod.csv",
+        "gmail-*-*.png",
+        "mailhub-*-*.png"
+      ]
+    },
+    {
+      "id": "refresh_staff_and_readiness_artifacts",
+      "status": "required",
+      "commands": [
+        "npm run audit:mailhub-staff-workflow -- --out .ai-runs/mailhub-next-phase/mailhub-staff-workflow-audit.json",
+        "npm run audit:mailhub-staff-next -- --out .ai-runs/mailhub-next-phase/mailhub-staff-workflow-next-steps.json",
+        "npm run audit:mailhub-readiness -- --out .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json"
+      ]
+    }
+  ]
+}

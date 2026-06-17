@@ -104,6 +104,7 @@ describe("ops artifact secret scan", () => {
     expect(result.stdout).toContain("- .ai-runs/mailhub-next-phase/mailhub-routing-probe-preflight.json");
     expect(result.stdout).toContain("- .ai-runs/mailhub-next-phase/mailhub-routing-probe-send.json");
     expect(result.stdout).toContain("- .ai-runs/mailhub-next-phase/mailhub-staff-workflow-audit.json");
+    expect(result.stdout).toContain("- .ai-runs/mailhub-next-phase/mailhub-staff-workflow-next-steps.json");
     expect(result.stdout).not.toContain(".ai-runs/mailhub-next-phase/commands.md");
     expect(result.stdout).not.toContain(".ai-runs/mailhub-next-phase/progress.md");
     expect(result.stdout).not.toContain("phase1/ops");
