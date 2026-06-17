@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-06-17T22:01:45.072Z",
-  "repoHead": "195e7bc9d01da5ca15e34f61901b4dbd6899ca08",
+  "generatedAt": "2026-06-17T22:34:09.192Z",
+  "repoHead": "b9c7d360919a7676f1745899960dd45f01f10bfc",
   "inputs": {
     "sourceAudit": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.ai-runs/mailhub-next-phase/gmail-source-coverage-audit.json",
     "opsAudit": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.ai-runs/mailhub-next-phase/mailhub-operational-confirmations.json",
@@ -15,10 +15,10 @@
     "sourceAuditGeneratedAt": "2026-06-17T15:15:48.238Z",
     "opsAuditGeneratedAt": "2026-06-17T15:16:00.485Z",
     "gwsRoutingAuditGeneratedAt": "2026-06-17T15:16:07.951Z",
-    "routingProbeAuditGeneratedAt": "2026-06-17T20:54:37.376Z",
-    "routingProbePreflightGeneratedAt": "2026-06-17T20:54:36.691Z",
-    "githubRoutingSecretsCheckedAt": "2026-06-17T20:54:37.163Z",
-    "githubStaffSecretsCheckedAt": "2026-06-17T22:01:35.623Z",
+    "routingProbeAuditGeneratedAt": "2026-06-17T22:34:08.671Z",
+    "routingProbePreflightGeneratedAt": "2026-06-17T22:34:07.898Z",
+    "githubRoutingSecretsCheckedAt": "2026-06-17T22:34:06.015Z",
+    "githubStaffSecretsCheckedAt": "2026-06-17T22:34:07.331Z",
     "viewsAuditGeneratedAt": "2026-06-17T15:15:32.600Z",
     "rulesAuditGeneratedAt": "2026-06-17T20:51:39.495Z",
     "ruleSafetyAuditEnv": {
@@ -27,7 +27,7 @@
       "envFileMode": "env_file",
       "valuePolicyPresent": true
     },
-    "staffWorkflowAuditGeneratedAt": "2026-06-17T21:46:35.763Z",
+    "staffWorkflowAuditGeneratedAt": "2026-06-17T22:34:08.983Z",
     "rulesConfigFingerprint": "sha256:64ce3c152193b489c6d1b48a3c89ad4ea195b7824e0c25c5412db1c4a1cababd",
     "ruleConfigSource": {
       "requestedSource": "file",
@@ -360,10 +360,12 @@
         "staffGithubConfig": {
           "source": "github_actions_config",
           "sourceTrusted": true,
-          "checkedAt": "2026-06-17T22:01:35.623Z",
-          "repoHead": "195e7bc9d01da5ca15e34f61901b4dbd6899ca08",
-          "currentRepoHead": "195e7bc9d01da5ca15e34f61901b4dbd6899ca08",
+          "checkedAt": "2026-06-17T22:34:07.331Z",
+          "repoHead": "b9c7d360919a7676f1745899960dd45f01f10bfc",
+          "currentRepoHead": "b9c7d360919a7676f1745899960dd45f01f10bfc",
+          "repoParentHead": "9ba2f4137e0d1e38f0a157321a7236e7188b75c4",
           "repoHeadMatchesCurrent": true,
+          "repoHeadFresh": true,
           "secretCount": 4,
           "variableCount": 0,
           "readyForProductionStaffPreflight": false,
@@ -386,6 +388,7 @@
             "MAILHUB_SHEETS_PRIVATE_KEY"
           ],
           "semanticIssues": [],
+          "semanticSourceIssues": [],
           "presentRequiredConfigNames": [
             "GOOGLE_CLIENT_ID",
             "GOOGLE_CLIENT_SECRET",

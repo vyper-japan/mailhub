@@ -2464,7 +2464,7 @@ git diff --check
 - Reviewer P1 closed: a ready staff GitHub config artifact must now match the current repo HEAD. Parent-HEAD tolerance remains only for not-ready artifacts, so stale ready artifacts cannot remove `staff_github_config_not_ready`.
 - The aggregate production readiness audit now treats staff GitHub config as ready only when the child artifact is from `github_actions_config`, current-HEAD, secret-backed, ready, and free of semantic issues.
 - The production readiness blocker now includes `sourceTrusted`, `currentRepoHead`, and `repoHeadMatchesCurrent`, so source/head trust gaps remain visible even when missing-name arrays are empty.
-- Current GitHub Actions staff state after regeneration: `secretCount=4`, `variableCount=0`, `readyForProductionStaffPreflight=false`, `missingSecretConfig=[NEXTAUTH_SECRET, MAILHUB_SHEETS_PRIVATE_KEY]`.
+- Current GitHub Actions staff state after regeneration: `secretCount=4`, `variableCount=0`, `readyForProductionStaffPreflight=false`; missing secret-backed staff config includes `NEXTAUTH_SECRET` and `MAILHUB_SHEETS_PRIVATE_KEY`.
 - Focused tests passed: 28 tests for staff/readiness contracts, 45 tests including staff workflow next-step and ops artifact secret scan, and 30 routing-probe tests after updating the production-ready fixture to current-HEAD staff GitHub evidence.
 - Final local gates passed: `test:coverage` (72 files / 639 tests), `lint`, `typecheck`, `build`, `smoke`, `security:scan`, `security:scan-artifacts`, `actionlint`, `git diff --check`, and the full readiness contract chain.
 
@@ -2537,13 +2537,13 @@ Start dev server for tunnel:
 
 ```bash
 MAILHUB_TEST_MODE=1 \
-NEXTAUTH_SECRET=test-secret-for-e2e \
+NEXTAUTH_SECRET=dummy \
 NEXTAUTH_URL=https://hansen-bangkok-magnetic-projected.trycloudflare.com \
 NEXTAUTH_TRUST_HOST=true \
 GOOGLE_CLIENT_ID=test-client-id \
-GOOGLE_CLIENT_SECRET=test-client-secret \
+GOOGLE_CLIENT_SECRET=dummy \
 GOOGLE_SHARED_INBOX_EMAIL=test@vtj.co.jp \
-GOOGLE_SHARED_INBOX_REFRESH_TOKEN=test-refresh-token \
+GOOGLE_SHARED_INBOX_REFRESH_TOKEN=dummy \
 npm run dev -- -H 0.0.0.0 -p 3001
 ```
 
