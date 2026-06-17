@@ -89,13 +89,21 @@ describe("ops artifact secret scan", () => {
     expect(output).toContain("missing_targets=definitely-missing-ops-artifact.md");
   });
 
-  test("default scan is limited to repo-resident stable ops artifacts", () => {
+  test("default scan includes repo-resident ops and committed proof artifacts", () => {
     const result = runScannerArgs([]);
 
     expect(result.status).toBe(0);
     expect(result.stdout).toContain("PASS CR-F9-R007 ops artifact secret scan");
     expect(result.stdout).toContain("- env.example");
     expect(result.stdout).toContain("- OPS_RUNBOOK.md");
+    expect(result.stdout).toContain("- .ai-runs/mailhub-next-phase/github-routing-secrets-readiness.json");
+    expect(result.stdout).toContain("- .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json");
+    expect(result.stdout).toContain("- .ai-runs/mailhub-next-phase/mailhub-routing-next-steps.json");
+    expect(result.stdout).toContain("- .ai-runs/mailhub-next-phase/mailhub-routing-probe-audit.json");
+    expect(result.stdout).toContain("- .ai-runs/mailhub-next-phase/mailhub-routing-probe-preflight.json");
+    expect(result.stdout).toContain("- .ai-runs/mailhub-next-phase/mailhub-routing-probe-send.json");
+    expect(result.stdout).not.toContain(".ai-runs/mailhub-next-phase/commands.md");
+    expect(result.stdout).not.toContain(".ai-runs/mailhub-next-phase/progress.md");
     expect(result.stdout).not.toContain("phase1/ops");
     expect(result.stdout).not.toContain("qa");
   });

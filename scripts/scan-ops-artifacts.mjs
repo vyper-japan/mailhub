@@ -6,7 +6,16 @@ import { fileURLToPath } from "url";
 
 const rootDir = resolve(fileURLToPath(new URL("..", import.meta.url)));
 
-const DEFAULT_TARGETS = ["env.example", "OPS_RUNBOOK.md"];
+const DEFAULT_TARGETS = [
+  "env.example",
+  "OPS_RUNBOOK.md",
+  ".ai-runs/mailhub-next-phase/github-routing-secrets-readiness.json",
+  ".ai-runs/mailhub-next-phase/mailhub-routing-probe-preflight.json",
+  ".ai-runs/mailhub-next-phase/mailhub-routing-probe-send.json",
+  ".ai-runs/mailhub-next-phase/mailhub-routing-probe-audit.json",
+  ".ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json",
+  ".ai-runs/mailhub-next-phase/mailhub-routing-next-steps.json",
+];
 const SCANNABLE_EXTENSIONS = new Set([
   ".env",
   ".example",
@@ -50,7 +59,7 @@ function usage() {
   return [
     "Usage: node scripts/scan-ops-artifacts.mjs [file-or-dir ...]",
     "",
-    "Scans ops artifacts for secret values. If no targets are provided, scans:",
+    "Scans ops artifacts and committed MailHub proof artifacts for secret values. If no targets are provided, scans:",
     `  ${DEFAULT_TARGETS.join(", ")}`,
     "",
     "Allowed content: env key names without values, and secret_ref: vyper/... placeholders.",

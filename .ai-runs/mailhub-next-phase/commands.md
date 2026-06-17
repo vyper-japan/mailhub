@@ -1573,6 +1573,29 @@ git diff --check
 - Full Vitest passed 63 files / 567 tests.
 - Typecheck, lint, build, security scan, artifact secret scan, and `git diff --check` passed.
 
+## 2026-06-17 Committed Proof Artifact Secret Scan Commands
+
+```bash
+node scripts/scan-ops-artifacts.mjs .ai-runs/mailhub-next-phase
+node scripts/scan-ops-artifacts.mjs .ai-runs/mailhub-next-phase/github-routing-secrets-readiness.json .ai-runs/mailhub-next-phase/mailhub-routing-probe-preflight.json .ai-runs/mailhub-next-phase/mailhub-routing-probe-send.json .ai-runs/mailhub-next-phase/mailhub-routing-probe-audit.json .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json .ai-runs/mailhub-next-phase/mailhub-routing-next-steps.json
+npm run security:scan-artifacts
+npx vitest run lib/__tests__/ops-artifact-secret-scan.test.ts
+node --check scripts/scan-ops-artifacts.mjs
+npm run audit:mailhub-readiness -- --out .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json
+npm run audit:mailhub-routing-next -- --strict --out .ai-runs/mailhub-next-phase/mailhub-routing-next-steps.json
+```
+
+## 2026-06-17 Committed Proof Artifact Secret Scan Results
+
+- Scanning the full `.ai-runs/mailhub-next-phase` directory correctly found false-positive-prone documented test env examples in `commands.md`, so the default target list was not expanded to all run logs.
+- Default `security:scan-artifacts` now scans 8 stable files:
+  - `env.example`
+  - `OPS_RUNBOOK.md`
+  - six committed MailHub proof JSON artifacts
+- The default scan passed with no secret findings.
+- Focused ops artifact secret scan tests passed 10/10.
+- Production readiness and routing-next artifacts were refreshed to repo head `936cdf7`.
+
 ## Useful Runtime Commands
 
 Start dev server for tunnel:

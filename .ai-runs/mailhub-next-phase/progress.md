@@ -350,6 +350,12 @@
   - Focused tests now cover a valid grouped artifact and contradictory grouped readiness.
   - Refreshed production readiness and routing-next artifacts to repo head `cfa8b21` so the next commit's CI accepts them as the parent artifact state.
   - Current secret state remains unchanged: Gmail proof secrets are present, external SMTP proof secrets are missing, and `productionReady=false` due P0 `current_shared_gmail_routing`.
+- 2026-06-17 committed proof artifact secret-scan wave completed:
+  - Expanded `scripts/scan-ops-artifacts.mjs` default targets beyond `env.example` and `OPS_RUNBOOK.md` to include the six committed MailHub proof JSON artifacts used by routing readiness/probe workflows.
+  - Default scan now covers `github-routing-secrets-readiness.json`, `mailhub-routing-probe-preflight.json`, `mailhub-routing-probe-send.json`, `mailhub-routing-probe-audit.json`, `mailhub-production-readiness-audit.json`, and `mailhub-routing-next-steps.json`.
+  - Free-form `.ai-runs` logs such as `commands.md` and `progress.md` remain out of the default scan to avoid false positives from documented test env examples.
+  - `npm run security:scan-artifacts` passed with 8 scanned files and no secret findings.
+  - Refreshed production readiness and routing-next artifacts to repo head `936cdf7` so the next commit's CI accepts them as the parent artifact state.
 
 ## Not Done
 
