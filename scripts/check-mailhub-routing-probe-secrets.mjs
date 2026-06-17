@@ -74,12 +74,28 @@ function missingSecrets(required, present) {
   return required.filter((name) => !present.has(name));
 }
 
+function groupReadiness(required, present) {
+  const presentNames = required.filter((name) => present.has(name));
+  const missingNames = missingSecrets(required, present);
+  return {
+    required: required,
+    present: presentNames,
+    missing: missingNames,
+    ready: missingNames.length === 0,
+  };
+}
+
 function main() {
   const args = parseArgs(process.argv.slice(2));
   const secrets = args.fromEnv ? readEnvSecrets() : args.secretsJson ? readSecretsJson(args.secretsJson) : readActionSecrets(args.repo);
   const present = new Set(secrets.map((secret) => secret.name).filter(Boolean));
   const missingPreflight = missingSecrets(REQUIRED_PREFLIGHT_SECRETS, present);
   const missingSendVerify = missingSecrets(REQUIRED_SEND_VERIFY_SECRETS, present);
+  const externalSmtpSecrets = groupReadiness(REQUIRED_PREFLIGHT_SECRETS, present);
+  const gmailProofSecrets = groupReadiness(
+    REQUIRED_SEND_VERIFY_SECRETS.filter((name) => !REQUIRED_PREFLIGHT_SECRETS.includes(name)),
+    present,
+  );
   const configuredOptional = OPTIONAL_SECRETS.filter((name) => present.has(name));
   const result = {
     repo: args.repo,
@@ -94,6 +110,10 @@ function main() {
     missingSendVerifySecrets: missingSendVerify,
     readyForPreflightProductionProof: missingPreflight.length === 0,
     readyForSendVerify: missingSendVerify.length === 0,
+    secretGroups: {
+      externalSmtpProof: externalSmtpSecrets,
+      gmailProof: gmailProofSecrets,
+    },
     presentRequiredSecretNames: REQUIRED_SEND_VERIFY_SECRETS.filter((name) => present.has(name)),
     note: "Only GitHub secret names and updatedAt metadata were read; secret values are never accessible or printed.",
   };

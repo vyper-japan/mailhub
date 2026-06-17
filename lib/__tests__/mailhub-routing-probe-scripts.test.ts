@@ -116,6 +116,35 @@ function writeReadinessFixtures(dir: string, routingProbeGate: Record<string, un
     readyForSendVerify: false,
     missingPreflightSecrets: ["MAILHUB_PROBE_SMTP_HOST", "MAILHUB_PROBE_FROM"],
     missingSendVerifySecrets: ["MAILHUB_PROBE_SMTP_HOST", "MAILHUB_PROBE_FROM"],
+    secretGroups: {
+      externalSmtpProof: {
+        required: [
+          "MAILHUB_PROBE_SMTP_HOST",
+          "MAILHUB_PROBE_SMTP_USER",
+          "MAILHUB_PROBE_SMTP_PASS",
+          "MAILHUB_PROBE_FROM",
+        ],
+        present: ["MAILHUB_PROBE_SMTP_USER", "MAILHUB_PROBE_SMTP_PASS"],
+        missing: ["MAILHUB_PROBE_SMTP_HOST", "MAILHUB_PROBE_FROM"],
+        ready: false,
+      },
+      gmailProof: {
+        required: [
+          "GOOGLE_CLIENT_ID",
+          "GOOGLE_CLIENT_SECRET",
+          "GOOGLE_SHARED_INBOX_EMAIL",
+          "GOOGLE_SHARED_INBOX_REFRESH_TOKEN",
+        ],
+        present: [
+          "GOOGLE_CLIENT_ID",
+          "GOOGLE_CLIENT_SECRET",
+          "GOOGLE_SHARED_INBOX_EMAIL",
+          "GOOGLE_SHARED_INBOX_REFRESH_TOKEN",
+        ],
+        missing: [],
+        ready: true,
+      },
+    },
     presentRequiredSecretNames: [
       "GOOGLE_CLIENT_ID",
       "GOOGLE_CLIENT_SECRET",
@@ -164,6 +193,10 @@ describe("MailHub routing probe CLI gates", () => {
         readyForSendVerify: boolean;
         missingPreflightSecrets: string[];
         missingSendVerifySecrets: string[];
+        secretGroups: {
+          externalSmtpProof: { missing: string[]; ready: boolean };
+          gmailProof: { missing: string[]; ready: boolean };
+        };
         presentRequiredSecretNames: string[];
       };
       expect(out.secretCount).toBe(0);
@@ -185,6 +218,24 @@ describe("MailHub routing probe CLI gates", () => {
         "MAILHUB_PROBE_SMTP_PASS",
         "MAILHUB_PROBE_FROM",
       ]);
+      expect(out.secretGroups.externalSmtpProof).toMatchObject({
+        ready: false,
+        missing: [
+          "MAILHUB_PROBE_SMTP_HOST",
+          "MAILHUB_PROBE_SMTP_USER",
+          "MAILHUB_PROBE_SMTP_PASS",
+          "MAILHUB_PROBE_FROM",
+        ],
+      });
+      expect(out.secretGroups.gmailProof).toMatchObject({
+        ready: false,
+        missing: [
+          "GOOGLE_CLIENT_ID",
+          "GOOGLE_CLIENT_SECRET",
+          "GOOGLE_SHARED_INBOX_EMAIL",
+          "GOOGLE_SHARED_INBOX_REFRESH_TOKEN",
+        ],
+      });
       expect(out.presentRequiredSecretNames).toEqual([]);
     });
   });
@@ -211,6 +262,10 @@ describe("MailHub routing probe CLI gates", () => {
         readyForSendVerify: boolean;
         missingPreflightSecrets: string[];
         missingSendVerifySecrets: string[];
+        secretGroups: {
+          externalSmtpProof: { missing: string[]; ready: boolean };
+          gmailProof: { missing: string[]; ready: boolean };
+        };
       };
       expect(out.readyForPreflightProductionProof).toBe(true);
       expect(out.readyForSendVerify).toBe(false);
@@ -221,6 +276,16 @@ describe("MailHub routing probe CLI gates", () => {
         "GOOGLE_SHARED_INBOX_EMAIL",
         "GOOGLE_SHARED_INBOX_REFRESH_TOKEN",
       ]);
+      expect(out.secretGroups.externalSmtpProof).toMatchObject({ ready: true, missing: [] });
+      expect(out.secretGroups.gmailProof).toMatchObject({
+        ready: false,
+        missing: [
+          "GOOGLE_CLIENT_ID",
+          "GOOGLE_CLIENT_SECRET",
+          "GOOGLE_SHARED_INBOX_EMAIL",
+          "GOOGLE_SHARED_INBOX_REFRESH_TOKEN",
+        ],
+      });
     });
   });
 
@@ -254,12 +319,18 @@ describe("MailHub routing probe CLI gates", () => {
         configuredOptionalSecrets: string[];
         missingPreflightSecrets: string[];
         missingSendVerifySecrets: string[];
+        secretGroups: {
+          externalSmtpProof: { missing: string[]; ready: boolean };
+          gmailProof: { missing: string[]; ready: boolean };
+        };
       };
       expect(out.readyForPreflightProductionProof).toBe(true);
       expect(out.readyForSendVerify).toBe(true);
       expect(out.configuredOptionalSecrets).toEqual(["MAILHUB_PROBE_SMTP_PORT"]);
       expect(out.missingPreflightSecrets).toEqual([]);
       expect(out.missingSendVerifySecrets).toEqual([]);
+      expect(out.secretGroups.externalSmtpProof).toMatchObject({ ready: true, missing: [] });
+      expect(out.secretGroups.gmailProof).toMatchObject({ ready: true, missing: [] });
       expect(readJson(outPath)).toMatchObject({
         readyForPreflightProductionProof: true,
         readyForSendVerify: true,
@@ -810,6 +881,10 @@ describe("MailHub routing probe CLI gates", () => {
             routingProbeGithubSecrets?: {
               missingSendVerifySecrets?: string[];
               readyForSendVerify?: boolean;
+              secretGroups?: {
+                externalSmtpProof?: { missing?: string[]; ready?: boolean };
+                gmailProof?: { missing?: string[]; ready?: boolean };
+              };
             };
           };
         }>;
@@ -831,6 +906,14 @@ describe("MailHub routing probe CLI gates", () => {
         "MAILHUB_PROBE_SMTP_HOST",
         "MAILHUB_PROBE_FROM",
       ]);
+      expect(out.blockers[0]?.evidence?.routingProbeGithubSecrets?.secretGroups?.externalSmtpProof).toMatchObject({
+        ready: false,
+        missing: ["MAILHUB_PROBE_SMTP_HOST", "MAILHUB_PROBE_FROM"],
+      });
+      expect(out.blockers[0]?.evidence?.routingProbeGithubSecrets?.secretGroups?.gmailProof).toMatchObject({
+        ready: true,
+        missing: [],
+      });
     });
   });
 

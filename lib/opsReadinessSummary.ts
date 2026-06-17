@@ -28,10 +28,28 @@ export type OpsReadinessSummary = {
   missingProbeAddresses: string[];
   missingProbeSmtpEnv: string[];
   missingGithubRoutingSecrets: string[];
+  missingGithubExternalSmtpSecrets: string[];
+  missingGithubGmailProofSecrets: string[];
+  githubExternalSmtpSecretsReady: boolean;
+  githubGmailProofSecretsReady: boolean;
   presentGithubRoutingSecrets: string[];
   probeSmtpWarnings: string[];
   mxRecords: Array<{ exchange: string; priority: number }>;
 };
+
+const EXTERNAL_SMTP_SECRET_NAMES = [
+  "MAILHUB_PROBE_SMTP_HOST",
+  "MAILHUB_PROBE_SMTP_USER",
+  "MAILHUB_PROBE_SMTP_PASS",
+  "MAILHUB_PROBE_FROM",
+];
+
+const GMAIL_PROOF_SECRET_NAMES = [
+  "GOOGLE_CLIENT_ID",
+  "GOOGLE_CLIENT_SECRET",
+  "GOOGLE_SHARED_INBOX_EMAIL",
+  "GOOGLE_SHARED_INBOX_REFRESH_TOKEN",
+];
 
 export function unavailableOpsReadinessSummary(): OpsReadinessSummary {
   return {
@@ -60,6 +78,10 @@ export function unavailableOpsReadinessSummary(): OpsReadinessSummary {
     missingProbeAddresses: [],
     missingProbeSmtpEnv: [],
     missingGithubRoutingSecrets: [],
+    missingGithubExternalSmtpSecrets: [],
+    missingGithubGmailProofSecrets: [],
+    githubExternalSmtpSecretsReady: false,
+    githubGmailProofSecretsReady: false,
     presentGithubRoutingSecrets: [],
     probeSmtpWarnings: [],
     mxRecords: [],
@@ -133,6 +155,24 @@ export function summarizeProductionReadinessAudit(
   const routingProbeGithubSecrets = evidence.routingProbeGithubSecrets && typeof evidence.routingProbeGithubSecrets === "object"
     ? evidence.routingProbeGithubSecrets as Record<string, unknown>
     : {};
+  const secretGroups = routingProbeGithubSecrets.secretGroups && typeof routingProbeGithubSecrets.secretGroups === "object"
+    ? routingProbeGithubSecrets.secretGroups as Record<string, unknown>
+    : {};
+  const externalSmtpProof = secretGroups.externalSmtpProof && typeof secretGroups.externalSmtpProof === "object"
+    ? secretGroups.externalSmtpProof as Record<string, unknown>
+    : {};
+  const gmailProof = secretGroups.gmailProof && typeof secretGroups.gmailProof === "object"
+    ? secretGroups.gmailProof as Record<string, unknown>
+    : {};
+  const missingGithubRoutingSecrets = stringArray(routingProbeGithubSecrets.missingSendVerifySecrets);
+  const missingGithubExternalSmtpSecrets = stringArray(externalSmtpProof.missing);
+  const missingGithubGmailProofSecrets = stringArray(gmailProof.missing);
+  const resolvedMissingGithubExternalSmtpSecrets = missingGithubExternalSmtpSecrets.length > 0 || externalSmtpProof.ready === true
+    ? missingGithubExternalSmtpSecrets
+    : missingGithubRoutingSecrets.filter((name) => EXTERNAL_SMTP_SECRET_NAMES.includes(name));
+  const resolvedMissingGithubGmailProofSecrets = missingGithubGmailProofSecrets.length > 0 || gmailProof.ready === true
+    ? missingGithubGmailProofSecrets
+    : missingGithubRoutingSecrets.filter((name) => GMAIL_PROOF_SECRET_NAMES.includes(name));
 
   return {
     available: true,
@@ -159,7 +199,11 @@ export function summarizeProductionReadinessAudit(
     unconfirmedChannels: stringArray(evidence.currentSharedGmailRoutingUnconfirmed),
     missingProbeAddresses: stringArray(routingProbeGate.missingAddresses),
     missingProbeSmtpEnv: stringArray(routingProbePreflight.missingRequiredEnv),
-    missingGithubRoutingSecrets: stringArray(routingProbeGithubSecrets.missingSendVerifySecrets),
+    missingGithubRoutingSecrets,
+    missingGithubExternalSmtpSecrets: resolvedMissingGithubExternalSmtpSecrets,
+    missingGithubGmailProofSecrets: resolvedMissingGithubGmailProofSecrets,
+    githubExternalSmtpSecretsReady: externalSmtpProof.ready === true || resolvedMissingGithubExternalSmtpSecrets.length === 0,
+    githubGmailProofSecretsReady: gmailProof.ready === true || resolvedMissingGithubGmailProofSecrets.length === 0,
     presentGithubRoutingSecrets: stringArray(routingProbeGithubSecrets.presentRequiredSecretNames),
     probeSmtpWarnings: stringArray(routingProbePreflight.warnings),
     mxRecords: mxRecords(evidence.mxRecords),

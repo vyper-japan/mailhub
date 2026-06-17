@@ -46,6 +46,16 @@ describe("opsReadinessSummary", () => {
             routingProbeGithubSecrets: {
               missingSendVerifySecrets: ["MAILHUB_PROBE_SMTP_HOST", "MAILHUB_PROBE_SMTP_PASS"],
               presentRequiredSecretNames: ["GOOGLE_CLIENT_ID"],
+              secretGroups: {
+                externalSmtpProof: {
+                  missing: ["MAILHUB_PROBE_SMTP_HOST", "MAILHUB_PROBE_SMTP_PASS"],
+                  ready: false,
+                },
+                gmailProof: {
+                  missing: [],
+                  ready: true,
+                },
+              },
             },
             mxRecords: [{ exchange: "mx01.lolipop.jp", priority: 50 }],
           },
@@ -78,6 +88,10 @@ describe("opsReadinessSummary", () => {
       missingProbeAddresses: ["gopro_y@vtj.co.jp", "ebay@vtj.co.jp"],
       missingProbeSmtpEnv: ["MAILHUB_PROBE_SMTP_HOST"],
       missingGithubRoutingSecrets: ["MAILHUB_PROBE_SMTP_HOST", "MAILHUB_PROBE_SMTP_PASS"],
+      missingGithubExternalSmtpSecrets: ["MAILHUB_PROBE_SMTP_HOST", "MAILHUB_PROBE_SMTP_PASS"],
+      missingGithubGmailProofSecrets: [],
+      githubExternalSmtpSecretsReady: false,
+      githubGmailProofSecretsReady: true,
       presentGithubRoutingSecrets: ["GOOGLE_CLIENT_ID"],
       probeSmtpWarnings: ["vtj_from_not_external_route_proof"],
       mxRecords: [{ exchange: "mx01.lolipop.jp", priority: 50 }],

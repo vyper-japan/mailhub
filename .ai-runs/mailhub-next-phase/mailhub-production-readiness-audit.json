@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-06-17T08:13:24.983Z",
-  "repoHead": "748f28e82b4c157c6766e2a5004c49b2d8f96c58",
+  "generatedAt": "2026-06-17T08:38:39.155Z",
+  "repoHead": "249e9db33088e044c2c888aa497c148f68b57edb",
   "inputs": {
     "sourceAudit": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.ai-runs/mailhub-next-phase/gmail-source-coverage-audit.json",
     "opsAudit": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.ai-runs/mailhub-next-phase/mailhub-operational-confirmations.json",
@@ -14,8 +14,8 @@
     "opsAuditGeneratedAt": "2026-06-17T08:12:00.457Z",
     "gwsRoutingAuditGeneratedAt": "2026-06-17T08:13:24.850Z",
     "routingProbeAuditGeneratedAt": "2026-06-17T08:12:01.645Z",
-    "routingProbePreflightGeneratedAt": "2026-06-17T08:10:15.008Z",
-    "githubRoutingSecretsCheckedAt": "2026-06-17T08:10:15.468Z",
+    "routingProbePreflightGeneratedAt": "2026-06-17T08:38:39.053Z",
+    "githubRoutingSecretsCheckedAt": "2026-06-17T08:38:38.855Z",
     "viewsAuditGeneratedAt": "2026-06-17T08:12:07.091Z",
     "rulesAuditGeneratedAt": "2026-06-17T08:10:18.407Z",
     "rulesConfigFingerprint": "sha256:64ce3c152193b489c6d1b48a3c89ad4ea195b7824e0c25c5412db1c4a1cababd"
@@ -138,7 +138,41 @@
             "GOOGLE_CLIENT_SECRET",
             "GOOGLE_SHARED_INBOX_EMAIL",
             "GOOGLE_SHARED_INBOX_REFRESH_TOKEN"
-          ]
+          ],
+          "secretGroups": {
+            "externalSmtpProof": {
+              "required": [
+                "MAILHUB_PROBE_SMTP_HOST",
+                "MAILHUB_PROBE_SMTP_USER",
+                "MAILHUB_PROBE_SMTP_PASS",
+                "MAILHUB_PROBE_FROM"
+              ],
+              "present": [],
+              "missing": [
+                "MAILHUB_PROBE_SMTP_HOST",
+                "MAILHUB_PROBE_SMTP_USER",
+                "MAILHUB_PROBE_SMTP_PASS",
+                "MAILHUB_PROBE_FROM"
+              ],
+              "ready": false
+            },
+            "gmailProof": {
+              "required": [
+                "GOOGLE_CLIENT_ID",
+                "GOOGLE_CLIENT_SECRET",
+                "GOOGLE_SHARED_INBOX_EMAIL",
+                "GOOGLE_SHARED_INBOX_REFRESH_TOKEN"
+              ],
+              "present": [
+                "GOOGLE_CLIENT_ID",
+                "GOOGLE_CLIENT_SECRET",
+                "GOOGLE_SHARED_INBOX_EMAIL",
+                "GOOGLE_SHARED_INBOX_REFRESH_TOKEN"
+              ],
+              "missing": [],
+              "ready": true
+            }
+          }
         },
         "mxRecords": [
           {

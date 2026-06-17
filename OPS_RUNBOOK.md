@@ -491,6 +491,8 @@ npm run audit:github-routing-secrets -- --no-fail --out .ai-runs/mailhub-next-ph
 npm run audit:mailhub-routing-next -- --out .ai-runs/mailhub-next-phase/mailhub-routing-next-steps.json
 ```
 
+`github-routing-secrets-readiness.json` は `secretGroups.gmailProof` と `secretGroups.externalSmtpProof` に分けて表示する。Gmail proof が `ready=true` でも、外部SMTP proof が `ready=false` の間は `send_verify` は送信前に止まる。
+
 必要な GitHub Actions Secrets:
 - `GOOGLE_CLIENT_ID`
 - `GOOGLE_CLIENT_SECRET`

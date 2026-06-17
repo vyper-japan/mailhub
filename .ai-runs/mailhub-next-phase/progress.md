@@ -317,6 +317,12 @@
   - Ops Board readiness summary now exposes rule fingerprint presence and a short rule hash.
   - Current file config has no label/assignee rules and fingerprints to `sha256:64ce3c152193...`; rule safety remains green for that exact empty config.
   - Current production gate remains intentionally blocked only by P0 `current_shared_gmail_routing`.
+- 2026-06-17 routing secret group visibility wave completed:
+  - `scripts/check-mailhub-routing-probe-secrets.mjs` now emits `secretGroups.externalSmtpProof` and `secretGroups.gmailProof` without printing secret values.
+  - Production readiness blocker evidence carries those groups through `routingProbeGithubSecrets.secretGroups`.
+  - Ops Board now separates `Actions SMTP` from `Actions Gmail`, so the current state shows Gmail proof ready while external SMTP proof remains missing.
+  - Refreshed GitHub secret readiness, SMTP preflight, production readiness, and routing next-step artifacts with the grouped evidence.
+  - Current GitHub Actions secret state: Gmail proof ready, external SMTP proof missing `MAILHUB_PROBE_SMTP_HOST`, `MAILHUB_PROBE_SMTP_USER`, `MAILHUB_PROBE_SMTP_PASS`, and `MAILHUB_PROBE_FROM`.
 
 ## Not Done
 

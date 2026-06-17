@@ -1458,6 +1458,26 @@ npm run audit:mailhub-readiness-contract
 - Targeted Vitest passed 31/31 and `npm run typecheck` passed.
 - Production readiness remains `productionReady=false` with P0 `current_shared_gmail_routing`.
 
+## 2026-06-17 Routing Secret Group Visibility Commands
+
+```bash
+node --check scripts/check-mailhub-routing-probe-secrets.mjs
+node --check scripts/audit-mailhub-production-readiness.mjs
+npx vitest run lib/__tests__/mailhub-routing-probe-scripts.test.ts lib/__tests__/opsReadinessSummary.test.ts
+npm run audit:github-routing-secrets -- --no-fail --out .ai-runs/mailhub-next-phase/github-routing-secrets-readiness.json
+npm run probe:routing-preflight -- --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-preflight.json
+npm run audit:mailhub-readiness -- --out .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json
+npm run audit:mailhub-routing-next -- --strict --out .ai-runs/mailhub-next-phase/mailhub-routing-next-steps.json
+npm run audit:mailhub-readiness-contract
+```
+
+## 2026-06-17 Routing Secret Group Visibility Results
+
+- GitHub secret readiness now separates `secretGroups.externalSmtpProof` from `secretGroups.gmailProof`.
+- Current GitHub Actions state: `gmailProof.ready=true`, `externalSmtpProof.ready=false`.
+- Missing external SMTP proof secrets remain `MAILHUB_PROBE_SMTP_HOST`, `MAILHUB_PROBE_SMTP_USER`, `MAILHUB_PROBE_SMTP_PASS`, and `MAILHUB_PROBE_FROM`.
+- Targeted Vitest passed 25/25.
+
 ## Useful Runtime Commands
 
 Start dev server for tunnel:

@@ -132,6 +132,7 @@ function main() {
         missingPreflightSecrets: githubRoutingSecrets.missingPreflightSecrets ?? [],
         missingSendVerifySecrets: githubRoutingSecrets.missingSendVerifySecrets ?? [],
         presentRequiredSecretNames: githubRoutingSecrets.presentRequiredSecretNames ?? [],
+        secretGroups: githubRoutingSecrets.secretGroups ?? null,
       } : null,
       mxRecords: gwsRoutingAudit.dns?.mxRecords ?? [],
     }));

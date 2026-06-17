@@ -160,6 +160,10 @@ type OpsReadinessView = {
   missingProbeAddresses: string[];
   missingProbeSmtpEnv: string[];
   missingGithubRoutingSecrets: string[];
+  missingGithubExternalSmtpSecrets: string[];
+  missingGithubGmailProofSecrets: string[];
+  githubExternalSmtpSecretsReady: boolean;
+  githubGmailProofSecretsReady: boolean;
   presentGithubRoutingSecrets: string[];
   probeSmtpWarnings: string[];
   mxRecords: Array<{ exchange: string; priority: number }>;
@@ -8653,6 +8657,12 @@ export default function InboxShell({
                                 Actions不足: {opsSummary.productionReadiness.missingGithubRoutingSecrets.length}
                               </div>
                               <div className="rounded border border-slate-700/60 bg-slate-950/30 px-2 py-1">
+                                Actions SMTP: {opsSummary.productionReadiness.githubExternalSmtpSecretsReady ? "OK" : "未完了"}
+                              </div>
+                              <div className="rounded border border-slate-700/60 bg-slate-950/30 px-2 py-1">
+                                Actions Gmail: {opsSummary.productionReadiness.githubGmailProofSecretsReady ? "OK" : "未完了"}
+                              </div>
+                              <div className="rounded border border-slate-700/60 bg-slate-950/30 px-2 py-1">
                                 View構文: {opsSummary.productionReadiness.defaultViewsRealDataValidated ? "OK" : "要確認"}
                               </div>
                               <div className="rounded border border-slate-700/60 bg-slate-950/30 px-2 py-1">
@@ -8678,6 +8688,16 @@ export default function InboxShell({
                               {opsSummary.productionReadiness.missingGithubRoutingSecrets.length > 0 && (
                                 <div className="col-span-2 rounded border border-slate-700/60 bg-slate-950/30 px-2 py-1 break-words">
                                   Actions不足: {opsSummary.productionReadiness.missingGithubRoutingSecrets.join(", ")}
+                                </div>
+                              )}
+                              {opsSummary.productionReadiness.missingGithubExternalSmtpSecrets.length > 0 && (
+                                <div className="col-span-2 rounded border border-slate-700/60 bg-slate-950/30 px-2 py-1 break-words">
+                                  Actions SMTP不足: {opsSummary.productionReadiness.missingGithubExternalSmtpSecrets.join(", ")}
+                                </div>
+                              )}
+                              {opsSummary.productionReadiness.missingGithubGmailProofSecrets.length > 0 && (
+                                <div className="col-span-2 rounded border border-slate-700/60 bg-slate-950/30 px-2 py-1 break-words">
+                                  Actions Gmail不足: {opsSummary.productionReadiness.missingGithubGmailProofSecrets.join(", ")}
                                 </div>
                               )}
                               <div className="col-span-2 rounded border border-slate-700/60 bg-slate-950/30 px-2 py-1">
