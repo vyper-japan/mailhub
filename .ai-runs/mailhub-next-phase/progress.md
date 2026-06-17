@@ -125,6 +125,11 @@
   - This makes Activity persistence a server-side prerequisite for non-send production mutations.
   - Added a focused read-only test proving staging stays READ ONLY without durable Activity Sheets.
   - Updated `OPS_RUNBOOK.md` with the WRITE prerequisite.
+- 2026-06-17 final real-data audit refresh completed:
+  - Re-ran source coverage, default views, and rule safety audits against the real shared Gmail inbox.
+  - Source coverage remains code-pass: `zeroEstimateAnalysis.knownCodeGaps` is empty and `codeCoveragePass` is true.
+  - Rule safety remains pass: current file config has no configured label/assignee rules and `realDataRuleRiskPass` is true.
+  - Default views remain manual-review only: `customer-inquiries` and `noise-candidates` are still too broad for bulk workflow.
 
 ## Not Done
 

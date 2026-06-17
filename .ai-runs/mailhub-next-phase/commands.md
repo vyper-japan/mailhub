@@ -383,6 +383,20 @@ npm run build
 - `npm run test`: 60 files / 531 tests passed.
 - `npm run build`: passed.
 
+## Verification Commands Run On 2026-06-17 Final Real-Data Audit Refresh
+
+```bash
+npm run audit:gmail-sources -- --out .ai-runs/mailhub-next-phase/gmail-source-coverage-audit.json
+npm run audit:gmail-views -- --out .ai-runs/mailhub-next-phase/gmail-default-views-audit.json
+npm run audit:gmail-rules -- --out .ai-runs/mailhub-next-phase/gmail-rule-safety-audit.json --max 100
+```
+
+## 2026-06-17 Final Real-Data Audit Refresh Results
+
+- Source coverage audit: `codeCoveragePass=true`, `knownCodeGaps=[]`, aggregate estimate 201.
+- Default views audit: `invoice-docs` 553 unique lower bound, `customer-inquiries` and `noise-candidates` still too broad for bulk workflow.
+- Rule safety audit: inspected 100 real INBOX messages, `realDataRuleRiskPass=true`, no configured label/assignee rules in file config.
+
 ## Useful Runtime Commands
 
 Start dev server for tunnel:
