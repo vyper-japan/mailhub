@@ -141,6 +141,7 @@ jobs:
             --out .ai-runs/mailhub-next-phase/mailhub-staff-workflow-next-steps.json
           npm run audit:github-routing-secrets-contract
           npm run audit:mailhub-staff-workflow-contract
+          npm run audit:mailhub-staff-next-contract
           npm run audit:mailhub-readiness-contract
           npm run audit:mailhub-routing-next-contract
           npm run audit:mailhub-routing-proof-contract
@@ -180,6 +181,7 @@ jobs:
             --out .ai-runs/mailhub-next-phase/mailhub-staff-workflow-next-steps.json
           npm run audit:github-routing-secrets-contract
           npm run audit:mailhub-staff-workflow-contract
+          npm run audit:mailhub-staff-next-contract
           npm run audit:mailhub-readiness-contract
           npm run audit:mailhub-routing-next-contract
           npm run audit:mailhub-routing-proof-contract

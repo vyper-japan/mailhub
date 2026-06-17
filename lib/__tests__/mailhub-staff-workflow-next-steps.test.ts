@@ -5,6 +5,7 @@ import { spawnSync } from "child_process";
 import { describe, expect, test } from "vitest";
 
 const staffNextPath = resolve(process.cwd(), "scripts/write-mailhub-staff-workflow-next-steps.mjs");
+const staffNextContractPath = resolve(process.cwd(), "scripts/check-mailhub-staff-next-contract.mjs");
 
 function withTempDir<T>(fn: (dir: string) => T): T {
   const dir = mkdtempSync(join(tmpdir(), "mailhub-staff-next-"));
@@ -21,6 +22,13 @@ function writeJson(path: string, value: unknown) {
 
 function runStaffNext(args: string[]) {
   return spawnSync(process.execPath, [staffNextPath, ...args], {
+    cwd: process.cwd(),
+    encoding: "utf8",
+  });
+}
+
+function runStaffNextContract(args: string[]) {
+  return spawnSync(process.execPath, [staffNextContractPath, ...args], {
     cwd: process.cwd(),
     encoding: "utf8",
   });
@@ -151,6 +159,18 @@ describe("MailHub staff workflow next steps", () => {
       expect(out.nextActions.find((action) => action.id === "capture_readonly_rollout_evidence")?.status).toBe("blocked");
       expect(JSON.stringify(out)).not.toContain("refresh_token");
       expect(JSON.stringify(out)).not.toContain("PRIVATE KEY");
+
+      const contract = runStaffNextContract([
+        "--next",
+        outPath,
+        "--audit",
+        auditPath,
+        "--repo-head",
+        "HEAD",
+        "--repo-parent-head",
+        "HEAD^",
+      ]);
+      expect(contract.status).toBe(0);
     });
   });
 
@@ -182,6 +202,36 @@ describe("MailHub staff workflow next steps", () => {
 
       expect(result.status).toBe(1);
       expect(result.stdout).toContain("missing_staff_workflow_audit");
+    });
+  });
+
+  test("contract rejects contradictory next-action status", () => {
+    withTempDir((dir) => {
+      const auditPath = join(dir, "staff-audit.json");
+      const outPath = join(dir, "staff-next.json");
+      writeJson(auditPath, blockedAudit());
+      expect(runStaffNext(["--audit", auditPath, "--out", outPath]).status).toBe(0);
+
+      const artifact = JSON.parse(readFileSync(outPath, "utf8")) as {
+        nextActions: Array<{ id: string; status: string }>;
+      };
+      const action = artifact.nextActions.find((item) => item.id === "capture_readonly_rollout_evidence");
+      expect(action).toBeTruthy();
+      action!.status = "done";
+      writeJson(outPath, artifact);
+
+      const contract = runStaffNextContract([
+        "--next",
+        outPath,
+        "--audit",
+        auditPath,
+        "--repo-head",
+        "HEAD",
+        "--repo-parent-head",
+        "HEAD^",
+      ]);
+      expect(contract.status).toBe(1);
+      expect(contract.stdout).toContain("next_action_status_mismatch:capture_readonly_rollout_evidence");
     });
   });
 });

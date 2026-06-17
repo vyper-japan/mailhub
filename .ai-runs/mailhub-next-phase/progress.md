@@ -421,6 +421,11 @@
   - Added `.ai-runs/mailhub-next-phase/mailhub-staff-workflow-next-steps.json` to the default ops artifact secret scan.
   - Updated `OPS_RUNBOOK.md` with the staff workflow proof sequence and required evidence filenames.
   - Current staff next-step state remains intentionally blocked before evidence capture: required actions are `configure_production_env`, `configure_staff_access_allowlist`, `configure_durable_staff_stores`, `capture_readonly_rollout_evidence`, `capture_controlled_write_pilot`, and artifact refresh.
+- 2026-06-17 staff workflow next-step contract wave completed:
+  - Added `scripts/check-mailhub-staff-next-contract.mjs` and `npm run audit:mailhub-staff-next-contract`.
+  - The contract validates that `mailhub-staff-workflow-next-steps.json` is derived from the current/parent staff workflow audit, has matching audit generatedAt/repoHead, reports missing env/evidence consistently, and marks every next action with the expected `done` / `required` / `blocked` status.
+  - Wired the new contract into `MailHub Readiness Contract` and `MailHub Routing Probe` workflows.
+  - Added regression coverage proving a contradictory next-action status is rejected.
 
 ## Not Done
 
@@ -441,6 +446,7 @@
 - `npm run setup:mailhub-routing-secrets -- --apply` can now set those external SMTP proof secrets once real values are available locally, but no such values are currently present.
 - The routing next-step artifact now shows the exact remaining action list, but it remains red because external SMTP proof setup has not been provided.
 - The staff workflow next-step artifact now shows the exact remaining P1 action list, but it remains red because production env/staff config/durable stores and production evidence have not been provided.
+- The staff workflow next-step contract now guards that action list in CI, so the P1 staff workflow checklist cannot drift from the audit artifact unnoticed.
 - GitHub Actions routing probe artifacts now include the next-step artifact, but `send_verify` remains blocked until the external SMTP proof secrets are configured.
 - All GitHub workflow YAML now passes local `actionlint`; the remaining GitHub-side risk is secret/config availability for the manual external routing probe, not workflow syntax.
 - Production pagination basic behavior is represented in API/UI metadata and forced E2E; real browser/manual production verification is still useful before staff rollout.

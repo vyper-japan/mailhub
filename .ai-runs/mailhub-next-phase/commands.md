@@ -1895,6 +1895,43 @@ git diff --check
 - Coverage passed 68 files / 597 tests with global coverage above threshold.
 - Typecheck, lint, build, smoke, security scan, artifact secret scan, actionlint, readiness/routing/staff contracts, and `git diff --check` passed.
 
+## 2026-06-17 Staff Workflow Next-Step Contract Commands
+
+```bash
+node --check scripts/check-mailhub-staff-next-contract.mjs
+npm run audit:mailhub-staff-next-contract
+npx vitest run lib/__tests__/mailhub-staff-workflow-next-steps.test.ts
+actionlint .github/workflows/mailhub-readiness-contract.yml .github/workflows/mailhub-routing-probe.yml
+npm run audit:mailhub-staff-workflow -- --out .ai-runs/mailhub-next-phase/mailhub-staff-workflow-audit.json
+npm run audit:mailhub-staff-next -- --out .ai-runs/mailhub-next-phase/mailhub-staff-workflow-next-steps.json
+npm run audit:mailhub-readiness -- --out .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json
+npm run audit:mailhub-routing-next -- --strict --out .ai-runs/mailhub-next-phase/mailhub-routing-next-steps.json
+npm run typecheck
+npm run security:scan-artifacts
+npm run test
+npm run test:coverage
+npm run audit:github-routing-secrets-contract
+npm run audit:mailhub-staff-workflow-contract
+npm run audit:mailhub-staff-next-contract
+npm run audit:mailhub-readiness-contract
+npm run audit:mailhub-routing-next-contract
+npm run audit:mailhub-routing-proof-contract
+npm run lint
+npm run smoke
+npm run security:scan
+npm run build
+git diff --check
+```
+
+## 2026-06-17 Staff Workflow Next-Step Contract Results
+
+- Added `npm run audit:mailhub-staff-next-contract`.
+- The new contract passed against the committed staff workflow audit and staff next-step artifact.
+- Focused staff next-step tests passed 1 file / 4 tests, including a contradictory action-status rejection.
+- Full Vitest passed 68 files / 598 tests.
+- Coverage passed 68 files / 598 tests with global coverage above threshold.
+- Typecheck, lint, build, smoke, security scan, artifact secret scan, actionlint, and all readiness/routing/staff contracts passed.
+
 ## Useful Runtime Commands
 
 Start dev server for tunnel:
