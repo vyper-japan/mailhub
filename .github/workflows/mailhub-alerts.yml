@@ -1,9 +1,9 @@
 name: MailHub SLA Alerts
 
 on:
-  # schedule:
-  #   # 毎15分実行（重複防止が24hなのでSlackは荒れにくい）
-  #   - cron: "*/15 * * * *"
+  schedule:
+    # 毎15分実行（重複防止が24hなのでSlackは荒れにくい）
+    - cron: "*/15 * * * *"
   workflow_dispatch:
     # 手動実行も可能
     inputs:
@@ -31,30 +31,67 @@ jobs:
         id: env
         run: |
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-            echo "env=${{ github.event.inputs.environment }}" >> $GITHUB_OUTPUT
+            echo "env=${{ github.event.inputs.environment }}" >> "$GITHUB_OUTPUT"
           else
             # スケジュール実行の場合はproduction
-            echo "env=production" >> $GITHUB_OUTPUT
+            echo "env=production" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Set URL
         id: url
         run: |
           if [ "${{ steps.env.outputs.env }}" == "production" ]; then
-            echo "url=${{ secrets.MAILHUB_PROD_URL }}" >> $GITHUB_OUTPUT
+            echo "url=${{ secrets.MAILHUB_PROD_URL }}" >> "$GITHUB_OUTPUT"
           else
-            echo "url=${{ secrets.MAILHUB_STAGING_URL }}" >> $GITHUB_OUTPUT
+            echo "url=${{ secrets.MAILHUB_STAGING_URL }}" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Health check
+      - name: Validate automation secrets
+        id: preflight
+        shell: bash
         run: |
-          curl --fail --retry 3 --max-time 20 \
-            "${{ steps.url.outputs.url }}/api/health" || exit 1
+          missing=0
+          if [ -z "${{ steps.url.outputs.url }}" ]; then
+            echo "::warning::MAILHUB_${{ steps.env.outputs.env == 'production' && 'PROD' || 'STAGING' }}_URL is not configured"
+            missing=1
+          fi
+          if [ -z "${{ secrets.MAILHUB_ALERTS_SECRET }}" ]; then
+            echo "::warning::MAILHUB_ALERTS_SECRET is not configured"
+            missing=1
+          fi
+
+          if [ "$missing" -eq 1 ]; then
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            if [ "${{ github.event_name }}" = "schedule" ]; then
+              echo "Scheduled run skipped because required secrets are missing."
+              exit 0
+            fi
+            exit 1
+          fi
+
+          echo "ready=true" >> "$GITHUB_OUTPUT"
+
+      - name: Health check
+        if: steps.preflight.outputs.ready == 'true'
+        shell: bash
+        run: |
+          headers=()
+          if [ -n "${{ secrets.MAILHUB_VERCEL_PROTECTION_BYPASS }}" ]; then
+            headers+=(-H "x-vercel-protection-bypass: ${{ secrets.MAILHUB_VERCEL_PROTECTION_BYPASS }}")
+          fi
+          curl --fail --retry 3 --max-time 20 "${headers[@]}" \
+            "${{ steps.url.outputs.url }}/api/health"
 
       - name: Run SLA alerts
+        if: steps.preflight.outputs.ready == 'true'
+        shell: bash
         run: |
+          headers=(-H "Authorization: Bearer ${{ secrets.MAILHUB_ALERTS_SECRET }}")
+          if [ -n "${{ secrets.MAILHUB_VERCEL_PROTECTION_BYPASS }}" ]; then
+            headers+=(-H "x-vercel-protection-bypass: ${{ secrets.MAILHUB_VERCEL_PROTECTION_BYPASS }}")
+          fi
           RESPONSE=$(curl --fail --retry 3 --max-time 20 \
-            -H "Authorization: Bearer ${{ secrets.MAILHUB_ALERTS_SECRET }}" \
+            "${headers[@]}" \
             "${{ steps.url.outputs.url }}/api/mailhub/alerts/run?scope=all")
           
           echo "Response: $RESPONSE"
@@ -63,7 +100,5 @@ jobs:
           if echo "$RESPONSE" | grep -q '"truncated":true'; then
             echo "⚠️ Warning: Alert truncated (limit reached)"
           fi
-
-
 
 

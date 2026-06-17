@@ -256,7 +256,13 @@ Activityの証跡を残す場合は、Activity Drawerの **Export（CSV）** を
    - `MAILHUB_ALERTS_PROVIDER=slack`
    - `MAILHUB_SLACK_WEBHOOK_URL=<webhook URL>`
    - `MAILHUB_ALERTS_SECRET=<secret token>`（本番必須）
-3. Vercel Cronで10分おきに `/api/mailhub/alerts/run` を実行
+3. GitHub Actions workflow `.github/workflows/mailhub-alerts.yml` が15分おきに `/api/mailhub/alerts/run?scope=all` を実行
+
+**GitHub Actions Secrets**:
+- `MAILHUB_PROD_URL`
+- `MAILHUB_STAGING_URL`（手動staging実行を使う場合）
+- `MAILHUB_ALERTS_SECRET`
+- `MAILHUB_VERCEL_PROTECTION_BYPASS`（Vercel Deployment Protectionを維持する場合）
 
 **定期実行のやり方**:
 ```bash
@@ -582,5 +588,4 @@ curl https://mailhub.vercel.app/api/version
 - `next-auth` は **v5 beta を固定**しています（勝手に上げないでください）
 - `Open in Gmail ↗` は、各ユーザーが **共有受信箱（`GOOGLE_SHARED_INBOX_EMAIL`）をGmail上で参照できる権限（委任など）** を持っていることが前提です。無い場合はログインや権限付与を求められる可能性があります。
 - 運用の詳細は [OPS_RUNBOOK.md](./OPS_RUNBOOK.md) を参照してください。
-
 

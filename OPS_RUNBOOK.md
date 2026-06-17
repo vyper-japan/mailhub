@@ -565,8 +565,9 @@ Productionは **最初に必ず READ ONLY** で公開し、問題が無いこと
 **SLA Alerts（放置防止通知）**:
 - **通知チャネル**: Slack webhook（推奨）または無効化
 - **設定**: `MAILHUB_ALERTS_PROVIDER=slack` + `MAILHUB_SLACK_WEBHOOK_URL` + `MAILHUB_ALERTS_SECRET`（本番必須）
-- **実行**: 現状は `.github/workflows/mailhub-alerts.yml` の `workflow_dispatch` 手動実行のみ。15分schedule有効化は `~/.claude/instructions/mailhub-prod-rollout/phase1/ops/schedule-enable.patch` を、のび太承認後の別アクションとして適用する。
-- **Vercel保護**: Deployment Protectionを維持する場合、GitHub Actions cronは401になり得るため、Protection Bypass for Automation等の扱いを本番rollout runbookで決めてから有効化する。
+- **実行**: `.github/workflows/mailhub-alerts.yml` が15分ごとにproductionを実行する。手動実行ではproduction/stagingを選択可能。
+- **Vercel保護**: Deployment Protectionを維持する場合、GitHub Actions secret `MAILHUB_VERCEL_PROTECTION_BYPASS` を設定する。workflowは `x-vercel-protection-bypass` ヘッダをhealth checkとalerts runの両方に付ける。
+- **Secret不足時**: schedule実行は失敗扱いにせずskipし、手動実行はfailする。
 - **認可**: production環境では`Authorization: Bearer <MAILHUB_ALERTS_SECRET>`ヘッダが必須
 - **定期実行例（手動実行時）**:
   ```bash
