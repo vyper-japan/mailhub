@@ -468,6 +468,10 @@
   - Production readiness now records the rule safety audit source (`requestedSource`, `resolvedSource`, `warnings`) and raises P1 `rule_config_source_not_production` when the real-data rule safety audit was run against local file config instead of Sheets-backed production config.
   - Strengthened `scripts/check-mailhub-readiness-contract.mjs` so a future `productionReady=true` claim requires Sheets-backed production rule config safety evidence, not only a fingerprint from a local empty file config.
   - Ops readiness summary and the Ops Board now expose the rule config source alongside rule safety and fingerprint status.
+- 2026-06-18 artifact freshness follow-up completed:
+  - GitHub Actions readiness run `27701166064` correctly rejected stale staff workflow evidence after the source-gate commit moved the artifact's repo-head outside the accepted current/parent window.
+  - Regenerated staff workflow, staff next-step, production readiness, and routing next-step artifacts at repo head `9d33e62`.
+  - Local readiness/routing/staff contracts pass again with the same production blockers: P0 `current_shared_gmail_routing`, P1 `rule_config_source_not_production`, and P1 `staff_workflow_permissions`.
 
 ## Not Done
 

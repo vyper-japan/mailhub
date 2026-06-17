@@ -2203,6 +2203,25 @@ npm run audit:mailhub-routing-next -- --strict --out .ai-runs/mailhub-next-phase
 - Ops readiness summary and Ops Board now expose the rule config source next to rule safety/fingerprint.
 - Current artifact still has rule safety pass, but `currentRuleConfigSourceProductionReady=false` because the latest audit resolved to `file`.
 
+## 2026-06-18 Artifact Freshness Follow-up
+
+```bash
+npm run audit:mailhub-staff-workflow -- --out .ai-runs/mailhub-next-phase/mailhub-staff-workflow-audit.json
+npm run audit:mailhub-staff-next -- --out .ai-runs/mailhub-next-phase/mailhub-staff-workflow-next-steps.json
+npm run audit:mailhub-readiness -- --out .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json
+npm run audit:mailhub-routing-next -- --strict --out .ai-runs/mailhub-next-phase/mailhub-routing-next-steps.json
+npm run audit:github-routing-secrets-contract
+npm run audit:mailhub-staff-workflow-contract
+npm run audit:mailhub-staff-next-contract
+npm run audit:mailhub-readiness-contract
+npm run audit:mailhub-routing-next-contract
+npm run audit:mailhub-routing-proof-contract
+```
+
+- GitHub Actions readiness run `27701166064` failed because `mailhub-staff-workflow-audit.json` had fallen outside the accepted current/parent repo-head window after commit `9d33e62`.
+- Regenerated staff workflow, staff next-step, readiness, and routing next-step artifacts at repo head `9d33e62`.
+- Local readiness/routing/staff contracts now pass again with no errors.
+
 ## Useful Runtime Commands
 
 Start dev server for tunnel:
