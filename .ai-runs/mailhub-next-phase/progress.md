@@ -95,6 +95,11 @@
   - Split runner auth for `/api/mailhub/snooze/release`: valid `MAILHUB_SNOOZE_SECRET` Bearer can release headlessly without a browser session.
   - Enforced assign safety: non-admin users can assign to self, but cannot assign to other users or force takeover.
   - Added focused route/unit tests for these safety gates.
+- 2026-06-17 Rakuten reply clarity wave completed:
+  - `/api/mailhub/rakuten/reply` no longer writes a `rakutenReply` success-like Activity entry when the non-test RMS API path is still unimplemented.
+  - The route now returns `501` with `error: rms_api_not_implemented`, a manual fallback message, and `fallback: true`.
+  - The inbox UI disables the direct RMS API send button outside TEST_MODE and labels it as unimplemented, leaving `RMSを開く` and copy/manual completion as the production path.
+  - Updated `OPS_RUNBOOK.md` to state that RMS API direct send is not implemented and production must use manual RMS reply.
 
 ## Not Done
 
@@ -103,7 +108,7 @@
 - Production pagination basic behavior is represented in API/UI metadata and forced E2E; real browser/manual production verification is still useful before staff rollout.
 - Auto-discard rules for marketing/noise are protected against obvious important/invoice/inquiry suppression and missing summary text, but a full production auto-discard policy is still intentionally not enabled.
 - Real-data rule safety audit exists and passes for the current local file config because no rules are configured. Re-run with `MAILHUB_CONFIG_STORE=sheets` and production Sheets credentials when production rule config is enabled.
-- Remaining production-readiness P1s from critic review include durable send idempotency across serverless instances, fail-closed audit persistence for production mutations, Rakuten reply workflow clarity, unassigned coverage/count accuracy, and autonomous SLA schedule enablement.
+- Remaining production-readiness P1s from critic review include durable send idempotency across serverless instances, fail-closed audit persistence for production mutations, unassigned coverage/count accuracy, and autonomous SLA schedule enablement.
 - Important/invoice/customer-inquiry folders exist as default saved views and are audited as manual-review shortcuts; further narrowing requires operator feedback.
 - Brain decision ledger exists for memory/file/sheets and health visibility; AI reply drafting and knowledge base integration are not implemented.
 - Rakuten/Amazon/Yahoo API-based reply integration is not implemented.

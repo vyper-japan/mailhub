@@ -80,26 +80,14 @@ export async function POST(req: NextRequest) {
     // 現時点では、APIキーが設定されている場合でも「未実装」として返す
     // （RMS APIの詳細仕様が確定次第、実装を追加）
 
-    // ログ出力
-    logAction({
-      actorEmail: user.email,
-      action: "rakutenReply",
-      messageId: emailId || "unknown",
-      metadata: {
-        storeId,
-        inquiryNumber,
-        messageLength: message.length,
-      },
-    }).catch(() => {
-      // ログ失敗は無視
-    });
-
-    // 暫定: APIキーがあるが実装が未完了の場合
+    // 暫定: APIキーがあるが実装が未完了の場合。
+    // 未送信なので rakutenReply の成功系 Activity は残さない。
     return NextResponse.json({
       ok: false,
-      error: "RMS API implementation pending",
+      error: "rms_api_not_implemented",
+      message: "RMS API direct send is not implemented. Open RMS and complete the reply manually.",
       fallback: true,
-    });
+    }, { status: 501 });
   } catch (e) {
     console.error("[Rakuten Reply API Error]", e);
     return NextResponse.json(

@@ -103,15 +103,14 @@ describe("rakuten reply route RMS env prefix", () => {
 
     const res = await POST(makeRequest(storeId));
 
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(501);
     expect(await readJson(res)).toEqual({
       ok: false,
-      error: "RMS API implementation pending",
+      error: "rms_api_not_implemented",
+      message: "RMS API direct send is not implemented. Open RMS and complete the reply manually.",
       fallback: true,
     });
-    expect(routeMocks.logAction).toHaveBeenCalledWith(expect.objectContaining({
-      metadata: expect.objectContaining({ storeId }),
-    }));
+    expect(routeMocks.logAction).not.toHaveBeenCalled();
   });
 
   it("does not derive credentials from the hyphenated channel id", async () => {

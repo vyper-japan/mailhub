@@ -261,6 +261,26 @@ npm run build
 - `npm run test`: 60 files / 526 tests passed.
 - `npm run build`: passed.
 
+## Verification Commands Run On 2026-06-17 Rakuten Reply Clarity Wave
+
+```bash
+npx vitest run lib/__tests__/rakuten-reply-route.test.ts
+npm run typecheck
+git diff --check
+npm run lint
+npm run test
+npm run build
+```
+
+## 2026-06-17 Rakuten Reply Clarity Wave Results
+
+- Focused Vitest: 1 file / 8 tests passed.
+- `npm run typecheck`: passed.
+- `git diff --check`: passed.
+- `npm run lint`: passed.
+- `npm run test`: 60 files / 526 tests passed.
+- `npm run build`: passed.
+
 ## Useful Runtime Commands
 
 Start dev server for tunnel:

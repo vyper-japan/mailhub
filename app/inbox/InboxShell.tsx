@@ -5315,7 +5315,7 @@ export default function InboxShell({
         setReplyMessage(""); // 返信メッセージをクリア
       } else if (data.fallback) {
         // API未設定の場合はフォールバック案内
-        showToast("RMS APIが設定されていません。RMSを開いて手動で返信してください。", "error");
+        showToast(data.message || "RMS APIは直接送信できません。RMSを開いて手動で返信してください。", "error");
       } else {
         throw new Error(data.error || "返信に失敗しました");
       }
@@ -8176,11 +8176,12 @@ export default function InboxShell({
                                   <>
                                     <button
                                       onClick={handleRakutenReply}
-                                      disabled={!replyInquiryNumber || !replyMessage.trim() || isSendingReply || readOnlyMode}
+                                      disabled={!testMode || !replyInquiryNumber || !replyMessage.trim() || isSendingReply || readOnlyMode}
+                                      title={testMode ? "TEST_MODEのRMS送信シミュレーション" : "RMS API直接送信は未実装です。RMSを開く/コピーを使ってください"}
                                       className="px-4 py-2 bg-orange-600 text-white hover:bg-orange-500 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed rounded-md text-sm font-medium transition-colors flex items-center gap-2"
                                     >
                                       <Send size={14} />
-                                      {isSendingReply ? "送信中..." : "送信（RMS）"}
+                                      {isSendingReply ? "送信中..." : testMode ? "送信（RMS TEST）" : "RMS API未実装"}
                                     </button>
                                     {replyInquiryNumber && (
                                       <button

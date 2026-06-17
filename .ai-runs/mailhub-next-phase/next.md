@@ -17,7 +17,6 @@ Continue from the completed INBOX-scoped source coverage and rule-safety wave:
 8. Close the remaining production-readiness P1s:
    - durable Gmail send idempotency across serverless instances/cold starts
    - fail-closed or prominently blocked audit persistence for production mutations
-   - Rakuten reply workflow clarity so pending implementation cannot look like a successful send
    - unassigned list/count accuracy across pages and all assignees
    - autonomous SLA schedule enablement after Vercel protection/bypass is decided
 9. Add AI reply drafting only after a knowledge evidence source is defined; keep generated drafts separate from send actions.
