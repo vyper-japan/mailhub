@@ -21,6 +21,8 @@ Continue from the completed INBOX-scoped source coverage and rule-safety wave:
 7. Run or inspect `npm run audit:mailhub-staff-workflow -- --out .ai-runs/mailhub-next-phase/mailhub-staff-workflow-audit.json`.
    - Latest machine gate: `staffWorkflowPermissionsReady=false`.
    - Current P1 blocker: `staff_workflow_permissions`.
+   - The audit now loads `.env.local` by default, with explicit process env taking priority, so it stays aligned with `npm run setup:mailhub-staff-env` while keeping secret values out of artifacts.
+   - Latest local artifact confirms production auth/shared Gmail env and admins are present, but production mode, staff team members, Sheets-backed config/activity, READ ONLY, and production evidence are still missing.
    - This checks production/test-mode state, required production env presence, admin/team/assignee roster readiness, Sheets-backed config/activity durability, read-only rollout evidence, and controlled write pilot evidence.
    - It is intentionally non-secret: the artifact records missing/present env names and evidence file counts, not secret values.
    - Run `npm run audit:mailhub-staff-workflow-contract` after regenerating it.
@@ -49,7 +51,7 @@ Continue from the completed INBOX-scoped source coverage and rule-safety wave:
 11. For `gopro-yahoo`, `vyperglobal-rakuten`, `ams-vyper`, and `datacolor`, historical shared Gmail evidence exists but active `INBOX` is zero. Confirm current routing/dormancy before production-complete source coverage is claimed.
 12. Collect operator feedback on the default saved views. Real Gmail audit now emits a machine gate: `syntaxReady=true`, `manualReviewOnly=true`, `bulkAutomationSafe=false`, and `bulkUnsafeViews=["customer-inquiries","noise-candidates"]`. Keep those views as manual-review shortcuts unless narrowed.
 13. Re-run `npm run audit:gmail-rules -- --out .ai-runs/mailhub-next-phase/gmail-rule-safety-audit.json --max 100` whenever production file/Sheets rules are added or changed. The audit must emit `config.ruleSetFingerprint`, and production readiness must show `currentRuleConfigFingerprintPresent=true`.
-14. Fix the remaining staff-permission code review candidates before broader rollout: staff allowlist vs domain-wide access, non-admin unassign behavior, and `assignTo` rule persistence.
+14. Staff-permission code hardening candidates from the review wave are closed: explicit staff allowlist exists, non-admin `unassign` is blocked at the route boundary, and label rule `assignTo` persistence has regression coverage. Remaining staff work is operational config/evidence, not these code gaps.
 15. Add AI reply drafting only after a knowledge evidence source is defined; keep generated drafts separate from send actions.
 16. Expand the rule-safety gate only after production rule config exists and passes the real-data audit. Current code protects suppressive labels from invoice/inquiry/important-looking messages and fails closed when classification text is missing, but does not implement a full production auto-discard policy.
 17. Optional: run a manual browser check on production/staging data for stores pagination. Forced E2E is now present and passing.

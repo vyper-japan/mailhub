@@ -28,6 +28,19 @@ function runNodeScript(scriptPath: string, args: string[], env: Partial<NodeJS.P
   });
 }
 
+function runNodeScriptInCwd(scriptPath: string, args: string[], cwd: string, env: Partial<NodeJS.ProcessEnv> = {}) {
+  return spawnSync(process.execPath, [scriptPath, ...args], {
+    cwd,
+    encoding: "utf8",
+    env: {
+      PATH: process.env.PATH,
+      HOME: process.env.HOME,
+      NODE_ENV: process.env.NODE_ENV ?? "test",
+      ...env,
+    },
+  });
+}
+
 function writeProductionEvidence(dir: string) {
   mkdirSync(dir, { recursive: true });
   for (const name of [
@@ -85,6 +98,103 @@ const productionEnv = {
 };
 
 describe("MailHub staff workflow audit", () => {
+  test("loads .env.local by default without exposing secret values", () => {
+    withTempDir((dir) => {
+      const outPath = join(dir, "staff.json");
+      const evidenceDir = join(dir, "prod");
+      mkdirSync(evidenceDir, { recursive: true });
+      writeFileSync(join(dir, ".env.local"), [
+        "MAILHUB_ENV=production",
+        "MAILHUB_READ_ONLY=1",
+        "MAILHUB_CONFIG_STORE=sheets",
+        "MAILHUB_ACTIVITY_STORE=sheets",
+        "MAILHUB_ADMINS=Admin <admin@vtj.co.jp>",
+        "MAILHUB_TEAM_MEMBERS=Maki <maki@vtj.co.jp>",
+        "MAILHUB_SHEETS_ID=real-sheet-id-secret",
+        "MAILHUB_SHEETS_CLIENT_EMAIL=svc@example.iam.gserviceaccount.com",
+        "MAILHUB_SHEETS_PRIVATE_KEY=\"-----BEGIN PRIVATE KEY-----\\nabc\\n-----END PRIVATE KEY-----\\n\"",
+        "NEXTAUTH_URL=https://mailhub.example.com",
+        "NEXTAUTH_SECRET=real-nextauth-secret",
+        "GOOGLE_CLIENT_ID=real-google-client-id",
+        "GOOGLE_CLIENT_SECRET=real-google-client-secret",
+        "GOOGLE_SHARED_INBOX_EMAIL=mailhub@vtj.co.jp",
+        "GOOGLE_SHARED_INBOX_REFRESH_TOKEN=real-refresh-token-secret",
+      ].join("\n"), "utf8");
+
+      const result = runNodeScriptInCwd(staffAuditPath, [
+        "--out",
+        outPath,
+        "--prod-evidence-dir",
+        evidenceDir,
+      ], dir);
+
+      expect(result.status).toBe(0);
+      const serialized = `${result.stdout}\n${readFileSync(outPath, "utf8")}`;
+      expect(serialized).not.toContain("real-nextauth-secret");
+      expect(serialized).not.toContain("real-google-client-secret");
+      expect(serialized).not.toContain("real-refresh-token-secret");
+      expect(serialized).not.toContain("real-sheet-id-secret");
+      expect(serialized).not.toContain("BEGIN PRIVATE KEY");
+      const artifact = JSON.parse(readFileSync(outPath, "utf8")) as {
+        inputs: { envFile: string | null };
+        config: { missingProductionEnv: string[]; configStore: string; activityStore: string; sheetsConfigured: boolean };
+        environment: { mailhubEnv: string; readOnly: boolean };
+        staff: { adminCount: number; teamMemberCount: number; staffAccessAllowlistReady: boolean };
+        requirements: { productionEnvReady: boolean; durableConfigReady: boolean; durableActivityReady: boolean };
+      };
+      expect(artifact.inputs.envFile).toMatch(/\.env\.local$/);
+      expect(artifact.environment).toMatchObject({ mailhubEnv: "production", readOnly: true });
+      expect(artifact.config).toMatchObject({
+        missingProductionEnv: [],
+        configStore: "sheets",
+        activityStore: "sheets",
+        sheetsConfigured: true,
+      });
+      expect(artifact.staff).toMatchObject({
+        adminCount: 1,
+        teamMemberCount: 1,
+        staffAccessAllowlistReady: true,
+      });
+      expect(artifact.requirements).toMatchObject({
+        productionEnvReady: true,
+        durableConfigReady: true,
+        durableActivityReady: true,
+      });
+    });
+  });
+
+  test("keeps explicit process env higher priority than default .env.local", () => {
+    withTempDir((dir) => {
+      const outPath = join(dir, "staff.json");
+      const evidenceDir = join(dir, "prod");
+      mkdirSync(evidenceDir, { recursive: true });
+      writeFileSync(join(dir, ".env.local"), [
+        "MAILHUB_ENV=production",
+        "MAILHUB_ADMINS=admin@vtj.co.jp",
+      ].join("\n"), "utf8");
+
+      const result = runNodeScriptInCwd(staffAuditPath, [
+        "--out",
+        outPath,
+        "--prod-evidence-dir",
+        evidenceDir,
+      ], dir, {
+        MAILHUB_ENV: "local",
+        MAILHUB_ADMINS: "",
+      });
+
+      expect(result.status).toBe(0);
+      const artifact = JSON.parse(readFileSync(outPath, "utf8")) as {
+        environment: { mailhubEnv: string };
+        staff: { adminCount: number };
+        gate: { p1Blockers: string[] };
+      };
+      expect(artifact.environment.mailhubEnv).toBe("local");
+      expect(artifact.staff.adminCount).toBe(0);
+      expect(artifact.gate.p1Blockers).toEqual(expect.arrayContaining(["not_production_env", "admins_not_ready"]));
+    });
+  });
+
   test("marks production staff workflow ready when env and rollout evidence are complete", () => {
     withTempDir((dir) => {
       const outPath = join(dir, "staff.json");

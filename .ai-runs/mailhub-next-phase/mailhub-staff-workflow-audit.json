@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-06-17T14:53:47.017Z",
-  "repoHead": "f9e65d316d01f6093c5d3fa3abf1f7d0ef364702",
+  "generatedAt": "2026-06-17T15:15:07.612Z",
+  "repoHead": "0b537535d886843718059f113ee334aec8e3af27",
   "inputs": {
-    "envFile": null,
+    "envFile": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.env.local",
     "assignees": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.mailhub/assignees.json",
     "prodEvidenceDir": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/docs/pilot/prod"
   },
@@ -17,20 +17,13 @@
     "configStore": "file",
     "activityStore": "memory",
     "sheetsConfigured": false,
-    "missingProductionEnv": [
-      "NEXTAUTH_URL",
-      "NEXTAUTH_SECRET",
-      "GOOGLE_CLIENT_ID",
-      "GOOGLE_CLIENT_SECRET",
-      "GOOGLE_SHARED_INBOX_EMAIL",
-      "GOOGLE_SHARED_INBOX_REFRESH_TOKEN"
-    ],
+    "missingProductionEnv": [],
     "alertsSecretConfigured": false,
     "gmailSendEnabled": false
   },
   "staff": {
-    "adminsConfigured": false,
-    "adminCount": 0,
+    "adminsConfigured": true,
+    "adminCount": 2,
     "adminInvalid": [],
     "adminNonVtj": [],
     "staffAccessAllowlistReady": false,
@@ -104,7 +97,7 @@
   },
   "requirements": {
     "productionEnvReady": false,
-    "adminsReady": false,
+    "adminsReady": true,
     "staffAccessAllowlistReady": false,
     "assigneeRosterReady": true,
     "durableConfigReady": false,
@@ -122,31 +115,6 @@
       "message": "Staff workflow proof must be generated from the production environment.",
       "evidence": {
         "mailhubEnv": "local"
-      }
-    },
-    {
-      "id": "missing_production_env",
-      "severity": "P1",
-      "message": "Required production auth/shared-inbox env is missing.",
-      "evidence": {
-        "missing": [
-          "NEXTAUTH_URL",
-          "NEXTAUTH_SECRET",
-          "GOOGLE_CLIENT_ID",
-          "GOOGLE_CLIENT_SECRET",
-          "GOOGLE_SHARED_INBOX_EMAIL",
-          "GOOGLE_SHARED_INBOX_REFRESH_TOKEN"
-        ]
-      }
-    },
-    {
-      "id": "admins_not_ready",
-      "severity": "P1",
-      "message": "MAILHUB_ADMINS must contain valid @vtj.co.jp admin addresses.",
-      "evidence": {
-        "count": 0,
-        "invalid": [],
-        "nonVtj": []
       }
     },
     {
@@ -228,8 +196,6 @@
     "p0Blockers": [],
     "p1Blockers": [
       "not_production_env",
-      "missing_production_env",
-      "admins_not_ready",
       "staff_access_allowlist_not_ready",
       "config_store_not_durable",
       "activity_store_not_durable",

@@ -2154,6 +2154,36 @@ git diff --check
 - Coverage passed 70 files / 609 tests with global coverage above threshold.
 - Typecheck, lint, build, smoke, security scan, artifact secret scan, actionlint, `git diff --check`, and all readiness/routing/staff contracts passed after artifact regeneration.
 
+## 2026-06-18 Staff Workflow Env Alignment Commands
+
+```bash
+node --check scripts/audit-mailhub-staff-workflow.mjs
+npx vitest run lib/__tests__/mailhub-staff-workflow-audit.test.ts lib/__tests__/mailhub-staff-env-setup.test.ts lib/__tests__/mailhub-staff-workflow-next-steps.test.ts
+npm run setup:mailhub-staff-env -- --out .ai-runs/mailhub-next-phase/mailhub-staff-env-readiness.json
+npm run audit:mailhub-staff-workflow -- --out .ai-runs/mailhub-next-phase/mailhub-staff-workflow-audit.json
+npm run audit:github-routing-secrets -- --no-fail --out .ai-runs/mailhub-next-phase/github-routing-secrets-readiness.json
+npm run audit:mailhub-staff-next -- --out .ai-runs/mailhub-next-phase/mailhub-staff-workflow-next-steps.json
+npm run audit:gmail-sources -- --out .ai-runs/mailhub-next-phase/gmail-source-coverage-audit.json
+npm run audit:gmail-views -- --out .ai-runs/mailhub-next-phase/gmail-default-views-audit.json
+npm run audit:gmail-rules -- --out .ai-runs/mailhub-next-phase/gmail-rule-safety-audit.json --max 100
+npm run audit:mailhub-ops -- --out .ai-runs/mailhub-next-phase/mailhub-operational-confirmations.json
+npm run audit:gws-routing -- --out .ai-runs/mailhub-next-phase/mailhub-gws-routing-audit.json
+npm run audit:routing-probes -- --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-audit.json
+npm run probe:routing-preflight -- --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-preflight.json
+npm run audit:mailhub-readiness -- --out .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json
+npm run audit:mailhub-routing-next -- --strict --out .ai-runs/mailhub-next-phase/mailhub-routing-next-steps.json
+npm run audit:mailhub-staff-next -- --out .ai-runs/mailhub-next-phase/mailhub-staff-workflow-next-steps.json
+```
+
+## 2026-06-18 Staff Workflow Env Alignment Results
+
+- Fixed staff workflow audit default env loading: it now reads `.env.local` by default and keeps explicit process env higher priority.
+- Added focused regression tests proving default `.env.local` loading, process-env override precedence, and no secret-like values in stdout/artifacts.
+- Regenerated the real-data and readiness artifacts at repo head `0b53753`.
+- Latest staff workflow audit no longer reports missing production auth/shared Gmail env or missing admins. It now reports the actual remaining P1 setup/evidence gaps: production mode, staff team members, durable Sheets config/activity, READ ONLY, READ ONLY evidence, and controlled WRITE pilot evidence.
+- Latest real-data audits remain green where code can prove them: source code coverage pass, source inventory pass, default view syntax validated/manual-review only, and current rule config real-data safety pass.
+- Remaining P0/P1 are unchanged in substance: external shared-Gmail routing proof still needs external SMTP proof, and staff workflow rollout still needs production config/evidence.
+
 ## Useful Runtime Commands
 
 Start dev server for tunnel:

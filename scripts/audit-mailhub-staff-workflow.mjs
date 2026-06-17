@@ -7,6 +7,7 @@ import { dirname, join } from "node:path";
 const repoRoot = process.cwd();
 const runDir = join(repoRoot, ".ai-runs", "mailhub-next-phase");
 const defaultOut = join(runDir, "mailhub-staff-workflow-audit.json");
+const defaultEnvPath = join(repoRoot, ".env.local");
 const defaultAssigneesPath = join(repoRoot, ".mailhub", "assignees.json");
 const defaultProdEvidenceDir = join(repoRoot, "docs", "pilot", "prod");
 
@@ -42,7 +43,7 @@ const EVIDENCE_MANIFEST_SCHEMA = "mailhub.staff-workflow-evidence.v1";
 function parseArgs(argv) {
   const out = {
     out: defaultOut,
-    envFile: "",
+    envFile: defaultEnvPath,
     assignees: defaultAssigneesPath,
     prodEvidenceDir: defaultProdEvidenceDir,
   };
@@ -80,7 +81,7 @@ function loadEnvFile(path) {
 }
 
 function buildEnv(envFile) {
-  return { ...process.env, ...loadEnvFile(envFile) };
+  return { ...loadEnvFile(envFile), ...process.env };
 }
 
 function value(env, key) {

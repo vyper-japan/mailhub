@@ -457,6 +457,12 @@
   - `mailhub-staff-workflow-next-steps.json` now points production env, staff allowlist, durable store, and READ ONLY rollout actions to `npm run setup:mailhub-staff-env`.
   - Strengthened `scripts/check-mailhub-staff-next-contract.mjs` so those next actions cannot silently lose the staff env preflight command.
   - Current local staff env preflight is intentionally not ready: production mode, team members, Sheets config/activity, and READ ONLY are still missing; secret values are not recorded.
+- 2026-06-18 staff workflow env alignment and real-data audit refresh completed:
+  - `scripts/audit-mailhub-staff-workflow.mjs` now loads `.env.local` by default, with explicit process env taking priority. This aligns the staff workflow audit with `npm run setup:mailhub-staff-env` without printing secret values.
+  - Added regression coverage proving the default `.env.local` path is used safely, secret-like values are absent from stdout/artifacts, and process env overrides the default file.
+  - Refreshed real-data source coverage, default views, rule safety, operational confirmations, GWS routing, routing probe plan/preflight, GitHub secret readiness, staff env readiness, staff workflow, routing next-step, staff next-step, and production readiness artifacts.
+  - Latest staff workflow artifact now correctly treats required production auth/shared Gmail env and admins as present from `.env.local`; remaining P1 blockers are `not_production_env`, `staff_access_allowlist_not_ready`, `config_store_not_durable`, `activity_store_not_durable`, `read_only_not_enabled`, `readonly_evidence_missing`, and `write_pilot_evidence_missing`.
+  - Latest real Gmail audits remain stable: source code coverage pass with `knownCodeGaps=[]`, default views validated but manual-review/bulk-unsafe for `customer-inquiries` and `noise-candidates`, and rule safety passes for the current empty file-backed rule config.
 
 ## Not Done
 
@@ -478,6 +484,7 @@
 - The routing next-step artifact now shows the exact remaining action list through the safe setup helper, but it remains red because external SMTP proof setup has not been provided.
 - The staff workflow next-step artifact now shows the exact remaining P1 action list, but it remains red because production env/staff config/durable stores and production evidence have not been provided.
 - `npm run setup:mailhub-staff-env` now shows the remaining staff rollout env gaps without printing values; current artifact still needs production mode, team members, Sheets config/activity, and READ ONLY before READ ONLY evidence capture can start.
+- `npm run audit:mailhub-staff-workflow` now reads the same `.env.local` default as the staff env preflight. Current artifact no longer reports missing production auth/shared Gmail env or missing admins; it reports only the actual remaining staff rollout setup/evidence gaps.
 - The staff workflow next-step contract now guards that action list in CI, so the P1 staff workflow checklist cannot drift from the audit artifact unnoticed.
 - Staff workflow production evidence now requires `docs/pilot/prod/staff-workflow-evidence-manifest.json`; screenshots/CSV alone cannot make the READ ONLY rollout or controlled WRITE pilot ready.
 - `npm run setup:mailhub-staff-manifest` can now generate that manifest once real production reviewer/actor/messageId/date values exist.

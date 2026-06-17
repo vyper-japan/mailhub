@@ -1,9 +1,9 @@
 {
-  "generatedAt": "2026-06-17T14:53:47.146Z",
+  "generatedAt": "2026-06-17T15:16:19.491Z",
   "inputs": {
     "audit": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.ai-runs/mailhub-next-phase/mailhub-staff-workflow-audit.json",
-    "auditGeneratedAt": "2026-06-17T14:53:47.017Z",
-    "auditRepoHead": "f9e65d316d01f6093c5d3fa3abf1f7d0ef364702",
+    "auditGeneratedAt": "2026-06-17T15:15:07.612Z",
+    "auditRepoHead": "0b537535d886843718059f113ee334aec8e3af27",
     "errors": [],
     "warnings": []
   },
@@ -14,7 +14,7 @@
     "canCaptureReadOnlyRolloutEvidence": false,
     "canCaptureControlledWritePilotEvidence": false,
     "productionEnvReady": false,
-    "adminsReady": false,
+    "adminsReady": true,
     "staffAccessAllowlistReady": false,
     "assigneeRosterReady": true,
     "durableConfigReady": false,
@@ -30,9 +30,7 @@
       "GOOGLE_SHARED_INBOX_EMAIL",
       "GOOGLE_SHARED_INBOX_REFRESH_TOKEN"
     ],
-    "staffAdmins": [
-      "MAILHUB_ADMINS"
-    ],
+    "staffAdmins": [],
     "staffTeamMembers": [
       "MAILHUB_TEAM_MEMBERS"
     ],
@@ -69,7 +67,7 @@
     ]
   },
   "present": {
-    "adminCount": 0,
+    "adminCount": 2,
     "teamMemberCount": 0,
     "assigneeRegistryValidCount": 1,
     "configStore": "file",
@@ -97,7 +95,6 @@
       "status": "required",
       "description": "Configure explicit MailHub staff access through admin and team member env.",
       "requiredEnv": [
-        "MAILHUB_ADMINS",
         "MAILHUB_TEAM_MEMBERS"
       ],
       "commands": [
