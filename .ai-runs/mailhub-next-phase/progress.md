@@ -223,6 +223,10 @@
   - `mode=preflight` runs the same eight-address SMTP proof preflight and uploads artifacts without sending mail.
   - `mode=send_verify` requires `confirmSend=SEND_EXTERNAL_MAILHUB_ROUTING_PROBES`, requires preflight production-proof readiness, sends the eight probes, polls shared Gmail, refreshes readiness, runs the readiness contract, and uploads evidence artifacts.
   - The workflow is not scheduled and does not run on push, preventing accidental external probe sends.
+- 2026-06-17 workflow actionlint cleanup wave completed:
+  - Quoted `$GITHUB_OUTPUT` redirects in `.github/workflows/mailhub-config-export.yml`.
+  - The previously noted all-workflow `actionlint` shellcheck warning is resolved.
+  - The complete `.github/workflows/*.yml` set now passes `actionlint`.
 
 ## Not Done
 
@@ -238,6 +242,7 @@
 - Ops Board now surfaces the same preflight gap: `SMTP不足env=4` in the current local artifact.
 - The readiness contract workflow now guards against accidentally shipping a stale or under-evidenced `mailhub-production-readiness-audit.json`.
 - GitHub Actions can now run the final external probe once the required SMTP/Gmail secrets are configured, without depending on local `.env.local`.
+- All GitHub workflow YAML now passes local `actionlint`; the remaining GitHub-side risk is secret/config availability for the manual external routing probe, not workflow syntax.
 - Production pagination basic behavior is represented in API/UI metadata and forced E2E; real browser/manual production verification is still useful before staff rollout.
 - Auto-discard rules for marketing/noise are protected against obvious important/invoice/inquiry suppression and missing summary text, but a full production auto-discard policy is still intentionally not enabled.
 - Real-data rule safety audit exists and passes for the current local file config because no rules are configured. Re-run with `MAILHUB_CONFIG_STORE=sheets` and production Sheets credentials when production rule config is enabled.

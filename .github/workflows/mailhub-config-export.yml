@@ -25,14 +25,14 @@ jobs:
         id: url
         run: |
           if [ "${{ github.event_name }}" == "workflow_dispatch" ] && [ -n "${{ github.event.inputs.targetUrl }}" ]; then
-            echo "url=${{ github.event.inputs.targetUrl }}" >> $GITHUB_OUTPUT
+            echo "url=${{ github.event.inputs.targetUrl }}" >> "$GITHUB_OUTPUT"
           else
             # スケジュール実行の場合はproduction URLを使用
             if [ -z "${{ secrets.MAILHUB_PROD_URL }}" ]; then
               echo "Missing secret: MAILHUB_PROD_URL"
               exit 1
             fi
-            echo "url=${{ secrets.MAILHUB_PROD_URL }}" >> $GITHUB_OUTPUT
+            echo "url=${{ secrets.MAILHUB_PROD_URL }}" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Health check
@@ -69,4 +69,3 @@ jobs:
           name: mailhub-config-backup
           path: mailhub-config-*.json
           retention-days: 14
-

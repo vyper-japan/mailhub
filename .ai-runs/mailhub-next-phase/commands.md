@@ -870,6 +870,42 @@ git diff --check
 - `git diff --check`: passed.
 - Note: all-workflow `actionlint` still reports pre-existing shellcheck info warnings in `.github/workflows/mailhub-config-export.yml`; the new routing probe workflow passes actionlint independently.
 
+## Verification Commands Run On 2026-06-17 Workflow Actionlint Cleanup Wave
+
+```bash
+actionlint .github/workflows/mailhub-config-export.yml
+actionlint .github/workflows/*.yml
+ruby -e 'require "yaml"; Dir[".github/workflows/*.yml"].each { |p| YAML.load_file(p) }; puts "workflow yaml ok"'
+npm run audit:mailhub-readiness-contract
+git diff --check
+npm run typecheck
+npm run lint
+npm run security:scan-artifacts
+npm run test
+npm run build
+npm run audit:mailhub-readiness -- --out .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json
+npm run audit:mailhub-readiness-contract
+git diff --check
+```
+
+## 2026-06-17 Workflow Actionlint Cleanup Wave Results
+
+- Initial `actionlint .github/workflows/mailhub-config-export.yml`: reported shellcheck SC2086 for unquoted `$GITHUB_OUTPUT`.
+- Quoted both `GITHUB_OUTPUT` redirects in `.github/workflows/mailhub-config-export.yml`.
+- `actionlint .github/workflows/mailhub-config-export.yml`: passed after the quoting fix.
+- `actionlint .github/workflows/*.yml`: passed for the complete workflow set.
+- Workflow YAML parse: passed.
+- `npm run audit:mailhub-readiness-contract`: passed.
+- `git diff --check`: passed.
+- `npm run typecheck`: passed.
+- `npm run lint`: passed.
+- `npm run security:scan-artifacts`: passed.
+- `npm run test`: 63 files / 548 tests passed.
+- `npm run build`: passed.
+- Final readiness refresh: passed.
+- Final readiness contract check: passed with `productionReady=false`, P0 `current_shared_gmail_routing`, and no contract errors.
+- Final `git diff --check`: passed.
+
 ## Useful Runtime Commands
 
 Start dev server for tunnel:
