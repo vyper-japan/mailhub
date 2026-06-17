@@ -248,6 +248,12 @@
   - Added regression coverage for empty secrets, SMTP-only preflight readiness, and full SMTP+Gmail `send_verify` readiness.
   - Full test count is now 551 tests.
   - Current local and GitHub state still lacks external SMTP proof settings, so readiness correctly remains blocked on `current_shared_gmail_routing`.
+- 2026-06-17 GitHub Gmail proof secret setup wave completed:
+  - Set four existing local Gmail/shared inbox values into GitHub Actions secrets without printing values: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_SHARED_INBOX_EMAIL`, `GOOGLE_SHARED_INBOX_REFRESH_TOKEN`.
+  - `npm run audit:github-routing-secrets -- --no-fail` now reports `secretCount=4`.
+  - Added `--out` to `scripts/check-mailhub-routing-probe-secrets.mjs` and generated `.ai-runs/mailhub-next-phase/github-routing-secrets-readiness.json`.
+  - Triggered manual GitHub Actions run `27663283240` in `mode=preflight`; it passed and skipped `send_verify`, so no external mail was sent.
+  - The remaining GitHub-side gap is now only the four external SMTP proof secrets.
 
 ## Not Done
 
@@ -263,7 +269,7 @@
 - Ops Board now surfaces the same preflight gap: `SMTP不足env=4` in the current local artifact.
 - The readiness contract workflow now guards against accidentally shipping a stale or under-evidenced `mailhub-production-readiness-audit.json`.
 - GitHub Actions can now run the final external probe once the required SMTP/Gmail secrets are configured, without depending on local `.env.local`.
-- GitHub Actions secrets are currently empty for `vyper-japan/mailhub`; add required SMTP/Gmail proof secrets before running `send_verify`.
+- GitHub Actions has the four Gmail proof secrets, but still lacks the four external SMTP proof secrets required before running `send_verify`.
 - All GitHub workflow YAML now passes local `actionlint`; the remaining GitHub-side risk is secret/config availability for the manual external routing probe, not workflow syntax.
 - Production pagination basic behavior is represented in API/UI metadata and forced E2E; real browser/manual production verification is still useful before staff rollout.
 - Auto-discard rules for marketing/noise are protected against obvious important/invoice/inquiry suppression and missing summary text, but a full production auto-discard policy is still intentionally not enabled.

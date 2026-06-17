@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 
 import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { dirname } from "node:path";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 
 const DEFAULT_REPO = "vyper-japan/mailhub";
 
@@ -27,14 +28,16 @@ function parseArgs(argv) {
     repo: DEFAULT_REPO,
     failOnMissing: true,
     secretsJson: "",
+    out: "",
   };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     if (arg === "--repo") args.repo = argv[++i] || "";
     else if (arg === "--secrets-json") args.secretsJson = argv[++i] || "";
+    else if (arg === "--out") args.out = argv[++i] || "";
     else if (arg === "--no-fail") args.failOnMissing = false;
     else if (arg === "--help" || arg === "-h") {
-      console.log("Usage: node scripts/check-mailhub-routing-probe-secrets.mjs [--repo owner/name] [--secrets-json path] [--no-fail]");
+      console.log("Usage: node scripts/check-mailhub-routing-probe-secrets.mjs [--repo owner/name] [--secrets-json path] [--out path] [--no-fail]");
       process.exit(0);
     }
   }
@@ -87,6 +90,10 @@ function main() {
   };
 
   console.log(JSON.stringify(result, null, 2));
+  if (args.out) {
+    mkdirSync(dirname(args.out), { recursive: true });
+    writeFileSync(args.out, `${JSON.stringify(result, null, 2)}\n`, "utf8");
+  }
   if (args.failOnMissing && !result.readyForSendVerify) process.exitCode = 1;
 }
 

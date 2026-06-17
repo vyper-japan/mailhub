@@ -1029,6 +1029,50 @@ git diff --check
 - Final readiness contract check: passed with `productionReady=false`, P0 `current_shared_gmail_routing`, and no contract errors.
 - `git diff --check`: passed.
 
+## Verification Commands Run On 2026-06-17 GitHub Gmail Proof Secret Setup Wave
+
+```bash
+node - <<'NODE'
+# Reads four Gmail/shared inbox values from .env.local and sets them as GitHub Actions secrets via stdin.
+NODE
+npm run audit:github-routing-secrets -- --no-fail
+gh secret list --repo vyper-japan/mailhub --app actions --json name,updatedAt --jq 'sort_by(.name)'
+gh workflow run mailhub-routing-probe.yml --repo vyper-japan/mailhub -f mode=preflight -f confirmSend= -f waitSeconds=300 -f pollSeconds=15
+gh run watch 27663283240 --repo vyper-japan/mailhub --exit-status
+node --check scripts/check-mailhub-routing-probe-secrets.mjs
+npm run audit:github-routing-secrets -- --no-fail --out .ai-runs/mailhub-next-phase/github-routing-secrets-readiness.json
+npx vitest run lib/__tests__/mailhub-routing-probe-scripts.test.ts
+npm run typecheck
+npm run lint
+npm run test
+npm run build
+npm run security:scan-artifacts
+npm run audit:github-routing-secrets -- --no-fail --out .ai-runs/mailhub-next-phase/github-routing-secrets-readiness.json
+npm run audit:mailhub-readiness -- --out .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json
+npm run audit:mailhub-readiness-contract
+git diff --check
+```
+
+## 2026-06-17 GitHub Gmail Proof Secret Setup Wave Results
+
+- Set GitHub Actions secrets from local `.env.local` without printing values: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_SHARED_INBOX_EMAIL`, `GOOGLE_SHARED_INBOX_REFRESH_TOKEN`.
+- `npm run audit:github-routing-secrets -- --no-fail`: passed with `secretCount=4`.
+- Missing secrets are now limited to `MAILHUB_PROBE_SMTP_HOST`, `MAILHUB_PROBE_SMTP_USER`, `MAILHUB_PROBE_SMTP_PASS`, and `MAILHUB_PROBE_FROM`.
+- GitHub Actions run `27663283240`: passed in 20s on `d1ed657`.
+- The run used `mode=preflight`; `send_verify` was skipped, so no external mail was sent.
+- Added `--out` support to the GitHub routing secrets audit and wrote `.ai-runs/mailhub-next-phase/github-routing-secrets-readiness.json`.
+- Script syntax check: passed.
+- Focused Vitest: 1 file / 12 tests passed.
+- `npm run typecheck`: passed.
+- `npm run lint`: passed.
+- `npm run test`: 63 files / 551 tests passed.
+- `npm run build`: passed.
+- `npm run security:scan-artifacts`: passed.
+- Final GitHub routing secret readiness artifact refresh: passed with `secretCount=4` and only external SMTP proof secrets missing.
+- Final readiness refresh: passed.
+- Final readiness contract check: passed with `productionReady=false`, P0 `current_shared_gmail_routing`, and no contract errors.
+- `git diff --check`: passed.
+
 ## Useful Runtime Commands
 
 Start dev server for tunnel:

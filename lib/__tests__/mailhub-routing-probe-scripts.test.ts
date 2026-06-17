@@ -198,6 +198,7 @@ describe("MailHub routing probe CLI gates", () => {
   test("GitHub routing secret audit passes only when SMTP and Gmail proof secrets are present", () => {
     withTempDir((dir) => {
       const secretsPath = join(dir, "secrets.json");
+      const outPath = join(dir, "github-routing-secrets.json");
       writeJson(secretsPath, [
         { name: "GOOGLE_CLIENT_ID" },
         { name: "GOOGLE_CLIENT_SECRET" },
@@ -210,7 +211,12 @@ describe("MailHub routing probe CLI gates", () => {
         { name: "MAILHUB_PROBE_SMTP_PORT" },
       ]);
 
-      const result = runNodeScript(routingProbeSecretsPath, ["--secrets-json", secretsPath]);
+      const result = runNodeScript(routingProbeSecretsPath, [
+        "--secrets-json",
+        secretsPath,
+        "--out",
+        outPath,
+      ]);
 
       expect(result.status).toBe(0);
       const out = JSON.parse(result.stdout) as {
@@ -225,6 +231,10 @@ describe("MailHub routing probe CLI gates", () => {
       expect(out.configuredOptionalSecrets).toEqual(["MAILHUB_PROBE_SMTP_PORT"]);
       expect(out.missingPreflightSecrets).toEqual([]);
       expect(out.missingSendVerifySecrets).toEqual([]);
+      expect(readJson(outPath)).toMatchObject({
+        readyForPreflightProductionProof: true,
+        readyForSendVerify: true,
+      });
     });
   });
 
