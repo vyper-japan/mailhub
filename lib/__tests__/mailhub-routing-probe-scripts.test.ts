@@ -764,7 +764,7 @@ describe("MailHub routing probe CLI gates", () => {
           externalMailWillBeSentByThisScript: boolean;
         };
         missing: { externalSmtpSecrets: string[]; localGmailVerificationEnv: string[] };
-        nextActions: Array<{ id: string; status: string; requiredSecrets?: string[] }>;
+        nextActions: Array<{ id: string; status: string; requiredSecrets?: string[]; commands?: string[] }>;
       }>(outPath);
       expect(out.state.canRunSendVerify).toBe(false);
       expect(out.state.canRunGithubWorkflowDispatch).toBe(false);
@@ -785,6 +785,10 @@ describe("MailHub routing probe CLI gates", () => {
       expect(out.nextActions.find((item) => item.id === "set_external_smtp_secrets")).toMatchObject({
         status: "required",
         requiredSecrets: ["MAILHUB_PROBE_SMTP_HOST", "MAILHUB_PROBE_SMTP_PASS", "MAILHUB_PROBE_FROM"],
+        commands: [
+          "npm run setup:mailhub-routing-secrets",
+          "npm run setup:mailhub-routing-secrets -- --apply",
+        ],
       });
       expect(out.nextActions.find((item) => item.id === "run_github_send_verify")).toMatchObject({
         status: "blocked",
@@ -828,7 +832,7 @@ describe("MailHub routing probe CLI gates", () => {
           localPreflightEnv: string[];
           localGmailVerificationEnv: string[];
         };
-        nextActions: Array<{ id: string; status: string }>;
+        nextActions: Array<{ id: string; status: string; commands?: string[] }>;
       }>(outPath);
       expect(out.state.canRunSendVerify).toBe(false);
       expect(out.state.canRunGithubWorkflowDispatch).toBe(false);
@@ -866,6 +870,10 @@ describe("MailHub routing probe CLI gates", () => {
       ]);
       expect(out.nextActions.find((item) => item.id === "set_external_smtp_secrets")).toMatchObject({
         status: "required",
+        commands: [
+          "npm run setup:mailhub-routing-secrets",
+          "npm run setup:mailhub-routing-secrets -- --apply",
+        ],
       });
       expect(out.nextActions.find((item) => item.id === "run_github_send_verify")).toMatchObject({
         status: "blocked",
@@ -1171,7 +1179,14 @@ describe("MailHub routing probe CLI gates", () => {
           localGmailVerificationEnv: ["GOOGLE_CLIENT_ID"],
         },
         nextActions: [
-          { id: "set_external_smtp_secrets", status: "required" },
+          {
+            id: "set_external_smtp_secrets",
+            status: "required",
+            commands: [
+              "npm run setup:mailhub-routing-secrets",
+              "npm run setup:mailhub-routing-secrets -- --apply",
+            ],
+          },
           { id: "verify_secret_readiness", status: "required" },
           { id: "run_no_send_preflight", status: "required" },
           { id: "run_github_send_verify", status: "blocked" },
@@ -1241,7 +1256,11 @@ describe("MailHub routing probe CLI gates", () => {
           localGmailVerificationEnv: ["GOOGLE_CLIENT_ID"],
         },
         nextActions: [
-          { id: "set_external_smtp_secrets", status: "done" },
+          {
+            id: "set_external_smtp_secrets",
+            status: "done",
+            commands: ["gh secret set MAILHUB_PROBE_SMTP_HOST --repo vyper-japan/mailhub --app actions"],
+          },
           { id: "verify_secret_readiness", status: "done" },
           { id: "run_no_send_preflight", status: "required" },
           { id: "run_github_send_verify", status: "blocked" },
@@ -1267,6 +1286,9 @@ describe("MailHub routing probe CLI gates", () => {
       expect(result.stdout).toContain("github_dispatch_gate_mismatch");
       expect(result.stdout).toContain("combined_send_gate_mismatch");
       expect(result.stdout).toContain("next_action_status_mismatch:set_external_smtp_secrets");
+      expect(result.stdout).toContain("missing_routing_secret_setup_dry_run_command");
+      expect(result.stdout).toContain("missing_routing_secret_setup_apply_command");
+      expect(result.stdout).toContain("raw_gh_secret_set_commands_disallowed");
       expect(result.stdout).toContain("next_action_status_mismatch:run_github_send_verify");
     });
   });

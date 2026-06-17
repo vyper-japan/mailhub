@@ -87,6 +87,11 @@ function expectActionStatus({ actions, id, expected, errors }) {
   }
 }
 
+function actionCommands(action) {
+  if (!action || typeof action !== "object") return [];
+  return Array.isArray(action.commands) ? action.commands.filter((item) => typeof item === "string") : [];
+}
+
 function main() {
   const args = parseArgs(process.argv.slice(2));
   const artifact = readJson(args.next);
@@ -164,6 +169,19 @@ function main() {
     expected: externalMissing.length === 0 ? "done" : "required",
     errors,
   });
+  const smtpSetupAction = actions.get("set_external_smtp_secrets");
+  const smtpSetupCommands = actionCommands(smtpSetupAction);
+  if (externalMissing.length > 0) {
+    if (!smtpSetupCommands.some((command) => command === "npm run setup:mailhub-routing-secrets")) {
+      errors.push("missing_routing_secret_setup_dry_run_command");
+    }
+    if (!smtpSetupCommands.some((command) => command === "npm run setup:mailhub-routing-secrets -- --apply")) {
+      errors.push("missing_routing_secret_setup_apply_command");
+    }
+    if (smtpSetupCommands.some((command) => command.startsWith("gh secret set "))) {
+      errors.push("raw_gh_secret_set_commands_disallowed");
+    }
+  }
   expectActionStatus({
     actions,
     id: "verify_secret_readiness",

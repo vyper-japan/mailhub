@@ -25,6 +25,8 @@ const REQUIRED_LOCAL_GMAIL_ENV = [
   "GOOGLE_SHARED_INBOX_EMAIL",
   "GOOGLE_SHARED_INBOX_REFRESH_TOKEN",
 ];
+const ROUTING_SECRET_SETUP_DRY_RUN_COMMAND = "npm run setup:mailhub-routing-secrets";
+const ROUTING_SECRET_SETUP_APPLY_COMMAND = "npm run setup:mailhub-routing-secrets -- --apply";
 
 function parseArgs(argv) {
   const out = { ...defaults, localEnvFile: join(repoRoot, ".env.local"), strict: false, repoHead: "", repoParentHead: "" };
@@ -189,7 +191,12 @@ function main() {
         status: missingExternalSmtpSecrets.length === 0 ? "done" : "required",
         description: "Add a non-@vtj.co.jp external SMTP proof sender to GitHub Actions secrets.",
         requiredSecrets: missingExternalSmtpSecrets,
-        commands: missingExternalSmtpSecrets.map((name) => `gh secret set ${name} --repo vyper-japan/mailhub --app actions`),
+        commands: missingExternalSmtpSecrets.length === 0
+          ? []
+          : [
+              ROUTING_SECRET_SETUP_DRY_RUN_COMMAND,
+              ROUTING_SECRET_SETUP_APPLY_COMMAND,
+            ],
       },
       {
         id: "verify_secret_readiness",

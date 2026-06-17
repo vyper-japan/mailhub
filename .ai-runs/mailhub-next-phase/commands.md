@@ -2009,6 +2009,46 @@ git diff --check
 - Coverage passed 69 files / 602 tests with global coverage above threshold.
 - Typecheck, lint, build, smoke, security scan, artifact secret scan, actionlint, `git diff --check`, and all readiness/routing/staff contracts passed after artifact regeneration.
 
+## 2026-06-17 Routing Next-Step Safe Secret Setup Commands
+
+```bash
+node --check scripts/write-mailhub-routing-next-steps.mjs
+node --check scripts/check-mailhub-routing-next-contract.mjs
+npx vitest run lib/__tests__/mailhub-routing-probe-scripts.test.ts
+npm run audit:mailhub-routing-next -- --strict --out .ai-runs/mailhub-next-phase/mailhub-routing-next-steps.json
+npm run audit:mailhub-readiness -- --out .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json
+npm run audit:mailhub-routing-next -- --strict --out .ai-runs/mailhub-next-phase/mailhub-routing-next-steps.json
+npm run audit:mailhub-routing-next-contract
+npm run audit:mailhub-readiness-contract
+npm run audit:github-routing-secrets-contract
+npm run audit:mailhub-routing-proof-contract
+npm run typecheck
+npm run test
+npm run test:coverage
+npm run lint
+npm run security:scan
+npm run security:scan-artifacts
+npm run build
+npm run smoke
+npm run audit:github-routing-secrets-contract
+npm run audit:mailhub-staff-workflow-contract
+npm run audit:mailhub-staff-next-contract
+npm run audit:mailhub-readiness-contract
+npm run audit:mailhub-routing-next-contract
+npm run audit:mailhub-routing-proof-contract
+actionlint .github/workflows/*.yml
+git diff --check
+```
+
+## 2026-06-17 Routing Next-Step Safe Secret Setup Results
+
+- Replaced raw per-secret `gh secret set` commands in `mailhub-routing-next-steps.json` with `npm run setup:mailhub-routing-secrets` and `npm run setup:mailhub-routing-secrets -- --apply`.
+- Strengthened the routing-next contract so missing external SMTP proof requires those safe setup commands and rejects raw `gh secret set` command lists.
+- Focused routing probe script tests passed 1 file / 30 tests.
+- Full Vitest passed 69 files / 602 tests.
+- Coverage passed 69 files / 602 tests with global coverage above threshold.
+- Typecheck, lint, build, smoke, security scan, artifact secret scan, actionlint, `git diff --check`, and all readiness/routing/staff contracts passed after artifact regeneration.
+
 ## Useful Runtime Commands
 
 Start dev server for tunnel:

@@ -437,6 +437,10 @@
   - The CLI generates the exact production staff workflow manifest shape from `capturedBy`, staff reviewer, write actor, messageId, action, and YYYYMMDD date.
   - The CLI rejects non-`@vtj.co.jp` reviewer/actor inputs, invalid dates, missing messageId, and unsupported action values before writing a file.
   - `mailhub-staff-workflow-next-steps.json`, `docs/pilot/NAMING.md`, and `docs/pilot/PROD_WRITE_QA_CHECKLIST.md` now point operators to the generator instead of hand-writing JSON first.
+- 2026-06-17 routing next-step safe secret setup wave completed:
+  - Changed `scripts/write-mailhub-routing-next-steps.mjs` so `set_external_smtp_secrets` points to `npm run setup:mailhub-routing-secrets` and `npm run setup:mailhub-routing-secrets -- --apply` instead of raw per-secret `gh secret set` commands.
+  - Strengthened `scripts/check-mailhub-routing-next-contract.mjs` so routing-next artifacts with missing external SMTP proof must include the safe setup dry-run/apply commands and must not reintroduce raw `gh secret set` command lists.
+  - Refreshed `mailhub-production-readiness-audit.json` and `mailhub-routing-next-steps.json`; current P0 remains unchanged because the external SMTP proof values are still not configured.
 
 ## Not Done
 
@@ -454,8 +458,8 @@
 - The readiness contract workflow now guards against accidentally shipping a stale or under-evidenced `mailhub-production-readiness-audit.json`.
 - GitHub Actions can now run the final external probe once the required SMTP/Gmail secrets are configured, without depending on local `.env.local`.
 - GitHub Actions has the four Gmail proof secrets, but still lacks the four external SMTP proof secrets required before running `send_verify`.
-- `npm run setup:mailhub-routing-secrets -- --apply` can now set those external SMTP proof secrets once real values are available locally, but no such values are currently present.
-- The routing next-step artifact now shows the exact remaining action list, but it remains red because external SMTP proof setup has not been provided.
+- `npm run setup:mailhub-routing-secrets` / `npm run setup:mailhub-routing-secrets -- --apply` can now check and set those external SMTP proof secrets once real values are available locally, but no such values are currently present.
+- The routing next-step artifact now shows the exact remaining action list through the safe setup helper, but it remains red because external SMTP proof setup has not been provided.
 - The staff workflow next-step artifact now shows the exact remaining P1 action list, but it remains red because production env/staff config/durable stores and production evidence have not been provided.
 - The staff workflow next-step contract now guards that action list in CI, so the P1 staff workflow checklist cannot drift from the audit artifact unnoticed.
 - Staff workflow production evidence now requires `docs/pilot/prod/staff-workflow-evidence-manifest.json`; screenshots/CSV alone cannot make the READ ONLY rollout or controlled WRITE pilot ready.
