@@ -858,7 +858,7 @@ export async function listLatestInboxMessages(
   // Cache: 10s by (sharedInboxEmail + max + q + labelIds + pageToken)
   // Step 103: pageTokenがある場合はキャッシュをスキップ（ページごとに異なる結果）
   const labelKey = labelIds.join(",");
-  const listCacheKey = `list:${sharedInboxEmail}:max=${max}:q=${q ?? ""}:labels=${labelKey}`;
+  const listCacheKey = `list:${sharedInboxEmail}:max=${max}:q=${q ?? ""}:labels=${labelKey}:unassigned=${unassigned ? 1 : 0}`;
   if (!pageToken) {
     const cachedList = getCached<ListCacheValue>(getCache().list, listCacheKey);
     if (cachedList) return cachedList;
@@ -866,35 +866,36 @@ export async function listLatestInboxMessages(
 
   // NOTE: Gmailのラベル付け直後は messages.list 側に反映が遅れることがあり、
   // 「担当を付けた直後に担当一覧が0件」のような体験になる。assigneeSlug指定時は短時間だけリトライする。
-  const listOnce = async () =>
+  const listOnce = async (token?: string, pageMax = max) =>
     await gmail.users.messages.list({
       userId: sharedInboxEmail,
       ...(labelIds.length > 0 ? { labelIds } : {}),
-      maxResults: max,
+      maxResults: pageMax,
       includeSpamTrash: false,
       q,
-      pageToken: pageToken || undefined, // Step 103: ページトークン
+      pageToken: token || undefined, // Step 103: ページトークン
     });
 
-  let listRes = await listOnce();
+  let listRes = await listOnce(pageToken || undefined);
   if (assigneeSlugParam && (listRes.data.messages?.length ?? 0) === 0) {
     for (let attempt = 0; attempt < 3; attempt++) {
       await new Promise((r) => setTimeout(r, 200 * Math.pow(2, attempt)));
-      listRes = await listOnce();
+      listRes = await listOnce(pageToken || undefined);
       if ((listRes.data.messages?.length ?? 0) > 0) break;
     }
   }
 
   // Step 103: 次ページトークンを取得
-  const nextPageToken = listRes.data.nextPageToken ?? undefined;
+  let nextPageToken = listRes.data.nextPageToken ?? undefined;
 
-  const messages = (listRes.data.messages ?? [])
+  const toMessageRefs = (messages: typeof listRes.data.messages) => (messages ?? [])
     .map((m) => {
       const id = m.id ?? null;
       return { id, threadId: (m.threadId ?? id) ?? null };
     })
     .filter((m): m is { id: string; threadId: string } => Boolean(m.id && m.threadId));
 
+  const messages = toMessageRefs(listRes.data.messages);
   if (messages.length === 0) return { messages: [], nextPageToken };
 
   // ラベルマップを取得（担当者判定用）
@@ -913,7 +914,7 @@ export async function listLatestInboxMessages(
 
   const registered = await getRegisteredLabelNameSet();
 
-  let items = await mapWithConcurrency(messages, 5, async (m) => {
+  const mapMessageRefsToItems = async (refs: Array<{ id: string; threadId: string }>) => await mapWithConcurrency(refs, 5, async (m) => {
     const msgRes = await gmail.users.messages.get({
       userId: sharedInboxEmail,
       id: m.id,
@@ -961,9 +962,24 @@ export async function listLatestInboxMessages(
     } satisfies InboxListMessage;
   });
 
-  // unassignedフィルタ（assigneeSlug==nullのものだけ）
+  let items = await mapMessageRefsToItems(messages);
+
   if (unassigned) {
     items = items.filter((m) => m.assigneeSlug === null);
+    let scanToken = nextPageToken;
+    let scannedPages = 1;
+    while (items.length < max && scanToken && scannedPages < 10) {
+      const remaining = Math.max(1, max - items.length);
+      const pageRes = await listOnce(scanToken, remaining);
+      scannedPages++;
+      nextPageToken = pageRes.data.nextPageToken ?? undefined;
+      scanToken = nextPageToken;
+      const pageMessages = toMessageRefs(pageRes.data.messages);
+      if (pageMessages.length === 0) continue;
+      const pageItems = await mapMessageRefsToItems(pageMessages);
+      items.push(...pageItems.filter((m) => m.assigneeSlug === null));
+    }
+    items = items.slice(0, max);
   }
 
   // Do not cache errors; we only set cache on success.

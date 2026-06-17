@@ -26,6 +26,7 @@ const gmailMockState = vi.hoisted(() => ({
     resultSizeEstimate?: number;
   }>,
   labelTotals: {} as Record<string, number>,
+  labelIdsByMessageId: {} as Record<string, string[]>,
   createConflict: false,
 }));
 
@@ -61,7 +62,7 @@ vi.mock("googleapis", () => {
                 threadId: `thread-${args.id}`,
                 internalDate: "1767139200000",
                 snippet: `snippet-${args.id}`,
-                labelIds: [],
+                labelIds: args.id ? (gmailMockState.labelIdsByMessageId[args.id] ?? []) : [],
                 payload: {
                   headers: [
                     { name: "Subject", value: `Subject ${args.id}` },
@@ -140,6 +141,7 @@ describe("ensureLabelId", () => {
     gmailMockState.listResponses = [];
     gmailMockState.messageListResponses = [];
     gmailMockState.labelTotals = {};
+    gmailMockState.labelIdsByMessageId = {};
     gmailMockState.createConflict = false;
   });
 
@@ -243,6 +245,49 @@ describe("ensureLabelId", () => {
       ["waiting-id", "assignee-mine-id"],
       ["INBOX", "assignee-other-id"],
       ["waiting-id", "assignee-other-id"],
+    ]);
+  });
+
+  it("continues paging when unassigned messages are hidden behind assigned messages", async () => {
+    gmailMockState.listResponses = [[
+      { id: "assignee-other-id", name: `${MAILHUB_LABEL_ASSIGNEE_PREFIX}other_at_vtj_co_jp` },
+    ]];
+    gmailMockState.messageListResponses = [
+      {
+        messages: [
+          { id: "msg-assigned-1", threadId: "thread-assigned-1" },
+          { id: "msg-assigned-2", threadId: "thread-assigned-2" },
+        ],
+        nextPageToken: "page-2",
+      },
+      {
+        messages: [
+          { id: "msg-unassigned-1", threadId: "thread-unassigned-1" },
+          { id: "msg-unassigned-2", threadId: "thread-unassigned-2" },
+        ],
+        nextPageToken: "page-3",
+      },
+    ];
+    gmailMockState.labelIdsByMessageId = {
+      "msg-assigned-1": ["assignee-other-id"],
+      "msg-assigned-2": ["assignee-other-id"],
+      "msg-unassigned-1": [],
+      "msg-unassigned-2": [],
+    };
+
+    const result = await listLatestInboxMessages({ max: 2, unassigned: true });
+
+    expect(result.messages.map((m) => m.id)).toEqual(["msg-unassigned-1", "msg-unassigned-2"]);
+    expect(result.nextPageToken).toBe("page-3");
+    expect(gmailMockState.messageListCalls).toMatchObject([
+      { maxResults: 2, pageToken: undefined, labelIds: ["INBOX"] },
+      { maxResults: 2, pageToken: "page-2", labelIds: ["INBOX"] },
+    ]);
+    expect(gmailMockState.messageGetCalls.map((call) => call.id)).toEqual([
+      "msg-assigned-1",
+      "msg-assigned-2",
+      "msg-unassigned-1",
+      "msg-unassigned-2",
     ]);
   });
 });

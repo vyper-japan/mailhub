@@ -111,6 +111,10 @@
   - Production runtime now requires `MAILHUB_ACTIVITY_STORE=sheets` for Gmail send; if the durable guard cannot resolve to Sheets, send returns `503 send_guard_unavailable` before touching Gmail.
   - If the send-boundary guard Activity cannot be persisted, Gmail send is aborted with `503 send_guard_unavailable`.
   - Updated `OPS_RUNBOOK.md` to state that Activity Sheets is required for production Gmail send idempotency.
+- 2026-06-17 unassigned pagination wave completed:
+  - Fixed production `listLatestInboxMessages({ unassigned: true })` so it continues scanning Gmail pages when the first page contains assigned messages.
+  - The list cache key now separates normal INBOX results from unassigned-filtered results.
+  - Added a Gmail API mock test proving unassigned messages on page 2 are returned when page 1 is fully assigned.
 
 ## Not Done
 
@@ -119,7 +123,7 @@
 - Production pagination basic behavior is represented in API/UI metadata and forced E2E; real browser/manual production verification is still useful before staff rollout.
 - Auto-discard rules for marketing/noise are protected against obvious important/invoice/inquiry suppression and missing summary text, but a full production auto-discard policy is still intentionally not enabled.
 - Real-data rule safety audit exists and passes for the current local file config because no rules are configured. Re-run with `MAILHUB_CONFIG_STORE=sheets` and production Sheets credentials when production rule config is enabled.
-- Remaining production-readiness P1s from critic review include fail-closed audit persistence for non-send production mutations, unassigned list pagination accuracy, and autonomous SLA schedule enablement.
+- Remaining production-readiness P1s from critic review include fail-closed audit persistence for non-send production mutations and autonomous SLA schedule enablement.
 - Important/invoice/customer-inquiry folders exist as default saved views and are audited as manual-review shortcuts; further narrowing requires operator feedback.
 - Brain decision ledger exists for memory/file/sheets and health visibility; AI reply drafting and knowledge base integration are not implemented.
 - Rakuten/Amazon/Yahoo API-based reply integration is not implemented.

@@ -16,7 +16,6 @@ Continue from the completed INBOX-scoped source coverage and rule-safety wave:
 7. Re-run `npm run audit:gmail-rules -- --out .ai-runs/mailhub-next-phase/gmail-rule-safety-audit.json --max 100` whenever production file/Sheets rules are added or changed.
 8. Close the remaining production-readiness P1s:
    - fail-closed or prominently blocked audit persistence for non-send production mutations
-   - unassigned list pagination accuracy across pages
    - autonomous SLA schedule enablement after Vercel protection/bypass is decided
 9. Add AI reply drafting only after a knowledge evidence source is defined; keep generated drafts separate from send actions.
 10. Expand the rule-safety gate only after production rule config exists and passes the real-data audit. Current code protects suppressive labels from invoice/inquiry/important-looking messages and fails closed when classification text is missing, but does not implement a full production auto-discard policy.
