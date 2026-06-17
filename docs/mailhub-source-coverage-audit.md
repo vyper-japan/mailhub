@@ -193,7 +193,7 @@ Command:
 npm run audit:routing-probes -- --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-audit.json
 ```
 
-Without `--marker`, this generates a non-sending probe plan for the six current routing-unconfirmed channels. It lists the target addresses and a subject marker pattern. It does not send mail.
+Without `--marker`, this generates a non-sending probe plan for the six current routing-unconfirmed channels and their eight target addresses. It lists the target addresses and a subject marker pattern. It does not send mail.
 
 After a controlled probe message is sent to each listed address, verify shared Gmail arrival with:
 
@@ -202,4 +202,4 @@ npm run audit:routing-probes -- --marker MAILHUB-ROUTING-PROBE-<YYYYMMDD-HHMMSS>
 npm run audit:mailhub-readiness -- --out .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json
 ```
 
-The readiness gate treats `routingProbeReady=true` only when every expected zero-active-inbox channel has matching shared Gmail evidence for the marker. The current committed probe audit is `plan_only`, so `routingProbeReady=false` and `productionReady=false`.
+The readiness gate treats `routingProbeReady=true` only when every expected target address has matching shared Gmail evidence for the marker. The current committed probe audit is `plan_only`, so `routingProbeReady=false` and `productionReady=false`.

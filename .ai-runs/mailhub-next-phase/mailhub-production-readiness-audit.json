@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-17T01:37:58.987Z",
+  "generatedAt": "2026-06-17T01:42:35.018Z",
   "inputs": {
     "sourceAudit": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.ai-runs/mailhub-next-phase/gmail-source-coverage-audit.json",
     "opsAudit": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.ai-runs/mailhub-next-phase/mailhub-operational-confirmations.json",
@@ -10,7 +10,7 @@
     "sourceAuditGeneratedAt": "2026-06-17T01:03:24.561Z",
     "opsAuditGeneratedAt": "2026-06-17T01:19:41.050Z",
     "gwsRoutingAuditGeneratedAt": "2026-06-17T01:26:07.121Z",
-    "routingProbeAuditGeneratedAt": "2026-06-17T01:37:49.258Z",
+    "routingProbeAuditGeneratedAt": "2026-06-17T01:42:16.683Z",
     "viewsAuditGeneratedAt": "2026-06-17T01:03:11.682Z",
     "rulesAuditGeneratedAt": "2026-06-17T01:03:08.912Z"
   },
@@ -55,6 +55,7 @@
         "routingProbeGate": {
           "markerProvided": false,
           "targetChannelCount": 6,
+          "targetAddressCount": 8,
           "matchedChannels": [],
           "missingChannels": [
             "gopro-yahoo",
@@ -64,6 +65,18 @@
             "datacolor",
             "ebay"
           ],
+          "matchedAddresses": [],
+          "missingAddresses": [
+            "gopro_y@vtj.co.jp",
+            "gopro_order_yahoo@vtj.co.jp",
+            "vyper_r@vtj.co.jp",
+            "vyper_rakuten@vtj.co.jp",
+            "vyperglobal_y@vtj.co.jp",
+            "ams_vyper@vtj.co.jp",
+            "datacolor_shopify@vtj.co.jp",
+            "ebay@vtj.co.jp"
+          ],
+          "allExpectedAddressesConfirmed": false,
           "allExpectedChannelsConfirmed": false
         },
         "mxRecords": [

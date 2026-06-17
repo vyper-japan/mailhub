@@ -23,8 +23,9 @@ Continue from the completed INBOX-scoped source coverage and rule-safety wave:
    - Passing: source code coverage, source inventory, default view real-data syntax validation, current rule config real-data safety.
    - Only current P0 blocker: `current_shared_gmail_routing`.
 8. Run or inspect `npm run audit:routing-probes -- --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-audit.json`.
-   - Current mode is `plan_only`; it lists target addresses but does not send mail.
+   - Current mode is `plan_only`; it lists six target channels and eight target addresses but does not send mail.
    - To prove current routing, send one controlled email with a shared marker such as `MAILHUB-ROUTING-PROBE-20260617-XXXX` to every listed address, then run `npm run audit:routing-probes -- --marker <marker> --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-audit.json`.
+   - The readiness gate requires `allExpectedAddressesConfirmed=true`; channel-level evidence alone is not enough.
    - Re-run `npm run audit:mailhub-readiness -- --out .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json` after the marker verification.
 9. For `vyperglobal-yahoo` and `ebay`, source exists and GWS group membership is correct, but shared Gmail has no active or historical evidence. Verify Lolipop-side forwarding/current MX path to `mailhub@`, send a controlled probe, or explicitly document that the source remains outside the shared Gmail workbench.
 10. For `gopro-yahoo`, `vyperglobal-rakuten`, `ams-vyper`, and `datacolor`, historical shared Gmail evidence exists but active `INBOX` is zero. Confirm current routing/dormancy before production-complete source coverage is claimed.

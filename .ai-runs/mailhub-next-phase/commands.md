@@ -311,10 +311,12 @@ npm run build
 ## Verification Commands Run On 2026-06-17 Routing Probe Audit Wave
 
 ```bash
-node --check scripts/audit-mailhub-routing-probes.mjs
+node --check scripts/audit-mailhub-routing-probes.mjs && node --check scripts/audit-mailhub-production-readiness.mjs
 npm run audit:routing-probes -- --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-audit.json
 npm run audit:mailhub-readiness -- --out .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json
-npm run audit:routing-probes -- --marker MAILHUB-ROUTING-PROBE-NONEXISTENT-VERIFY --out /tmp/mailhub-routing-probe-audit.json
+npm run audit:routing-probes -- --marker MAILHUB-ROUTING-PROBE-NONEXISTENT-ADDRESS-VERIFY --out /tmp/mailhub-routing-probe-address-audit.json
+node -e 'const p=require("./.ai-runs/mailhub-next-phase/mailhub-routing-probe-audit.json"); const r=require("./.ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json"); if(p.gate.targetAddressCount!==8) process.exit(1); if(p.gate.allExpectedAddressesConfirmed) process.exit(2); if(r.requirements.routingProbeReady) process.exit(3); if(r.gate.productionReady) process.exit(4); console.log("address-level probe gate safe", JSON.stringify({probe:p.gate, readiness:r.requirements}));'
+git diff --check
 npm run typecheck
 npm run lint
 npm run test
@@ -328,11 +330,16 @@ npm run build
 - Current committed probe audit:
   - `mode`: `plan_only`
   - `targetChannelCount`: 6
+  - `targetAddressCount`: 8
   - `matchedChannels`: `[]`
+  - `matchedAddresses`: `[]`
   - `missingChannels`: `gopro-yahoo`, `vyperglobal-rakuten`, `vyperglobal-yahoo`, `ams-vyper`, `datacolor`, `ebay`
-  - `allExpectedChannelsConfirmed`: `false`
-- Readiness gate now includes `routingProbeReady`; current value is `false`.
-- Marker verification path was tested against shared Gmail with a nonexistent marker and returned the expected no-match result without changing committed artifacts.
+  - `missingAddresses`: `gopro_y@vtj.co.jp`, `gopro_order_yahoo@vtj.co.jp`, `vyper_r@vtj.co.jp`, `vyper_rakuten@vtj.co.jp`, `vyperglobal_y@vtj.co.jp`, `ams_vyper@vtj.co.jp`, `datacolor_shopify@vtj.co.jp`, `ebay@vtj.co.jp`
+  - `allExpectedAddressesConfirmed`: `false`
+- Readiness gate now includes address-level `routingProbeReady`; current value is `false`.
+- Address-level marker verification path was tested against shared Gmail with a nonexistent marker and returned the expected no-match result for all eight target addresses without changing committed artifacts.
+- Address-level probe gate assertion: passed.
+- `git diff --check`: passed.
 - `npm run typecheck`: passed.
 - `npm run lint`: passed.
 - `npm run test`: 60 files / 531 tests passed.

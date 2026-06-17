@@ -62,7 +62,7 @@ function main() {
     Boolean(sourceAudit.zeroEstimateAnalysis?.coverageGate?.codeCoveragePass) &&
     knownCodeGaps.length === 0;
   const sourceInventoryReady = (opsAudit.gate?.sourceInventoryMissing ?? []).length === 0;
-  const routingProbeReady = Boolean(routingProbeAudit?.gate?.allExpectedChannelsConfirmed);
+  const routingProbeReady = Boolean(routingProbeAudit?.gate?.allExpectedAddressesConfirmed);
   const currentSharedGmailRoutingReady =
     (
       Boolean(opsAudit.gate?.productionCompleteClaimReady) &&

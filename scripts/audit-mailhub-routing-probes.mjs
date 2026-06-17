@@ -81,13 +81,13 @@ function quoteGmailTerm(value) {
   return `"${String(value).replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
 }
 
-function buildAddressQuery(addresses) {
-  const parts = addresses.flatMap((address) => [
+function buildAddressQuery(address) {
+  const parts = [
     `to:${address}`,
     `cc:${address}`,
     `deliveredto:${address}`,
     quoteGmailTerm(address),
-  ]);
+  ];
   return `(${parts.join(" OR ")})`;
 }
 
@@ -124,6 +124,14 @@ async function main() {
   const opsAudit = readJson(args.opsAudit);
   const targets = targetConfirmations(opsAudit);
   const marker = args.marker.trim();
+  const plannedAddressProbes = targets.flatMap((target) =>
+    target.addresses.map((address) => ({
+      channelId: target.id,
+      label: target.label,
+      address,
+      manualProbeSubject: marker || "MAILHUB-ROUTING-PROBE-<YYYYMMDD-HHMMSS>",
+    })),
+  );
   const probePlan = targets.map((target) => ({
     channelId: target.id,
     label: target.label,
@@ -137,22 +145,30 @@ async function main() {
     loadEnvFile(envPath);
     const { gmail, sharedInboxEmail } = createGmailClient();
     probes = [];
-    for (const target of targets) {
-      const q = `${quoteGmailTerm(marker)} ${buildAddressQuery(target.addresses)}`;
+    for (const plannedProbe of plannedAddressProbes) {
+      const q = `${quoteGmailTerm(marker)} ${buildAddressQuery(plannedProbe.address)}`;
       const result = await probeGmail(gmail, sharedInboxEmail, q, args.maxResults);
       probes.push({
-        channelId: target.id,
-        label: target.label,
-        addresses: target.addresses,
+        channelId: plannedProbe.channelId,
+        label: plannedProbe.label,
+        address: plannedProbe.address,
         ...result,
       });
     }
   }
 
-  const matchedChannels = probes.filter((probe) => probe.hasEvidence).map((probe) => probe.channelId);
-  const missingChannels = marker
-    ? probes.filter((probe) => !probe.hasEvidence).map((probe) => probe.channelId)
-    : targets.map((target) => target.id);
+  const matchedAddresses = probes.filter((probe) => probe.hasEvidence).map((probe) => probe.address);
+  const missingAddresses = marker
+    ? probes.filter((probe) => !probe.hasEvidence).map((probe) => probe.address)
+    : plannedAddressProbes.map((probe) => probe.address);
+  const matchedChannels = [...new Set(probes.filter((probe) => probe.hasEvidence).map((probe) => probe.channelId))];
+  const missingChannels = [...new Set(
+    (
+      marker
+        ? probes.filter((probe) => !probe.hasEvidence)
+        : plannedAddressProbes
+    ).map((probe) => probe.channelId),
+  )];
   const result = {
     generatedAt: new Date().toISOString(),
     inputs: {
@@ -163,12 +179,17 @@ async function main() {
     },
     mode: marker ? "verify_marker" : "plan_only",
     probePlan,
+    plannedAddressProbes,
     probes,
     gate: {
       markerProvided: Boolean(marker),
       targetChannelCount: targets.length,
+      targetAddressCount: plannedAddressProbes.length,
       matchedChannels,
       missingChannels,
+      matchedAddresses,
+      missingAddresses,
+      allExpectedAddressesConfirmed: Boolean(marker) && plannedAddressProbes.length > 0 && missingAddresses.length === 0,
       allExpectedChannelsConfirmed: Boolean(marker) && targets.length > 0 && missingChannels.length === 0,
     },
   };
@@ -180,8 +201,12 @@ async function main() {
     generatedAt: result.generatedAt,
     mode: result.mode,
     targetChannelCount: result.gate.targetChannelCount,
+    targetAddressCount: result.gate.targetAddressCount,
     matchedChannels: result.gate.matchedChannels,
     missingChannels: result.gate.missingChannels,
+    matchedAddresses: result.gate.matchedAddresses,
+    missingAddresses: result.gate.missingAddresses,
+    allExpectedAddressesConfirmed: result.gate.allExpectedAddressesConfirmed,
     allExpectedChannelsConfirmed: result.gate.allExpectedChannelsConfirmed,
   }, null, 2));
 }
