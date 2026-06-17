@@ -60,10 +60,10 @@ jobs:
       MAILHUB_PROBE_FROM: ${{ secrets.MAILHUB_PROBE_FROM }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: "22"
           cache: npm
@@ -113,7 +113,7 @@ jobs:
           npm run audit:mailhub-readiness-contract
 
       - name: Upload routing probe artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: mailhub-routing-probe-${{ github.run_id }}

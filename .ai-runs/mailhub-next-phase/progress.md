@@ -238,6 +238,10 @@
   - The GitHub run proved the manual workflow can execute the no-send preflight path and upload artifacts.
   - GitHub emitted a Node.js 20 JavaScript action runtime deprecation annotation for `actions/*@v4`.
   - Added `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true` across MailHub workflows and updated `qa-strict` from Node 20 to Node 22.
+- 2026-06-17 GitHub Actions Node runtime upgrade wave completed:
+  - Checked current upstream action releases with `gh api`.
+  - Updated workflow action pins from `actions/checkout@v4` to `@v6`, `actions/setup-node@v4` to `@v6`, and `actions/upload-artifact@v4` to `@v7`.
+  - Local actionlint and workflow YAML parsing pass with the upgraded action majors.
 
 ## Not Done
 

@@ -965,6 +965,31 @@ git diff --check
 - Final readiness contract check: passed with `productionReady=false`, P0 `current_shared_gmail_routing`, and no contract errors.
 - `git diff --check`: passed.
 
+## Verification Commands Run On 2026-06-17 GitHub Actions Node Runtime Upgrade Wave
+
+```bash
+gh api repos/actions/checkout/releases/latest --jq .tag_name
+gh api repos/actions/setup-node/releases/latest --jq .tag_name
+gh api repos/actions/upload-artifact/releases/latest --jq .tag_name
+actionlint .github/workflows/*.yml
+ruby -e 'require "yaml"; Dir[".github/workflows/*.yml"].each { |p| YAML.load_file(p) }; puts "workflow yaml ok"'
+rg -n "actions/(checkout|setup-node|upload-artifact)@" .github/workflows
+npm run audit:mailhub-readiness -- --out .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json
+npm run audit:mailhub-readiness-contract
+git diff --check
+```
+
+## 2026-06-17 GitHub Actions Node Runtime Upgrade Wave Results
+
+- Latest upstream action tags checked with `gh api`: `actions/checkout=v6.0.3`, `actions/setup-node=v6.4.0`, `actions/upload-artifact=v7.0.1`.
+- Updated workflow major pins to `actions/checkout@v6`, `actions/setup-node@v6`, and `actions/upload-artifact@v7`.
+- `actionlint .github/workflows/*.yml`: passed.
+- Workflow YAML parse: passed.
+- Workflow action references now show only checkout v6, setup-node v6, and upload-artifact v7.
+- Final readiness refresh: passed.
+- Final readiness contract check: passed with `productionReady=false`, P0 `current_shared_gmail_routing`, and no contract errors.
+- `git diff --check`: passed.
+
 ## Useful Runtime Commands
 
 Start dev server for tunnel:
