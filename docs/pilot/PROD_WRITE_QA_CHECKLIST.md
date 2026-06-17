@@ -6,7 +6,7 @@
 
 ## ✅ Done（合格条件）
 - [ ] Production が **READ ONLY** で社内公開できる（ログイン・閲覧・検索・フィルタ・Activity閲覧・CSV ExportがOK）
-- [ ] 変更系（Done/Mute/Waiting/Assign/Label/Rules Apply/Import 等）が **UIでもAPIでも確実に拒否（403）**
+- [ ] 変更系（Archive/Mute/Waiting/Assign/Rules Apply/Import 等）が **UIでもAPIでも確実に拒否（403）**
 - [ ] adminのみ、短時間だけ **WRITE解禁 → 1件だけ操作 → Gmail反映** の証跡が取れる
 - [ ] すぐ **READ ONLY に戻せる（緊急停止が機能する）**
 - [ ] SLA Alerts が **安全に**動く（secret必須 / dryRun導線 / truncated警告 / 失敗観測）
@@ -61,7 +61,7 @@
 - [ ] 詳細が開く（本文が読める / Open in GmailもOK）
 - [ ] Activity Drawerが開ける（閲覧OK）
 - [ ] CSV Exportができる（Activity Export）
-- [ ] 変更系（Done/Mute/Waiting/Assign/Label等）が **UIで押せない**（disable理由が出る）
+- [ ] 変更系（Archive/Mute/Waiting/Assign等）が **UIで押せない**（disable理由が出る）
 
 ### APIでも403になることを確認（adminでもREAD ONLYなら403）
 （どれか1つでOK）
@@ -91,19 +91,19 @@
 ### 操作（1件だけ）
 以下から **1つだけ**選び、1回だけ実行：
 - [ ] Assign（おすすめ）
-- [ ] Waiting
-- [ ] Done
+- [ ] Waiting（Activity action: `setWaiting`）
+- [ ] Archive（UI上のDone/対応済み操作）
 - [ ] Mute
-- [ ] Label（MailHub/Label/*）
 
 action（ファイル名用）：
-- action: `assign | waiting | done | mute | label-add`
+- action: `assign | setWaiting | archive | mute`
 
 ### 証跡（Step27互換）
 - [ ] Gmail側：`docs/pilot/prod/gmail-<messageId>-<action>.png`
 - [ ] MailHub側：`docs/pilot/prod/mailhub-<messageId>-<action>.png`
 - [ ] Activity CSV：`docs/pilot/prod/activity-<YYYYMMDD>-prod.csv`
 - [ ] `docs/pilot/prod/staff-workflow-evidence-manifest.json` の `controlledWritePilot` に messageId、action、操作担当、上記3ファイル名を記録
+- [ ] Activity CSV 内の controlled write（`assign` / `setWaiting` / `archive` / `mute`）は、上記1件だけになっている
 
 ### 復帰（必須）
 - [ ] `MAILHUB_READ_ONLY=1` に戻して再デプロイ（緊急停止）

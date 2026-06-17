@@ -3,6 +3,7 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { isFreshRepoHead } from "./artifact-freshness.mjs";
 
 const repoRoot = process.cwd();
 const runDir = join(repoRoot, ".ai-runs", "mailhub-next-phase");
@@ -84,10 +85,6 @@ function actionsById(value) {
   return map;
 }
 
-function isFresh(repoValue, repoHead, repoParentHead) {
-  return Boolean(repoValue && repoHead && (repoValue === repoHead || repoValue === repoParentHead));
-}
-
 function sameStrings(a, b) {
   return JSON.stringify([...a].sort()) === JSON.stringify([...b].sort());
 }
@@ -153,7 +150,9 @@ function main() {
   if (Number.isNaN(Date.parse(next.generatedAt ?? ""))) errors.push("invalid_generated_at");
   if (inputErrors.length > 0) errors.push(...inputErrors.map((error) => `input_error:${error}`));
   if (!inputAuditRepoHead) errors.push("missing_input_audit_repo_head");
-  else if (!isFresh(inputAuditRepoHead, repoHead, repoParentHead)) errors.push("stale_input_audit_repo_head");
+  else if (!isFreshRepoHead({ repoRoot, artifactRepoHead: inputAuditRepoHead, repoHead, repoParentHead })) {
+    errors.push("stale_input_audit_repo_head");
+  }
   if (!auditRepoHead) errors.push("missing_actual_audit_repo_head");
   else if (inputAuditRepoHead && auditRepoHead !== inputAuditRepoHead) errors.push("audit_repo_head_mismatch");
   if (!inputAuditGeneratedAt) errors.push("missing_input_audit_generated_at");

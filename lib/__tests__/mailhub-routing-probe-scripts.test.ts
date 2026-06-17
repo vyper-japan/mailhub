@@ -1,6 +1,6 @@
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
-import { join, resolve } from "path";
+import { dirname, join, resolve } from "path";
 import { execFileSync, spawnSync } from "child_process";
 import { describe, expect, test } from "vitest";
 
@@ -35,13 +35,52 @@ function currentRepoHead() {
   }).trim();
 }
 
+function git(repoRoot: string, args: string[]) {
+  return execFileSync("git", ["-c", "commit.gpgsign=false", ...args], {
+    cwd: repoRoot,
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "ignore"],
+  }).trim();
+}
+
+function writeRepoFile(repoRoot: string, relativePath: string, content: string) {
+  const path = join(repoRoot, relativePath);
+  mkdirSync(dirname(path), { recursive: true });
+  writeFileSync(path, content, "utf8");
+}
+
+function commitRepo(repoRoot: string, message: string) {
+  git(repoRoot, ["add", "."]);
+  git(repoRoot, ["commit", "-m", message]);
+  return git(repoRoot, ["rev-parse", "HEAD"]);
+}
+
+function withTempGitRepo<T>(fn: (repo: { dir: string; parentHead: string }) => T): T {
+  const dir = mkdtempSync(join(tmpdir(), "mailhub-routing-probes-git-"));
+  try {
+    git(dir, ["init"]);
+    git(dir, ["config", "user.name", "MailHub Test"]);
+    git(dir, ["config", "user.email", "mailhub-test@example.com"]);
+    writeRepoFile(dir, "lib/app.ts", "export const version = 1;\n");
+    const parentHead = commitRepo(dir, "base");
+    return fn({ dir, parentHead });
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
 function readJson<T>(path: string): T {
   return JSON.parse(readFileSync(path, "utf8")) as T;
 }
 
-function runNodeScript(scriptPath: string, args: string[], env: Partial<NodeJS.ProcessEnv> = {}) {
+function runNodeScript(
+  scriptPath: string,
+  args: string[],
+  env: Partial<NodeJS.ProcessEnv> = {},
+  options: { cwd?: string } = {},
+) {
   return spawnSync(process.execPath, [scriptPath, ...args], {
-    cwd: process.cwd(),
+    cwd: options.cwd ?? process.cwd(),
     encoding: "utf8",
     env: { ...process.env, ...env },
   });
@@ -1183,8 +1222,10 @@ describe("MailHub routing probe CLI gates", () => {
     });
   });
 
-  test("routing next-step strict mode accepts current or parent readiness repo head", () => {
-    withTempDir((dir) => {
+  test("routing next-step strict mode accepts current readiness repo head", () => {
+    withTempGitRepo(({ dir, parentHead }) => {
+      writeRepoFile(dir, "lib/app.ts", "export const version = 2;\n");
+      const repoHead = commitRepo(dir, "current code");
       const readinessPath = join(dir, "readiness.json");
       const githubSecretsPath = join(dir, "github-secrets.json");
       const preflightPath = join(dir, "preflight.json");
@@ -1192,7 +1233,7 @@ describe("MailHub routing probe CLI gates", () => {
       const localEnvPath = join(dir, "missing.env");
       writeJson(readinessPath, {
         generatedAt: "2026-06-17T00:00:00.000Z",
-        repoHead: "parent-head",
+        repoHead,
         gate: { productionReady: false, p0Blockers: ["current_shared_gmail_routing"] },
       });
       writeJson(githubSecretsPath, {
@@ -1220,17 +1261,136 @@ describe("MailHub routing probe CLI gates", () => {
         outPath,
         "--strict",
         "--repo-head",
-        "current-head",
+        repoHead,
         "--repo-parent-head",
-        "parent-head",
+        parentHead,
         "--local-env-file",
         localEnvPath,
-      ]);
+      ], {}, { cwd: dir });
 
       expect(result.status).toBe(0);
       const out = readJson<{ inputs: { errors: string[]; readinessRepoHead: string } }>(outPath);
-      expect(out.inputs.readinessRepoHead).toBe("parent-head");
+      expect(out.inputs.readinessRepoHead).toBe(repoHead);
       expect(out.inputs.errors).toEqual([]);
+    });
+  });
+
+  test("routing next-step strict mode accepts parent readiness head for artifact-only refresh commits", () => {
+    withTempGitRepo(({ dir, parentHead }) => {
+      writeRepoFile(dir, ".ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json", "{\"ok\":true}\n");
+      const repoHead = commitRepo(dir, "refresh artifacts");
+      const readinessPath = join(dir, "readiness.json");
+      const githubSecretsPath = join(dir, "github-secrets.json");
+      const preflightPath = join(dir, "preflight.json");
+      const outPath = join(dir, "next.json");
+      const localEnvPath = join(dir, "missing.env");
+      writeJson(readinessPath, {
+        generatedAt: "2026-06-17T00:00:00.000Z",
+        repoHead: parentHead,
+        gate: { productionReady: false, p0Blockers: ["current_shared_gmail_routing"] },
+      });
+      writeJson(githubSecretsPath, {
+        checkedAt: "2026-06-17T00:00:00.000Z",
+        readyForSendVerify: false,
+        missingSendVerifySecrets: ["MAILHUB_PROBE_SMTP_HOST"],
+        presentRequiredSecretNames: ["GOOGLE_CLIENT_ID"],
+      });
+      writeJson(preflightPath, {
+        generatedAt: "2026-06-17T00:00:00.000Z",
+        smtpPreflight: {
+          readyForProductionProof: false,
+          missingRequiredEnv: ["MAILHUB_PROBE_SMTP_HOST"],
+        },
+      });
+
+      const result = runNodeScript(routingNextStepsPath, [
+        "--readiness",
+        readinessPath,
+        "--github-secrets",
+        githubSecretsPath,
+        "--preflight",
+        preflightPath,
+        "--out",
+        outPath,
+        "--strict",
+        "--repo-head",
+        repoHead,
+        "--repo-parent-head",
+        parentHead,
+        "--local-env-file",
+        localEnvPath,
+      ], {}, { cwd: dir });
+
+      expect(result.status).toBe(0);
+      const out = readJson<{
+        inputs: { errors: string[]; readinessRepoHead: string; repoHead: string; repoParentHead: string };
+        state: { externalMailWillBeSentByThisScript: boolean };
+      }>(outPath);
+      expect(out.inputs.readinessRepoHead).toBe(parentHead);
+      expect(out.inputs.repoHead).toBe(repoHead);
+      expect(out.inputs.repoParentHead).toBe(parentHead);
+      expect(out.inputs.errors).toEqual([]);
+      expect(out.state.externalMailWillBeSentByThisScript).toBe(false);
+    });
+  });
+
+  test("routing next-step strict mode rejects parent readiness head when refresh commits mix artifacts and code", () => {
+    withTempGitRepo(({ dir, parentHead }) => {
+      writeRepoFile(dir, ".ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json", "{\"ok\":true}\n");
+      writeRepoFile(dir, "lib/app.ts", "export const version = 2;\n");
+      const repoHead = commitRepo(dir, "mixed refresh");
+      const readinessPath = join(dir, "readiness.json");
+      const githubSecretsPath = join(dir, "github-secrets.json");
+      const preflightPath = join(dir, "preflight.json");
+      const outPath = join(dir, "next.json");
+      const localEnvPath = join(dir, "missing.env");
+      writeJson(readinessPath, {
+        generatedAt: "2026-06-17T00:00:00.000Z",
+        repoHead: parentHead,
+        gate: { productionReady: false, p0Blockers: ["current_shared_gmail_routing"] },
+      });
+      writeJson(githubSecretsPath, {
+        checkedAt: "2026-06-17T00:00:00.000Z",
+        readyForSendVerify: false,
+        missingSendVerifySecrets: ["MAILHUB_PROBE_SMTP_HOST"],
+        presentRequiredSecretNames: ["GOOGLE_CLIENT_ID"],
+      });
+      writeJson(preflightPath, {
+        generatedAt: "2026-06-17T00:00:00.000Z",
+        smtpPreflight: {
+          readyForProductionProof: false,
+          missingRequiredEnv: ["MAILHUB_PROBE_SMTP_HOST"],
+        },
+      });
+
+      const result = runNodeScript(routingNextStepsPath, [
+        "--readiness",
+        readinessPath,
+        "--github-secrets",
+        githubSecretsPath,
+        "--preflight",
+        preflightPath,
+        "--out",
+        outPath,
+        "--strict",
+        "--repo-head",
+        repoHead,
+        "--repo-parent-head",
+        parentHead,
+        "--local-env-file",
+        localEnvPath,
+      ], {}, { cwd: dir });
+
+      expect(result.status).toBe(1);
+      const out = readJson<{
+        inputs: { errors: string[]; readinessRepoHead: string; repoHead: string; repoParentHead: string };
+        state: { externalMailWillBeSentByThisScript: boolean };
+      }>(outPath);
+      expect(out.inputs.readinessRepoHead).toBe(parentHead);
+      expect(out.inputs.repoHead).toBe(repoHead);
+      expect(out.inputs.repoParentHead).toBe(parentHead);
+      expect(out.inputs.errors).toContain("stale_readiness_repo_head");
+      expect(out.state.externalMailWillBeSentByThisScript).toBe(false);
     });
   });
 
@@ -1240,7 +1400,7 @@ describe("MailHub routing probe CLI gates", () => {
       const readinessPath = join(dir, "readiness.json");
       writeJson(readinessPath, {
         generatedAt: "2026-06-17T00:00:00.000Z",
-        repoHead: "parent-head",
+        repoHead: "current-head",
         gate: {
           productionReady: false,
           p0Blockers: ["current_shared_gmail_routing"],
@@ -1249,8 +1409,8 @@ describe("MailHub routing probe CLI gates", () => {
       });
       writeJson(nextPath, {
         inputs: {
-          repoHead: "parent-head",
-          readinessRepoHead: "parent-head",
+          repoHead: "current-head",
+          readinessRepoHead: "current-head",
           readinessGeneratedAt: "2026-06-17T00:00:00.000Z",
           errors: [],
           warnings: [],
@@ -1303,8 +1463,8 @@ describe("MailHub routing probe CLI gates", () => {
       expect(result.status).toBe(0);
       expect(JSON.parse(result.stdout)).toMatchObject({
         ok: true,
-        artifactRepoHead: "parent-head",
-        readinessRepoHead: "parent-head",
+        artifactRepoHead: "current-head",
+        readinessRepoHead: "current-head",
         canRunGithubWorkflowDispatch: false,
         canRunLocalSendVerify: false,
       });

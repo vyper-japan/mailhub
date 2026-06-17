@@ -1,10 +1,11 @@
-import { mkdtempSync, rmSync, writeFileSync } from "fs";
+import { readFileSync, mkdtempSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { join, resolve } from "path";
 import { spawnSync } from "child_process";
 import { describe, expect, test } from "vitest";
 
 const readinessContractPath = resolve(process.cwd(), "scripts/check-mailhub-readiness-contract.mjs");
+const readinessAuditPath = resolve(process.cwd(), "scripts/audit-mailhub-production-readiness.mjs");
 
 function withTempDir<T>(fn: (dir: string) => T): T {
   const dir = mkdtempSync(join(tmpdir(), "mailhub-readiness-contract-"));
@@ -19,7 +20,11 @@ function writeJson(path: string, value: unknown) {
   writeFileSync(path, `${JSON.stringify(value, null, 2)}\n`, "utf8");
 }
 
-function runContract(auditPath: string, repoHead = "head123", repoParentHead = "parent123") {
+function readJson<T>(path: string): T {
+  return JSON.parse(readFileSync(path, "utf8")) as T;
+}
+
+function runContract(auditPath: string, repoHead = "head123", repoParentHead = "parent123", cwd = process.cwd()) {
   return spawnSync(process.execPath, [
     readinessContractPath,
     "--audit",
@@ -29,9 +34,27 @@ function runContract(auditPath: string, repoHead = "head123", repoParentHead = "
     "--repo-parent-head",
     repoParentHead,
   ], {
+    cwd,
+    encoding: "utf8",
+  });
+}
+
+function runAudit(args: string[]) {
+  return spawnSync(process.execPath, [readinessAuditPath, ...args], {
     cwd: process.cwd(),
     encoding: "utf8",
   });
+}
+
+function gitRevParse(ref: string) {
+  const result = spawnSync("git", ["rev-parse", ref], {
+    cwd: process.cwd(),
+    encoding: "utf8",
+  });
+  if (result.status !== 0) {
+    throw new Error(`git rev-parse ${ref} failed: ${result.stderr}`);
+  }
+  return result.stdout.trim();
 }
 
 function baseReadinessAudit(overrides: Record<string, unknown> = {}) {
@@ -449,6 +472,171 @@ describe("MailHub readiness contract check", () => {
     });
   });
 
+  test("aggregate readiness rejects staff GitHub semantic config sources that are not variables", () => {
+    withTempDir((dir) => {
+      const sourceAuditPath = join(dir, "source.json");
+      const opsAuditPath = join(dir, "ops.json");
+      const gwsRoutingPath = join(dir, "gws.json");
+      const viewsPath = join(dir, "views.json");
+      const rulesPath = join(dir, "rules.json");
+      const staffWorkflowPath = join(dir, "staff-workflow.json");
+      const staffGithubPath = join(dir, "github-staff-secrets-readiness.json");
+      const outPath = join(dir, "readiness.json");
+      const repoHead = gitRevParse("HEAD");
+
+      writeJson(sourceAuditPath, {
+        zeroEstimateAnalysis: {
+          knownCodeGaps: [],
+          coverageGate: { codeCoveragePass: true },
+        },
+      });
+      writeJson(opsAuditPath, {
+        gate: {
+          sourceInventoryMissing: [],
+          currentSharedGmailRoutingUnconfirmed: [],
+          noSharedInboxEvidence: [],
+          routingConfirmationRequired: [],
+        },
+      });
+      writeJson(gwsRoutingPath, { gate: {}, dns: { mxRecords: [] } });
+      writeJson(viewsPath, {
+        gate: {
+          syntaxReady: true,
+          manualReviewOnly: false,
+          bulkAutomationSafe: true,
+          syntaxFailedViews: [],
+          manualReviewOnlyViews: [],
+          bulkUnsafeViews: [],
+        },
+        views: [],
+      });
+      writeJson(rulesPath, {
+        inputs: {
+          envFileMode: "process_env_only",
+          valuePolicy: "present",
+        },
+        config: {
+          ruleSetFingerprint: "sha256:abc123",
+          requestedSource: "sheets",
+          resolvedSource: "sheets",
+          ruleSheets: {
+            labelRules: "ConfigRules",
+            assigneeRules: "ConfigAssigneeRules",
+          },
+          warnings: [],
+        },
+        ruleSafetyGate: {
+          realDataRuleRiskPass: true,
+        },
+      });
+      writeJson(staffWorkflowPath, {
+        gate: {
+          staffWorkflowPermissionsReady: true,
+          readOnlyRolloutReady: true,
+          controlledWritePilotReady: true,
+        },
+        requirements: {
+          staffWorkflowPermissionsReady: true,
+        },
+        blockers: [],
+      });
+      writeJson(staffGithubPath, {
+        source: "github_actions_config",
+        checkedAt: "2026-06-17T00:00:00.000Z",
+        repoHead,
+        secretCount: 12,
+        variableCount: 12,
+        readyForProductionStaffPreflight: true,
+        readyForSecretBackedStaffConfig: true,
+        missingProductionStaffConfig: [],
+        missingSecretConfig: [],
+        semanticIssues: [],
+        setupCommands: [],
+        presentRequiredConfigSources: {
+          MAILHUB_ENV: "secret",
+          MAILHUB_CONFIG_STORE: "secret",
+          MAILHUB_ACTIVITY_STORE: "secret",
+          MAILHUB_READ_ONLY: "secret",
+        },
+      });
+
+      const result = runAudit([
+        "--source-audit",
+        sourceAuditPath,
+        "--ops-audit",
+        opsAuditPath,
+        "--gws-routing-audit",
+        gwsRoutingPath,
+        "--github-staff-secrets",
+        staffGithubPath,
+        "--views-audit",
+        viewsPath,
+        "--rules-audit",
+        rulesPath,
+        "--staff-workflow-audit",
+        staffWorkflowPath,
+        "--out",
+        outPath,
+      ]);
+
+      expect(result.status).toBe(0);
+      const out = readJson<{
+        requirements: { staffGithubConfigReady: boolean };
+        blockers: Array<{ id: string; evidence: { staffGithubConfig?: { semanticSourceIssues?: string[] } } }>;
+      }>(outPath);
+      expect(out.requirements.staffGithubConfigReady).toBe(false);
+      const blocker = out.blockers.find((item) => item.id === "staff_github_config_not_ready");
+      expect(blocker?.evidence.staffGithubConfig?.semanticSourceIssues).toEqual([
+        "MAILHUB_ENV_must_be_variable",
+        "MAILHUB_CONFIG_STORE_must_be_variable",
+        "MAILHUB_ACTIVITY_STORE_must_be_variable",
+        "MAILHUB_READ_ONLY_must_be_variable",
+      ]);
+    });
+  });
+
+  test("readiness contract rejects staff GitHub semantic config sources that are not variables", () => {
+    withTempDir((dir) => {
+      const auditPath = join(dir, "readiness.json");
+      const staffGithubPath = join(dir, "github-staff-secrets-readiness.json");
+      writeJson(staffGithubPath, {
+        source: "github_actions_config",
+        repoHead: "head123",
+        readyForProductionStaffPreflight: true,
+        readyForSecretBackedStaffConfig: true,
+        missingProductionStaffConfig: [],
+        missingSecretConfig: [],
+        semanticIssues: [],
+        presentRequiredConfigSources: {
+          MAILHUB_ENV: "secret",
+          MAILHUB_CONFIG_STORE: "secret",
+          MAILHUB_ACTIVITY_STORE: "secret",
+          MAILHUB_READ_ONLY: "secret",
+        },
+      });
+      const audit = baseReadinessAudit();
+      writeJson(auditPath, {
+        ...audit,
+        requirements: {
+          ...audit.requirements,
+          staffGithubConfigReady: true,
+        },
+        inputs: {
+          ...audit.inputs,
+          githubStaffSecrets: staffGithubPath,
+        },
+      });
+
+      const result = runContract(auditPath);
+      expect(result.status).toBe(1);
+      expect(result.stdout).toContain("staff_github_config_semantic_non_variable_source:MAILHUB_ENV");
+      expect(result.stdout).toContain("staff_github_config_semantic_non_variable_source:MAILHUB_CONFIG_STORE");
+      expect(result.stdout).toContain("staff_github_config_semantic_non_variable_source:MAILHUB_ACTIVITY_STORE");
+      expect(result.stdout).toContain("staff_github_config_semantic_non_variable_source:MAILHUB_READ_ONLY");
+      expect(result.stdout).toContain("staff_github_config_ready_without_semantic_variable_sources");
+    });
+  });
+
   test("rejects production-ready staff GitHub claims that contradict the referenced artifact", () => {
     withTempDir((dir) => {
       const auditPath = join(dir, "readiness.json");
@@ -493,7 +681,7 @@ describe("MailHub readiness contract check", () => {
     });
   });
 
-  test("rejects production-ready staff GitHub claims backed by a stale referenced artifact", () => {
+  test("rejects production-ready staff GitHub claims backed by a non-fresh referenced artifact", () => {
     withTempDir((dir) => {
       const auditPath = join(dir, "readiness.json");
       const staffGithubPath = join(dir, "github-staff-secrets-readiness.json");
@@ -534,7 +722,7 @@ describe("MailHub readiness contract check", () => {
 
       const result = runContract(auditPath, "head123", "parent123");
       expect(result.status).toBe(1);
-      expect(result.stdout).toContain("staff_github_config_ready_artifact_requires_current_repo_head");
+      expect(result.stdout).toContain("staff_github_config_artifact_stale_repo_head");
     });
   });
 

@@ -1,4 +1,4 @@
-import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "fs";
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { join, resolve } from "path";
 import { spawnSync } from "child_process";
@@ -25,12 +25,42 @@ function readJson<T>(path: string): T {
   return JSON.parse(readFileSync(path, "utf8")) as T;
 }
 
-function runNodeScript(scriptPath: string, args: string[], env: Partial<NodeJS.ProcessEnv> = {}) {
+function runNodeScript(scriptPath: string, args: string[], env: Partial<NodeJS.ProcessEnv> = {}, cwd = process.cwd()) {
   return spawnSync(process.execPath, [scriptPath, ...args], {
-    cwd: process.cwd(),
+    cwd,
     encoding: "utf8",
     env: { ...process.env, ...env },
   });
+}
+
+function runGit(cwd: string, args: string[]) {
+  const result = spawnSync("git", args, {
+    cwd,
+    encoding: "utf8",
+  });
+  if (result.status !== 0) {
+    throw new Error(`git ${args.join(" ")} failed: ${result.stderr}`);
+  }
+  return result.stdout.trim();
+}
+
+function createArtifactOnlyRefreshRepo(dir: string) {
+  runGit(dir, ["init"]);
+  runGit(dir, ["config", "user.email", "mailhub-test@example.com"]);
+  runGit(dir, ["config", "user.name", "MailHub Test"]);
+  runGit(dir, ["config", "commit.gpgsign", "false"]);
+  writeFileSync(join(dir, "app.txt"), "base\n", "utf8");
+  runGit(dir, ["add", "app.txt"]);
+  runGit(dir, ["commit", "-m", "base"]);
+  const repoParentHead = runGit(dir, ["rev-parse", "HEAD"]);
+
+  const artifactDir = join(dir, ".ai-runs", "mailhub-next-phase");
+  mkdirSync(artifactDir, { recursive: true });
+  writeFileSync(join(artifactDir, "refresh.json"), "{}\n", "utf8");
+  runGit(dir, ["add", ".ai-runs/mailhub-next-phase/refresh.json"]);
+  runGit(dir, ["commit", "-m", "artifact refresh"]);
+  const repoHead = runGit(dir, ["rev-parse", "HEAD"]);
+  return { repoHead, repoParentHead };
 }
 
 const staffConfigEnvKeys = [
@@ -197,6 +227,98 @@ describe("MailHub staff GitHub config readiness", () => {
     });
   });
 
+  test("rejects semantic staff config values supplied only as secrets", () => {
+    withTempDir((dir) => {
+      const configPath = join(dir, "github-config.json");
+      const outPath = join(dir, "github-staff-secrets-readiness.json");
+      writeJson(configPath, {
+        secrets: [
+          ...completeConfig.secrets,
+          { name: "MAILHUB_ENV" },
+          { name: "MAILHUB_CONFIG_STORE" },
+          { name: "MAILHUB_ACTIVITY_STORE" },
+          { name: "MAILHUB_READ_ONLY" },
+        ],
+        variables: completeConfig.variables.filter((item) => ![
+          "MAILHUB_ENV",
+          "MAILHUB_CONFIG_STORE",
+          "MAILHUB_ACTIVITY_STORE",
+          "MAILHUB_READ_ONLY",
+        ].includes(item.name)),
+      });
+
+      const result = runNodeScript(staffSecretsPath, ["--config-json", configPath, "--out", outPath, "--no-fail"]);
+
+      expect(result.status).toBe(0);
+      const out = readJson<{
+        readyForProductionStaffPreflight: boolean;
+        semanticIssues: string[];
+        presentRequiredConfigSources: Record<string, string>;
+      }>(outPath);
+      expect(out.readyForProductionStaffPreflight).toBe(false);
+      expect(out.semanticIssues).toEqual([
+        "MAILHUB_ENV_must_be_variable",
+        "MAILHUB_CONFIG_STORE_must_be_variable",
+        "MAILHUB_ACTIVITY_STORE_must_be_variable",
+        "MAILHUB_READ_ONLY_must_be_variable",
+      ]);
+      expect(out.presentRequiredConfigSources.MAILHUB_ENV).toBe("secret");
+
+      const contract = runNodeScript(staffSecretContractPath, ["--artifact", outPath, "--allow-non-github-source"]);
+      expect(contract.status).toBe(1);
+      expect(contract.stdout).toContain("semantic_config_non_variable_source:MAILHUB_ENV");
+      expect(contract.stdout).toContain("semantic_config_non_variable_source:MAILHUB_CONFIG_STORE");
+      expect(contract.stdout).toContain("semantic_config_non_variable_source:MAILHUB_ACTIVITY_STORE");
+      expect(contract.stdout).toContain("semantic_config_non_variable_source:MAILHUB_READ_ONLY");
+    });
+  });
+
+  test("rejects semantic staff config values duplicated as secrets and variables", () => {
+    withTempDir((dir) => {
+      const configPath = join(dir, "github-config.json");
+      const outPath = join(dir, "github-staff-secrets-readiness.json");
+      writeJson(configPath, {
+        secrets: [
+          ...completeConfig.secrets,
+          { name: "MAILHUB_ENV" },
+          { name: "MAILHUB_CONFIG_STORE" },
+          { name: "MAILHUB_ACTIVITY_STORE" },
+          { name: "MAILHUB_READ_ONLY" },
+        ],
+        variables: completeConfig.variables,
+      });
+
+      const result = runNodeScript(staffSecretsPath, ["--config-json", configPath, "--out", outPath, "--no-fail"]);
+
+      expect(result.status).toBe(0);
+      const out = readJson<{
+        readyForProductionStaffPreflight: boolean;
+        semanticIssues: string[];
+        setupCommands: string[];
+        presentRequiredConfigSources: Record<string, string>;
+      }>(outPath);
+      expect(out.readyForProductionStaffPreflight).toBe(false);
+      expect(out.semanticIssues).toEqual([
+        "MAILHUB_ENV_must_be_variable",
+        "MAILHUB_CONFIG_STORE_must_be_variable",
+        "MAILHUB_ACTIVITY_STORE_must_be_variable",
+        "MAILHUB_READ_ONLY_must_be_variable",
+      ]);
+      expect(out.setupCommands).toEqual([
+        "npm run setup:mailhub-staff-github-config",
+        "npm run setup:mailhub-staff-github-config -- --apply",
+      ]);
+      expect(out.presentRequiredConfigSources.MAILHUB_ENV).toBe("secret");
+
+      const contract = runNodeScript(staffSecretContractPath, ["--artifact", outPath, "--allow-non-github-source"]);
+      expect(contract.status).toBe(1);
+      expect(contract.stdout).toContain("semantic_config_non_variable_source:MAILHUB_ENV");
+      expect(contract.stdout).toContain("semantic_config_non_variable_source:MAILHUB_CONFIG_STORE");
+      expect(contract.stdout).toContain("semantic_config_non_variable_source:MAILHUB_ACTIVITY_STORE");
+      expect(contract.stdout).toContain("semantic_config_non_variable_source:MAILHUB_READ_ONLY");
+    });
+  });
+
   test("rejects sensitive staff config when supplied as variables", () => {
     withTempDir((dir) => {
       const configPath = join(dir, "github-config.json");
@@ -311,31 +433,32 @@ describe("MailHub staff GitHub config readiness", () => {
     });
   });
 
-  test("contract rejects ready staff config artifacts from the parent commit", () => {
+  test("contract accepts ready staff config artifacts from an artifact-only parent refresh", () => {
     withTempDir((dir) => {
+      const { repoHead, repoParentHead } = createArtifactOnlyRefreshRepo(dir);
       const configPath = join(dir, "github-config.json");
       const outPath = join(dir, "github-staff-secrets-readiness.json");
       writeJson(configPath, completeConfig);
 
-      const audit = runNodeScript(staffSecretsPath, ["--config-json", configPath, "--out", outPath]);
+      const audit = runNodeScript(staffSecretsPath, ["--config-json", configPath, "--out", outPath], {}, dir);
       expect(audit.status).toBe(0);
       const artifact = readJson<Record<string, unknown>>(outPath);
       writeJson(outPath, {
         ...artifact,
         source: "github_actions_config",
-        repoHead: "parent123",
+        repoHead: repoParentHead,
       });
 
       const contract = runNodeScript(staffSecretContractPath, [
         "--artifact",
         outPath,
         "--repo-head",
-        "head123",
+        repoHead,
         "--repo-parent-head",
-        "parent123",
-      ]);
-      expect(contract.status).toBe(1);
-      expect(contract.stdout).toContain("ready_staff_config_requires_current_repo_head");
+        repoParentHead,
+      ], {}, dir);
+      expect(contract.status).toBe(0);
+      expect(contract.stdout).toContain('"ok": true');
     });
   });
 

@@ -3,6 +3,7 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
+import { isFreshRepoHead } from "./artifact-freshness.mjs";
 
 const repoRoot = process.cwd();
 const runDir = join(repoRoot, ".ai-runs", "mailhub-next-phase");
@@ -114,7 +115,7 @@ function main() {
   if (!githubSecrets) inputWarnings.push("missing_github_secrets_artifact");
   if (!preflight) inputWarnings.push("missing_preflight_artifact");
   if (readiness && !readinessRepoHead) inputErrors.push("readiness_missing_repo_head");
-  if (readinessRepoHead && repoHead && readinessRepoHead !== repoHead && readinessRepoHead !== repoParentHead) {
+  if (readinessRepoHead && !isFreshRepoHead({ repoRoot, artifactRepoHead: readinessRepoHead, repoHead, repoParentHead })) {
     inputErrors.push("stale_readiness_repo_head");
   }
 

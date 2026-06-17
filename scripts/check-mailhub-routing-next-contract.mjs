@@ -3,6 +3,7 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { isFreshRepoHead } from "./artifact-freshness.mjs";
 
 const repoRoot = process.cwd();
 const defaultNextPath = join(repoRoot, ".ai-runs", "mailhub-next-phase", "mailhub-routing-next-steps.json");
@@ -72,10 +73,6 @@ function actionsById(value) {
   return map;
 }
 
-function isFresh(repoValue, repoHead, repoParentHead) {
-  return Boolean(repoValue && repoHead && (repoValue === repoHead || repoValue === repoParentHead));
-}
-
 function expectActionStatus({ actions, id, expected, errors }) {
   const action = actions.get(id);
   if (!action) {
@@ -122,9 +119,11 @@ function main() {
 
   if (inputErrors.length > 0) errors.push(...inputErrors.map((error) => `input_error:${error}`));
   if (!artifactRepoHead) errors.push("missing_artifact_repo_head");
-  else if (!isFresh(artifactRepoHead, repoHead, repoParentHead)) errors.push("stale_artifact_repo_head");
+  else if (!isFreshRepoHead({ repoRoot, artifactRepoHead, repoHead, repoParentHead })) errors.push("stale_artifact_repo_head");
   if (!readinessRepoHead) errors.push("missing_readiness_repo_head");
-  else if (!isFresh(readinessRepoHead, repoHead, repoParentHead)) errors.push("stale_readiness_repo_head");
+  else if (!isFreshRepoHead({ repoRoot, artifactRepoHead: readinessRepoHead, repoHead, repoParentHead })) {
+    errors.push("stale_readiness_repo_head");
+  }
   if (!actualReadinessRepoHead) errors.push("missing_actual_readiness_repo_head");
   else if (readinessRepoHead && actualReadinessRepoHead !== readinessRepoHead) errors.push("readiness_repo_head_mismatch");
   if (!inputReadinessGeneratedAt) errors.push("missing_input_readiness_generated_at");

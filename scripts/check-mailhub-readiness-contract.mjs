@@ -3,12 +3,19 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { execFileSync } from "node:child_process";
+import { isFreshRepoHead } from "./artifact-freshness.mjs";
 
 const repoRoot = process.cwd();
 const defaultAuditPath = join(repoRoot, ".ai-runs", "mailhub-next-phase", "mailhub-production-readiness-audit.json");
 const STAFF_GITHUB_SETUP_COMMANDS = [
   "npm run setup:mailhub-staff-github-config",
   "npm run setup:mailhub-staff-github-config -- --apply",
+];
+const REQUIRED_SEMANTIC_VARIABLE_NAMES = [
+  "MAILHUB_ENV",
+  "MAILHUB_CONFIG_STORE",
+  "MAILHUB_ACTIVITY_STORE",
+  "MAILHUB_READ_ONLY",
 ];
 
 function parseArgs(argv) {
@@ -90,7 +97,7 @@ function main() {
   const productionReady = gate.productionReady === true;
 
   if (!auditRepoHead) errors.push("missing_repo_head");
-  else if (repoHead && auditRepoHead !== repoHead && auditRepoHead !== repoParentHead) {
+  else if (!isFreshRepoHead({ repoRoot, artifactRepoHead: auditRepoHead, repoHead, repoParentHead })) {
     errors.push("stale_repo_head");
   }
 
@@ -256,18 +263,28 @@ function main() {
     const staffArtifactRepoHead = typeof githubStaffSecrets.repoHead === "string" ? githubStaffSecrets.repoHead : null;
     if (!staffArtifactRepoHead) {
       errors.push("staff_github_config_artifact_missing_repo_head");
-    } else if (repoHead && staffArtifactRepoHead !== repoHead && staffArtifactRepoHead !== repoParentHead) {
+    } else if (!isFreshRepoHead({ repoRoot, artifactRepoHead: staffArtifactRepoHead, repoHead, repoParentHead })) {
       errors.push("staff_github_config_artifact_stale_repo_head");
     }
     const artifactReady = githubStaffSecrets.readyForProductionStaffPreflight === true;
+    const staffArtifactSourceMap = objectValue(githubStaffSecrets.presentRequiredConfigSources);
+    const semanticVariableSourceGaps = REQUIRED_SEMANTIC_VARIABLE_NAMES.filter(
+      (name) => Object.prototype.hasOwnProperty.call(staffArtifactSourceMap, name) && staffArtifactSourceMap[name] !== "variable",
+    );
+    const semanticVariableSourcesReady = REQUIRED_SEMANTIC_VARIABLE_NAMES.every(
+      (name) => staffArtifactSourceMap[name] === "variable",
+    );
+    for (const name of semanticVariableSourceGaps) {
+      errors.push(`staff_github_config_semantic_non_variable_source:${name}`);
+    }
     if (typeof requirements.staffGithubConfigReady === "boolean" && requirements.staffGithubConfigReady !== artifactReady) {
       errors.push("staff_github_config_gate_mismatch");
     }
     if (artifactReady && githubStaffSecrets.readyForSecretBackedStaffConfig !== true) {
       errors.push("staff_github_config_ready_without_secret_backing");
     }
-    if ((requirements.staffGithubConfigReady === true || productionReady) && repoHead && staffArtifactRepoHead !== repoHead) {
-      errors.push("staff_github_config_ready_artifact_requires_current_repo_head");
+    if ((artifactReady || requirements.staffGithubConfigReady === true || productionReady) && !semanticVariableSourcesReady) {
+      errors.push("staff_github_config_ready_without_semantic_variable_sources");
     }
   }
   if (requirements.staffGithubConfigReady === true || productionReady) {
@@ -299,9 +316,11 @@ function main() {
       const missingProductionStaffConfig = stringArray(staffGithubConfig.missingProductionStaffConfig);
       const missingSecretConfig = stringArray(staffGithubConfig.missingSecretConfig);
       const semanticIssues = stringArray(staffGithubConfig.semanticIssues);
+      const semanticSourceIssues = stringArray(staffGithubConfig.semanticSourceIssues);
       const hasTrustGap =
         staffGithubConfig.sourceTrusted === false ||
-        staffGithubConfig.repoHeadMatchesCurrent === false ||
+        staffGithubConfig.repoHeadFresh === false ||
+        (typeof staffGithubConfig.repoHeadFresh !== "boolean" && staffGithubConfig.repoHeadMatchesCurrent === false) ||
         staffGithubConfig.readyForSecretBackedStaffConfig === false;
       const setupCommands = stringArray(staffGithubConfig.setupCommands);
       if (typeof staffGithubConfig.readyForProductionStaffPreflight !== "boolean" && !staffGithubConfig.missingArtifact) {
@@ -311,6 +330,7 @@ function main() {
         missingProductionStaffConfig.length === 0 &&
         missingSecretConfig.length === 0 &&
         semanticIssues.length === 0 &&
+        semanticSourceIssues.length === 0 &&
         !hasTrustGap &&
         !staffGithubConfig.missingArtifact) {
         errors.push("staff_github_config_blocker_missing_gap_detail");

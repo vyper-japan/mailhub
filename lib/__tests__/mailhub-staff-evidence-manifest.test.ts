@@ -103,7 +103,7 @@ describe("MailHub staff evidence manifest writer", () => {
         "--message-id",
         "msg-002",
         "--action",
-        "label-add",
+        "setWaiting",
         "--date",
         "20260618",
       ]);
@@ -120,9 +120,9 @@ describe("MailHub staff evidence manifest writer", () => {
       };
       expect(manifest.controlledWritePilot).toMatchObject({
         messageId: "msg-002",
-        action: "label-add",
-        gmailProof: "gmail-msg-002-label-add.png",
-        mailhubProof: "mailhub-msg-002-label-add.png",
+        action: "setWaiting",
+        gmailProof: "gmail-msg-002-setWaiting.png",
+        mailhubProof: "mailhub-msg-002-setWaiting.png",
         activityCsv: "activity-20260618-prod.csv",
       });
     });
@@ -141,6 +141,8 @@ describe("MailHub staff evidence manifest writer", () => {
         "ops@vtj.co.jp",
         "--message-id",
         "msg-001",
+        "--action",
+        "done",
         "--date",
         "2026-06-17",
       ]);
@@ -150,6 +152,7 @@ describe("MailHub staff evidence manifest writer", () => {
       expect(summary.ok).toBe(false);
       expect(summary.errors).toEqual(expect.arrayContaining([
         "invalid_captured_by",
+        "invalid_action:done",
         "invalid_date",
       ]));
     });

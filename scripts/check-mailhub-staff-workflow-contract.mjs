@@ -3,6 +3,7 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { isFreshRepoHead } from "./artifact-freshness.mjs";
 
 const repoRoot = process.cwd();
 const defaultAuditPath = join(repoRoot, ".ai-runs", "mailhub-next-phase", "mailhub-staff-workflow-audit.json");
@@ -57,10 +58,6 @@ function blockers(value) {
     : [];
 }
 
-function isFresh(repoValue, repoHead, repoParentHead) {
-  return Boolean(repoValue && repoHead && (repoValue === repoHead || repoValue === repoParentHead));
-}
-
 function main() {
   const args = parseArgs(process.argv.slice(2));
   const audit = readJson(args.audit);
@@ -81,7 +78,9 @@ function main() {
 
   if (Number.isNaN(Date.parse(audit.generatedAt ?? ""))) errors.push("invalid_generated_at");
   if (!auditRepoHead) errors.push("missing_repo_head");
-  else if (!isFresh(auditRepoHead, repoHead, repoParentHead)) errors.push("stale_repo_head");
+  else if (!isFreshRepoHead({ repoRoot, artifactRepoHead: auditRepoHead, repoHead, repoParentHead })) {
+    errors.push("stale_repo_head");
+  }
 
   for (const id of p0Blockers) {
     if (!details.some((item) => item.id === id && item.severity === "P0")) {
@@ -97,6 +96,7 @@ function main() {
   const readOnlyRolloutReady = requirements.readOnlyRolloutReady === true;
   const controlledWritePilotReady = requirements.controlledWritePilotReady === true;
   const staffWorkflowPermissionsReady = requirements.staffWorkflowPermissionsReady === true;
+  const staffAccessAllowlistReady = requirements.staffAccessAllowlistReady === true;
 
   if ((gate.readOnlyRolloutReady === true) !== readOnlyRolloutReady) errors.push("readonly_rollout_gate_mismatch");
   if ((gate.controlledWritePilotReady === true) !== controlledWritePilotReady) errors.push("controlled_write_gate_mismatch");
@@ -111,6 +111,10 @@ function main() {
     if (environment.readOnly !== true) errors.push("ready_without_readonly_return_state");
     if (requirements.productionEnvReady !== true) errors.push("ready_without_production_env_requirements");
     if (requirements.adminsReady !== true) errors.push("ready_without_admins");
+    if (requirements.staffAccessAllowlistReady !== true || staff.staffAccessAllowlistReady !== true) {
+      errors.push("ready_without_staff_access_allowlist");
+    }
+    if ((staff.teamMemberCount ?? 0) < 1) errors.push("ready_without_team_members");
     if (requirements.assigneeRosterReady !== true) errors.push("ready_without_assignee_roster");
     if (requirements.durableConfigReady !== true) errors.push("ready_without_durable_config");
     if (requirements.durableActivityReady !== true) errors.push("ready_without_durable_activity");
@@ -120,6 +124,8 @@ function main() {
   } else if (p0Blockers.length === 0 && p1Blockers.length === 0) {
     errors.push("not_ready_without_blockers");
   }
+  if (readOnlyRolloutReady && !staffAccessAllowlistReady) errors.push("readonly_ready_without_staff_access_allowlist");
+  if (controlledWritePilotReady && !staffAccessAllowlistReady) errors.push("controlled_write_ready_without_staff_access_allowlist");
 
   if (requirements.productionEnvReady === true) {
     if (environment.mailhubEnv !== "production") errors.push("production_env_ready_mismatch");
@@ -130,6 +136,12 @@ function main() {
     if (staff.adminsConfigured !== true || (staff.adminCount ?? 0) < 1) errors.push("admins_ready_without_admins");
     if (stringArray(staff.adminInvalid).length > 0) errors.push("admins_ready_with_invalid");
     if (stringArray(staff.adminNonVtj).length > 0) errors.push("admins_ready_with_non_vtj");
+  }
+  if (staffAccessAllowlistReady) {
+    if (staff.staffAccessAllowlistReady !== true) errors.push("staff_access_allowlist_ready_mismatch");
+    if ((staff.teamMemberCount ?? 0) < 1) errors.push("staff_access_allowlist_ready_without_team_members");
+    if (stringArray(staff.teamInvalid).length > 0) errors.push("staff_access_allowlist_ready_with_invalid");
+    if (stringArray(staff.teamNonVtj).length > 0) errors.push("staff_access_allowlist_ready_with_non_vtj");
   }
   if (requirements.durableConfigReady === true && config.configStore !== "sheets") errors.push("durable_config_not_sheets");
   if (requirements.durableActivityReady === true && config.activityStore !== "sheets") errors.push("durable_activity_not_sheets");
@@ -160,6 +172,7 @@ function main() {
     staffWorkflowPermissionsReady,
     readOnlyRolloutReady,
     controlledWritePilotReady,
+    staffAccessAllowlistReady,
     p0Blockers,
     p1Blockers,
     errors,

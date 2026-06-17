@@ -39,7 +39,7 @@ const REQUIRED_PROD_WRITE_EVIDENCE = [
 
 const EVIDENCE_MANIFEST_FILE = "staff-workflow-evidence-manifest.json";
 const EVIDENCE_MANIFEST_SCHEMA = "mailhub.staff-workflow-evidence.v1";
-const VALID_WRITE_ACTIONS = new Set(["assign", "waiting", "done", "mute", "label-add", "label-remove"]);
+const VALID_WRITE_ACTIONS = new Set(["setWaiting", "archive", "mute", "assign"]);
 const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 const MIN_PNG_BYTES = 1024;
 
@@ -318,13 +318,20 @@ function validateActivityCsv({ dir, files, filename, expected, errors }) {
       return;
     }
     const expectedActor = expected.actorEmail.toLowerCase();
-    const expectedAction = expected.action.toLowerCase();
-    const matched = dataRows.some((row) =>
-      String(row[messageIndex] ?? "").trim() === expected.messageId &&
-      String(row[actorIndex] ?? "").trim().toLowerCase() === expectedActor &&
-      String(row[actionIndex] ?? "").trim().toLowerCase() === expectedAction
+    const expectedAction = expected.action;
+    const activityRows = dataRows.map((row) => ({
+      messageId: String(row[messageIndex] ?? "").trim(),
+      actorEmail: String(row[actorIndex] ?? "").trim().toLowerCase(),
+      action: String(row[actionIndex] ?? "").trim(),
+    }));
+    const matchingRows = activityRows.filter((row) =>
+      row.messageId === expected.messageId &&
+      row.actorEmail === expectedActor &&
+      row.action === expectedAction
     );
-    if (!matched) errors.push(`activity_csv_missing_controlled_write_row:${filename}`);
+    if (matchingRows.length === 0) errors.push(`activity_csv_missing_controlled_write_row:${filename}`);
+    if (matchingRows.length > 1) errors.push(`activity_csv_duplicate_controlled_write_row:${filename}:${matchingRows.length}`);
+    if (activityRows.length > 1) errors.push(`activity_csv_extra_write_rows:${filename}:${activityRows.length}`);
   } catch (e) {
     errors.push(`activity_csv_read_error:${filename}:${e instanceof Error ? e.message : String(e)}`);
   }

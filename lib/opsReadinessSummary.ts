@@ -59,6 +59,7 @@ const GMAIL_PROOF_SECRET_NAMES = [
   "GOOGLE_SHARED_INBOX_EMAIL",
   "GOOGLE_SHARED_INBOX_REFRESH_TOKEN",
 ];
+const ARTIFACT_REFRESH_PREFIXES = [".ai-runs/mailhub-next-phase/"];
 
 export function unavailableOpsReadinessSummary(): OpsReadinessSummary {
   return {
@@ -118,9 +119,32 @@ function gitRevParse(ref: string): string | null {
   }
 }
 
+function changedFiles(fromRef: string, toRef: string): string[] | null {
+  try {
+    return execFileSync("git", ["diff", "--name-only", `${fromRef}..${toRef}`], {
+      cwd: process.cwd(),
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    })
+      .trim()
+      .split(/\r?\n/)
+      .filter(Boolean);
+  } catch {
+    return null;
+  }
+}
+
+function isArtifactOnlyRefreshCommit(currentHead: string | null, currentParentHead: string | null): boolean {
+  if (!currentHead || !currentParentHead) return false;
+  const files = changedFiles(currentParentHead, currentHead);
+  if (!files || files.length === 0) return false;
+  return files.every((file) => ARTIFACT_REFRESH_PREFIXES.some((prefix) => file.startsWith(prefix)));
+}
+
 function repoHeadMatchesAudit(auditRepoHead: string | null, currentHead: string | null, currentParentHead: string | null): boolean | null {
   if (!auditRepoHead || !currentHead) return null;
-  return auditRepoHead === currentHead || auditRepoHead === currentParentHead;
+  if (auditRepoHead === currentHead) return true;
+  return auditRepoHead === currentParentHead && isArtifactOnlyRefreshCommit(currentHead, currentParentHead);
 }
 
 function stringArray(value: unknown): string[] {

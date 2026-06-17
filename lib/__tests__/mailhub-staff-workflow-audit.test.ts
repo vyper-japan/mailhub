@@ -267,6 +267,57 @@ describe("MailHub staff workflow audit", () => {
     });
   });
 
+  test("contract rejects ready artifact when staff access allowlist is not ready", () => {
+    withTempDir((dir) => {
+      const outPath = join(dir, "staff.json");
+      const evidenceDir = join(dir, "prod");
+      const assigneesPath = join(dir, "assignees.json");
+      writeProductionEvidence(evidenceDir);
+      writeJson(assigneesPath, [{ email: "yuka@vtj.co.jp", displayName: "Yuka" }]);
+
+      const result = runNodeScript(staffAuditPath, [
+        "--out",
+        outPath,
+        "--prod-evidence-dir",
+        evidenceDir,
+        "--assignees",
+        assigneesPath,
+      ], productionEnv);
+
+      expect(result.status).toBe(0);
+      const artifact = JSON.parse(readFileSync(outPath, "utf8")) as {
+        repoHead: string;
+        staff: { staffAccessAllowlistReady: boolean; teamMemberCount: number };
+        requirements: { staffAccessAllowlistReady: boolean };
+        gate: { p0Blockers: string[]; p1Blockers: string[] };
+        blockers: unknown[];
+      };
+      artifact.staff.staffAccessAllowlistReady = false;
+      artifact.staff.teamMemberCount = 0;
+      artifact.requirements.staffAccessAllowlistReady = false;
+      artifact.gate.p0Blockers = [];
+      artifact.gate.p1Blockers = [];
+      artifact.blockers = [];
+      writeJson(outPath, artifact);
+
+      const contract = runNodeScript(staffContractPath, [
+        "--audit",
+        outPath,
+        "--repo-head",
+        artifact.repoHead,
+      ]);
+
+      expect(contract.status).toBe(1);
+      const summary = JSON.parse(contract.stdout) as { errors: string[] };
+      expect(summary.errors).toEqual(expect.arrayContaining([
+        "ready_without_staff_access_allowlist",
+        "ready_without_team_members",
+        "readonly_ready_without_staff_access_allowlist",
+        "controlled_write_ready_without_staff_access_allowlist",
+      ]));
+    });
+  });
+
   test("rejects staff evidence files with invalid PNG bytes", () => {
     withTempDir((dir) => {
       const outPath = join(dir, "staff.json");
@@ -338,6 +389,40 @@ describe("MailHub staff workflow audit", () => {
       };
       expect(artifact.requirements.writePilotEvidenceReady).toBe(false);
       expect(artifact.evidence.writePilotEvidenceIssues).toContain("manifest:activity_csv_missing_controlled_write_row:activity-20260617-prod.csv");
+      expect(artifact.gate.staffWorkflowPermissionsReady).toBe(false);
+    });
+  });
+
+  test("rejects staff evidence manifest when Activity CSV contains extra write rows", () => {
+    withTempDir((dir) => {
+      const outPath = join(dir, "staff.json");
+      const evidenceDir = join(dir, "prod");
+      const assigneesPath = join(dir, "assignees.json");
+      writeProductionEvidence(evidenceDir);
+      writeFileSync(join(evidenceDir, "activity-20260617-prod.csv"), [
+        "timeISO,actor,action,messageId,subject,channel,status,label,metaJSON,reason",
+        "2026-06-17T12:01:00.000Z,maki@vtj.co.jp,assign,msg-001,Pilot,stores,ok,MailHub/Todo,{},pilot",
+        "2026-06-17T12:02:00.000Z,maki@vtj.co.jp,archive,msg-002,Extra,stores,ok,MailHub/Todo,{},pilot",
+      ].join("\n"), "utf8");
+      writeJson(assigneesPath, [{ email: "yuka@vtj.co.jp", displayName: "Yuka" }]);
+
+      const result = runNodeScript(staffAuditPath, [
+        "--out",
+        outPath,
+        "--prod-evidence-dir",
+        evidenceDir,
+        "--assignees",
+        assigneesPath,
+      ], productionEnv);
+
+      expect(result.status).toBe(0);
+      const artifact = JSON.parse(readFileSync(outPath, "utf8")) as {
+        requirements: { writePilotEvidenceReady: boolean };
+        evidence: { writePilotEvidenceIssues: string[] };
+        gate: { staffWorkflowPermissionsReady: boolean };
+      };
+      expect(artifact.requirements.writePilotEvidenceReady).toBe(false);
+      expect(artifact.evidence.writePilotEvidenceIssues).toContain("manifest:activity_csv_extra_write_rows:activity-20260617-prod.csv:2");
       expect(artifact.gate.staffWorkflowPermissionsReady).toBe(false);
     });
   });

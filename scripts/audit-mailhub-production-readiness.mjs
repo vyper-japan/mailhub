@@ -3,6 +3,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { execFileSync } from "node:child_process";
+import { isFreshRepoHead } from "./artifact-freshness.mjs";
 
 const repoRoot = process.cwd();
 const runDir = join(repoRoot, ".ai-runs", "mailhub-next-phase");
@@ -19,6 +20,12 @@ const defaults = {
   staffWorkflowAudit: join(runDir, "mailhub-staff-workflow-audit.json"),
   out: join(runDir, "mailhub-production-readiness-audit.json"),
 };
+const REQUIRED_SEMANTIC_VARIABLE_NAMES = [
+  "MAILHUB_ENV",
+  "MAILHUB_CONFIG_STORE",
+  "MAILHUB_ACTIVITY_STORE",
+  "MAILHUB_READ_ONLY",
+];
 
 function parseArgs(argv) {
   const out = { ...defaults };
@@ -66,8 +73,16 @@ function objectValue(value) {
 }
 
 function currentRepoHead() {
+  return gitRevParse("HEAD");
+}
+
+function currentRepoParentHead() {
+  return gitRevParse("HEAD^");
+}
+
+function gitRevParse(ref) {
   try {
-    return execFileSync("git", ["rev-parse", "HEAD"], {
+    return execFileSync("git", ["rev-parse", ref], {
       cwd: repoRoot,
       encoding: "utf8",
       stdio: ["ignore", "pipe", "ignore"],
@@ -75,6 +90,16 @@ function currentRepoHead() {
   } catch {
     return null;
   }
+}
+
+function semanticVariableSourceIssues(sourceMap) {
+  return REQUIRED_SEMANTIC_VARIABLE_NAMES
+    .filter((name) => Object.prototype.hasOwnProperty.call(sourceMap, name) && sourceMap[name] !== "variable")
+    .map((name) => `${name}_must_be_variable`);
+}
+
+function semanticVariableSourcesReady(sourceMap) {
+  return REQUIRED_SEMANTIC_VARIABLE_NAMES.every((name) => sourceMap[name] === "variable");
 }
 
 function main() {
@@ -90,6 +115,7 @@ function main() {
   const rulesAudit = readJson(args.rulesAudit);
   const staffWorkflowAudit = readOptionalJson(args.staffWorkflowAudit);
   const repoHead = currentRepoHead();
+  const repoParentHead = currentRepoParentHead();
 
   const knownCodeGaps = sourceAudit.zeroEstimateAnalysis?.knownCodeGaps ?? [];
   const sourceCodeCoverageReady =
@@ -140,12 +166,23 @@ function main() {
     ruleConfigSource.resolvedSource === "sheets" && ruleConfigSource.warnings.length === 0;
   const ruleSafetyReady = Boolean(rulesAudit.ruleSafetyGate?.realDataRuleRiskPass) && ruleConfigFingerprintPresent;
   const staffWorkflowPermissionsReady = Boolean(staffWorkflowAudit?.gate?.staffWorkflowPermissionsReady);
+  const staffGithubConfigSources = objectValue(githubStaffSecrets?.presentRequiredConfigSources);
+  const staffGithubSemanticSourceIssues = githubStaffSecrets ? semanticVariableSourceIssues(staffGithubConfigSources) : [];
+  const staffGithubSemanticSourcesReady = githubStaffSecrets ? semanticVariableSourcesReady(staffGithubConfigSources) : false;
+  const staffGithubRepoHead = typeof githubStaffSecrets?.repoHead === "string" ? githubStaffSecrets.repoHead : null;
+  const staffGithubRepoHeadFresh = isFreshRepoHead({
+    repoRoot,
+    artifactRepoHead: staffGithubRepoHead,
+    repoHead,
+    repoParentHead,
+  });
   const staffGithubConfigReady =
     githubStaffSecrets?.source === "github_actions_config" &&
-    githubStaffSecrets?.repoHead === repoHead &&
+    staffGithubRepoHeadFresh &&
     githubStaffSecrets?.readyForProductionStaffPreflight === true &&
     githubStaffSecrets?.readyForSecretBackedStaffConfig === true &&
-    stringArray(githubStaffSecrets?.semanticIssues).length === 0;
+    stringArray(githubStaffSecrets?.semanticIssues).length === 0 &&
+    staffGithubSemanticSourcesReady;
   const staffWorkflowBlockerSeverity = currentSharedGmailRoutingReady ? "P0" : "P1";
   const staffGithubConfigBlockerSeverity = currentSharedGmailRoutingReady ? "P0" : "P1";
 
@@ -222,7 +259,9 @@ function main() {
         checkedAt: githubStaffSecrets.checkedAt ?? null,
         repoHead: githubStaffSecrets.repoHead ?? null,
         currentRepoHead: repoHead,
+        repoParentHead,
         repoHeadMatchesCurrent: githubStaffSecrets.repoHead === repoHead,
+        repoHeadFresh: staffGithubRepoHeadFresh,
         secretCount: githubStaffSecrets.secretCount ?? null,
         variableCount: githubStaffSecrets.variableCount ?? null,
         readyForProductionStaffPreflight: githubStaffSecrets.readyForProductionStaffPreflight ?? null,
@@ -230,6 +269,7 @@ function main() {
         missingProductionStaffConfig: githubStaffSecrets.missingProductionStaffConfig ?? [],
         missingSecretConfig: githubStaffSecrets.missingSecretConfig ?? [],
         semanticIssues: githubStaffSecrets.semanticIssues ?? [],
+        semanticSourceIssues: staffGithubSemanticSourceIssues,
         presentRequiredConfigNames: githubStaffSecrets.presentRequiredConfigNames ?? [],
         presentRequiredConfigSources: githubStaffSecrets.presentRequiredConfigSources ?? {},
         setupCommands: githubStaffSecrets.setupCommands ?? [],

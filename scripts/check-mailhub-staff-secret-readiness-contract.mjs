@@ -3,6 +3,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { execFileSync } from "node:child_process";
+import { isFreshRepoHead } from "./artifact-freshness.mjs";
 
 const repoRoot = process.cwd();
 const defaultArtifactPath = join(repoRoot, ".ai-runs", "mailhub-next-phase", "github-staff-secrets-readiness.json");
@@ -44,6 +45,7 @@ const REQUIRED_SEMANTIC_VARIABLE_VALUES = {
   MAILHUB_ACTIVITY_STORE: "sheets",
   MAILHUB_READ_ONLY: "1",
 };
+const SEMANTIC_VARIABLE_NAMES = Object.keys(REQUIRED_SEMANTIC_VARIABLE_VALUES);
 const VALID_SOURCES = new Set(["github_actions_config", "env", "json"]);
 const STAFF_GITHUB_SETUP_COMMANDS = [
   "npm run setup:mailhub-staff-github-config",
@@ -168,10 +170,7 @@ function main() {
   }
   if (Number.isNaN(Date.parse(artifact.checkedAt ?? ""))) errors.push("invalid_checked_at");
   if (!artifactRepoHead) errors.push("missing_repo_head");
-  else if (repoHead && artifactRepoHead !== repoHead && artifactRepoHead !== repoParentHead) errors.push("stale_repo_head");
-  if (artifact.readyForProductionStaffPreflight === true && repoHead && artifactRepoHead !== repoHead) {
-    errors.push("ready_staff_config_requires_current_repo_head");
-  }
+  else if (!isFreshRepoHead({ repoRoot, artifactRepoHead, repoHead, repoParentHead })) errors.push("stale_repo_head");
   if (!Number.isInteger(artifact.secretCount) || artifact.secretCount < 0) errors.push("invalid_secret_count");
   if (!Number.isInteger(artifact.variableCount) || artifact.variableCount < 0) errors.push("invalid_variable_count");
   if (!sameArray(requiredProductionStaffConfig, expectedRequired)) errors.push("required_production_staff_config_mismatch");
@@ -186,7 +185,7 @@ function main() {
   if (!sameArray(missingSecretConfig, expectedMissingSecrets)) errors.push("missing_secret_config_mismatch");
   for (const issue of semanticIssues) {
     const matched = Object.entries(REQUIRED_SEMANTIC_VARIABLE_VALUES).some(([name, expected]) =>
-      issue === `${name}_value_unverified` || issue === `${name}_must_be_${expected}`);
+      issue === `${name}_value_unverified` || issue === `${name}_must_be_${expected}` || issue === `${name}_must_be_variable`);
     if (!matched) errors.push(`unknown_semantic_issue:${issue}`);
   }
   if ((artifact.readyForSecretBackedStaffConfig === true) !== (missingSecretConfig.length === 0)) {
@@ -219,6 +218,9 @@ function main() {
     }
     if (REQUIRED_SECRET_CONFIG.includes(name) && source !== "secret") {
       errors.push(`secret_config_non_secret_source:${name}`);
+    }
+    if (SEMANTIC_VARIABLE_NAMES.includes(name) && source !== "variable") {
+      errors.push(`semantic_config_non_variable_source:${name}`);
     }
   }
 

@@ -6,7 +6,7 @@ import { dirname, join } from "node:path";
 const repoRoot = process.cwd();
 const defaultOut = join(repoRoot, "docs", "pilot", "prod", "staff-workflow-evidence-manifest.json");
 const schema = "mailhub.staff-workflow-evidence.v1";
-const validActions = new Set(["assign", "waiting", "done", "mute", "label-add", "label-remove"]);
+const validActions = new Set(["setWaiting", "archive", "mute", "assign"]);
 
 function parseArgs(argv) {
   const out = {
@@ -30,7 +30,7 @@ function parseArgs(argv) {
     else if (arg === "--action") out.action = argv[++i];
     else if (arg === "--date") out.date = argv[++i];
     else if (arg === "--help" || arg === "-h") {
-      console.log("Usage: node scripts/write-mailhub-staff-evidence-manifest.mjs --captured-by admin@vtj.co.jp --staff-email staff@vtj.co.jp --actor-email staff@vtj.co.jp --message-id <messageId> [--action assign] [--date YYYYMMDD] [--out path]");
+      console.log("Usage: node scripts/write-mailhub-staff-evidence-manifest.mjs --captured-by admin@vtj.co.jp --staff-email staff@vtj.co.jp --actor-email staff@vtj.co.jp --message-id <messageId> [--action assign|setWaiting|archive|mute] [--date YYYYMMDD] [--out path]");
       process.exit(0);
     }
   }
