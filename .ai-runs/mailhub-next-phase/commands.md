@@ -2351,6 +2351,23 @@ git diff --check
 - The run spent about 15 minutes in `Install Playwright browsers` before `QA Strict` started, leaving too little time for the actual gate.
 - `.github/workflows/qa-strict.yml` now caches Playwright browser downloads, installs Chromium without `--with-deps`, and raises the job timeout to 30 minutes.
 
+## 2026-06-18 Artifact Refresh After CI Fix Commands
+
+```bash
+npm run audit:mailhub-staff-workflow -- --out .ai-runs/mailhub-next-phase/mailhub-staff-workflow-audit.json
+npm run audit:mailhub-staff-next -- --out .ai-runs/mailhub-next-phase/mailhub-staff-workflow-next-steps.json
+npm run audit:mailhub-readiness -- --out .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json
+npm run audit:mailhub-routing-next -- --strict --out .ai-runs/mailhub-next-phase/mailhub-routing-next-steps.json
+npm run audit:mailhub-rule-config-next -- --out .ai-runs/mailhub-next-phase/mailhub-rule-config-next-steps.json
+npm run audit:github-routing-secrets-contract && npm run audit:mailhub-staff-workflow-contract && npm run audit:mailhub-staff-next-contract && npm run audit:mailhub-readiness-contract && npm run audit:mailhub-rule-config-next-contract && npm run audit:mailhub-routing-next-contract && npm run audit:mailhub-routing-proof-contract && actionlint .github/workflows/*.yml && git diff --check
+```
+
+## 2026-06-18 Artifact Refresh After CI Fix Results
+
+- `MailHub Readiness Contract` for `aad3942` failed with `stale_repo_head` because the workflow-only commit moved the artifact freshness window past the prior `c30f5ed` artifacts.
+- Staff workflow, staff next-step, production readiness, routing next-step, and rule-config next-step artifacts were regenerated at repo head `aad3942`.
+- Local readiness/staff/routing/rule-config contracts pass again with the same production blockers: P0 `current_shared_gmail_routing`, P1 `rule_config_source_not_production`, and P1 `staff_workflow_permissions`.
+
 ## Useful Runtime Commands
 
 Start dev server for tunnel:
