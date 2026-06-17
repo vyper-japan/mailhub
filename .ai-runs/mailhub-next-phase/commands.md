@@ -1527,6 +1527,52 @@ npm run audit:mailhub-readiness-contract
 - Focused Vitest passed 24/24.
 - Current artifacts passed: readiness and routing-next both point at `50c0a7e`, both remain not-ready, and both show P0 `current_shared_gmail_routing`.
 
+## 2026-06-17 Routing/Readiness Cross-Artifact Contract CI
+
+```bash
+git push
+gh run watch 27679840778 --repo vyper-japan/mailhub --exit-status
+gh run watch 27679840775 --repo vyper-japan/mailhub --exit-status
+```
+
+## 2026-06-17 Routing/Readiness Cross-Artifact Contract CI Results
+
+- Pushed `cfa8b21`.
+- `MailHub Readiness Contract` run `27679840778`: passed in 24s.
+- `qa-strict` run `27679840775`: passed in 12m05s.
+
+## 2026-06-17 GitHub Routing Secret Readiness Contract Commands
+
+```bash
+node --check scripts/check-mailhub-routing-secret-readiness-contract.mjs
+npm run audit:github-routing-secrets-contract
+npm run audit:mailhub-readiness -- --out .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json
+npm run audit:mailhub-routing-next -- --strict --out .ai-runs/mailhub-next-phase/mailhub-routing-next-steps.json
+npm run audit:github-routing-secrets-contract
+npm run audit:mailhub-readiness-contract
+npm run audit:mailhub-routing-next-contract
+npx vitest run lib/__tests__/mailhub-routing-probe-scripts.test.ts lib/__tests__/mailhub-readiness-contract.test.ts
+npm run typecheck
+npm run lint
+npm run test
+npm run build
+npm run security:scan
+npm run security:scan-artifacts
+git diff --check
+```
+
+## 2026-06-17 GitHub Routing Secret Readiness Contract Results
+
+- Added `npm run audit:github-routing-secrets-contract`.
+- The new contract passed against the current real GitHub secret readiness artifact:
+  - `externalSmtpProofReady=false`
+  - `gmailProofReady=true`
+  - missing external SMTP proof secrets: `MAILHUB_PROBE_SMTP_HOST`, `MAILHUB_PROBE_SMTP_USER`, `MAILHUB_PROBE_SMTP_PASS`, `MAILHUB_PROBE_FROM`
+- Production readiness and routing-next artifacts were refreshed to repo head `cfa8b21`.
+- Focused Vitest passed 32/32.
+- Full Vitest passed 63 files / 567 tests.
+- Typecheck, lint, build, security scan, artifact secret scan, and `git diff --check` passed.
+
 ## Useful Runtime Commands
 
 Start dev server for tunnel:

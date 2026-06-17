@@ -8,6 +8,7 @@ const routingProbeAuditPath = resolve(process.cwd(), "scripts/audit-mailhub-rout
 const readinessAuditPath = resolve(process.cwd(), "scripts/audit-mailhub-production-readiness.mjs");
 const routingProbeSenderPath = resolve(process.cwd(), "scripts/send-mailhub-routing-probes.mjs");
 const routingProbeSecretsPath = resolve(process.cwd(), "scripts/check-mailhub-routing-probe-secrets.mjs");
+const routingSecretContractPath = resolve(process.cwd(), "scripts/check-mailhub-routing-secret-readiness-contract.mjs");
 const routingNextStepsPath = resolve(process.cwd(), "scripts/write-mailhub-routing-next-steps.mjs");
 const routingNextContractPath = resolve(process.cwd(), "scripts/check-mailhub-routing-next-contract.mjs");
 const routingSecretSetupPath = resolve(process.cwd(), "scripts/setup-mailhub-routing-probe-secrets.mjs");
@@ -238,6 +239,179 @@ describe("MailHub routing probe CLI gates", () => {
         ],
       });
       expect(out.presentRequiredSecretNames).toEqual([]);
+    });
+  });
+
+  test("GitHub routing secret readiness contract accepts grouped readiness artifact", () => {
+    withTempDir((dir) => {
+      const artifactPath = join(dir, "github-routing-secrets-readiness.json");
+      writeJson(artifactPath, {
+        repo: "vyper-japan/mailhub",
+        source: "github_actions_secrets",
+        checkedAt: "2026-06-17T00:00:00.000Z",
+        secretCount: 4,
+        requiredPreflightSecrets: [
+          "MAILHUB_PROBE_SMTP_HOST",
+          "MAILHUB_PROBE_SMTP_USER",
+          "MAILHUB_PROBE_SMTP_PASS",
+          "MAILHUB_PROBE_FROM",
+        ],
+        requiredSendVerifySecrets: [
+          "GOOGLE_CLIENT_ID",
+          "GOOGLE_CLIENT_SECRET",
+          "GOOGLE_SHARED_INBOX_EMAIL",
+          "GOOGLE_SHARED_INBOX_REFRESH_TOKEN",
+          "MAILHUB_PROBE_SMTP_HOST",
+          "MAILHUB_PROBE_SMTP_USER",
+          "MAILHUB_PROBE_SMTP_PASS",
+          "MAILHUB_PROBE_FROM",
+        ],
+        optionalSecrets: ["MAILHUB_PROBE_SMTP_PORT", "MAILHUB_PROBE_SMTP_SECURE"],
+        configuredOptionalSecrets: [],
+        missingPreflightSecrets: [
+          "MAILHUB_PROBE_SMTP_HOST",
+          "MAILHUB_PROBE_SMTP_USER",
+          "MAILHUB_PROBE_SMTP_PASS",
+          "MAILHUB_PROBE_FROM",
+        ],
+        missingSendVerifySecrets: [
+          "MAILHUB_PROBE_SMTP_HOST",
+          "MAILHUB_PROBE_SMTP_USER",
+          "MAILHUB_PROBE_SMTP_PASS",
+          "MAILHUB_PROBE_FROM",
+        ],
+        readyForPreflightProductionProof: false,
+        readyForSendVerify: false,
+        secretGroups: {
+          externalSmtpProof: {
+            required: [
+              "MAILHUB_PROBE_SMTP_HOST",
+              "MAILHUB_PROBE_SMTP_USER",
+              "MAILHUB_PROBE_SMTP_PASS",
+              "MAILHUB_PROBE_FROM",
+            ],
+            present: [],
+            missing: [
+              "MAILHUB_PROBE_SMTP_HOST",
+              "MAILHUB_PROBE_SMTP_USER",
+              "MAILHUB_PROBE_SMTP_PASS",
+              "MAILHUB_PROBE_FROM",
+            ],
+            ready: false,
+          },
+          gmailProof: {
+            required: [
+              "GOOGLE_CLIENT_ID",
+              "GOOGLE_CLIENT_SECRET",
+              "GOOGLE_SHARED_INBOX_EMAIL",
+              "GOOGLE_SHARED_INBOX_REFRESH_TOKEN",
+            ],
+            present: [
+              "GOOGLE_CLIENT_ID",
+              "GOOGLE_CLIENT_SECRET",
+              "GOOGLE_SHARED_INBOX_EMAIL",
+              "GOOGLE_SHARED_INBOX_REFRESH_TOKEN",
+            ],
+            missing: [],
+            ready: true,
+          },
+        },
+        presentRequiredSecretNames: [
+          "GOOGLE_CLIENT_ID",
+          "GOOGLE_CLIENT_SECRET",
+          "GOOGLE_SHARED_INBOX_EMAIL",
+          "GOOGLE_SHARED_INBOX_REFRESH_TOKEN",
+        ],
+        note: "Only GitHub secret names and updatedAt metadata were read; secret values are never accessible or printed.",
+      });
+
+      const result = runNodeScript(routingSecretContractPath, ["--artifact", artifactPath]);
+
+      expect(result.status).toBe(0);
+      const out = JSON.parse(result.stdout) as { ok: boolean; errors: string[] };
+      expect(out.ok).toBe(true);
+      expect(out.errors).toEqual([]);
+    });
+  });
+
+  test("GitHub routing secret readiness contract rejects contradictory grouped readiness", () => {
+    withTempDir((dir) => {
+      const artifactPath = join(dir, "github-routing-secrets-readiness.json");
+      writeJson(artifactPath, {
+        repo: "vyper-japan/mailhub",
+        source: "github_actions_secrets",
+        checkedAt: "2026-06-17T00:00:00.000Z",
+        secretCount: 4,
+        requiredPreflightSecrets: [
+          "MAILHUB_PROBE_SMTP_HOST",
+          "MAILHUB_PROBE_SMTP_USER",
+          "MAILHUB_PROBE_SMTP_PASS",
+          "MAILHUB_PROBE_FROM",
+        ],
+        requiredSendVerifySecrets: [
+          "GOOGLE_CLIENT_ID",
+          "GOOGLE_CLIENT_SECRET",
+          "GOOGLE_SHARED_INBOX_EMAIL",
+          "GOOGLE_SHARED_INBOX_REFRESH_TOKEN",
+          "MAILHUB_PROBE_SMTP_HOST",
+          "MAILHUB_PROBE_SMTP_USER",
+          "MAILHUB_PROBE_SMTP_PASS",
+          "MAILHUB_PROBE_FROM",
+        ],
+        optionalSecrets: ["MAILHUB_PROBE_SMTP_PORT", "MAILHUB_PROBE_SMTP_SECURE"],
+        configuredOptionalSecrets: [],
+        missingPreflightSecrets: [],
+        missingSendVerifySecrets: [],
+        readyForPreflightProductionProof: true,
+        readyForSendVerify: true,
+        secretGroups: {
+          externalSmtpProof: {
+            required: [
+              "MAILHUB_PROBE_SMTP_HOST",
+              "MAILHUB_PROBE_SMTP_USER",
+              "MAILHUB_PROBE_SMTP_PASS",
+              "MAILHUB_PROBE_FROM",
+            ],
+            present: [],
+            missing: [
+              "MAILHUB_PROBE_SMTP_HOST",
+              "MAILHUB_PROBE_SMTP_USER",
+              "MAILHUB_PROBE_SMTP_PASS",
+              "MAILHUB_PROBE_FROM",
+            ],
+            ready: true,
+          },
+          gmailProof: {
+            required: [
+              "GOOGLE_CLIENT_ID",
+              "GOOGLE_CLIENT_SECRET",
+              "GOOGLE_SHARED_INBOX_EMAIL",
+              "GOOGLE_SHARED_INBOX_REFRESH_TOKEN",
+            ],
+            present: [
+              "GOOGLE_CLIENT_ID",
+              "GOOGLE_CLIENT_SECRET",
+              "GOOGLE_SHARED_INBOX_EMAIL",
+              "GOOGLE_SHARED_INBOX_REFRESH_TOKEN",
+            ],
+            missing: [],
+            ready: true,
+          },
+        },
+        presentRequiredSecretNames: [
+          "GOOGLE_CLIENT_ID",
+          "GOOGLE_CLIENT_SECRET",
+          "GOOGLE_SHARED_INBOX_EMAIL",
+          "GOOGLE_SHARED_INBOX_REFRESH_TOKEN",
+        ],
+      });
+
+      const result = runNodeScript(routingSecretContractPath, ["--artifact", artifactPath]);
+
+      expect(result.status).toBe(1);
+      expect(result.stdout).toContain("secret_group_ready_mismatch:externalSmtpProof");
+      expect(result.stdout).toContain("missing_preflight_secrets_mismatch");
+      expect(result.stdout).toContain("missing_send_verify_secrets_mismatch");
     });
   });
 

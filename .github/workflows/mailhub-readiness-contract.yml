@@ -30,5 +30,6 @@ jobs:
 
       - name: Check MailHub readiness artifact contract
         run: |
+          npm run audit:github-routing-secrets-contract
           npm run audit:mailhub-readiness-contract
           npm run audit:mailhub-routing-next-contract

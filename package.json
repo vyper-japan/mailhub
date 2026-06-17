@@ -18,6 +18,7 @@
     "audit:gws-routing": "node scripts/audit-mailhub-gws-routing.mjs",
     "audit:routing-probes": "node scripts/audit-mailhub-routing-probes.mjs",
     "audit:github-routing-secrets": "node scripts/check-mailhub-routing-probe-secrets.mjs",
+    "audit:github-routing-secrets-contract": "node scripts/check-mailhub-routing-secret-readiness-contract.mjs",
     "audit:mailhub-readiness": "node scripts/audit-mailhub-production-readiness.mjs",
     "audit:mailhub-readiness-contract": "node scripts/check-mailhub-readiness-contract.mjs",
     "audit:mailhub-routing-next": "node scripts/write-mailhub-routing-next-steps.mjs",

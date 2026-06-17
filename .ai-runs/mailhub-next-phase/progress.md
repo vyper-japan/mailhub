@@ -338,7 +338,18 @@
 - 2026-06-17 routing/readiness cross-artifact contract wave completed:
   - Strengthened `scripts/check-mailhub-routing-next-contract.mjs` so it reads `mailhub-production-readiness-audit.json` directly, not only the embedded routing-next inputs.
   - The contract now rejects readiness repo head mismatch, readiness generated-at mismatch, production-ready mismatch, and P0/P1 blocker mismatches between readiness and routing-next artifacts.
-  - Current artifacts pass the cross-artifact contract: both point at repo head `50c0a7e`, both keep `productionReady=false`, and both expose P0 `current_shared_gmail_routing`.
+  - Current artifacts pass the cross-artifact contract: both point at repo head `cfa8b21`, both keep `productionReady=false`, and both expose P0 `current_shared_gmail_routing`.
+- 2026-06-17 routing/readiness cross-artifact contract CI completed:
+  - Pushed commit `cfa8b21` and verified both GitHub gates green.
+  - `MailHub Readiness Contract` run `27679840778` passed in 24s.
+  - `qa-strict` run `27679840775` passed in 12m05s.
+- 2026-06-17 GitHub routing secret readiness contract wave completed:
+  - Added `scripts/check-mailhub-routing-secret-readiness-contract.mjs` and `npm run audit:github-routing-secrets-contract`.
+  - The contract validates the committed `github-routing-secrets-readiness.json` shape, required secret name lists, grouped SMTP/Gmail readiness, missing/present partition consistency, optional secret names, source, timestamp, and secret count consistency.
+  - `.github/workflows/mailhub-readiness-contract.yml` now runs the GitHub routing secret readiness contract before the production readiness and routing-next contracts.
+  - Focused tests now cover a valid grouped artifact and contradictory grouped readiness.
+  - Refreshed production readiness and routing-next artifacts to repo head `cfa8b21` so the next commit's CI accepts them as the parent artifact state.
+  - Current secret state remains unchanged: Gmail proof secrets are present, external SMTP proof secrets are missing, and `productionReady=false` due P0 `current_shared_gmail_routing`.
 
 ## Not Done
 
