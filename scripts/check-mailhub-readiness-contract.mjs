@@ -51,6 +51,13 @@ function objectValue(value) {
   return value && typeof value === "object" && !Array.isArray(value) ? value : {};
 }
 
+function ruleSheetsFromConfig(value) {
+  const config = objectValue(value);
+  const labelRules = typeof config.labelRules === "string" ? config.labelRules.trim() : "";
+  const assigneeRules = typeof config.assigneeRules === "string" ? config.assigneeRules.trim() : "";
+  return labelRules && assigneeRules ? [labelRules, assigneeRules] : [];
+}
+
 function main() {
   const args = parseArgs(process.argv.slice(2));
   const audit = readJson(args.audit);
@@ -60,6 +67,9 @@ function main() {
   const repoParentHead = args.repoParentHead || gitRevParse("HEAD^");
   const auditRepoHead = typeof audit.repoHead === "string" ? audit.repoHead : null;
   const requirements = objectValue(audit.requirements);
+  const inputs = objectValue(audit.inputs);
+  const ruleConfigSource = objectValue(inputs.ruleConfigSource);
+  const ruleConfigSourceSheets = ruleSheetsFromConfig(ruleConfigSource.ruleSheets);
   const viewSafety = objectValue(audit.viewSafety);
   const gate = objectValue(audit.gate);
   const blockers = Array.isArray(audit.blockers) ? audit.blockers.filter((item) => item && typeof item === "object") : [];
@@ -124,6 +134,17 @@ function main() {
     }
   } else if (ruleConfigSourceBlocker) {
     warnings.push("rule_config_source_blocker_detail_present_when_ready");
+  }
+  if (requirements.currentRuleConfigSourceProductionReady === true) {
+    if (ruleConfigSource.resolvedSource !== "sheets") {
+      errors.push("rule_config_source_ready_without_sheets_source");
+    }
+    if (stringArray(ruleConfigSource.warnings).length > 0) {
+      errors.push("rule_config_source_ready_with_warnings");
+    }
+    if (ruleConfigSourceSheets.length !== 2) {
+      errors.push("rule_config_source_ready_without_rule_sheets");
+    }
   }
 
   const syntaxFailedViews = stringArray(viewSafety.syntaxFailedViews);

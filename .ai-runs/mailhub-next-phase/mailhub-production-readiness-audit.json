@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-06-17T16:53:33.912Z",
-  "repoHead": "2366b0c294eb45f2138ca3106e7a3d34fd5a14ab",
+  "generatedAt": "2026-06-17T17:18:42.510Z",
+  "repoHead": "f250dd59e2766e5f35e04b2d0b5520505e917c38",
   "inputs": {
     "sourceAudit": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.ai-runs/mailhub-next-phase/gmail-source-coverage-audit.json",
     "opsAudit": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.ai-runs/mailhub-next-phase/mailhub-operational-confirmations.json",
@@ -19,11 +19,12 @@
     "githubRoutingSecretsCheckedAt": "2026-06-17T15:15:08.207Z",
     "viewsAuditGeneratedAt": "2026-06-17T15:15:32.600Z",
     "rulesAuditGeneratedAt": "2026-06-17T15:15:29.590Z",
-    "staffWorkflowAuditGeneratedAt": "2026-06-17T16:53:33.695Z",
+    "staffWorkflowAuditGeneratedAt": "2026-06-17T17:18:42.277Z",
     "rulesConfigFingerprint": "sha256:64ce3c152193b489c6d1b48a3c89ad4ea195b7824e0c25c5412db1c4a1cababd",
     "ruleConfigSource": {
       "requestedSource": "file",
       "resolvedSource": "file",
+      "ruleSheets": {},
       "warnings": []
     }
   },
@@ -213,6 +214,7 @@
         "ruleConfigSource": {
           "requestedSource": "file",
           "resolvedSource": "file",
+          "ruleSheets": {},
           "warnings": []
         },
         "ruleSafetyGate": {

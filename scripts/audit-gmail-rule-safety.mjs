@@ -252,6 +252,10 @@ async function loadRules(configSource) {
     return {
       requested,
       resolved: labelRules.warning === "missing_sheets_config" && assigneeRules.warning === "missing_sheets_config" ? "memory_fallback_missing_sheets_config" : "sheets",
+      ruleSheets: {
+        labelRules: labelSheetName,
+        assigneeRules: assigneeSheetName,
+      },
       warnings: [labelRules.warning, assigneeRules.warning].filter(Boolean),
       labelRules: labelRules.data,
       assigneeRules: assigneeRules.data,
@@ -268,6 +272,7 @@ async function loadRules(configSource) {
   return {
     requested,
     resolved: "file",
+    ruleSheets: null,
     warnings: [],
     labelRules: labelPrimary.found ? labelPrimary.data : labelLegacy?.data ?? [],
     assigneeRules: assignee.data,
@@ -452,6 +457,7 @@ async function main() {
     config: {
       requestedSource: rules.requested,
       resolvedSource: rules.resolved,
+      ruleSheets: rules.ruleSheets,
       warnings: rules.warnings,
       lastUpdatedAt: rules.lastUpdatedAt,
       ruleSetFingerprint: fingerprint,

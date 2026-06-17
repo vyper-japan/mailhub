@@ -59,6 +59,10 @@ function stringArray(value) {
   return Array.isArray(value) ? value.filter((item) => typeof item === "string") : [];
 }
 
+function objectValue(value) {
+  return value && typeof value === "object" && !Array.isArray(value) ? value : {};
+}
+
 function currentRepoHead() {
   try {
     return execFileSync("git", ["rev-parse", "HEAD"], {
@@ -112,6 +116,7 @@ function main() {
   const ruleConfigSource = {
     requestedSource: rulesAudit.config?.requestedSource ?? null,
     resolvedSource: rulesAudit.config?.resolvedSource ?? null,
+    ruleSheets: objectValue(rulesAudit.config?.ruleSheets),
     warnings: stringArray(rulesAudit.config?.warnings),
   };
   const ruleConfigSourceProductionReady =

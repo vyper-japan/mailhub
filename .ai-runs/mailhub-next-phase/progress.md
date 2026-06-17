@@ -485,6 +485,14 @@
 - 2026-06-18 qa-strict CI timeout follow-up:
   - `qa-strict` for `6d676e0` reached the 20 minute job timeout while still installing Playwright browsers.
   - `playwright.config.ts` only runs the `chromium` project, so `.github/workflows/qa-strict.yml` now installs only `chromium` instead of all Playwright browsers.
+- 2026-06-18 rule Sheets tab verification tightened:
+  - `mailhub-rule-config-next-steps.json` now records `state.requiredRuleSheets` and `verify_rule_sheets_tabs.requiredSheets`, currently `ConfigRules` and `ConfigAssigneeRules`.
+  - The action now separates required tabs from `missingSheets`, so a future Sheets audit can identify exactly which production tab is absent without changing the checklist shape.
+  - `check-mailhub-rule-config-next-contract.mjs` now rejects required/missing tab drift in the rule-config next-step artifact.
+- 2026-06-18 audited rule Sheets tab evidence completed:
+  - `audit:gmail-rules` now records the actual Sheets tabs it attempted under `config.ruleSheets` when `--config-source sheets` is used, and production readiness propagates that evidence through `inputs.ruleConfigSource.ruleSheets`.
+  - `mailhub-rule-config-next-steps.json` now prefers audited rule sheet names over current env/default values and records `state.auditedRuleSheets` plus `state.requiredRuleSheetsSource`.
+  - The rule-config next-step contract now rejects drift between the rule-safety audit, production readiness, and next-step artifact, closing the reviewer P1 where post-audit env changes could have renamed the required tab checklist.
 
 ## Not Done
 

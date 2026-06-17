@@ -60,6 +60,10 @@ function baseReadinessAudit(overrides: Record<string, unknown> = {}) {
       ruleConfigSource: {
         requestedSource: "sheets",
         resolvedSource: "sheets",
+        ruleSheets: {
+          labelRules: "ConfigRules",
+          assigneeRules: "ConfigAssigneeRules",
+        },
         warnings: [],
       },
     },

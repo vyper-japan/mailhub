@@ -2285,6 +2285,44 @@ actionlint .github/workflows/*.yml
 - `qa-strict` for `6d676e0` was cancelled by the 20 minute job timeout while still in `Install Playwright browsers`.
 - `playwright.config.ts` only defines the `chromium` project, so the workflow now installs `chromium` only with `npx playwright install --with-deps chromium`.
 
+## 2026-06-18 Rule Sheets Tab Verification Commands
+
+```bash
+node --check scripts/write-mailhub-rule-config-next-steps.mjs
+node --check scripts/check-mailhub-rule-config-next-contract.mjs
+npx vitest run lib/__tests__/mailhub-rule-config-next-steps.test.ts
+npm run audit:mailhub-rule-config-next -- --out .ai-runs/mailhub-next-phase/mailhub-rule-config-next-steps.json
+npm run audit:mailhub-rule-config-next-contract
+```
+
+## 2026-06-18 Rule Sheets Tab Verification Results
+
+- `mailhub-rule-config-next-steps.json` now carries `state.requiredRuleSheets` so the production rule workbook contract names the exact tabs to verify.
+- `verify_rule_sheets_tabs` now separates `requiredSheets` from `missingSheets`; current required tabs are `ConfigRules` and `ConfigAssigneeRules`, with no missing-sheet warnings yet because the Sheets audit cannot run until Sheets env is configured.
+- The rule-config next-step contract now rejects drift between the required tab list, missing-sheet warnings, and the action payload.
+
+## 2026-06-18 Audited Rule Sheets Evidence Commands
+
+```bash
+node --check scripts/audit-gmail-rule-safety.mjs
+node --check scripts/audit-mailhub-production-readiness.mjs
+node --check scripts/write-mailhub-rule-config-next-steps.mjs
+node --check scripts/check-mailhub-rule-config-next-contract.mjs
+node --check scripts/check-mailhub-readiness-contract.mjs
+npx vitest run lib/__tests__/mailhub-rule-config-next-steps.test.ts lib/__tests__/mailhub-readiness-contract.test.ts
+npm run audit:mailhub-readiness -- --out .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json
+npm run audit:mailhub-rule-config-next -- --out .ai-runs/mailhub-next-phase/mailhub-rule-config-next-steps.json
+npm run audit:mailhub-readiness-contract
+npm run audit:mailhub-rule-config-next-contract
+```
+
+## 2026-06-18 Audited Rule Sheets Evidence Results
+
+- Reviewer P1: `requiredRuleSheets` came from current env/defaults while `missingSheets` came from prior audit warnings, so a clean Sheets audit could be followed by env drift and still produce a passing checklist for different tabs.
+- `audit:gmail-rules -- --config-source sheets` now emits `config.ruleSheets.labelRules` and `config.ruleSheets.assigneeRules`; readiness propagates this under `inputs.ruleConfigSource.ruleSheets`.
+- The next-step writer now prefers audited tab names and records `state.auditedRuleSheets` plus `state.requiredRuleSheetsSource`; if no Sheets audit evidence exists yet, it still falls back to `ConfigRules` and `ConfigAssigneeRules`.
+- The next-step contract now rejects mismatches across `gmail-rule-safety-audit.json`, `mailhub-production-readiness-audit.json`, and `mailhub-rule-config-next-steps.json`.
+
 ## Useful Runtime Commands
 
 Start dev server for tunnel:

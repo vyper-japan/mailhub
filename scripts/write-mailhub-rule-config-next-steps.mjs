@@ -22,6 +22,7 @@ const REQUIRED_GMAIL_ENV = [
   "GOOGLE_SHARED_INBOX_EMAIL",
   "GOOGLE_SHARED_INBOX_REFRESH_TOKEN",
 ];
+const DEFAULT_RULE_SHEETS = ["ConfigRules", "ConfigAssigneeRules"];
 const RULE_SAFETY_COMMAND =
   "MAILHUB_CONFIG_STORE=sheets npm run audit:gmail-rules -- --config-source sheets --out .ai-runs/mailhub-next-phase/gmail-rule-safety-audit.json --max 100";
 
@@ -76,6 +77,17 @@ function readOptionalJson(path) {
 
 function stringArray(value) {
   return Array.isArray(value) ? value.filter((item) => typeof item === "string") : [];
+}
+
+function objectValue(value) {
+  return value && typeof value === "object" && !Array.isArray(value) ? value : {};
+}
+
+function ruleSheetsFromConfig(value) {
+  const config = objectValue(value);
+  const labelRules = typeof config.labelRules === "string" ? config.labelRules.trim() : "";
+  const assigneeRules = typeof config.assigneeRules === "string" ? config.assigneeRules.trim() : "";
+  return labelRules && assigneeRules ? [labelRules, assigneeRules] : [];
 }
 
 function valueFor(name) {
@@ -140,6 +152,9 @@ function main() {
   const sourceWarnings = stringArray(readinessRuleSource.warnings).length
     ? stringArray(readinessRuleSource.warnings)
     : stringArray(rulesConfig.warnings);
+  const auditedRuleSheets = ruleSheetsFromConfig(readinessRuleSource.ruleSheets).length
+    ? ruleSheetsFromConfig(readinessRuleSource.ruleSheets)
+    : ruleSheetsFromConfig(rulesConfig.ruleSheets);
   const ruleSetFingerprint =
     typeof readiness?.inputs?.rulesConfigFingerprint === "string"
       ? readiness.inputs.rulesConfigFingerprint
@@ -157,6 +172,11 @@ function main() {
   const sheetsConfigEnvReady = configStoreReady && sheetsMissing.length === 0;
   const gmailRuleAuditEnvReady = gmailMissing.length === 0;
   const canRunSheetsRuleSafetyAudit = sheetsConfigEnvReady && gmailRuleAuditEnvReady;
+  const envRuleSheets = [
+    valueFor("MAILHUB_SHEETS_TAB_RULES") || DEFAULT_RULE_SHEETS[0],
+    valueFor("MAILHUB_SHEETS_TAB_ASSIGNEE_RULES") || DEFAULT_RULE_SHEETS[1],
+  ];
+  const requiredRuleSheets = auditedRuleSheets.length === 2 ? auditedRuleSheets : envRuleSheets;
   const missingRuleSheets = sourceWarnings
     .filter((warning) => warning.startsWith("missing_sheet:"))
     .map((warning) => warning.replace("missing_sheet:", ""));
@@ -188,6 +208,9 @@ function main() {
       sheetsConfigEnvReady,
       gmailRuleAuditEnvReady,
       canRunSheetsRuleSafetyAudit,
+      auditedRuleSheets,
+      requiredRuleSheets,
+      requiredRuleSheetsSource: auditedRuleSheets.length === 2 ? "audit" : "env_or_default",
     },
     missing: {
       productionConfigStore: currentRuleConfigSourceProductionReady || configStoreReady ? [] : ["MAILHUB_CONFIG_STORE=sheets"],
@@ -229,8 +252,9 @@ function main() {
           ? "done"
           : (missingRuleSheets.length > 0 ? "required" : (canRunSheetsRuleSafetyAudit ? "ready" : "blocked")),
         description: "Ensure the production Sheets workbook contains the rule tabs used by the rule safety audit.",
-        requiredSheets: currentRuleConfigSourceProductionReady ? [] : missingRuleSheets,
-        expected: "ConfigRules and ConfigAssigneeRules can be read without source warnings.",
+        requiredSheets: currentRuleConfigSourceProductionReady ? [] : requiredRuleSheets,
+        missingSheets: currentRuleConfigSourceProductionReady ? [] : missingRuleSheets,
+        expected: `${requiredRuleSheets.join(" and ")} can be read without source warnings.`,
       },
       {
         id: "run_sheets_rule_safety_audit",

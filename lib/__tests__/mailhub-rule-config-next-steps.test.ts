@@ -115,15 +115,115 @@ describe("MailHub rule config next steps", () => {
 
       expect(result.status).toBe(0);
       const artifact = readJson<{
-        state: { currentRuleConfigSourceProductionReady: boolean; canRunSheetsRuleSafetyAudit: boolean };
+        state: { currentRuleConfigSourceProductionReady: boolean; canRunSheetsRuleSafetyAudit: boolean; requiredRuleSheets: string[] };
         missing: { sheetsConfig: string[]; gmailRuleAuditEnv: string[] };
-        nextActions: Array<{ id: string; status: string; command?: string; commands?: string[] }>;
+        nextActions: Array<{ id: string; status: string; command?: string; commands?: string[]; requiredSheets?: string[]; missingSheets?: string[] }>;
       }>(nextPath);
       expect(artifact.state.currentRuleConfigSourceProductionReady).toBe(false);
       expect(artifact.state.canRunSheetsRuleSafetyAudit).toBe(false);
+      expect(artifact.state.requiredRuleSheets).toEqual(["ConfigRules", "ConfigAssigneeRules"]);
       expect(artifact.missing.sheetsConfig).toContain("MAILHUB_CONFIG_STORE=sheets");
       expect(artifact.missing.gmailRuleAuditEnv).toContain("GOOGLE_CLIENT_ID");
+      expect(artifact.nextActions.find((action) => action.id === "verify_rule_sheets_tabs")?.requiredSheets).toEqual([
+        "ConfigRules",
+        "ConfigAssigneeRules",
+      ]);
+      expect(artifact.nextActions.find((action) => action.id === "verify_rule_sheets_tabs")?.missingSheets).toEqual([]);
       expect(artifact.nextActions.find((action) => action.id === "run_sheets_rule_safety_audit")?.status).toBe("blocked");
+      expect(JSON.stringify(artifact)).not.toContain("real-google-secret");
+
+      const contract = runNode(contractPath, [
+        "--next",
+        nextPath,
+        "--readiness",
+        readinessPath,
+        "--rules-audit",
+        rulesPath,
+        "--repo-head",
+        "head-1",
+        "--repo-parent-head",
+        "parent-1",
+      ]);
+      expect(contract.status).toBe(0);
+    });
+  });
+
+  test("reports custom rule sheet tab names and missing Sheets tabs", () => {
+    withTempDir((dir) => {
+      const readinessPath = join(dir, "readiness.json");
+      const rulesPath = join(dir, "rules.json");
+      const nextPath = join(dir, "rule-next.json");
+      const envPath = join(dir, ".env.local");
+      writeFileSync(envPath, [
+        "MAILHUB_CONFIG_STORE=sheets",
+        "MAILHUB_SHEETS_ID=sheet-id",
+        "MAILHUB_SHEETS_CLIENT_EMAIL=svc@example.com",
+        "MAILHUB_SHEETS_PRIVATE_KEY=real-google-secret",
+        "GOOGLE_CLIENT_ID=client-id",
+        "GOOGLE_CLIENT_SECRET=real-google-secret",
+        "GOOGLE_SHARED_INBOX_EMAIL=mailhub@vtj.co.jp",
+        "GOOGLE_SHARED_INBOX_REFRESH_TOKEN=real-refresh-token",
+        "MAILHUB_SHEETS_TAB_RULES=RulesProd",
+        "MAILHUB_SHEETS_TAB_ASSIGNEE_RULES=AssigneesProd",
+      ].join("\n"), "utf8");
+      writeJson(readinessPath, readinessFixture({
+        inputs: {
+          rulesAuditGeneratedAt: "2026-06-18T00:00:00.000Z",
+          rulesConfigFingerprint: "sha256:fixture",
+          ruleConfigSource: {
+            requestedSource: "sheets",
+            resolvedSource: "sheets",
+            ruleSheets: {
+              labelRules: "RulesProd",
+              assigneeRules: "AssigneesProd",
+            },
+            warnings: ["missing_sheet:RulesProd"],
+          },
+        },
+      }));
+      writeJson(rulesPath, rulesAuditFixture({
+        config: {
+          requestedSource: "sheets",
+          resolvedSource: "sheets",
+          ruleSheets: {
+            labelRules: "RulesProd",
+            assigneeRules: "AssigneesProd",
+          },
+          warnings: ["missing_sheet:RulesProd"],
+          ruleSetFingerprint: "sha256:fixture",
+        },
+      }));
+
+      const result = runNode(writerPath, [
+        "--readiness",
+        readinessPath,
+        "--rules-audit",
+        rulesPath,
+        "--out",
+        nextPath,
+        "--local-env-file",
+        envPath,
+        "--repo-head",
+        "head-1",
+        "--repo-parent-head",
+        "parent-1",
+      ]);
+
+      expect(result.status).toBe(0);
+      const artifact = readJson<{
+        state: { auditedRuleSheets: string[]; requiredRuleSheets: string[]; canRunSheetsRuleSafetyAudit: boolean };
+        missing: { ruleSheets: string[] };
+        nextActions: Array<{ id: string; status: string; requiredSheets?: string[]; missingSheets?: string[] }>;
+      }>(nextPath);
+      expect(artifact.state.auditedRuleSheets).toEqual(["RulesProd", "AssigneesProd"]);
+      expect(artifact.state.requiredRuleSheets).toEqual(["RulesProd", "AssigneesProd"]);
+      expect(artifact.state.canRunSheetsRuleSafetyAudit).toBe(true);
+      expect(artifact.missing.ruleSheets).toEqual(["RulesProd"]);
+      expect(artifact.nextActions.find((action) => action.id === "verify_rule_sheets_tabs")).toMatchObject({
+        status: "required",
+        requiredSheets: ["RulesProd", "AssigneesProd"],
+        missingSheets: ["RulesProd"],
+      });
       expect(JSON.stringify(artifact)).not.toContain("real-google-secret");
 
       const contract = runNode(contractPath, [
@@ -165,6 +265,10 @@ describe("MailHub rule config next steps", () => {
           ruleConfigSource: {
             requestedSource: "sheets",
             resolvedSource: "sheets",
+            ruleSheets: {
+              labelRules: "ConfigRules",
+              assigneeRules: "ConfigAssigneeRules",
+            },
             warnings: [],
           },
         },
@@ -183,6 +287,10 @@ describe("MailHub rule config next steps", () => {
         config: {
           requestedSource: "sheets",
           resolvedSource: "sheets",
+          ruleSheets: {
+            labelRules: "ConfigRules",
+            assigneeRules: "ConfigAssigneeRules",
+          },
           warnings: [],
           ruleSetFingerprint: "sha256:fixture",
         },
@@ -206,11 +314,13 @@ describe("MailHub rule config next steps", () => {
       expect(result.status).toBe(0);
       const artifact = readJson<{
         state: { currentRuleConfigSourceProductionReady: boolean; canRunSheetsRuleSafetyAudit: boolean };
-        nextActions: Array<{ status: string }>;
+        nextActions: Array<{ id?: string; status: string; requiredSheets?: string[]; missingSheets?: string[] }>;
       }>(nextPath);
       expect(artifact.state.currentRuleConfigSourceProductionReady).toBe(true);
       expect(artifact.state.canRunSheetsRuleSafetyAudit).toBe(true);
       expect(artifact.nextActions.every((action) => action.status === "done")).toBe(true);
+      expect(artifact.nextActions.find((action) => action.id === "verify_rule_sheets_tabs")?.requiredSheets).toEqual([]);
+      expect(artifact.nextActions.find((action) => action.id === "verify_rule_sheets_tabs")?.missingSheets).toEqual([]);
       expect(JSON.stringify(artifact)).not.toContain("real-google-secret");
 
       const contract = runNode(contractPath, [
@@ -270,6 +380,101 @@ describe("MailHub rule config next steps", () => {
 
       expect(contract.status).toBe(1);
       expect(contract.stdout).toContain("next_action_status_mismatch:run_sheets_rule_safety_audit");
+    });
+  });
+
+  test("contract rejects rule sheet names that drift from the audited Sheets source", () => {
+    withTempDir((dir) => {
+      const readinessPath = join(dir, "readiness.json");
+      const rulesPath = join(dir, "rules.json");
+      const nextPath = join(dir, "rule-next.json");
+      const envPath = join(dir, ".env.local");
+      writeFileSync(envPath, [
+        "MAILHUB_CONFIG_STORE=sheets",
+        "MAILHUB_SHEETS_ID=sheet-id",
+        "MAILHUB_SHEETS_CLIENT_EMAIL=svc@example.com",
+        "MAILHUB_SHEETS_PRIVATE_KEY=real-google-secret",
+        "GOOGLE_CLIENT_ID=client-id",
+        "GOOGLE_CLIENT_SECRET=real-google-secret",
+        "GOOGLE_SHARED_INBOX_EMAIL=mailhub@vtj.co.jp",
+        "GOOGLE_SHARED_INBOX_REFRESH_TOKEN=real-refresh-token",
+        "MAILHUB_SHEETS_TAB_RULES=EnvRulesAfterAudit",
+        "MAILHUB_SHEETS_TAB_ASSIGNEE_RULES=EnvAssigneesAfterAudit",
+      ].join("\n"), "utf8");
+      writeJson(readinessPath, readinessFixture({
+        inputs: {
+          rulesAuditGeneratedAt: "2026-06-18T00:00:00.000Z",
+          rulesConfigFingerprint: "sha256:fixture",
+          ruleConfigSource: {
+            requestedSource: "sheets",
+            resolvedSource: "sheets",
+            ruleSheets: {
+              labelRules: "AuditedRules",
+              assigneeRules: "AuditedAssignees",
+            },
+            warnings: [],
+          },
+        },
+        requirements: {
+          currentRuleConfigRealDataSafetyReady: true,
+          currentRuleConfigFingerprintPresent: true,
+          currentRuleConfigSourceProductionReady: true,
+        },
+        gate: {
+          productionReady: false,
+          p0Blockers: ["current_shared_gmail_routing"],
+          p1Blockers: ["staff_workflow_permissions"],
+        },
+      }));
+      writeJson(rulesPath, rulesAuditFixture({
+        config: {
+          requestedSource: "sheets",
+          resolvedSource: "sheets",
+          ruleSheets: {
+            labelRules: "AuditedRules",
+            assigneeRules: "AuditedAssignees",
+          },
+          warnings: [],
+          ruleSetFingerprint: "sha256:fixture",
+        },
+      }));
+
+      const result = runNode(writerPath, [
+        "--readiness",
+        readinessPath,
+        "--rules-audit",
+        rulesPath,
+        "--out",
+        nextPath,
+        "--local-env-file",
+        envPath,
+        "--repo-head",
+        "head-1",
+        "--repo-parent-head",
+        "parent-1",
+      ]);
+
+      expect(result.status).toBe(0);
+      const artifact = readJson<{ state: { requiredRuleSheets: string[] } }>(nextPath);
+      expect(artifact.state.requiredRuleSheets).toEqual(["AuditedRules", "AuditedAssignees"]);
+      artifact.state.requiredRuleSheets = ["EnvRulesAfterAudit", "EnvAssigneesAfterAudit"];
+      writeJson(nextPath, artifact);
+
+      const contract = runNode(contractPath, [
+        "--next",
+        nextPath,
+        "--readiness",
+        readinessPath,
+        "--rules-audit",
+        rulesPath,
+        "--repo-head",
+        "head-1",
+        "--repo-parent-head",
+        "parent-1",
+      ]);
+
+      expect(contract.status).toBe(1);
+      expect(contract.stdout).toContain("required_rule_sheets_audit_mismatch");
     });
   });
 });

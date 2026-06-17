@@ -68,6 +68,13 @@ function stringArray(value) {
   return Array.isArray(value) ? value.filter((item) => typeof item === "string") : [];
 }
 
+function ruleSheetsFromConfig(value) {
+  const config = objectValue(value);
+  const labelRules = typeof config.labelRules === "string" ? config.labelRules.trim() : "";
+  const assigneeRules = typeof config.assigneeRules === "string" ? config.assigneeRules.trim() : "";
+  return labelRules && assigneeRules ? [labelRules, assigneeRules] : [];
+}
+
 function actionsById(value) {
   const map = new Map();
   if (!Array.isArray(value)) return map;
@@ -106,6 +113,11 @@ function actionCommand(action) {
   return action && typeof action === "object" && typeof action.command === "string" ? action.command : "";
 }
 
+function actionStringArray(action, key) {
+  if (!action || typeof action !== "object") return [];
+  return stringArray(action[key]);
+}
+
 function main() {
   const args = parseArgs(process.argv.slice(2));
   const next = readJson(args.next, "rule_config_next_artifact");
@@ -134,6 +146,8 @@ function main() {
   const rulesAuditGeneratedAt = typeof rulesAudit.generatedAt === "string" ? rulesAudit.generatedAt : null;
   const inputRulesAuditGeneratedAt = typeof inputs.rulesAuditGeneratedAt === "string" ? inputs.rulesAuditGeneratedAt : null;
   const sourceWarnings = stringArray(state.sourceWarnings);
+  const requiredRuleSheets = stringArray(state.requiredRuleSheets);
+  const auditedRuleSheets = stringArray(state.auditedRuleSheets);
   const missingRuleSheets = stringArray(missing.ruleSheets);
   const missingSheetsConfig = stringArray(missing.sheetsConfig);
   const missingGmailEnv = stringArray(missing.gmailRuleAuditEnv);
@@ -173,6 +187,9 @@ function main() {
   const expectedWarnings = stringArray(readinessRuleSource.warnings).length
     ? stringArray(readinessRuleSource.warnings)
     : stringArray(rulesConfig.warnings);
+  const rulesAuditRuleSheets = ruleSheetsFromConfig(rulesConfig.ruleSheets);
+  const readinessRuleSheets = ruleSheetsFromConfig(readinessRuleSource.ruleSheets);
+  const expectedAuditedRuleSheets = readinessRuleSheets.length ? readinessRuleSheets : rulesAuditRuleSheets;
   const canRunAudit = state.canRunSheetsRuleSafetyAudit === true;
   const sheetsEnvReady = state.sheetsConfigEnvReady === true;
   const gmailEnvReady = state.gmailRuleAuditEnvReady === true;
@@ -186,6 +203,18 @@ function main() {
   if ((state.requestedSource ?? null) !== expectedRequestedSource) errors.push("requested_source_mismatch");
   if ((state.resolvedSource ?? null) !== expectedResolvedSource) errors.push("resolved_source_mismatch");
   if (!sameStrings(sourceWarnings, expectedWarnings)) errors.push("source_warnings_mismatch");
+  if (requiredRuleSheets.length !== 2 || requiredRuleSheets.some((sheet) => !sheet.trim())) {
+    errors.push("required_rule_sheets_invalid");
+  }
+  if (!sameStrings(auditedRuleSheets, expectedAuditedRuleSheets)) errors.push("audited_rule_sheets_mismatch");
+  if (rulesAuditRuleSheets.length > 0 && !sameStrings(readinessRuleSheets, rulesAuditRuleSheets)) {
+    errors.push("readiness_rule_sheets_mismatch");
+  }
+  if (expectedResolvedSource === "sheets") {
+    if (rulesAuditRuleSheets.length !== 2) errors.push("rules_audit_rule_sheets_missing");
+    if (readinessRuleSheets.length !== 2) errors.push("readiness_rule_sheets_missing");
+    if (!sameStrings(requiredRuleSheets, rulesAuditRuleSheets)) errors.push("required_rule_sheets_audit_mismatch");
+  }
   if (sourceReady && (expectedResolvedSource !== "sheets" || expectedWarnings.length > 0)) {
     errors.push("source_ready_without_clean_sheets_source");
   }
@@ -203,6 +232,9 @@ function main() {
     .filter((warning) => warning.startsWith("missing_sheet:"))
     .map((warning) => warning.replace("missing_sheet:", ""));
   if (!sameStrings(missingRuleSheets, expectedMissingRuleSheets)) errors.push("missing_rule_sheets_mismatch");
+  if (missingRuleSheets.some((sheet) => !requiredRuleSheets.includes(sheet))) {
+    errors.push("missing_rule_sheet_not_required");
+  }
 
   expectActionStatus({
     actions,
@@ -222,6 +254,13 @@ function main() {
     expected: sourceReady ? "done" : (missingRuleSheets.length > 0 ? "required" : (canRunAudit ? "ready" : "blocked")),
     errors,
   });
+  const verifySheetsAction = actions.get("verify_rule_sheets_tabs");
+  if (!sameStrings(actionStringArray(verifySheetsAction, "requiredSheets"), sourceReady ? [] : requiredRuleSheets)) {
+    errors.push("verify_rule_sheets_required_sheets_mismatch");
+  }
+  if (!sameStrings(actionStringArray(verifySheetsAction, "missingSheets"), sourceReady ? [] : missingRuleSheets)) {
+    errors.push("verify_rule_sheets_missing_sheets_mismatch");
+  }
   expectActionStatus({
     actions,
     id: "run_sheets_rule_safety_audit",
