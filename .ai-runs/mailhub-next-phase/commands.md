@@ -1737,6 +1737,23 @@ GOOGLE_CLIENT_ID=dummy GOOGLE_CLIENT_SECRET=dummy GOOGLE_SHARED_INBOX_EMAIL=inbo
   - coverage: 63 files / 572 tests
   - full `qa:strict`: PASS, including 131 Playwright E2E tests
 
+## 2026-06-17 Readiness artifact repo-head refresh
+
+```bash
+gh run view 27686138004 --repo vyper-japan/mailhub --log-failed
+npm run audit:mailhub-readiness -- --out .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json
+npm run audit:mailhub-routing-next -- --strict --out .ai-runs/mailhub-next-phase/mailhub-routing-next-steps.json
+npm run audit:mailhub-readiness-contract
+npm run audit:mailhub-routing-next-contract
+npm run audit:mailhub-routing-proof-contract
+npm run audit:github-routing-secrets-contract
+git diff --check
+```
+
+- `MailHub Readiness Contract` run `27686138004` failed because `mailhub-production-readiness-audit.json` still carried stale `repoHead=52807bf...`.
+- Refreshed readiness and routing-next artifacts to current HEAD `67b7845...`.
+- All four readiness/proof artifact contracts pass locally after refresh.
+
 ## Useful Runtime Commands
 
 Start dev server for tunnel:

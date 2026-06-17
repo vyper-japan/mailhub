@@ -387,6 +387,10 @@
   - Failure was limited to two routing next-step tests whose missing-local-Gmail-env expectations were polluted by CI's dummy `GOOGLE_*` environment.
   - Added explicit child-process env clearing for those missing-env scenarios so the tests are deterministic locally and in CI.
   - Reproduced the CI env locally and passed the focused test, full coverage, and full `qa:strict` including 131 E2E tests.
+- 2026-06-17 readiness artifact repo-head refresh completed:
+  - Investigated failed `MailHub Readiness Contract` run `27686138004`; failure was `stale_repo_head`, with the committed readiness artifact still pointing at `52807bf`.
+  - Regenerated `mailhub-production-readiness-audit.json` and `mailhub-routing-next-steps.json` at HEAD `67b7845`.
+  - All four artifact contracts pass locally after refresh.
 
 ## Not Done
 
