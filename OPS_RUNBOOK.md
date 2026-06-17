@@ -474,7 +474,15 @@ npm run probe:routing-send -- --send --out .ai-runs/mailhub-next-phase/mailhub-r
 
 出力の `marker` と `nextVerificationCommand` を控える。`sentCount=8`、`rejected=[]` が期待値。
 
-### 4. shared Gmail 側で到達検証
+送信後の待機・検証・readiness再生成まで同時に実行する場合:
+
+```bash
+npm run probe:routing-send -- --send --verify-after-send --wait-seconds 300 --poll-seconds 15 --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-send.json
+```
+
+この場合、スクリプトが `mailhub-routing-probe-audit.json` と `mailhub-production-readiness-audit.json` も更新する。
+
+### 4. shared Gmail 側で到達検証（手動分割する場合）
 送信直後は配送遅延があるため、1-5分待ってから実行する。
 
 ```bash

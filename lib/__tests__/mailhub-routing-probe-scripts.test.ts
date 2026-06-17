@@ -269,7 +269,9 @@ describe("MailHub routing probe CLI gates", () => {
         probeCount: number;
         addressProbes: Array<{ address: string }>;
         sent: unknown[];
+        verification: unknown | null;
         nextVerificationCommand: string;
+        nextReadinessCommand: string;
       }>(outPath);
       expect(out.mode).toBe("dry_run");
       expect(out.marker).toBe("MAILHUB-ROUTING-PROBE-FIXTURE");
@@ -280,7 +282,28 @@ describe("MailHub routing probe CLI gates", () => {
         "third@example.com",
       ]);
       expect(out.sent).toEqual([]);
+      expect(out.verification).toBeNull();
       expect(out.nextVerificationCommand).toContain("MAILHUB-ROUTING-PROBE-FIXTURE");
+      expect(out.nextReadinessCommand).toContain("audit:mailhub-readiness");
+    });
+  });
+
+  test("routing probe sender requires --send before --verify-after-send", () => {
+    withTempDir((dir) => {
+      const opsPath = join(dir, "ops.json");
+      const outPath = join(dir, "send-plan.json");
+      writeJson(opsPath, opsAuditFixture());
+
+      const result = runNodeScript(routingProbeSenderPath, [
+        "--ops-audit",
+        opsPath,
+        "--out",
+        outPath,
+        "--verify-after-send",
+      ]);
+
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain("verify_after_send_requires_send");
     });
   });
 

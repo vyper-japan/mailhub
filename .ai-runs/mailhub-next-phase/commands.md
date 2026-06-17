@@ -675,6 +675,33 @@ git diff --check
 - `npm run security:scan-artifacts`: passed.
 - `git diff --check`: passed.
 
+## Verification Commands Run On 2026-06-17 External Routing Probe Auto-Verify Wave
+
+```bash
+node --check scripts/send-mailhub-routing-probes.mjs
+npx vitest run lib/__tests__/mailhub-routing-probe-scripts.test.ts
+npm run probe:routing-send -- --out /tmp/mailhub-routing-probe-autoverify-dry-run.json
+node -e 'const p=require("/tmp/mailhub-routing-probe-autoverify-dry-run.json"); if(p.mode!=="dry_run") process.exit(1); if(p.probeCount!==8) process.exit(2); if(p.sent.length!==0) process.exit(3); if(p.verification!==null) process.exit(4); if(!p.nextReadinessCommand.includes("audit:mailhub-readiness")) process.exit(5); console.log("routing probe auto-verify dry-run safe", JSON.stringify({mode:p.mode, probeCount:p.probeCount, sentCount:p.sent.length, verification:p.verification}));'
+npm run security:scan-artifacts
+npm run typecheck
+npm run lint
+npm run test
+npm run build
+git diff --check
+```
+
+## 2026-06-17 External Routing Probe Auto-Verify Wave Results
+
+- Script syntax check: passed.
+- Focused Vitest: 1 file / 6 tests passed.
+- Dry-run probe plan: `mode=dry_run`, `probeCount=8`, `sentCount=0`, `verification=null`.
+- `npm run security:scan-artifacts`: passed.
+- `npm run typecheck`: passed.
+- `npm run lint`: passed.
+- `npm run test`: 62 files / 541 tests passed.
+- `npm run build`: passed.
+- `git diff --check`: passed.
+
 ## Useful Runtime Commands
 
 Start dev server for tunnel:

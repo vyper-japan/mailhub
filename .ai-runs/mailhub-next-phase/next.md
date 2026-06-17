@@ -25,7 +25,7 @@ Continue from the completed INBOX-scoped source coverage and rule-safety wave:
 8. Run or inspect `npm run audit:routing-probes -- --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-audit.json`.
    - Current mode is `plan_only`; it lists six target channels and eight target addresses but does not send mail.
    - Generate the exact address-level send plan with `npm run probe:routing-send`.
-   - To prove current external routing, configure a non-`@vtj.co.jp` external SMTP sender (`MAILHUB_PROBE_SMTP_*`, `MAILHUB_PROBE_FROM`) and run `npm run probe:routing-send -- --send`, then run the emitted `npm run audit:routing-probes -- --marker <marker> --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-audit.json`.
+   - To prove current external routing, configure a non-`@vtj.co.jp` external SMTP sender (`MAILHUB_PROBE_SMTP_*`, `MAILHUB_PROBE_FROM`) and run `npm run probe:routing-send -- --send --verify-after-send`, or run `npm run probe:routing-send -- --send` and then the emitted `npm run audit:routing-probes -- --marker <marker> --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-audit.json`.
    - Do not use a `@vtj.co.jp` sender as production proof; that can validate internal GWS group routing without proving the current Lolipop/MX external path.
    - Operator-safe sequence and failure interpretation are now documented in `OPS_RUNBOOK.md` under `External Routing Probe`.
    - The readiness gate requires `allExpectedAddressesConfirmed=true`; channel-level evidence alone is not enough.

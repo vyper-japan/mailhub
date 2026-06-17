@@ -196,6 +196,11 @@
   - Added an `External Routing Probe` section to `OPS_RUNBOOK.md`.
   - The runbook documents dry-run, external non-`@vtj.co.jp` SMTP setup, sending, marker verification, readiness regeneration, and failure interpretation.
   - `.ai-runs/mailhub-next-phase/next.md` now points the remaining P0 workflow at that runbook.
+- 2026-06-17 external routing probe auto-verify wave completed:
+  - Extended `scripts/send-mailhub-routing-probes.mjs` with `--verify-after-send`.
+  - With `--send --verify-after-send`, the sender now polls `audit-mailhub-routing-probes.mjs` for the marker and regenerates `mailhub-production-readiness-audit.json`.
+  - Added guard coverage proving `--verify-after-send` is rejected without `--send`.
+  - Updated `OPS_RUNBOOK.md`, `env.example`, and `next.md` to prefer the one-command send/wait/verify flow when external SMTP is available.
 
 ## Not Done
 

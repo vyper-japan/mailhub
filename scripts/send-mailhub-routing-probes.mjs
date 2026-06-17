@@ -2,6 +2,7 @@
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
+import { spawnSync } from "node:child_process";
 import nodemailer from "nodemailer";
 
 const repoRoot = process.cwd();
@@ -9,6 +10,8 @@ const envPath = join(repoRoot, ".env.local");
 const runDir = join(repoRoot, ".ai-runs", "mailhub-next-phase");
 const defaultOpsAuditPath = join(runDir, "mailhub-operational-confirmations.json");
 const defaultOutPath = join(runDir, "mailhub-routing-probe-send.json");
+const defaultRoutingAuditOutPath = join(runDir, "mailhub-routing-probe-audit.json");
+const defaultReadinessOutPath = join(runDir, "mailhub-production-readiness-audit.json");
 
 function parseArgs(argv) {
   const out = {
@@ -17,6 +20,12 @@ function parseArgs(argv) {
     marker: "",
     send: false,
     allowVtjFrom: false,
+    verifyAfterSend: false,
+    waitSeconds: 300,
+    pollSeconds: 15,
+    routingAuditOut: defaultRoutingAuditOutPath,
+    readinessOut: defaultReadinessOutPath,
+    maxResults: 10,
   };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
@@ -25,8 +34,14 @@ function parseArgs(argv) {
     else if (arg === "--marker") out.marker = argv[++i];
     else if (arg === "--send") out.send = true;
     else if (arg === "--allow-vtj-from") out.allowVtjFrom = true;
+    else if (arg === "--verify-after-send") out.verifyAfterSend = true;
+    else if (arg === "--wait-seconds") out.waitSeconds = Math.max(0, Math.min(1800, Number(argv[++i]) || 0));
+    else if (arg === "--poll-seconds") out.pollSeconds = Math.max(1, Math.min(300, Number(argv[++i]) || 15));
+    else if (arg === "--routing-audit-out") out.routingAuditOut = argv[++i];
+    else if (arg === "--readiness-out") out.readinessOut = argv[++i];
+    else if (arg === "--max-results") out.maxResults = Math.max(1, Math.min(50, Number(argv[++i]) || 10));
     else if (arg === "--help" || arg === "-h") {
-      console.log(`Usage: node scripts/send-mailhub-routing-probes.mjs [--ops-audit path] [--out path] [--marker MAILHUB-ROUTING-PROBE-...] [--send] [--allow-vtj-from]
+      console.log(`Usage: node scripts/send-mailhub-routing-probes.mjs [--ops-audit path] [--out path] [--marker MAILHUB-ROUTING-PROBE-...] [--send] [--allow-vtj-from] [--verify-after-send] [--wait-seconds 300] [--poll-seconds 15]
 
 Environment for --send:
   MAILHUB_PROBE_SMTP_HOST
@@ -36,7 +51,8 @@ Environment for --send:
   MAILHUB_PROBE_SMTP_PASS
   MAILHUB_PROBE_FROM
 
-Dry-run is the default and writes the exact address-level probe plan without sending mail.`);
+Dry-run is the default and writes the exact address-level probe plan without sending mail.
+Use --verify-after-send with --send to poll shared Gmail for the marker and regenerate readiness.`);
       process.exit(0);
     }
   }
@@ -105,6 +121,76 @@ function smtpConfigFromEnv() {
   };
 }
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function runScript(script, args) {
+  const result = spawnSync(process.execPath, [join(repoRoot, "scripts", script), ...args], {
+    cwd: repoRoot,
+    encoding: "utf8",
+    env: process.env,
+  });
+  if (result.status !== 0) {
+    const output = [result.stdout, result.stderr].filter(Boolean).join("\n");
+    throw new Error(`${script}_failed:${output || result.status}`);
+  }
+  return result;
+}
+
+async function verifyAfterSend(args, marker) {
+  const attempts = [];
+  const deadline = Date.now() + args.waitSeconds * 1000;
+  let finalAudit = null;
+  let matched = false;
+
+  do {
+    const startedAt = new Date().toISOString();
+    runScript("audit-mailhub-routing-probes.mjs", [
+      "--ops-audit",
+      args.opsAudit,
+      "--out",
+      args.routingAuditOut,
+      "--marker",
+      marker,
+      "--max-results",
+      String(args.maxResults),
+    ]);
+    finalAudit = readJson(args.routingAuditOut);
+    matched = Boolean(finalAudit.gate?.allExpectedAddressesConfirmed);
+    attempts.push({
+      startedAt,
+      matched,
+      matchedAddresses: finalAudit.gate?.matchedAddresses ?? [],
+      missingAddresses: finalAudit.gate?.missingAddresses ?? [],
+    });
+    if (matched || Date.now() >= deadline || args.waitSeconds === 0) break;
+    await sleep(args.pollSeconds * 1000);
+  } while (true);
+
+  runScript("audit-mailhub-production-readiness.mjs", [
+    "--out",
+    args.readinessOut,
+    "--ops-audit",
+    args.opsAudit,
+    "--routing-probe-audit",
+    args.routingAuditOut,
+  ]);
+  const readinessAudit = readJson(args.readinessOut);
+
+  return {
+    status: matched ? "matched" : "timeout_or_missing",
+    waitSeconds: args.waitSeconds,
+    pollSeconds: args.pollSeconds,
+    attempts,
+    routingAuditOut: args.routingAuditOut,
+    readinessOut: args.readinessOut,
+    allExpectedAddressesConfirmed: Boolean(finalAudit?.gate?.allExpectedAddressesConfirmed),
+    productionReady: Boolean(readinessAudit.gate?.productionReady),
+    p0Blockers: readinessAudit.gate?.p0Blockers ?? [],
+  };
+}
+
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   const marker = args.marker.trim() || makeMarker();
@@ -121,12 +207,14 @@ async function main() {
 
   loadEnvFile(envPath);
   const from = process.env.MAILHUB_PROBE_FROM?.trim() || null;
+  if (args.verifyAfterSend && !args.send) throw new Error("verify_after_send_requires_send");
   if (args.send && !from) throw new Error("missing_env:MAILHUB_PROBE_FROM");
   if (args.send && from?.toLowerCase().endsWith("@vtj.co.jp") && !args.allowVtjFrom) {
     throw new Error("vtj_from_not_external_route_proof: use a non-vtj external sender or pass --allow-vtj-from for a non-production-proof smoke");
   }
 
   const sent = [];
+  let verification = null;
   if (args.send) {
     const transporter = nodemailer.createTransport(smtpConfigFromEnv());
     for (const probe of addressProbes) {
@@ -152,6 +240,9 @@ async function main() {
         messageId: info.messageId ?? null,
       });
     }
+    if (args.verifyAfterSend) {
+      verification = await verifyAfterSend(args, marker);
+    }
   }
 
   const result = {
@@ -163,11 +254,14 @@ async function main() {
       opsAuditGeneratedAt: opsAudit.generatedAt ?? null,
       from: from ? from.replace(/^(.).+(@.+)$/, "$1***$2") : null,
       allowVtjFrom: args.allowVtjFrom,
+      verifyAfterSend: args.verifyAfterSend,
     },
     probeCount: addressProbes.length,
     addressProbes,
     sent,
+    verification,
     nextVerificationCommand: `npm run audit:routing-probes -- --marker ${marker} --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-audit.json`,
+    nextReadinessCommand: `npm run audit:mailhub-readiness -- --out .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json`,
   };
 
   mkdirSync(dirname(args.out), { recursive: true });
@@ -178,7 +272,9 @@ async function main() {
     marker: result.marker,
     probeCount: result.probeCount,
     sentCount: result.sent.length,
+    verification: result.verification,
     nextVerificationCommand: result.nextVerificationCommand,
+    nextReadinessCommand: result.nextReadinessCommand,
   }, null, 2));
 }
 
