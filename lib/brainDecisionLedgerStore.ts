@@ -4,7 +4,7 @@ import { existsSync } from "fs";
 import { mkdir, readFile, writeFile } from "fs/promises";
 import { join } from "path";
 
-export type BrainLedgerStoreType = "memory" | "file";
+export type BrainLedgerStoreType = "memory" | "file" | "sheets";
 export type BrainLedgerSource = "brain_worker" | "manual_test" | "replay" | "deterministic_v1";
 
 export type BrainLedgerEvidence = {
@@ -63,6 +63,28 @@ const MAX_MEMORY_ENTRIES = 1000;
 const MAX_LIST_LIMIT = 200;
 const FILE_STORE_PATH = join(process.cwd(), ".mailhub", "brainDecisions.jsonl");
 const memoryKey = "__mailhub_brain_decision_ledger";
+const BRAIN_LEDGER_SHEETS_HEADERS = [
+  "decidedAt",
+  "decisionId",
+  "messageId",
+  "threadId",
+  "source",
+  "inputHash",
+  "purpose",
+  "disposition",
+  "replyRoute",
+  "confidence",
+  "humanRequired",
+  "discardCandidate",
+  "invoiceFlag",
+  "recommendedOwnerEmail",
+  "model",
+  "promptVersion",
+  "policyVersion",
+  "plannedActionsJSON",
+  "evidenceJSON",
+  "warningsJSON",
+];
 
 function getMemoryBuffer(): BrainDecisionLedgerEntry[] {
   const g = globalThis as unknown as Record<string, unknown>;
@@ -253,17 +275,187 @@ class FileBrainDecisionLedgerStore implements BrainDecisionLedgerStore {
   }
 }
 
+function getBrainLedgerSheetsConfig(): {
+  spreadsheetId: string | null;
+  clientEmail: string | null;
+  privateKey: string | null;
+  sheetName: string;
+} {
+  return {
+    spreadsheetId: process.env.MAILHUB_SHEETS_ID ?? process.env.MAILHUB_SHEETS_SPREADSHEET_ID ?? null,
+    clientEmail: process.env.MAILHUB_SHEETS_CLIENT_EMAIL ?? null,
+    privateKey: process.env.MAILHUB_SHEETS_PRIVATE_KEY ?? null,
+    sheetName: process.env.MAILHUB_SHEETS_TAB_BRAIN_DECISIONS || "BrainDecisions",
+  };
+}
+
+export function getBrainLedgerSheetsConfigured(): boolean {
+  const cfg = getBrainLedgerSheetsConfig();
+  return Boolean(cfg.spreadsheetId && cfg.clientEmail && cfg.privateKey);
+}
+
+export function brainLedgerEntryToSheetRow(entry: BrainDecisionLedgerEntry): string[] {
+  return [
+    entry.decidedAt,
+    entry.decisionId,
+    entry.messageId,
+    entry.threadId ?? "",
+    entry.source,
+    entry.inputHash,
+    entry.purpose,
+    entry.disposition,
+    entry.replyRoute,
+    String(entry.confidence),
+    entry.humanRequired ? "TRUE" : "FALSE",
+    entry.discardCandidate === undefined ? "" : entry.discardCandidate ? "TRUE" : "FALSE",
+    entry.invoiceFlag === undefined ? "" : entry.invoiceFlag ? "TRUE" : "FALSE",
+    entry.recommendedOwnerEmail ?? "",
+    entry.model ?? "",
+    entry.promptVersion ?? "",
+    entry.policyVersion ?? "",
+    JSON.stringify(entry.plannedActions),
+    JSON.stringify(entry.evidence),
+    JSON.stringify(entry.warnings ?? []),
+  ];
+}
+
+function parseBooleanCell(value: unknown): boolean | undefined {
+  const text = String(value ?? "").trim().toLowerCase();
+  if (text === "true" || text === "1") return true;
+  if (text === "false" || text === "0") return false;
+  return undefined;
+}
+
+function parseJsonCell(value: unknown): unknown {
+  const text = String(value ?? "").trim();
+  if (!text) return undefined;
+  try {
+    return JSON.parse(text) as unknown;
+  } catch {
+    return undefined;
+  }
+}
+
+export function sheetRowToBrainLedgerEntry(row: unknown[]): BrainDecisionLedgerEntry | null {
+  return parseBrainDecisionLedgerEntry({
+    decidedAt: String(row[0] ?? ""),
+    decisionId: String(row[1] ?? ""),
+    messageId: String(row[2] ?? ""),
+    threadId: String(row[3] ?? "") || null,
+    source: String(row[4] ?? ""),
+    inputHash: String(row[5] ?? ""),
+    purpose: String(row[6] ?? ""),
+    disposition: String(row[7] ?? ""),
+    replyRoute: String(row[8] ?? ""),
+    confidence: Number(row[9]),
+    humanRequired: parseBooleanCell(row[10]),
+    discardCandidate: parseBooleanCell(row[11]),
+    invoiceFlag: parseBooleanCell(row[12]),
+    recommendedOwnerEmail: String(row[13] ?? "") || null,
+    model: String(row[14] ?? ""),
+    promptVersion: String(row[15] ?? ""),
+    policyVersion: String(row[16] ?? ""),
+    plannedActions: parseJsonCell(row[17]),
+    evidence: parseJsonCell(row[18]),
+    warnings: parseJsonCell(row[19]),
+  });
+}
+
+class SheetsBrainDecisionLedgerStore implements BrainDecisionLedgerStore {
+  constructor(
+    private spreadsheetId: string,
+    private clientEmail: string,
+    private privateKey: string,
+    private sheetName: string,
+  ) {}
+
+  private async getSheetsClient() {
+    const { google } = await import("googleapis");
+    const auth = new google.auth.JWT({
+      email: this.clientEmail,
+      key: this.privateKey.replace(/\\n/g, "\n"),
+      scopes: ["https://www.googleapis.com/auth/spreadsheets"],
+    });
+    return google.sheets({ version: "v4", auth });
+  }
+
+  private async ensureHeader(sheets: Awaited<ReturnType<SheetsBrainDecisionLedgerStore["getSheetsClient"]>>): Promise<void> {
+    const range = `${this.sheetName}!A1:T1`;
+    const headerCheck = await sheets.spreadsheets.values.get({
+      spreadsheetId: this.spreadsheetId,
+      range,
+    }).catch(() => ({ data: { values: [] as string[][] } }));
+    const header = headerCheck.data.values?.[0] ?? [];
+    if (header.length === BRAIN_LEDGER_SHEETS_HEADERS.length && header[1] === "decisionId") return;
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: this.spreadsheetId,
+      range,
+      valueInputOption: "RAW",
+      requestBody: { values: [BRAIN_LEDGER_SHEETS_HEADERS] },
+    });
+  }
+
+  private async readAll(): Promise<BrainDecisionLedgerEntry[]> {
+    const sheets = await this.getSheetsClient();
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: this.spreadsheetId,
+      range: `${this.sheetName}!A:T`,
+    });
+    const rows = response.data.values ?? [];
+    return rows.slice(1).flatMap((row): BrainDecisionLedgerEntry[] => {
+      const parsed = sheetRowToBrainLedgerEntry(row);
+      return parsed ? [parsed] : [];
+    });
+  }
+
+  async append(entry: BrainDecisionLedgerEntry): Promise<void> {
+    const sheets = await this.getSheetsClient();
+    await this.ensureHeader(sheets);
+    const existing = await this.readAll();
+    if (existing.some((item) => item.decisionId === entry.decisionId)) return;
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: this.spreadsheetId,
+      range: `${this.sheetName}!A:T`,
+      valueInputOption: "RAW",
+      insertDataOption: "INSERT_ROW",
+      requestBody: { values: [brainLedgerEntryToSheetRow(entry)] },
+    });
+  }
+
+  async list(options?: BrainLedgerListOptions): Promise<BrainDecisionLedgerEntry[]> {
+    return applyFilters(await this.readAll(), options);
+  }
+
+  async clear(): Promise<void> {
+    // Production ledger history is append-only. Do not clear Sheets-backed evidence.
+  }
+}
+
+export function getRequestedBrainLedgerStoreType(): string {
+  return (process.env.MAILHUB_BRAIN_LEDGER_STORE || "").trim() || (process.env.NODE_ENV === "production" ? "file" : "memory");
+}
+
 export function getBrainLedgerStoreType(): BrainLedgerStoreType {
-  const raw = process.env.MAILHUB_BRAIN_LEDGER_STORE?.trim();
+  const raw = getRequestedBrainLedgerStoreType();
   if (raw === "memory" || raw === "file") return raw;
+  if (raw === "sheets") return getBrainLedgerSheetsConfigured() ? "sheets" : "memory";
   return process.env.NODE_ENV === "production" ? "file" : "memory";
 }
 
 let memoryStore: BrainDecisionLedgerStore | null = null;
 let fileStore: BrainDecisionLedgerStore | null = null;
+let sheetsStore: BrainDecisionLedgerStore | null = null;
 
 export function getBrainDecisionLedgerStore(forceType?: BrainLedgerStoreType): BrainDecisionLedgerStore {
   const type = forceType ?? getBrainLedgerStoreType();
+  if (type === "sheets") {
+    const cfg = getBrainLedgerSheetsConfig();
+    if (!cfg.spreadsheetId || !cfg.clientEmail || !cfg.privateKey) {
+      throw new Error("brain_ledger_sheets_config_incomplete");
+    }
+    sheetsStore ??= new SheetsBrainDecisionLedgerStore(cfg.spreadsheetId, cfg.clientEmail, cfg.privateKey, cfg.sheetName);
+    return sheetsStore;
+  }
   if (type === "file") {
     fileStore ??= new FileBrainDecisionLedgerStore();
     return fileStore;

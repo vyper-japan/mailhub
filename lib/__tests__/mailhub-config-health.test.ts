@@ -140,10 +140,10 @@ type HealthResponse = {
     error: string | null;
   };
   brainLedger: {
-    requested: string | null;
-    resolved: "memory" | "file";
+    requested: string;
+    resolved: "memory" | "file" | "sheets";
     secretConfigured: boolean;
-    sheetsConfigured: false;
+    sheetsConfigured: boolean;
   };
 };
 
@@ -161,6 +161,10 @@ describe("mailhub config health Gmail send", () => {
     process.env.MAILHUB_SEND_ENABLED = "1";
     delete process.env.MAILHUB_BRAIN_LEDGER_STORE;
     delete process.env.MAILHUB_BRAIN_SECRET;
+    delete process.env.MAILHUB_SHEETS_ID;
+    delete process.env.MAILHUB_SHEETS_SPREADSHEET_ID;
+    delete process.env.MAILHUB_SHEETS_CLIENT_EMAIL;
+    delete process.env.MAILHUB_SHEETS_PRIVATE_KEY;
     state.acceptedAliases = [...state.requiredAliases];
     state.checkedAt = "2026-06-12T00:00:00.000Z";
     state.readOnly = false;
@@ -183,7 +187,7 @@ describe("mailhub config health Gmail send", () => {
     expect(health.sendAs.requiredCount).toBe(16);
     expect(health.sendAs.acceptedCount).toBe(16);
     expect(health.brainLedger).toMatchObject({
-      requested: null,
+      requested: "memory",
       resolved: "memory",
       secretConfigured: false,
       sheetsConfigured: false,
@@ -201,6 +205,21 @@ describe("mailhub config health Gmail send", () => {
       resolved: "file",
       secretConfigured: true,
       sheetsConfigured: false,
+    });
+  });
+
+  it("reports Sheets-backed Brain ledger readiness", async () => {
+    process.env.MAILHUB_BRAIN_LEDGER_STORE = "sheets";
+    process.env.MAILHUB_SHEETS_SPREADSHEET_ID = "sheet-1";
+    process.env.MAILHUB_SHEETS_CLIENT_EMAIL = "svc@example.com";
+    process.env.MAILHUB_SHEETS_PRIVATE_KEY = "private-key";
+
+    const health = await readHealth();
+
+    expect(health.brainLedger).toMatchObject({
+      requested: "sheets",
+      resolved: "sheets",
+      sheetsConfigured: true,
     });
   });
 

@@ -69,6 +69,11 @@
 - 2026-06-17 Brain ledger health wave completed:
   - Added `brainLedger` visibility to `/api/mailhub/config/health`.
   - Health now reports requested/resolved Brain ledger store, secret configured status, and current non-Sheets state.
+- 2026-06-17 Brain ledger Sheets wave completed:
+  - Added `MAILHUB_BRAIN_LEDGER_STORE=sheets` support with Google Sheets append/list backend.
+  - Added compact row serialization for planned actions, evidence, and warnings.
+  - Health now reports Sheets-backed Brain ledger readiness via requested/resolved/sheetsConfigured.
+  - Added tests for Sheets row round-trip and store resolution.
 
 ## Not Done
 
@@ -77,7 +82,7 @@
 - Production pagination basic behavior is represented in API/UI metadata and forced E2E; real browser/manual production verification is still useful before staff rollout.
 - Auto-discard rules for marketing/noise are protected against obvious important/invoice/inquiry suppression and missing summary text, but a full production auto-discard policy is still intentionally not enabled.
 - Important/invoice/customer-inquiry folders exist as default saved views and are audited as manual-review shortcuts; further narrowing requires operator feedback.
-- Brain decision ledger exists for memory/file and health visibility; Sheets-backed ledger storage, AI reply drafting, and knowledge base integration are not implemented.
+- Brain decision ledger exists for memory/file/sheets and health visibility; AI reply drafting and knowledge base integration are not implemented.
 - Rakuten/Amazon/Yahoo API-based reply integration is not implemented.
 - Production staff workflow and permissions need real-data validation.
 

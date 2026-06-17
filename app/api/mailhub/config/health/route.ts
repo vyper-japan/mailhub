@@ -10,7 +10,11 @@ import { MAILHUB_USER_LABEL_PREFIX } from "@/lib/mailhub-labels";
 import { getGmailScopeInfo, type GmailScopeInfo } from "@/lib/gmail";
 import { getMailhubEnv } from "@/lib/mailhub-env";
 import { getRequestedActivityStoreType, getResolvedActivityStoreType, getActivitySheetsConfigured } from "@/lib/activityStore";
-import { getBrainLedgerStoreType } from "@/lib/brainDecisionLedgerStore";
+import {
+  getBrainLedgerSheetsConfigured,
+  getBrainLedgerStoreType,
+  getRequestedBrainLedgerStoreType,
+} from "@/lib/brainDecisionLedgerStore";
 import { getAssigneeRegistryStore } from "@/lib/assigneeRegistryStore";
 import {
   assertSendAsAccepted,
@@ -338,10 +342,10 @@ export async function GET() {
         sheetsConfigured: getActivitySheetsConfigured(),
       },
       brainLedger: {
-        requested: (process.env.MAILHUB_BRAIN_LEDGER_STORE ?? "").trim() || null,
+        requested: getRequestedBrainLedgerStoreType(),
         resolved: brainLedgerStoreType,
         secretConfigured: Boolean(process.env.MAILHUB_BRAIN_SECRET?.trim()),
-        sheetsConfigured: false,
+        sheetsConfigured: getBrainLedgerSheetsConfigured(),
       },
       isAdmin,
       readOnly,
