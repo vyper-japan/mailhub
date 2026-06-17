@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { execFileSync } from "node:child_process";
+import { existsSync, readFileSync } from "node:fs";
 
 const DEFAULT_REPO = "vyper-japan/mailhub";
 
@@ -25,17 +26,27 @@ function parseArgs(argv) {
   const args = {
     repo: DEFAULT_REPO,
     failOnMissing: true,
+    secretsJson: "",
   };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     if (arg === "--repo") args.repo = argv[++i] || "";
+    else if (arg === "--secrets-json") args.secretsJson = argv[++i] || "";
     else if (arg === "--no-fail") args.failOnMissing = false;
     else if (arg === "--help" || arg === "-h") {
-      console.log("Usage: node scripts/check-mailhub-routing-probe-secrets.mjs [--repo owner/name] [--no-fail]");
+      console.log("Usage: node scripts/check-mailhub-routing-probe-secrets.mjs [--repo owner/name] [--secrets-json path] [--no-fail]");
       process.exit(0);
     }
   }
   return args;
+}
+
+function readSecretsJson(path) {
+  if (!existsSync(path)) throw new Error(`missing_secrets_json:${path}`);
+  const parsed = JSON.parse(readFileSync(path, "utf8"));
+  if (Array.isArray(parsed)) return parsed;
+  if (Array.isArray(parsed.secrets)) return parsed.secrets;
+  throw new Error("invalid_secrets_json");
 }
 
 function readActionSecrets(repo) {
@@ -54,7 +65,7 @@ function missingSecrets(required, present) {
 
 function main() {
   const args = parseArgs(process.argv.slice(2));
-  const secrets = readActionSecrets(args.repo);
+  const secrets = args.secretsJson ? readSecretsJson(args.secretsJson) : readActionSecrets(args.repo);
   const present = new Set(secrets.map((secret) => secret.name).filter(Boolean));
   const missingPreflight = missingSecrets(REQUIRED_PREFLIGHT_SECRETS, present);
   const missingSendVerify = missingSecrets(REQUIRED_SEND_VERIFY_SECRETS, present);

@@ -243,6 +243,11 @@
   - Updated workflow action pins from `actions/checkout@v4` to `@v6`, `actions/setup-node@v4` to `@v6`, and `actions/upload-artifact@v4` to `@v7`.
   - Local actionlint and workflow YAML parsing pass with the upgraded action majors.
   - Triggered manual preflight run `27663059707` after the upgrade; it passed with no Node.js 20 deprecation annotation and still skipped `send_verify`.
+- 2026-06-17 routing secret audit test wave completed:
+  - Added `--secrets-json` fixture input to `scripts/check-mailhub-routing-probe-secrets.mjs` so readiness logic can be tested without `gh`.
+  - Added regression coverage for empty secrets, SMTP-only preflight readiness, and full SMTP+Gmail `send_verify` readiness.
+  - Full test count is now 551 tests.
+  - Current local and GitHub state still lacks external SMTP proof settings, so readiness correctly remains blocked on `current_shared_gmail_routing`.
 
 ## Not Done
 

@@ -995,6 +995,40 @@ git diff --check
 - The upgraded action run had no Node.js 20 deprecation annotation.
 - The run used `mode=preflight`; `send_verify` was skipped, so no external mail was sent.
 
+## Verification Commands Run On 2026-06-17 Routing Secret Audit Test Wave
+
+```bash
+npm run probe:routing-preflight -- --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-preflight.json
+node --check scripts/check-mailhub-routing-probe-secrets.mjs
+npx vitest run lib/__tests__/mailhub-routing-probe-scripts.test.ts
+npm run typecheck
+npm run lint
+npm run test
+npm run build
+npm run security:scan-artifacts
+npm run audit:github-routing-secrets -- --no-fail
+npm run audit:mailhub-readiness -- --out .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json
+npm run audit:mailhub-readiness-contract
+git diff --check
+```
+
+## 2026-06-17 Routing Secret Audit Test Wave Results
+
+- Local `.env.local` key inventory has Gmail OAuth/shared inbox keys but no `MAILHUB_PROBE_SMTP_*` / `MAILHUB_PROBE_FROM` keys.
+- GitHub Actions repo secrets remain empty for `vyper-japan/mailhub`.
+- `npm run probe:routing-preflight`: passed with `sentCount=0`, `smtpReadyForProductionProof=false`, and missing SMTP env keys.
+- Script syntax check: passed.
+- Focused Vitest: 1 file / 12 tests passed.
+- `npm run typecheck`: passed.
+- `npm run lint`: passed.
+- `npm run test`: 63 files / 551 tests passed.
+- `npm run build`: passed.
+- `npm run security:scan-artifacts`: passed.
+- `npm run audit:github-routing-secrets -- --no-fail`: passed with `secretCount=0`, `readyForPreflightProductionProof=false`, and `readyForSendVerify=false`.
+- Final readiness refresh: passed.
+- Final readiness contract check: passed with `productionReady=false`, P0 `current_shared_gmail_routing`, and no contract errors.
+- `git diff --check`: passed.
+
 ## Useful Runtime Commands
 
 Start dev server for tunnel:

@@ -7,6 +7,7 @@ import { describe, expect, test } from "vitest";
 const routingProbeAuditPath = resolve(process.cwd(), "scripts/audit-mailhub-routing-probes.mjs");
 const readinessAuditPath = resolve(process.cwd(), "scripts/audit-mailhub-production-readiness.mjs");
 const routingProbeSenderPath = resolve(process.cwd(), "scripts/send-mailhub-routing-probes.mjs");
+const routingProbeSecretsPath = resolve(process.cwd(), "scripts/check-mailhub-routing-probe-secrets.mjs");
 
 function withTempDir<T>(fn: (dir: string) => T): T {
   const dir = mkdtempSync(join(tmpdir(), "mailhub-routing-probes-"));
@@ -116,6 +117,117 @@ function writeReadinessFixtures(dir: string, routingProbeGate: Record<string, un
 }
 
 describe("MailHub routing probe CLI gates", () => {
+  test("GitHub routing secret audit reports missing proof secrets without gh", () => {
+    withTempDir((dir) => {
+      const secretsPath = join(dir, "secrets.json");
+      writeJson(secretsPath, []);
+
+      const result = runNodeScript(routingProbeSecretsPath, [
+        "--secrets-json",
+        secretsPath,
+        "--no-fail",
+      ]);
+
+      expect(result.status).toBe(0);
+      const out = JSON.parse(result.stdout) as {
+        secretCount: number;
+        readyForPreflightProductionProof: boolean;
+        readyForSendVerify: boolean;
+        missingPreflightSecrets: string[];
+        missingSendVerifySecrets: string[];
+        presentRequiredSecretNames: string[];
+      };
+      expect(out.secretCount).toBe(0);
+      expect(out.readyForPreflightProductionProof).toBe(false);
+      expect(out.readyForSendVerify).toBe(false);
+      expect(out.missingPreflightSecrets).toEqual([
+        "MAILHUB_PROBE_SMTP_HOST",
+        "MAILHUB_PROBE_SMTP_USER",
+        "MAILHUB_PROBE_SMTP_PASS",
+        "MAILHUB_PROBE_FROM",
+      ]);
+      expect(out.missingSendVerifySecrets).toEqual([
+        "GOOGLE_CLIENT_ID",
+        "GOOGLE_CLIENT_SECRET",
+        "GOOGLE_SHARED_INBOX_EMAIL",
+        "GOOGLE_SHARED_INBOX_REFRESH_TOKEN",
+        "MAILHUB_PROBE_SMTP_HOST",
+        "MAILHUB_PROBE_SMTP_USER",
+        "MAILHUB_PROBE_SMTP_PASS",
+        "MAILHUB_PROBE_FROM",
+      ]);
+      expect(out.presentRequiredSecretNames).toEqual([]);
+    });
+  });
+
+  test("GitHub routing secret audit separates SMTP preflight readiness from send_verify readiness", () => {
+    withTempDir((dir) => {
+      const secretsPath = join(dir, "secrets.json");
+      writeJson(secretsPath, [
+        { name: "MAILHUB_PROBE_SMTP_HOST" },
+        { name: "MAILHUB_PROBE_SMTP_USER" },
+        { name: "MAILHUB_PROBE_SMTP_PASS" },
+        { name: "MAILHUB_PROBE_FROM" },
+      ]);
+
+      const result = runNodeScript(routingProbeSecretsPath, [
+        "--secrets-json",
+        secretsPath,
+        "--no-fail",
+      ]);
+
+      expect(result.status).toBe(0);
+      const out = JSON.parse(result.stdout) as {
+        readyForPreflightProductionProof: boolean;
+        readyForSendVerify: boolean;
+        missingPreflightSecrets: string[];
+        missingSendVerifySecrets: string[];
+      };
+      expect(out.readyForPreflightProductionProof).toBe(true);
+      expect(out.readyForSendVerify).toBe(false);
+      expect(out.missingPreflightSecrets).toEqual([]);
+      expect(out.missingSendVerifySecrets).toEqual([
+        "GOOGLE_CLIENT_ID",
+        "GOOGLE_CLIENT_SECRET",
+        "GOOGLE_SHARED_INBOX_EMAIL",
+        "GOOGLE_SHARED_INBOX_REFRESH_TOKEN",
+      ]);
+    });
+  });
+
+  test("GitHub routing secret audit passes only when SMTP and Gmail proof secrets are present", () => {
+    withTempDir((dir) => {
+      const secretsPath = join(dir, "secrets.json");
+      writeJson(secretsPath, [
+        { name: "GOOGLE_CLIENT_ID" },
+        { name: "GOOGLE_CLIENT_SECRET" },
+        { name: "GOOGLE_SHARED_INBOX_EMAIL" },
+        { name: "GOOGLE_SHARED_INBOX_REFRESH_TOKEN" },
+        { name: "MAILHUB_PROBE_SMTP_HOST" },
+        { name: "MAILHUB_PROBE_SMTP_USER" },
+        { name: "MAILHUB_PROBE_SMTP_PASS" },
+        { name: "MAILHUB_PROBE_FROM" },
+        { name: "MAILHUB_PROBE_SMTP_PORT" },
+      ]);
+
+      const result = runNodeScript(routingProbeSecretsPath, ["--secrets-json", secretsPath]);
+
+      expect(result.status).toBe(0);
+      const out = JSON.parse(result.stdout) as {
+        readyForPreflightProductionProof: boolean;
+        readyForSendVerify: boolean;
+        configuredOptionalSecrets: string[];
+        missingPreflightSecrets: string[];
+        missingSendVerifySecrets: string[];
+      };
+      expect(out.readyForPreflightProductionProof).toBe(true);
+      expect(out.readyForSendVerify).toBe(true);
+      expect(out.configuredOptionalSecrets).toEqual(["MAILHUB_PROBE_SMTP_PORT"]);
+      expect(out.missingPreflightSecrets).toEqual([]);
+      expect(out.missingSendVerifySecrets).toEqual([]);
+    });
+  });
+
   test("plan-only routing probe audit reports every target address, not just channels", () => {
     withTempDir((dir) => {
       const opsPath = join(dir, "ops.json");
