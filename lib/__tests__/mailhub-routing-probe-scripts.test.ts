@@ -268,6 +268,12 @@ function writeReadinessFixtures(
   });
   writeJson(paths.rules, {
     generatedAt: "2026-06-17T00:00:00.000Z",
+    inputs: {
+      envFile: ".env.local",
+      envFileLoaded: true,
+      envFileMode: "env_file",
+      valuePolicy: "fixture",
+    },
     config: {
       requestedSource: "sheets",
       resolvedSource: "sheets",

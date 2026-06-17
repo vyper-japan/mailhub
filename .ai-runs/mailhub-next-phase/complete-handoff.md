@@ -218,7 +218,7 @@ Required actions:
 Commands once real Sheets env exists:
 
 ```bash
-MAILHUB_CONFIG_STORE=sheets npm run audit:gmail-rules -- --config-source sheets --out .ai-runs/mailhub-next-phase/gmail-rule-safety-audit.json --max 100
+MAILHUB_CONFIG_STORE=sheets npm run audit:gmail-rules -- --env-file .env.local --config-source sheets --out .ai-runs/mailhub-next-phase/gmail-rule-safety-audit.json --max 100
 npm run audit:mailhub-readiness -- --out .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json
 npm run audit:mailhub-rule-config-next -- --out .ai-runs/mailhub-next-phase/mailhub-rule-config-next-steps.json
 npm run audit:mailhub-rule-config-next-contract

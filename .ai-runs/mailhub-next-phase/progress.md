@@ -533,6 +533,13 @@
   - README now lists `ConfigAssigneeRules` alongside `ConfigLabels` and `ConfigRules` for Sheets-backed config.
   - Refreshed no-send routing artifacts, staff artifacts, production readiness, routing next-step, and rule-config next-step artifacts to repo head `351ffc1e77de8f7befa98a77de9c31d75ad57abe`.
   - Verification passed: full readiness contract chain, routing proof contract, focused rule/routing/readiness tests, `test:coverage` (72 files / 640 tests), `lint`, `typecheck` after `build`, `build`, `smoke`, `security:scan`, `security:scan-artifacts`, and `git diff --check`.
+- 2026-06-18 explicit rule-safety env source gate completed:
+  - `audit:gmail-rules` now supports `--env-file <path>` and `--no-env-file`; it still loads `.env.local` by default, but artifacts now record only source metadata, never secret values.
+  - Production readiness now propagates `rulesAudit.inputs` into `inputs.ruleSafetyAuditEnv` and requires an explicit env source before any production-ready claim.
+  - `check-mailhub-readiness-contract.mjs` rejects missing env-source evidence, `env_file` mode that did not load a file, and production-ready artifacts that omit this gate.
+  - Rule-config next-step commands and docs now use `--env-file .env.local` so future Sheets-backed rule audits are reproducible.
+  - Current rule audit remains intentionally non-production: `requestedSource=file`, `resolvedSource=file`, P1 `rule_config_source_not_production` is still open until real Sheets env/tabs are configured.
+  - Verification passed: focused rule/readiness/routing tests (59 tests), full readiness contract chain, routing proof contract, `test:coverage` (73 files / 646 tests), `lint`, `build`, `typecheck`, `smoke`, `security:scan`, `security:scan-artifacts`, and `git diff --check`.
 
 ## Not Done
 

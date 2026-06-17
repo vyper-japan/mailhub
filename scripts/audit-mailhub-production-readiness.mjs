@@ -116,6 +116,19 @@ function main() {
     typeof rulesAudit.config?.ruleSetFingerprint === "string" && rulesAudit.config.ruleSetFingerprint.startsWith("sha256:")
       ? rulesAudit.config.ruleSetFingerprint
       : null;
+  const ruleAuditInputs = objectValue(rulesAudit.inputs);
+  const ruleSafetyAuditEnv = {
+    envFile: typeof ruleAuditInputs.envFile === "string" ? ruleAuditInputs.envFile : null,
+    envFileLoaded: typeof ruleAuditInputs.envFileLoaded === "boolean" ? ruleAuditInputs.envFileLoaded : null,
+    envFileMode: typeof ruleAuditInputs.envFileMode === "string" ? ruleAuditInputs.envFileMode : null,
+    valuePolicyPresent: typeof ruleAuditInputs.valuePolicy === "string" && ruleAuditInputs.valuePolicy.length > 0,
+  };
+  const ruleSafetyEnvSourceExplicit =
+    ruleSafetyAuditEnv.envFileMode === "process_env_only" ||
+    (ruleSafetyAuditEnv.envFileMode === "env_file" &&
+      typeof ruleSafetyAuditEnv.envFile === "string" &&
+      ruleSafetyAuditEnv.envFile.length > 0 &&
+      ruleSafetyAuditEnv.envFileLoaded === true);
   const ruleConfigFingerprintPresent = Boolean(rulesConfigFingerprint);
   const ruleConfigSource = {
     requestedSource: rulesAudit.config?.requestedSource ?? null,
@@ -179,6 +192,11 @@ function main() {
       ruleSafetyGate: rulesAudit.ruleSafetyGate ?? null,
       ruleSetFingerprint: rulesConfigFingerprint,
       fingerprintPresent: ruleConfigFingerprintPresent,
+    }));
+  }
+  if (!ruleSafetyEnvSourceExplicit) {
+    blockers.push(blocker("rule_safety_env_source_unverified", "P1", "Rule-safety audit must record an explicit env source before production readiness.", {
+      ruleSafetyAuditEnv,
     }));
   }
   if (!ruleConfigSourceProductionReady) {
@@ -245,6 +263,7 @@ function main() {
       githubStaffSecretsCheckedAt: githubStaffSecrets?.checkedAt ?? null,
       viewsAuditGeneratedAt: viewsAudit.generatedAt ?? null,
       rulesAuditGeneratedAt: rulesAudit.generatedAt ?? null,
+      ruleSafetyAuditEnv,
       staffWorkflowAuditGeneratedAt: staffWorkflowAudit?.generatedAt ?? null,
       rulesConfigFingerprint,
       ruleConfigSource,
@@ -262,6 +281,7 @@ function main() {
       currentRuleConfigRealDataSafetyReady: ruleSafetyReady,
       currentRuleConfigFingerprintPresent: ruleConfigFingerprintPresent,
       currentRuleConfigSourceProductionReady: ruleConfigSourceProductionReady,
+      currentRuleSafetyEnvSourceExplicit: ruleSafetyEnvSourceExplicit,
       staffWorkflowPermissionsReady,
       staffGithubConfigReady,
       staffReadOnlyRolloutReady: staffWorkflowAudit?.gate?.readOnlyRolloutReady === true,
@@ -276,6 +296,7 @@ function main() {
         currentSharedGmailRoutingReady &&
         viewSyntaxReady &&
         ruleSafetyReady &&
+        ruleSafetyEnvSourceExplicit &&
         ruleConfigSourceProductionReady &&
         staffWorkflowPermissionsReady &&
         staffGithubConfigReady &&

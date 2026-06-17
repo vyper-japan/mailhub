@@ -6,7 +6,7 @@ import { dirname, join } from "node:path";
 import { google } from "googleapis";
 
 const repoRoot = process.cwd();
-const envPath = join(repoRoot, ".env.local");
+const defaultEnvPath = join(repoRoot, ".env.local");
 const defaultOutPath = join(repoRoot, ".mailhub", "gmail-rule-safety-audit.json");
 
 const RISKY_DOMAINS = new Set([
@@ -39,7 +39,7 @@ const PURPOSE_KEYWORDS = [
 ];
 
 function loadEnvFile(path) {
-  if (!existsSync(path)) return;
+  if (!path || !existsSync(path)) return false;
   const raw = readFileSync(path, "utf8");
   for (const line of raw.split(/\r?\n/)) {
     const trimmed = line.trim();
@@ -54,6 +54,37 @@ function loadEnvFile(path) {
     }
     process.env[key] = value.replace(/\\n/g, "\n");
   }
+  return true;
+}
+
+function parseArgs(argv) {
+  const args = {
+    out: defaultOutPath,
+    max: 100,
+    configSource: "auto",
+    envFile: defaultEnvPath,
+    loadEnvFile: true,
+  };
+  for (let i = 0; i < argv.length; i += 1) {
+    const arg = argv[i];
+    if (arg === "--out") args.out = argv[++i] || args.out;
+    else if (arg === "--max") args.max = Math.max(1, Math.min(500, Number(argv[++i]) || 100));
+    else if (arg === "--config-source") args.configSource = argv[++i] || args.configSource;
+    else if (arg === "--env-file") {
+      args.envFile = argv[++i] || "";
+      args.loadEnvFile = true;
+    } else if (arg === "--no-env-file") {
+      args.envFile = "";
+      args.loadEnvFile = false;
+    } else if (arg === "--help" || arg === "-h") {
+      console.log(`Usage: node scripts/audit-gmail-rule-safety.mjs [--out path] [--max 100] [--config-source auto|file|sheets] [--env-file .env.local] [--no-env-file]
+
+Loads .env.local by default. Use --env-file to make the env source explicit, or --no-env-file when the process environment is already injected.
+Secret values are never printed; artifacts include only env file path/load metadata and validation results.`);
+      process.exit(0);
+    }
+  }
+  return args;
 }
 
 function getArg(name, fallback = null) {
@@ -431,10 +462,11 @@ function inspectRuleInventory(labelRules, assigneeRules, messages) {
 }
 
 async function main() {
-  loadEnvFile(envPath);
-  const outPath = getArg("--out", defaultOutPath);
-  const max = Math.max(1, Math.min(500, Number(getArg("--max", "100")) || 100));
-  const configSource = getArg("--config-source", "auto");
+  const args = parseArgs(process.argv.slice(2));
+  const envFileLoaded = args.loadEnvFile ? loadEnvFile(args.envFile) : false;
+  const outPath = args.out;
+  const max = args.max;
+  const configSource = args.configSource;
   if (!["auto", "file", "sheets"].includes(configSource)) {
     throw new Error("invalid_config_source");
   }
@@ -453,6 +485,12 @@ async function main() {
 
   const audit = {
     generatedAt: new Date().toISOString(),
+    inputs: {
+      envFile: args.envFile || null,
+      envFileLoaded,
+      envFileMode: args.loadEnvFile ? "env_file" : "process_env_only",
+      valuePolicy: "Secret values are never printed; this artifact contains only env file path/load metadata, masked addresses, counts, fingerprints, and validation findings.",
+    },
     sharedInboxEmailMasked: sharedInboxEmail.replace(/^(.{0,3}).*(@.*)$/, (_m, a, b) => `${a}***${b}`),
     config: {
       requestedSource: rules.requested,
@@ -486,6 +524,7 @@ async function main() {
       {
         outPath,
         generatedAt: audit.generatedAt,
+        inputs: audit.inputs,
         config: audit.config,
         inspectedCount: audit.sample.inspectedCount,
         rulesConfigured: audit.rulesConfigured,

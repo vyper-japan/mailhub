@@ -18,7 +18,7 @@ const REQUIRED_ACTION_IDS = [
   "refresh_rule_and_readiness_artifacts",
 ];
 const RULE_SAFETY_COMMAND =
-  "MAILHUB_CONFIG_STORE=sheets npm run audit:gmail-rules -- --config-source sheets --out .ai-runs/mailhub-next-phase/gmail-rule-safety-audit.json --max 100";
+  "MAILHUB_CONFIG_STORE=sheets npm run audit:gmail-rules -- --env-file .env.local --config-source sheets --out .ai-runs/mailhub-next-phase/gmail-rule-safety-audit.json --max 100";
 
 function parseArgs(argv) {
   const out = {

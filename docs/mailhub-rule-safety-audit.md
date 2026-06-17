@@ -12,6 +12,14 @@ Command:
 npm run audit:gmail-rules -- --out .ai-runs/mailhub-next-phase/gmail-rule-safety-audit.json --max 100
 ```
 
+Use an explicit env source for production/Screens-backed checks:
+
+```bash
+MAILHUB_CONFIG_STORE=sheets npm run audit:gmail-rules -- --env-file .env.local --config-source sheets --out .ai-runs/mailhub-next-phase/gmail-rule-safety-audit.json --max 100
+```
+
+`--env-file <path>` records non-secret env-source metadata under `inputs.envFile`. `--no-env-file` is available when GitHub Actions or another runner injects all required env directly. Secret values are never printed.
+
 The script follows the same config-store resolution as the app:
 
 - explicit `MAILHUB_CONFIG_STORE=file|sheets`

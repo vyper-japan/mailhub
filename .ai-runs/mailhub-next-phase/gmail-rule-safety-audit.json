@@ -1,9 +1,16 @@
 {
-  "generatedAt": "2026-06-17T15:15:29.590Z",
+  "generatedAt": "2026-06-17T20:51:39.495Z",
+  "inputs": {
+    "envFile": ".env.local",
+    "envFileLoaded": true,
+    "envFileMode": "env_file",
+    "valuePolicy": "Secret values are never printed; this artifact contains only env file path/load metadata, masked addresses, counts, fingerprints, and validation findings."
+  },
   "sharedInboxEmailMasked": "inf***@vtj.co.jp",
   "config": {
     "requestedSource": "file",
     "resolvedSource": "file",
+    "ruleSheets": null,
     "warnings": [],
     "lastUpdatedAt": {
       "labelRules": null,

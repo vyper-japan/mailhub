@@ -78,6 +78,7 @@ function main() {
   const requirements = objectValue(audit.requirements);
   const inputs = objectValue(audit.inputs);
   const ruleConfigSource = objectValue(inputs.ruleConfigSource);
+  const ruleSafetyAuditEnv = objectValue(inputs.ruleSafetyAuditEnv);
   const githubStaffSecretsPath = typeof inputs.githubStaffSecrets === "string" ? inputs.githubStaffSecrets : "";
   const githubStaffSecrets = readOptionalJson(githubStaffSecretsPath);
   const ruleConfigSourceSheets = ruleSheetsFromConfig(ruleConfigSource.ruleSheets);
@@ -113,6 +114,7 @@ function main() {
     if (requirements.defaultViewsRealDataValidated !== true) errors.push("production_ready_without_default_views_validation");
     if (requirements.currentRuleConfigRealDataSafetyReady !== true) errors.push("production_ready_without_rule_safety");
     if (requirements.currentRuleConfigFingerprintPresent !== true) errors.push("production_ready_without_rule_config_fingerprint");
+    if (requirements.currentRuleSafetyEnvSourceExplicit !== true) errors.push("production_ready_without_rule_safety_env_source");
     if (requirements.currentRuleConfigSourceProductionReady !== true) errors.push("production_ready_without_production_rule_config_source");
     if (requirements.staffWorkflowPermissionsReady !== true) errors.push("production_ready_without_staff_workflow_permissions");
     if (requirements.staffGithubConfigReady !== true) errors.push("production_ready_without_staff_github_config");
@@ -126,6 +128,38 @@ function main() {
 
   if (requirements.currentRuleConfigRealDataSafetyReady === true && requirements.currentRuleConfigFingerprintPresent !== true) {
     errors.push("rule_safety_ready_without_config_fingerprint");
+  }
+  if (typeof requirements.currentRuleSafetyEnvSourceExplicit !== "boolean") {
+    errors.push("rule_safety_env_source_gate_missing");
+  }
+  const ruleSafetyEnvExplicit = requirements.currentRuleSafetyEnvSourceExplicit === true;
+  if (ruleSafetyEnvExplicit) {
+    const mode = ruleSafetyAuditEnv.envFileMode;
+    if (mode !== "env_file" && mode !== "process_env_only") {
+      errors.push("rule_safety_env_source_ready_with_invalid_mode");
+    }
+    if (mode === "env_file") {
+      if (typeof ruleSafetyAuditEnv.envFile !== "string" || !ruleSafetyAuditEnv.envFile.trim()) {
+        errors.push("rule_safety_env_file_mode_missing_path");
+      }
+      if (ruleSafetyAuditEnv.envFileLoaded !== true) {
+        errors.push("rule_safety_env_file_mode_not_loaded");
+      }
+    }
+  } else {
+    const envSourceBlocker = blockers.find((item) => item.id === "rule_safety_env_source_unverified");
+    if (!p0Blockers.includes("rule_safety_env_source_unverified") && !p1Blockers.includes("rule_safety_env_source_unverified")) {
+      errors.push("rule_safety_env_source_not_ready_without_blocker");
+    }
+    if (!envSourceBlocker) {
+      errors.push("rule_safety_env_source_blocker_missing_detail");
+    } else {
+      const evidence = objectValue(envSourceBlocker.evidence);
+      const envEvidence = objectValue(evidence.ruleSafetyAuditEnv);
+      if (typeof envEvidence.envFileMode !== "string" && envEvidence.envFileMode !== null) {
+        errors.push("rule_safety_env_source_blocker_invalid_detail");
+      }
+    }
   }
   if (typeof requirements.currentRuleConfigSourceProductionReady !== "boolean") {
     errors.push("rule_config_source_gate_missing");

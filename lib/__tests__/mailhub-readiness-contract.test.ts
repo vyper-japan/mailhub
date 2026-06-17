@@ -51,6 +51,7 @@ function baseReadinessAudit(overrides: Record<string, unknown> = {}) {
       currentRuleConfigRealDataSafetyReady: true,
       currentRuleConfigFingerprintPresent: true,
       currentRuleConfigSourceProductionReady: true,
+      currentRuleSafetyEnvSourceExplicit: true,
       staffWorkflowPermissionsReady: false,
       staffGithubConfigReady: false,
       staffReadOnlyRolloutReady: false,
@@ -66,6 +67,12 @@ function baseReadinessAudit(overrides: Record<string, unknown> = {}) {
           assigneeRules: "ConfigAssigneeRules",
         },
         warnings: [],
+      },
+      ruleSafetyAuditEnv: {
+        envFile: ".env.local",
+        envFileLoaded: true,
+        envFileMode: "env_file",
+        valuePolicyPresent: true,
       },
     },
     viewSafety: {
@@ -267,6 +274,86 @@ describe("MailHub readiness contract check", () => {
       const result = runContract(auditPath);
       expect(result.status).toBe(1);
       expect(result.stdout).toContain("rule_config_source_gate_missing");
+    });
+  });
+
+  test("rejects missing rule safety env source gate", () => {
+    withTempDir((dir) => {
+      const auditPath = join(dir, "readiness.json");
+      const audit = baseReadinessAudit();
+      const requirements = { ...audit.requirements };
+      delete (requirements as Record<string, unknown>).currentRuleSafetyEnvSourceExplicit;
+      writeJson(auditPath, {
+        ...audit,
+        requirements,
+      });
+
+      const result = runContract(auditPath);
+      expect(result.status).toBe(1);
+      expect(result.stdout).toContain("rule_safety_env_source_gate_missing");
+    });
+  });
+
+  test("rejects production-ready rule safety without explicit env source", () => {
+    withTempDir((dir) => {
+      const auditPath = join(dir, "readiness.json");
+      const audit = baseReadinessAudit();
+      writeJson(auditPath, {
+        ...audit,
+        requirements: {
+          ...audit.requirements,
+          currentSharedGmailRoutingReady: true,
+          routingProbeReady: true,
+          routingProbePreflightReady: true,
+          routingProbeGithubSecretsReady: true,
+          defaultViewsBulkAutomationSafe: true,
+          currentRuleSafetyEnvSourceExplicit: false,
+          staffWorkflowPermissionsReady: true,
+          staffGithubConfigReady: true,
+        },
+        viewSafety: {
+          syntaxFailedViews: [],
+          manualReviewOnlyViews: ["invoice-docs"],
+          bulkUnsafeViews: [],
+        },
+        inputs: {
+          ...audit.inputs,
+          ruleSafetyAuditEnv: {},
+        },
+        gate: {
+          productionReady: true,
+          p0Blockers: [],
+          p1Blockers: [],
+        },
+        blockers: [],
+      });
+
+      const result = runContract(auditPath);
+      expect(result.status).toBe(1);
+      expect(result.stdout).toContain("production_ready_without_rule_safety_env_source");
+      expect(result.stdout).toContain("rule_safety_env_source_not_ready_without_blocker");
+    });
+  });
+
+  test("rejects env-file mode that did not load an env file", () => {
+    withTempDir((dir) => {
+      const auditPath = join(dir, "readiness.json");
+      const audit = baseReadinessAudit();
+      writeJson(auditPath, {
+        ...audit,
+        inputs: {
+          ...audit.inputs,
+          ruleSafetyAuditEnv: {
+            envFile: ".env.local",
+            envFileLoaded: false,
+            envFileMode: "env_file",
+          },
+        },
+      });
+
+      const result = runContract(auditPath);
+      expect(result.status).toBe(1);
+      expect(result.stdout).toContain("rule_safety_env_file_mode_not_loaded");
     });
   });
 
