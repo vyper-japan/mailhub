@@ -855,6 +855,8 @@ npm run build
 npm run audit:mailhub-readiness -- --out .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json
 npm run audit:mailhub-readiness-contract
 git diff --check
+gh workflow run mailhub-routing-probe.yml --repo vyper-japan/mailhub -f mode=preflight -f confirmSend= -f waitSeconds=300 -f pollSeconds=15
+gh run watch 27663796128 --repo vyper-japan/mailhub --exit-status
 ```
 
 ## 2026-06-17 Routing Probe GitHub Actions Wave Results
@@ -1118,6 +1120,8 @@ git diff --check
 - Final readiness refresh: passed.
 - Final readiness contract check: passed with `productionReady=false`, P0 `current_shared_gmail_routing`, and no contract errors.
 - `git diff --check`: passed.
+- GitHub Actions run `27663796128`: passed in 27s on `c8f5813`.
+- The run exercised the new injected-env secret audit step, used `mode=preflight`, skipped `send_verify`, and sent no external mail.
 
 ## Useful Runtime Commands
 

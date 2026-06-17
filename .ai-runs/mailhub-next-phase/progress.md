@@ -259,6 +259,7 @@
   - Only a `pilates-booking` Resend placeholder was found; it lacks `RESEND_API_KEY` and uses `example.com`, so it is not usable as production proof.
   - Added `--from-env` to `scripts/check-mailhub-routing-probe-secrets.mjs`.
   - The manual routing probe workflow now audits injected secret env into `github-routing-secrets-readiness.json` and blocks `send_verify` before sending unless `readyForSendVerify=true`.
+  - Triggered manual GitHub Actions run `27663796128` in `mode=preflight`; it passed, exercised the injected-env secret audit step, and skipped `send_verify`.
 
 ## Not Done
 
