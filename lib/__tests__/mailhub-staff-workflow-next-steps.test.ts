@@ -146,7 +146,7 @@ describe("MailHub staff workflow next steps", () => {
       };
       expect(out.state.staffWorkflowPermissionsReady).toBe(false);
       expect(out.state.canCaptureReadOnlyRolloutEvidence).toBe(false);
-      expect(out.missing.productionEnv).toEqual(["NEXTAUTH_URL", "GOOGLE_CLIENT_ID"]);
+      expect(out.missing.productionEnv).toEqual(["MAILHUB_ENV=production", "NEXTAUTH_URL", "GOOGLE_CLIENT_ID"]);
       expect(out.missing.staffAdmins).toEqual(["MAILHUB_ADMINS"]);
       expect(out.missing.staffTeamMembers).toEqual(["MAILHUB_TEAM_MEMBERS"]);
       expect(out.missing.readOnlyEvidence).toEqual(["mailhub-meta-topbar-readonly.png"]);
@@ -205,6 +205,89 @@ describe("MailHub staff workflow next steps", () => {
       expect(out.state.canCaptureControlledWritePilotEvidence).toBe(true);
       expect(Object.values(out.missing).flat()).toEqual([]);
       expect(out.nextActions.every((action) => action.status === "done")).toBe(true);
+    });
+  });
+
+  test("reports only MAILHUB_ENV when production auth env is already present", () => {
+    withTempDir((dir) => {
+      const auditPath = join(dir, "staff-audit.json");
+      const outPath = join(dir, "staff-next.json");
+      writeJson(auditPath, {
+        ...blockedAudit(),
+        config: {
+          configStore: "file",
+          activityStore: "memory",
+          missingProductionEnv: [],
+        },
+      });
+
+      const result = runStaffNext(["--audit", auditPath, "--out", outPath]);
+
+      expect(result.status).toBe(0);
+      const out = JSON.parse(readFileSync(outPath, "utf8")) as {
+        missing: Record<string, string[]>;
+        nextActions: Array<{ id: string; requiredEnv?: string[] }>;
+      };
+      expect(out.missing.productionEnv).toEqual(["MAILHUB_ENV=production"]);
+      expect(out.nextActions.find((action) => action.id === "configure_production_env")?.requiredEnv).toEqual([
+        "MAILHUB_ENV=production",
+      ]);
+
+      const contract = runStaffNextContract([
+        "--next",
+        outPath,
+        "--audit",
+        auditPath,
+        "--repo-head",
+        "HEAD",
+        "--repo-parent-head",
+        "HEAD^",
+      ]);
+      expect(contract.status).toBe(0);
+    });
+  });
+
+  test("reports test mode as the remaining production mode blocker", () => {
+    withTempDir((dir) => {
+      const auditPath = join(dir, "staff-audit.json");
+      const outPath = join(dir, "staff-next.json");
+      writeJson(auditPath, {
+        ...blockedAudit(),
+        environment: {
+          mailhubEnv: "production",
+          testMode: true,
+          readOnly: false,
+        },
+        config: {
+          configStore: "file",
+          activityStore: "memory",
+          missingProductionEnv: [],
+        },
+      });
+
+      const result = runStaffNext(["--audit", auditPath, "--out", outPath]);
+
+      expect(result.status).toBe(0);
+      const out = JSON.parse(readFileSync(outPath, "utf8")) as {
+        missing: Record<string, string[]>;
+        nextActions: Array<{ id: string; requiredEnv?: string[] }>;
+      };
+      expect(out.missing.productionEnv).toEqual(["MAILHUB_TEST_MODE=0"]);
+      expect(out.nextActions.find((action) => action.id === "configure_production_env")?.requiredEnv).toEqual([
+        "MAILHUB_TEST_MODE=0",
+      ]);
+
+      const contract = runStaffNextContract([
+        "--next",
+        outPath,
+        "--audit",
+        auditPath,
+        "--repo-head",
+        "HEAD",
+        "--repo-parent-head",
+        "HEAD^",
+      ]);
+      expect(contract.status).toBe(0);
     });
   });
 

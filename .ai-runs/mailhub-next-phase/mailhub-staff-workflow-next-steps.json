@@ -1,9 +1,9 @@
 {
-  "generatedAt": "2026-06-17T16:03:49.791Z",
+  "generatedAt": "2026-06-17T16:29:39.227Z",
   "inputs": {
     "audit": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.ai-runs/mailhub-next-phase/mailhub-staff-workflow-audit.json",
-    "auditGeneratedAt": "2026-06-17T16:03:49.682Z",
-    "auditRepoHead": "0b7b5f6060d7dde7da0f8f99c78d7d9f57a22eb4",
+    "auditGeneratedAt": "2026-06-17T16:29:39.109Z",
+    "auditRepoHead": "4ce77683588fa4d2b3c62b303b5b696b6b5007d4",
     "errors": [],
     "warnings": []
   },
@@ -23,12 +23,7 @@
   },
   "missing": {
     "productionEnv": [
-      "NEXTAUTH_URL",
-      "NEXTAUTH_SECRET",
-      "GOOGLE_CLIENT_ID",
-      "GOOGLE_CLIENT_SECRET",
-      "GOOGLE_SHARED_INBOX_EMAIL",
-      "GOOGLE_SHARED_INBOX_REFRESH_TOKEN"
+      "MAILHUB_ENV=production"
     ],
     "staffAdmins": [],
     "staffTeamMembers": [
@@ -79,12 +74,7 @@
       "status": "required",
       "description": "Run the staff workflow audit against the production MailHub environment with required auth and shared Gmail env present.",
       "requiredEnv": [
-        "NEXTAUTH_URL",
-        "NEXTAUTH_SECRET",
-        "GOOGLE_CLIENT_ID",
-        "GOOGLE_CLIENT_SECRET",
-        "GOOGLE_SHARED_INBOX_EMAIL",
-        "GOOGLE_SHARED_INBOX_REFRESH_TOKEN"
+        "MAILHUB_ENV=production"
       ],
       "commands": [
         "npm run setup:mailhub-staff-env"

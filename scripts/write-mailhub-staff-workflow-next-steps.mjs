@@ -71,6 +71,14 @@ function status(done, blocked = false) {
   return blocked ? "blocked" : "required";
 }
 
+function productionEnvMissing({ productionEnvReady, missingProductionEnv, environment }) {
+  if (productionEnvReady) return [];
+  const missing = [...missingProductionEnv];
+  if (environment.mailhubEnv !== "production") missing.unshift("MAILHUB_ENV=production");
+  if (environment.testMode === true) missing.unshift("MAILHUB_TEST_MODE=0");
+  return missing.length ? [...new Set(missing)] : REQUIRED_PRODUCTION_ENV;
+}
+
 function main() {
   const args = parseArgs(process.argv.slice(2));
   const audit = readOptionalJson(args.audit);
@@ -106,6 +114,7 @@ function main() {
     durableActivityReady;
 
   const missingProductionEnv = stringArray(config.missingProductionEnv);
+  const productionMissing = productionEnvMissing({ productionEnvReady, missingProductionEnv, environment });
   const readonlyMissing = stringArray(evidence.readonlyMissing);
   const readOnlyEvidenceIssues = stringArray(evidence.readOnlyEvidenceIssues);
   const writeMissing = stringArray(evidence.writeMissing);
@@ -144,7 +153,7 @@ function main() {
       readOnlyEnabled,
     },
     missing: {
-      productionEnv: productionEnvReady ? [] : (missingProductionEnv.length ? missingProductionEnv : REQUIRED_PRODUCTION_ENV),
+      productionEnv: productionMissing,
       staffAdmins: adminsReady ? [] : ["MAILHUB_ADMINS"],
       staffTeamMembers: staffAccessAllowlistReady ? [] : ["MAILHUB_TEAM_MEMBERS"],
       assigneeRoster: assigneeRosterReady ? [] : ["MAILHUB_TEAM_MEMBERS or .mailhub/assignees.json / ConfigAssignees"],
@@ -166,7 +175,7 @@ function main() {
         id: "configure_production_env",
         status: status(productionEnvReady),
         description: "Run the staff workflow audit against the production MailHub environment with required auth and shared Gmail env present.",
-        requiredEnv: productionEnvReady ? [] : (missingProductionEnv.length ? missingProductionEnv : REQUIRED_PRODUCTION_ENV),
+        requiredEnv: productionMissing,
         commands: productionEnvReady ? [] : [STAFF_ENV_PREFLIGHT_COMMAND],
       },
       {

@@ -19,6 +19,14 @@ const REQUIRED_ACTION_IDS = [
   "refresh_staff_and_readiness_artifacts",
 ];
 const STAFF_ENV_PREFLIGHT_COMMAND = "npm run setup:mailhub-staff-env";
+const REQUIRED_PRODUCTION_ENV = [
+  "NEXTAUTH_URL",
+  "NEXTAUTH_SECRET",
+  "GOOGLE_CLIENT_ID",
+  "GOOGLE_CLIENT_SECRET",
+  "GOOGLE_SHARED_INBOX_EMAIL",
+  "GOOGLE_SHARED_INBOX_REFRESH_TOKEN",
+];
 
 function parseArgs(argv) {
   const out = {
@@ -108,6 +116,14 @@ function expectStaffEnvPreflightCommand({ actions, id, required, errors }) {
   }
 }
 
+function expectedProductionMissing({ productionEnvReady, auditConfig, auditEnvironment }) {
+  if (productionEnvReady) return [];
+  const missing = stringArray(auditConfig.missingProductionEnv);
+  if (auditEnvironment.mailhubEnv !== "production") missing.unshift("MAILHUB_ENV=production");
+  if (auditEnvironment.testMode === true) missing.unshift("MAILHUB_TEST_MODE=0");
+  return missing.length ? [...new Set(missing)] : REQUIRED_PRODUCTION_ENV;
+}
+
 function main() {
   const args = parseArgs(process.argv.slice(2));
   const next = readJson(args.next, "staff_next_artifact");
@@ -124,6 +140,7 @@ function main() {
   const auditRequirements = objectValue(audit.requirements);
   const auditGate = objectValue(audit.gate);
   const auditConfig = objectValue(audit.config);
+  const auditEnvironment = objectValue(audit.environment);
   const auditStaff = objectValue(audit.staff);
   const auditEvidence = objectValue(audit.evidence);
   const inputErrors = stringArray(inputs.errors);
@@ -157,7 +174,7 @@ function main() {
   const readOnlyRolloutReady = auditGate.readOnlyRolloutReady === true;
   const controlledWritePilotReady = auditGate.controlledWritePilotReady === true;
   const staffWorkflowPermissionsReady = auditGate.staffWorkflowPermissionsReady === true;
-  const readOnlyEnabled = audit.environment?.readOnly === true;
+  const readOnlyEnabled = auditEnvironment.readOnly === true;
   const basePrerequisitesReady =
     productionEnvReady &&
     adminsReady &&
@@ -183,8 +200,8 @@ function main() {
   if (state.durableActivityReady !== durableActivityReady) errors.push("durable_activity_state_mismatch");
   if (state.readOnlyEnabled !== readOnlyEnabled) errors.push("readonly_flag_state_mismatch");
 
-  const expectedProductionMissing = productionEnvReady ? [] : stringArray(auditConfig.missingProductionEnv);
-  if (expectedProductionMissing.length > 0 && !sameStrings(stringArray(missing.productionEnv), expectedProductionMissing)) {
+  const productionMissing = expectedProductionMissing({ productionEnvReady, auditConfig, auditEnvironment });
+  if (!sameStrings(stringArray(missing.productionEnv), productionMissing)) {
     errors.push("production_missing_mismatch");
   }
   if (adminsReady !== (stringArray(missing.staffAdmins).length === 0)) errors.push("staff_admins_missing_mismatch");

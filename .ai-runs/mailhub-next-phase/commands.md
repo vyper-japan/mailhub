@@ -2249,6 +2249,31 @@ git diff --check
 - The readiness contract workflow now checks the rule-config next-step contract, so the action list cannot drift from the readiness and rule-safety artifacts.
 - Added the new artifact to the ops artifact secret scan default target list.
 
+## 2026-06-18 Staff Next-step Precision Commands
+
+```bash
+node --check scripts/write-mailhub-staff-workflow-next-steps.mjs
+node --check scripts/check-mailhub-staff-next-contract.mjs
+npx vitest run lib/__tests__/mailhub-staff-workflow-next-steps.test.ts
+npm run audit:mailhub-staff-next -- --out .ai-runs/mailhub-next-phase/mailhub-staff-workflow-next-steps.json
+npm run audit:mailhub-staff-next-contract
+npm run audit:github-routing-secrets-contract
+npm run audit:mailhub-staff-workflow-contract
+npm run audit:mailhub-staff-next-contract
+npm run audit:mailhub-readiness-contract
+npm run audit:mailhub-rule-config-next-contract
+npm run audit:mailhub-routing-next-contract
+npm run audit:mailhub-routing-proof-contract
+```
+
+## 2026-06-18 Staff Next-step Precision Results
+
+- Tightened `mailhub-staff-workflow-next-steps.json` production env reporting.
+- When production auth/shared Gmail env is already present but `MAILHUB_ENV` is still local, the next-step artifact now lists only `MAILHUB_ENV=production` under `missing.productionEnv` and `configure_production_env.requiredEnv`.
+- When `MAILHUB_ENV=production` is present but `MAILHUB_TEST_MODE` is still enabled, the next-step contract now reports `MAILHUB_TEST_MODE=0` instead of falling back to already-present auth/shared Gmail env.
+- Strengthened `check-mailhub-staff-next-contract.mjs` so this production mode requirement cannot disappear when `config.missingProductionEnv=[]`.
+- Current staff next-step artifact now points `configure_production_env` at only `MAILHUB_ENV=production`; other missing items remain staff team members, Sheets config/activity, READ ONLY, and evidence.
+
 ## Useful Runtime Commands
 
 Start dev server for tunnel:

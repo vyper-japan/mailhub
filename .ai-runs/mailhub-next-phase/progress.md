@@ -477,6 +477,11 @@
   - Added writer/contract scripts and CI wiring so the rule-config action list must stay aligned with the production readiness artifact and `gmail-rule-safety-audit.json`.
   - Current rule-config next-step artifact shows Gmail real-data audit env is present, but Sheets-backed rule config env is missing; `run_sheets_rule_safety_audit` remains blocked until `MAILHUB_CONFIG_STORE=sheets` and Sheets credentials are configured.
   - Added the new artifact to the default ops artifact secret scan targets.
+- 2026-06-18 staff next-step precision completed:
+  - `mailhub-staff-workflow-next-steps.json` now reports `MAILHUB_ENV=production` as the only production-env missing item when auth/shared Gmail env is already present.
+  - Added a regression guard for `MAILHUB_ENV=production` with `MAILHUB_TEST_MODE` still enabled, so the next action reports `MAILHUB_TEST_MODE=0` rather than restating already-present auth/Gmail env.
+  - Strengthened `check-mailhub-staff-next-contract.mjs` so production mode cannot vanish from the next-step artifact when `config.missingProductionEnv=[]`.
+  - Current staff next-step artifact is more actionable: production mode, team members, durable Sheets config/activity, READ ONLY, and rollout evidence are separated instead of restating already-present auth/Gmail env.
 
 ## Not Done
 
@@ -499,6 +504,7 @@
 - The staff workflow next-step artifact now shows the exact remaining P1 action list, but it remains red because production env/staff config/durable stores and production evidence have not been provided.
 - `npm run setup:mailhub-staff-env` now shows the remaining staff rollout env gaps without printing values; current artifact still needs production mode, team members, Sheets config/activity, and READ ONLY before READ ONLY evidence capture can start.
 - `npm run audit:mailhub-staff-workflow` now reads the same `.env.local` default as the staff env preflight. Current artifact no longer reports missing production auth/shared Gmail env or missing admins; it reports only the actual remaining staff rollout setup/evidence gaps.
+- `mailhub-staff-workflow-next-steps.json` now mirrors that precision and lists only `MAILHUB_ENV=production` for `configure_production_env`.
 - The staff workflow next-step contract now guards that action list in CI, so the P1 staff workflow checklist cannot drift from the audit artifact unnoticed.
 - Staff workflow production evidence now requires `docs/pilot/prod/staff-workflow-evidence-manifest.json`; screenshots/CSV alone cannot make the READ ONLY rollout or controlled WRITE pilot ready.
 - `npm run setup:mailhub-staff-manifest` can now generate that manifest once real production reviewer/actor/messageId/date values exist.
