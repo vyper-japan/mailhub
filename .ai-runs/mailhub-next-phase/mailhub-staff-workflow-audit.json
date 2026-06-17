@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-06-17T12:02:49.471Z",
-  "repoHead": "bb39390526d3f17551bb51bd7ff45f65226881b3",
+  "generatedAt": "2026-06-17T12:32:49.136Z",
+  "repoHead": "5bdccc79dd5b070cc413c3849c271004ccddbe8f",
   "inputs": {
     "envFile": null,
     "assignees": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.mailhub/assignees.json",
@@ -33,6 +33,7 @@
     "adminCount": 0,
     "adminInvalid": [],
     "adminNonVtj": [],
+    "staffAccessAllowlistReady": false,
     "teamMemberCount": 0,
     "teamInvalid": [],
     "teamNonVtj": [],
@@ -71,6 +72,7 @@
   "requirements": {
     "productionEnvReady": false,
     "adminsReady": false,
+    "staffAccessAllowlistReady": false,
     "assigneeRosterReady": true,
     "durableConfigReady": false,
     "durableActivityReady": false,
@@ -112,6 +114,16 @@
         "count": 0,
         "invalid": [],
         "nonVtj": []
+      }
+    },
+    {
+      "id": "staff_access_allowlist_not_ready",
+      "severity": "P1",
+      "message": "MAILHUB_TEAM_MEMBERS must contain at least one valid @vtj.co.jp staff user for non-admin access control.",
+      "evidence": {
+        "teamMemberCount": 0,
+        "teamInvalid": [],
+        "teamNonVtj": []
       }
     },
     {
@@ -173,6 +185,7 @@
       "not_production_env",
       "missing_production_env",
       "admins_not_ready",
+      "staff_access_allowlist_not_ready",
       "config_store_not_durable",
       "activity_store_not_durable",
       "read_only_not_enabled",

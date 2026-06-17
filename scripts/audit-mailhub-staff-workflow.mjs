@@ -251,6 +251,8 @@ function main() {
   const teamNonVtj = teamMembers.filter((item) => item.valid && !item.vtj).map((item) => item.email);
   const validTeamMembers = teamMembers.filter((item) => item.valid && item.vtj);
   const adminsReady = admins.length > 0 && adminInvalid.length === 0 && adminNonVtj.length === 0;
+  const staffAccessAllowlistReady =
+    adminsReady && validTeamMembers.length > 0 && teamInvalid.length === 0 && teamNonVtj.length === 0;
   const assigneeRosterReady = validTeamMembers.length > 0 || assignees.validCount > 0;
   const productionEnvReady = mailhubEnv === "production" && !testMode && missingProductionEnv.length === 0;
   const durableConfigReady = configStore === "sheets" && sheetsReady;
@@ -259,6 +261,7 @@ function main() {
     productionEnvReady &&
     readOnly &&
     adminsReady &&
+    staffAccessAllowlistReady &&
     durableConfigReady &&
     durableActivityReady &&
     assigneeRosterReady &&
@@ -266,6 +269,7 @@ function main() {
   const controlledWritePilotReady =
     productionEnvReady &&
     adminsReady &&
+    staffAccessAllowlistReady &&
     durableConfigReady &&
     durableActivityReady &&
     assigneeRosterReady &&
@@ -280,6 +284,11 @@ function main() {
     count: admins.length,
     invalid: adminInvalid,
     nonVtj: adminNonVtj,
+  }));
+  if (!staffAccessAllowlistReady) blockers.push(blocker("staff_access_allowlist_not_ready", "P1", "MAILHUB_TEAM_MEMBERS must contain at least one valid @vtj.co.jp staff user for non-admin access control.", {
+    teamMemberCount: validTeamMembers.length,
+    teamInvalid,
+    teamNonVtj,
   }));
   if (!assigneeRosterReady) blockers.push(blocker("assignee_roster_not_ready", "P1", "At least one @vtj.co.jp staff assignee must be configured.", {
     teamMemberCount: validTeamMembers.length,
@@ -336,6 +345,7 @@ function main() {
       adminCount: admins.length,
       adminInvalid,
       adminNonVtj,
+      staffAccessAllowlistReady,
       teamMemberCount: validTeamMembers.length,
       teamInvalid,
       teamNonVtj,
@@ -345,6 +355,7 @@ function main() {
     requirements: {
       productionEnvReady,
       adminsReady,
+      staffAccessAllowlistReady,
       assigneeRosterReady,
       durableConfigReady,
       durableActivityReady,

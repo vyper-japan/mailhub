@@ -3,6 +3,7 @@ import "server-only";
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { isTestMode } from "@/lib/test-mode";
+import { isStaffAccessAllowed } from "@/lib/staffAccess";
 
 const ALLOWED_DOMAIN = "vtj.co.jp";
 
@@ -47,14 +48,23 @@ export async function requireUser(): Promise<AuthResult> {
     };
   }
 
-  const email = session.user.email;
+  const email = session.user.email.trim();
+  const normalizedEmail = email.toLowerCase();
 
   // ドメインチェック
-  if (!email.endsWith(`@${ALLOWED_DOMAIN}`)) {
+  if (!normalizedEmail.endsWith(`@${ALLOWED_DOMAIN}`)) {
     return {
       ok: false,
       status: 403,
       message: `Forbidden: Only ${ALLOWED_DOMAIN} users are allowed`,
+    };
+  }
+
+  if (!isStaffAccessAllowed(normalizedEmail)) {
+    return {
+      ok: false,
+      status: 403,
+      message: "Forbidden: MailHub access is limited to configured staff members",
     };
   }
 
@@ -77,5 +87,3 @@ export function authErrorResponse(result: Extract<AuthResult, { ok: false }>) {
     { status: result.status }
   );
 }
-
-

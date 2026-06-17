@@ -1824,6 +1824,40 @@ git diff --check
 - Typecheck, build, lint, smoke, security scan, and `git diff --check` passed.
 - A full-suite timeout on `plan-only routing probe audit reports every target address` was fixed by giving the CLI subprocess test an explicit 15s timeout; the test is still functional and continues to assert address-level proof, not only channel-level proof.
 
+## 2026-06-17 Staff Access Allowlist Hardening Commands
+
+```bash
+npx vitest run lib/__tests__/staffAccess.test.ts lib/__tests__/require-user.test.ts lib/__tests__/mailhub-staff-workflow-audit.test.ts
+npm run audit:mailhub-staff-workflow
+npm run audit:mailhub-readiness -- --out .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json
+npm run audit:mailhub-routing-next -- --strict --out .ai-runs/mailhub-next-phase/mailhub-routing-next-steps.json
+npm run typecheck
+npm run audit:mailhub-staff-workflow-contract
+npm run audit:github-routing-secrets-contract
+npm run audit:mailhub-readiness-contract
+npm run audit:mailhub-routing-next-contract
+npm run audit:mailhub-routing-proof-contract
+npm run test
+npm run test:coverage
+npm run lint
+npm run build
+npm run smoke
+npm run security:scan
+npm run security:scan-artifacts
+git diff --check
+```
+
+## 2026-06-17 Staff Access Allowlist Hardening Results
+
+- Added explicit MailHub staff allowlist logic based on `MAILHUB_ADMINS` and `MAILHUB_TEAM_MEMBERS`.
+- `requireUser()` now blocks unlisted `@vtj.co.jp` users once a staff allowlist is configured, while keeping legacy domain access when no allowlist is present.
+- Staff workflow audit now reports `staffAccessAllowlistReady` separately from assignee roster readiness.
+- Refreshed `.ai-runs/mailhub-next-phase/mailhub-staff-workflow-audit.json` at repo head `5bdccc7`.
+- Focused tests passed 3 files / 8 tests.
+- Full Vitest passed 67 files / 594 tests.
+- Coverage passed 67 files / 594 tests with global coverage above threshold.
+- Typecheck, build, lint, smoke, security scan, artifact secret scan, `git diff --check`, and all readiness/routing/staff artifact contracts passed.
+
 ## Useful Runtime Commands
 
 Start dev server for tunnel:

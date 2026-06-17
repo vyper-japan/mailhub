@@ -408,6 +408,13 @@
   - Tightened `/api/mailhub/assign` so non-admin users can no longer `unassign`; the route cannot prove ownership before removing all assignee labels, so unassign is admin-only until an owner-aware path exists.
   - Increased the routing plan-only test timeout to remove full-suite timing flakiness observed under concurrent Vitest load.
   - Current code-side staff permission follow-up left: staff access is still domain-wide through `@vtj.co.jp` auth and should be narrowed to an explicit allowlist before broad rollout.
+- 2026-06-17 staff access allowlist hardening wave completed:
+  - Added `lib/staffAccess.ts` to parse `MAILHUB_ADMINS` and `MAILHUB_TEAM_MEMBERS` as the explicit MailHub access allowlist.
+  - `requireUser()` now keeps TEST_MODE behavior, keeps the `@vtj.co.jp` domain gate, and when an allowlist is configured blocks unlisted `@vtj.co.jp` users with 403.
+  - Kept backward compatibility for environments with no staff allowlist configured: existing `@vtj.co.jp` users still pass until `MAILHUB_ADMINS` or `MAILHUB_TEAM_MEMBERS` is set.
+  - Staff workflow audit now separates login access allowlist readiness from assignee roster readiness via `staffAccessAllowlistReady`.
+  - Regenerated `mailhub-staff-workflow-audit.json` at repo head `5bdccc7`; current local artifact remains intentionally not ready with P1 `staff_access_allowlist_not_ready` plus production evidence gaps.
+  - Added focused tests for staff allowlist parsing, `requireUser` allowlist enforcement, uppercase email normalization, and the staff workflow audit contract.
 
 ## Not Done
 
@@ -432,7 +439,7 @@
 - Production pagination basic behavior is represented in API/UI metadata and forced E2E; real browser/manual production verification is still useful before staff rollout.
 - Auto-discard rules for marketing/noise are protected against obvious important/invoice/inquiry suppression and missing summary text, but a full production auto-discard policy is still intentionally not enabled.
 - Real-data rule safety audit exists and passes for the current local file config because no rules are configured. Re-run with `MAILHUB_CONFIG_STORE=sheets` and production Sheets credentials when production rule config is enabled.
-- Most critic-identified production-readiness P1s from this wave are closed in code or converted to explicit operational confirmations. Remaining code follow-up: narrow staff access from domain-wide `@vtj.co.jp` to an explicit allowlist/roster gate before broader rollout.
+- Most critic-identified production-readiness P1s from this wave are closed in code or converted to explicit operational confirmations. Remaining staff workflow gap is operational evidence/configuration: production `MAILHUB_TEAM_MEMBERS`, durable Sheets config/activity, read-only rollout screenshots, activity CSV, and controlled write pilot screenshots.
 - Important/invoice/customer-inquiry folders exist as default saved views and are audited as manual-review shortcuts; further narrowing requires operator feedback.
 - Brain decision ledger exists for memory/file/sheets and health visibility; AI reply drafting and knowledge base integration are not implemented.
 - Rakuten/Amazon/Yahoo API-based reply integration is not implemented.

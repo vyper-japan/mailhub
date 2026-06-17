@@ -96,7 +96,13 @@ describe("MailHub staff workflow audit", () => {
         p1Blockers: [],
       });
 
-      const artifact = JSON.parse(readFileSync(outPath, "utf8")) as { repoHead: string };
+      const artifact = JSON.parse(readFileSync(outPath, "utf8")) as {
+        repoHead: string;
+        staff: { staffAccessAllowlistReady: boolean };
+        requirements: { staffAccessAllowlistReady: boolean };
+      };
+      expect(artifact.staff.staffAccessAllowlistReady).toBe(true);
+      expect(artifact.requirements.staffAccessAllowlistReady).toBe(true);
       const contract = runNodeScript(staffContractPath, [
         "--audit",
         outPath,
@@ -136,6 +142,7 @@ describe("MailHub staff workflow audit", () => {
       expect(artifact.gate.p1Blockers).toEqual(expect.arrayContaining([
         "not_production_env",
         "admins_not_ready",
+        "staff_access_allowlist_not_ready",
         "assignee_roster_not_ready",
         "readonly_evidence_missing",
         "write_pilot_evidence_missing",
