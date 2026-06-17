@@ -1,0 +1,123 @@
+name: MailHub Routing Probe
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "preflight or send_verify"
+        required: true
+        default: "preflight"
+        type: choice
+        options:
+          - preflight
+          - send_verify
+      confirmSend:
+        description: "Required for send_verify: SEND_EXTERNAL_MAILHUB_ROUTING_PROBES"
+        required: false
+        type: string
+        default: ""
+      waitSeconds:
+        description: "Polling window for send_verify"
+        required: true
+        type: choice
+        default: "300"
+        options:
+          - "0"
+          - "120"
+          - "300"
+          - "600"
+      pollSeconds:
+        description: "Polling interval for send_verify"
+        required: true
+        type: choice
+        default: "15"
+        options:
+          - "10"
+          - "15"
+          - "30"
+
+concurrency:
+  group: mailhub-routing-probe
+  cancel-in-progress: false
+
+jobs:
+  routing-probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+      GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+      GOOGLE_SHARED_INBOX_EMAIL: ${{ secrets.GOOGLE_SHARED_INBOX_EMAIL }}
+      GOOGLE_SHARED_INBOX_REFRESH_TOKEN: ${{ secrets.GOOGLE_SHARED_INBOX_REFRESH_TOKEN }}
+      MAILHUB_PROBE_SMTP_HOST: ${{ secrets.MAILHUB_PROBE_SMTP_HOST }}
+      MAILHUB_PROBE_SMTP_PORT: ${{ secrets.MAILHUB_PROBE_SMTP_PORT }}
+      MAILHUB_PROBE_SMTP_SECURE: ${{ secrets.MAILHUB_PROBE_SMTP_SECURE }}
+      MAILHUB_PROBE_SMTP_USER: ${{ secrets.MAILHUB_PROBE_SMTP_USER }}
+      MAILHUB_PROBE_SMTP_PASS: ${{ secrets.MAILHUB_PROBE_SMTP_PASS }}
+      MAILHUB_PROBE_FROM: ${{ secrets.MAILHUB_PROBE_FROM }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate send confirmation
+        if: github.event.inputs.mode == 'send_verify'
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event.inputs.confirmSend }}" != "SEND_EXTERNAL_MAILHUB_ROUTING_PROBES" ]; then
+            echo "send_verify requires confirmSend=SEND_EXTERNAL_MAILHUB_ROUTING_PROBES"
+            exit 1
+          fi
+
+      - name: Run routing probe preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run probe:routing-preflight -- \
+            --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-preflight.json
+          node -e 'const p=require("./.ai-runs/mailhub-next-phase/mailhub-routing-probe-preflight.json"); console.log(JSON.stringify({mode:p.mode, probeCount:p.probeCount, sentCount:p.sent.length, readyForProductionProof:p.smtpPreflight.readyForProductionProof, missing:p.smtpPreflight.missingRequiredEnv, warnings:p.smtpPreflight.warnings}, null, 2)); if(p.probeCount!==8) process.exit(2); if(p.sent.length!==0) process.exit(3); if(process.env.MAILHUB_ROUTING_PROBE_REQUIRE_READY==="1" && !p.smtpPreflight.readyForProductionProof) process.exit(4);'
+        env:
+          MAILHUB_ROUTING_PROBE_REQUIRE_READY: ${{ github.event.inputs.mode == 'send_verify' && '1' || '0' }}
+
+      - name: Send and verify external routing probes
+        if: github.event.inputs.mode == 'send_verify'
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run probe:routing-send -- \
+            --send \
+            --verify-after-send \
+            --wait-seconds "${{ github.event.inputs.waitSeconds }}" \
+            --poll-seconds "${{ github.event.inputs.pollSeconds }}" \
+            --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-send.json
+          node -e 'const s=require("./.ai-runs/mailhub-next-phase/mailhub-routing-probe-send.json"); if(s.mode!=="sent") process.exit(1); if(s.probeCount!==8) process.exit(2); if(s.sent.length!==8) process.exit(3); if(!s.verification) process.exit(4); if(!s.verification.allExpectedAddressesConfirmed) process.exit(5); if(!s.verification.productionReady) process.exit(6); console.log(JSON.stringify({marker:s.marker, sent:s.sent.length, verification:s.verification}, null, 2));'
+
+      - name: Refresh readiness contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run audit:mailhub-readiness -- \
+            --out .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json
+          npm run audit:mailhub-readiness-contract
+
+      - name: Upload routing probe artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mailhub-routing-probe-${{ github.run_id }}
+          path: |
+            .ai-runs/mailhub-next-phase/mailhub-routing-probe-preflight.json
+            .ai-runs/mailhub-next-phase/mailhub-routing-probe-send.json
+            .ai-runs/mailhub-next-phase/mailhub-routing-probe-audit.json
+            .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json
+          if-no-files-found: ignore
+          retention-days: 14

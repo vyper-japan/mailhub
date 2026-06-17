@@ -839,6 +839,37 @@ git diff --check
 - Final readiness contract check: passed with `productionReady=false`, P0 `current_shared_gmail_routing`, and no contract errors.
 - `git diff --check`: passed.
 
+## Verification Commands Run On 2026-06-17 Routing Probe GitHub Actions Wave
+
+```bash
+ruby -e 'require "yaml"; YAML.load_file(".github/workflows/mailhub-routing-probe.yml"); puts "routing probe yaml ok"'
+actionlint .github/workflows/mailhub-routing-probe.yml
+npm run audit:mailhub-readiness-contract
+npm run typecheck
+npm run lint
+npm run security:scan-artifacts
+npm run test
+npm run build
+npm run audit:mailhub-readiness -- --out .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json
+npm run audit:mailhub-readiness-contract
+git diff --check
+```
+
+## 2026-06-17 Routing Probe GitHub Actions Wave Results
+
+- Workflow YAML parse: passed.
+- `actionlint .github/workflows/mailhub-routing-probe.yml`: passed.
+- Targeted readiness contract check: passed.
+- `npm run typecheck`: passed.
+- `npm run lint`: passed.
+- `npm run security:scan-artifacts`: passed.
+- `npm run test`: 63 files / 548 tests passed.
+- `npm run build`: passed.
+- Final readiness refresh: passed.
+- Final readiness contract check: passed with `productionReady=false`, P0 `current_shared_gmail_routing`, and no contract errors.
+- `git diff --check`: passed.
+- Note: all-workflow `actionlint` still reports pre-existing shellcheck info warnings in `.github/workflows/mailhub-config-export.yml`; the new routing probe workflow passes actionlint independently.
+
 ## Useful Runtime Commands
 
 Start dev server for tunnel:

@@ -481,7 +481,31 @@ npm run probe:routing-preflight -- --out .ai-runs/mailhub-next-phase/mailhub-rou
 - `smtpPreflight.readyForProductionProof=true`
 - `smtpPreflight.missingRequiredEnv=[]`
 
-### 4. 外部probeを送信
+### 4. GitHub Actions から実行する場合
+`.github/workflows/mailhub-routing-probe.yml` は手動実行専用。pushやscheduleでは送信しない。
+
+必要な GitHub Actions Secrets:
+- `GOOGLE_CLIENT_ID`
+- `GOOGLE_CLIENT_SECRET`
+- `GOOGLE_SHARED_INBOX_EMAIL`
+- `GOOGLE_SHARED_INBOX_REFRESH_TOKEN`
+- `MAILHUB_PROBE_SMTP_HOST`
+- `MAILHUB_PROBE_SMTP_PORT`（未設定時はスクリプト既定 `587`）
+- `MAILHUB_PROBE_SMTP_SECURE`（未設定時はスクリプト既定 `false`）
+- `MAILHUB_PROBE_SMTP_USER`
+- `MAILHUB_PROBE_SMTP_PASS`
+- `MAILHUB_PROBE_FROM`（`@vtj.co.jp` 以外）
+
+手順:
+1. Actions → `MailHub Routing Probe` → `Run workflow`
+2. まず `mode=preflight` で実行し、artifact `mailhub-routing-probe-<run_id>` を確認する
+3. `readyForProductionProof=true` になったら、`mode=send_verify` を選ぶ
+4. `confirmSend=SEND_EXTERNAL_MAILHUB_ROUTING_PROBES` を入力する
+5. 完了後、artifact 内の `mailhub-routing-probe-send.json` / `mailhub-routing-probe-audit.json` / `mailhub-production-readiness-audit.json` を確認する
+
+`send_verify` は confirm 文字列が一致しないと送信前に失敗する。preflight が production proof として未準備の場合も送信前に失敗する。
+
+### 5. 外部probeをローカルから送信
 ```bash
 npm run probe:routing-send -- --send --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-send.json
 ```
@@ -496,7 +520,7 @@ npm run probe:routing-send -- --send --verify-after-send --wait-seconds 300 --po
 
 この場合、スクリプトが `mailhub-routing-probe-audit.json` と `mailhub-production-readiness-audit.json` も更新する。
 
-### 5. shared Gmail 側で到達検証（手動分割する場合）
+### 6. shared Gmail 側で到達検証（手動分割する場合）
 送信直後は配送遅延があるため、1-5分待ってから実行する。
 
 ```bash
@@ -511,7 +535,7 @@ npm run audit:mailhub-readiness -- --out .ai-runs/mailhub-next-phase/mailhub-pro
 - `mailhub-production-readiness-audit.json` の `requirements.routingProbeReady=true`
 - 他P0がなければ `gate.productionReady=true`
 
-### 6. 失敗時の読み方
+### 7. 失敗時の読み方
 - `smtpPreflight.missingRequiredEnv` が残る: 外部SMTP設定が未投入。送信せずに環境変数を補完する。
 - `smtpPreflight.readyForProductionProof=false`: 設定不足、無効なport/secure値、または `@vtj.co.jp` 送信元。production proof としては使わない。
 - Ops Board の `SMTP不足env` が残る: readiness audit が preflight artifact を読んでいる。表示された環境変数を補完してから再preflightする。

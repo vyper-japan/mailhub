@@ -218,6 +218,11 @@
   - Added `.github/workflows/mailhub-readiness-contract.yml` so push/PR/manual runs validate the committed readiness artifact contract without external secrets.
   - The contract accepts explicit not-ready state only when the P0 blocker has matching blocker detail, MX/probe/preflight evidence, and a fresh repo head lineage.
   - The contract rejects stale artifacts, production-ready claims without shared routing readiness, and routing blockers that omit preflight gap evidence.
+- 2026-06-17 routing probe GitHub Actions wave completed:
+  - Added `.github/workflows/mailhub-routing-probe.yml` as a manual-only external routing probe runner.
+  - `mode=preflight` runs the same eight-address SMTP proof preflight and uploads artifacts without sending mail.
+  - `mode=send_verify` requires `confirmSend=SEND_EXTERNAL_MAILHUB_ROUTING_PROBES`, requires preflight production-proof readiness, sends the eight probes, polls shared Gmail, refreshes readiness, runs the readiness contract, and uploads evidence artifacts.
+  - The workflow is not scheduled and does not run on push, preventing accidental external probe sends.
 
 ## Not Done
 
@@ -232,6 +237,7 @@
 - Before the controlled probe, run `npm run probe:routing-preflight -- --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-preflight.json`; current local status is not ready because external SMTP env vars are missing.
 - Ops Board now surfaces the same preflight gap: `SMTP不足env=4` in the current local artifact.
 - The readiness contract workflow now guards against accidentally shipping a stale or under-evidenced `mailhub-production-readiness-audit.json`.
+- GitHub Actions can now run the final external probe once the required SMTP/Gmail secrets are configured, without depending on local `.env.local`.
 - Production pagination basic behavior is represented in API/UI metadata and forced E2E; real browser/manual production verification is still useful before staff rollout.
 - Auto-discard rules for marketing/noise are protected against obvious important/invoice/inquiry suppression and missing summary text, but a full production auto-discard policy is still intentionally not enabled.
 - Real-data rule safety audit exists and passes for the current local file config because no rules are configured. Re-run with `MAILHUB_CONFIG_STORE=sheets` and production Sheets credentials when production rule config is enabled.
