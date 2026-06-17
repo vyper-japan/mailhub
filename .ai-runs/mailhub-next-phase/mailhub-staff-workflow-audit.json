@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-06-17T13:13:46.303Z",
-  "repoHead": "29eb035171233c72a85ed41da695de32bd9fe906",
+  "generatedAt": "2026-06-17T13:34:46.630Z",
+  "repoHead": "caf2c3d345db5eb4ca1b3f4304f70ab9093ed28c",
   "inputs": {
     "envFile": null,
     "assignees": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.mailhub/assignees.json",
@@ -49,23 +49,54 @@
     "dir": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/docs/pilot/prod",
     "readonlyRequired": [
       "mailhub-meta-topbar-readonly.png",
-      "mailhub-meta-health-readonly.png"
+      "mailhub-meta-health-readonly.png",
+      "staff-workflow-evidence-manifest.json"
     ],
     "readonlyMissing": [
       "mailhub-meta-topbar-readonly.png",
-      "mailhub-meta-health-readonly.png"
+      "mailhub-meta-health-readonly.png",
+      "staff-workflow-evidence-manifest.json"
+    ],
+    "readOnlyEvidenceIssues": [
+      "mailhub-meta-topbar-readonly.png",
+      "mailhub-meta-health-readonly.png",
+      "staff-workflow-evidence-manifest.json",
+      "manifest:missing_staff_workflow_evidence_manifest"
     ],
     "writeRequired": [
       "mailhub-meta-topbar-write.png",
-      "mailhub-meta-topbar-back-to-readonly.png"
+      "mailhub-meta-topbar-back-to-readonly.png",
+      "staff-workflow-evidence-manifest.json"
     ],
     "writeMissing": [
       "mailhub-meta-topbar-write.png",
-      "mailhub-meta-topbar-back-to-readonly.png"
+      "mailhub-meta-topbar-back-to-readonly.png",
+      "staff-workflow-evidence-manifest.json"
+    ],
+    "writePilotEvidenceIssues": [
+      "mailhub-meta-topbar-write.png",
+      "mailhub-meta-topbar-back-to-readonly.png",
+      "staff-workflow-evidence-manifest.json",
+      "activity-YYYYMMDD-prod.csv",
+      "gmail-*-*.png",
+      "mailhub-*-*.png",
+      "manifest:missing_staff_workflow_evidence_manifest"
     ],
     "activityCsvCount": 0,
     "gmailProofCount": 0,
     "mailhubProofCount": 0,
+    "manifest": {
+      "manifestFile": "staff-workflow-evidence-manifest.json",
+      "manifestPresent": false,
+      "readOnlyManifestReady": false,
+      "writePilotManifestReady": false,
+      "readOnlyManifestErrors": [
+        "missing_staff_workflow_evidence_manifest"
+      ],
+      "writePilotManifestErrors": [
+        "missing_staff_workflow_evidence_manifest"
+      ]
+    },
     "readOnlyEvidenceReady": false,
     "writePilotEvidenceReady": false
   },
@@ -157,7 +188,9 @@
       "evidence": {
         "missing": [
           "mailhub-meta-topbar-readonly.png",
-          "mailhub-meta-health-readonly.png"
+          "mailhub-meta-health-readonly.png",
+          "staff-workflow-evidence-manifest.json",
+          "manifest:missing_staff_workflow_evidence_manifest"
         ]
       }
     },
@@ -166,9 +199,19 @@
       "severity": "P1",
       "message": "Controlled production WRITE pilot evidence is missing.",
       "evidence": {
+        "missing": [
+          "mailhub-meta-topbar-write.png",
+          "mailhub-meta-topbar-back-to-readonly.png",
+          "staff-workflow-evidence-manifest.json",
+          "activity-YYYYMMDD-prod.csv",
+          "gmail-*-*.png",
+          "mailhub-*-*.png",
+          "manifest:missing_staff_workflow_evidence_manifest"
+        ],
         "missingMeta": [
           "mailhub-meta-topbar-write.png",
-          "mailhub-meta-topbar-back-to-readonly.png"
+          "mailhub-meta-topbar-back-to-readonly.png",
+          "staff-workflow-evidence-manifest.json"
         ],
         "activityCsvCount": 0,
         "gmailProofCount": 0,

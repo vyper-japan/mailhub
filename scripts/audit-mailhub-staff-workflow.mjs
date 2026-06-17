@@ -27,12 +27,17 @@ const REQUIRED_SHEETS_ENV = [
 const REQUIRED_PROD_READONLY_EVIDENCE = [
   "mailhub-meta-topbar-readonly.png",
   "mailhub-meta-health-readonly.png",
+  "staff-workflow-evidence-manifest.json",
 ];
 
 const REQUIRED_PROD_WRITE_EVIDENCE = [
   "mailhub-meta-topbar-write.png",
   "mailhub-meta-topbar-back-to-readonly.png",
+  "staff-workflow-evidence-manifest.json",
 ];
+
+const EVIDENCE_MANIFEST_FILE = "staff-workflow-evidence-manifest.json";
+const EVIDENCE_MANIFEST_SCHEMA = "mailhub.staff-workflow-evidence.v1";
 
 function parseArgs(argv) {
   const out = {
@@ -197,6 +202,152 @@ function listDir(path) {
   }
 }
 
+function objectValue(value) {
+  return value && typeof value === "object" && !Array.isArray(value) ? value : {};
+}
+
+function stringArray(value) {
+  return Array.isArray(value) ? value.filter((item) => typeof item === "string") : [];
+}
+
+function isIsoDate(value) {
+  return typeof value === "string" && !Number.isNaN(Date.parse(value));
+}
+
+function validVtjEmail(value) {
+  return typeof value === "string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) && value.toLowerCase().endsWith("@vtj.co.jp");
+}
+
+function readJson(path) {
+  try {
+    return JSON.parse(readFileSync(path, "utf8"));
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+function requireManifestFile({ files, filename, field, expected, pattern, errors }) {
+  if (typeof filename !== "string" || !filename.trim()) {
+    errors.push(`missing_${field}`);
+    return;
+  }
+  if (expected && filename !== expected) errors.push(`unexpected_${field}:${filename}`);
+  if (pattern && !pattern.test(filename)) errors.push(`invalid_${field}:${filename}`);
+  if (!files.includes(filename)) errors.push(`missing_manifest_file:${filename}`);
+}
+
+function prodEvidenceManifest(path, files) {
+  const manifestPath = join(path, EVIDENCE_MANIFEST_FILE);
+  if (!files.includes(EVIDENCE_MANIFEST_FILE)) {
+    return {
+      manifestFile: EVIDENCE_MANIFEST_FILE,
+      manifestPresent: false,
+      readOnlyManifestReady: false,
+      writePilotManifestReady: false,
+      readOnlyManifestErrors: ["missing_staff_workflow_evidence_manifest"],
+      writePilotManifestErrors: ["missing_staff_workflow_evidence_manifest"],
+    };
+  }
+
+  const manifest = readJson(manifestPath);
+  if (manifest.error) {
+    return {
+      manifestFile: EVIDENCE_MANIFEST_FILE,
+      manifestPresent: true,
+      readOnlyManifestReady: false,
+      writePilotManifestReady: false,
+      readOnlyManifestErrors: [`manifest_parse_error:${manifest.error}`],
+      writePilotManifestErrors: [`manifest_parse_error:${manifest.error}`],
+    };
+  }
+
+  const commonErrors = [];
+  if (manifest.schema !== EVIDENCE_MANIFEST_SCHEMA) commonErrors.push("invalid_manifest_schema");
+  if (!isIsoDate(manifest.capturedAt)) commonErrors.push("invalid_manifest_captured_at");
+  if (!validVtjEmail(manifest.capturedBy)) commonErrors.push("invalid_manifest_captured_by");
+  if (manifest.environment !== "production") commonErrors.push("manifest_not_production");
+
+  const readOnlyRollout = objectValue(manifest.readOnlyRollout);
+  const readOnlyManifestErrors = [...commonErrors];
+  if (readOnlyRollout.readOnly !== true) readOnlyManifestErrors.push("readonly_manifest_not_readonly");
+  requireManifestFile({
+    files,
+    filename: readOnlyRollout.mailhubTopbar,
+    field: "readonly_mailhub_topbar",
+    expected: "mailhub-meta-topbar-readonly.png",
+    errors: readOnlyManifestErrors,
+  });
+  requireManifestFile({
+    files,
+    filename: readOnlyRollout.mailhubHealth,
+    field: "readonly_mailhub_health",
+    expected: "mailhub-meta-health-readonly.png",
+    errors: readOnlyManifestErrors,
+  });
+  const verifiedStaffEmails = stringArray(readOnlyRollout.verifiedStaffEmails);
+  if (verifiedStaffEmails.length < 1) readOnlyManifestErrors.push("missing_readonly_verified_staff");
+  if (verifiedStaffEmails.some((email) => !validVtjEmail(email))) {
+    readOnlyManifestErrors.push("invalid_readonly_verified_staff");
+  }
+
+  const controlledWritePilot = objectValue(manifest.controlledWritePilot);
+  const writePilotManifestErrors = [...commonErrors];
+  if (typeof controlledWritePilot.messageId !== "string" || !controlledWritePilot.messageId.trim()) {
+    writePilotManifestErrors.push("missing_write_pilot_message_id");
+  }
+  if (!validVtjEmail(controlledWritePilot.actorEmail)) writePilotManifestErrors.push("invalid_write_pilot_actor_email");
+  if (controlledWritePilot.returnedToReadOnly !== true) {
+    writePilotManifestErrors.push("write_pilot_not_returned_to_readonly");
+  }
+  requireManifestFile({
+    files,
+    filename: controlledWritePilot.mailhubWriteTopbar,
+    field: "write_mailhub_topbar",
+    expected: "mailhub-meta-topbar-write.png",
+    errors: writePilotManifestErrors,
+  });
+  requireManifestFile({
+    files,
+    filename: controlledWritePilot.mailhubBackToReadOnlyTopbar,
+    field: "write_mailhub_back_to_readonly_topbar",
+    expected: "mailhub-meta-topbar-back-to-readonly.png",
+    errors: writePilotManifestErrors,
+  });
+  requireManifestFile({
+    files,
+    filename: controlledWritePilot.activityCsv,
+    field: "write_activity_csv",
+    pattern: /^activity-\d{8}-prod\.csv$/,
+    errors: writePilotManifestErrors,
+  });
+  requireManifestFile({
+    files,
+    filename: controlledWritePilot.gmailProof,
+    field: "write_gmail_proof",
+    pattern: /^gmail-.+-.+\.png$/,
+    errors: writePilotManifestErrors,
+  });
+  requireManifestFile({
+    files,
+    filename: controlledWritePilot.mailhubProof,
+    field: "write_mailhub_proof",
+    pattern: /^mailhub-.+-.+\.png$/,
+    errors: writePilotManifestErrors,
+  });
+
+  return {
+    manifestFile: EVIDENCE_MANIFEST_FILE,
+    manifestPresent: true,
+    manifestSchema: manifest.schema ?? null,
+    manifestCapturedAt: manifest.capturedAt ?? null,
+    manifestCapturedByConfigured: validVtjEmail(manifest.capturedBy),
+    readOnlyManifestReady: readOnlyManifestErrors.length === 0,
+    writePilotManifestReady: writePilotManifestErrors.length === 0,
+    readOnlyManifestErrors,
+    writePilotManifestErrors,
+  };
+}
+
 function prodEvidence(path) {
   const files = listDir(path);
   const has = (name) => files.includes(name);
@@ -205,21 +356,30 @@ function prodEvidence(path) {
   const activityCsv = files.filter((name) => /^activity-\d{8}-prod\.csv$/.test(name));
   const gmailProof = files.filter((name) => /^gmail-.+-.+\.png$/.test(name));
   const mailhubProof = files.filter((name) => /^mailhub-.+-.+\.png$/.test(name));
+  const manifest = prodEvidenceManifest(path, files);
+  const readOnlyEvidenceIssues = [...readonlyMissing, ...manifest.readOnlyManifestErrors.map((item) => `manifest:${item}`)];
+  const writePilotEvidenceIssues = [
+    ...writeMissing,
+    ...(activityCsv.length > 0 ? [] : ["activity-YYYYMMDD-prod.csv"]),
+    ...(gmailProof.length > 0 ? [] : ["gmail-*-*.png"]),
+    ...(mailhubProof.length > 0 ? [] : ["mailhub-*-*.png"]),
+    ...manifest.writePilotManifestErrors.map((item) => `manifest:${item}`),
+  ];
   return {
     dir: path,
     readonlyRequired: REQUIRED_PROD_READONLY_EVIDENCE,
     readonlyMissing,
+    readOnlyEvidenceIssues,
     writeRequired: REQUIRED_PROD_WRITE_EVIDENCE,
     writeMissing,
+    writePilotEvidenceIssues,
     activityCsvCount: activityCsv.length,
     gmailProofCount: gmailProof.length,
     mailhubProofCount: mailhubProof.length,
-    readOnlyEvidenceReady: readonlyMissing.length === 0,
+    manifest,
+    readOnlyEvidenceReady: readOnlyEvidenceIssues.length === 0,
     writePilotEvidenceReady:
-      writeMissing.length === 0 &&
-      activityCsv.length > 0 &&
-      gmailProof.length > 0 &&
-      mailhubProof.length > 0,
+      writePilotEvidenceIssues.length === 0,
   };
 }
 
@@ -308,9 +468,10 @@ function main() {
   }));
   if (!readOnly) blockers.push(blocker("read_only_not_enabled", "P1", "Initial production rollout evidence must start from READ ONLY."));
   if (!evidence.readOnlyEvidenceReady) blockers.push(blocker("readonly_evidence_missing", "P1", "Production READ ONLY rollout evidence files are missing.", {
-    missing: evidence.readonlyMissing,
+    missing: evidence.readOnlyEvidenceIssues,
   }));
   if (!evidence.writePilotEvidenceReady) blockers.push(blocker("write_pilot_evidence_missing", "P1", "Controlled production WRITE pilot evidence is missing.", {
+    missing: evidence.writePilotEvidenceIssues,
     missingMeta: evidence.writeMissing,
     activityCsvCount: evidence.activityCsvCount,
     gmailProofCount: evidence.gmailProofCount,

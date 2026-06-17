@@ -1932,6 +1932,45 @@ git diff --check
 - Coverage passed 68 files / 598 tests with global coverage above threshold.
 - Typecheck, lint, build, smoke, security scan, artifact secret scan, actionlint, and all readiness/routing/staff contracts passed.
 
+## 2026-06-17 Staff Workflow Evidence Manifest Commands
+
+```bash
+node --check scripts/audit-mailhub-staff-workflow.mjs
+node --check scripts/write-mailhub-staff-workflow-next-steps.mjs
+node --check scripts/check-mailhub-staff-workflow-contract.mjs
+node --check scripts/check-mailhub-staff-next-contract.mjs
+npx vitest run lib/__tests__/mailhub-staff-workflow-audit.test.ts lib/__tests__/mailhub-staff-workflow-next-steps.test.ts
+npm run audit:mailhub-staff-workflow -- --out .ai-runs/mailhub-next-phase/mailhub-staff-workflow-audit.json
+npm run audit:mailhub-staff-next -- --out .ai-runs/mailhub-next-phase/mailhub-staff-workflow-next-steps.json
+npm run audit:mailhub-readiness -- --out .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json
+npm run audit:mailhub-routing-next -- --strict --out .ai-runs/mailhub-next-phase/mailhub-routing-next-steps.json
+npm run audit:mailhub-staff-workflow-contract
+npm run audit:mailhub-staff-next-contract
+npm run audit:mailhub-readiness-contract
+npm run audit:mailhub-routing-next-contract
+npm run typecheck
+npm run test
+npm run test:coverage
+npm run lint
+npm run security:scan
+npm run security:scan-artifacts
+npm run build
+npm run smoke
+npm run audit:github-routing-secrets-contract
+npm run audit:mailhub-routing-proof-contract
+actionlint .github/workflows/*.yml
+git diff --check
+```
+
+## 2026-06-17 Staff Workflow Evidence Manifest Results
+
+- Added the required production staff evidence manifest `docs/pilot/prod/staff-workflow-evidence-manifest.json` to the staff workflow audit and next-step artifacts.
+- The staff workflow audit now keeps READ ONLY rollout and controlled WRITE pilot blocked when screenshots/CSV exist without a valid manifest.
+- Focused staff workflow tests passed 2 files / 8 tests, including missing-manifest and unexpected-meta-filename rejection.
+- Full Vitest passed 68 files / 600 tests.
+- Coverage passed 68 files / 600 tests with global coverage above threshold.
+- Typecheck, lint, build, smoke, security scan, artifact secret scan, actionlint, `git diff --check`, and all readiness/routing/staff contracts passed after artifact regeneration.
+
 ## Useful Runtime Commands
 
 Start dev server for tunnel:

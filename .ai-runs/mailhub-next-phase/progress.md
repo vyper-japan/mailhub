@@ -426,6 +426,12 @@
   - The contract validates that `mailhub-staff-workflow-next-steps.json` is derived from the current/parent staff workflow audit, has matching audit generatedAt/repoHead, reports missing env/evidence consistently, and marks every next action with the expected `done` / `required` / `blocked` status.
   - Wired the new contract into `MailHub Readiness Contract` and `MailHub Routing Probe` workflows.
   - Added regression coverage proving a contradictory next-action status is rejected.
+- 2026-06-17 staff workflow evidence manifest wave completed:
+  - Hardened `scripts/audit-mailhub-staff-workflow.mjs` so production READ ONLY rollout and controlled WRITE pilot evidence require `docs/pilot/prod/staff-workflow-evidence-manifest.json`.
+  - The manifest must use schema `mailhub.staff-workflow-evidence.v1`, production environment, valid `@vtj.co.jp` reviewer/actor emails, exact expected MailHub meta filenames, Gmail/MailHub proof screenshots, Activity CSV, and `returnedToReadOnly=true`.
+  - `mailhub-staff-workflow-next-steps.json` now reports manifest issues directly in the required READ ONLY and WRITE evidence lists.
+  - Staff workflow contracts now reject `ready=true` artifacts that still carry manifest/evidence issues.
+  - Updated `docs/pilot/NAMING.md` and `docs/pilot/PROD_WRITE_QA_CHECKLIST.md` with the manifest filename and JSON template.
 
 ## Not Done
 
@@ -447,6 +453,7 @@
 - The routing next-step artifact now shows the exact remaining action list, but it remains red because external SMTP proof setup has not been provided.
 - The staff workflow next-step artifact now shows the exact remaining P1 action list, but it remains red because production env/staff config/durable stores and production evidence have not been provided.
 - The staff workflow next-step contract now guards that action list in CI, so the P1 staff workflow checklist cannot drift from the audit artifact unnoticed.
+- Staff workflow production evidence now requires `docs/pilot/prod/staff-workflow-evidence-manifest.json`; screenshots/CSV alone cannot make the READ ONLY rollout or controlled WRITE pilot ready.
 - GitHub Actions routing probe artifacts now include the next-step artifact, but `send_verify` remains blocked until the external SMTP proof secrets are configured.
 - All GitHub workflow YAML now passes local `actionlint`; the remaining GitHub-side risk is secret/config availability for the manual external routing probe, not workflow syntax.
 - Production pagination basic behavior is represented in API/UI metadata and forced E2E; real browser/manual production verification is still useful before staff rollout.

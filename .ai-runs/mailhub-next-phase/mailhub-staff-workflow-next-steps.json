@@ -1,9 +1,9 @@
 {
-  "generatedAt": "2026-06-17T13:13:46.713Z",
+  "generatedAt": "2026-06-17T13:34:46.750Z",
   "inputs": {
     "audit": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.ai-runs/mailhub-next-phase/mailhub-staff-workflow-audit.json",
-    "auditGeneratedAt": "2026-06-17T13:13:46.303Z",
-    "auditRepoHead": "29eb035171233c72a85ed41da695de32bd9fe906",
+    "auditGeneratedAt": "2026-06-17T13:34:46.630Z",
+    "auditRepoHead": "caf2c3d345db5eb4ca1b3f4304f70ab9093ed28c",
     "errors": [],
     "warnings": []
   },
@@ -54,14 +54,18 @@
     ],
     "readOnlyEvidence": [
       "mailhub-meta-topbar-readonly.png",
-      "mailhub-meta-health-readonly.png"
+      "mailhub-meta-health-readonly.png",
+      "staff-workflow-evidence-manifest.json",
+      "manifest:missing_staff_workflow_evidence_manifest"
     ],
     "writePilotEvidence": [
       "mailhub-meta-topbar-write.png",
       "mailhub-meta-topbar-back-to-readonly.png",
+      "staff-workflow-evidence-manifest.json",
       "activity-YYYYMMDD-prod.csv",
       "gmail-*-*.png",
-      "mailhub-*-*.png"
+      "mailhub-*-*.png",
+      "manifest:missing_staff_workflow_evidence_manifest"
     ]
   },
   "present": {
@@ -120,7 +124,9 @@
       ],
       "requiredEvidence": [
         "mailhub-meta-topbar-readonly.png",
-        "mailhub-meta-health-readonly.png"
+        "mailhub-meta-health-readonly.png",
+        "staff-workflow-evidence-manifest.json",
+        "manifest:missing_staff_workflow_evidence_manifest"
       ]
     },
     {
@@ -130,9 +136,11 @@
       "requiredEvidence": [
         "mailhub-meta-topbar-write.png",
         "mailhub-meta-topbar-back-to-readonly.png",
+        "staff-workflow-evidence-manifest.json",
         "activity-YYYYMMDD-prod.csv",
         "gmail-*-*.png",
-        "mailhub-*-*.png"
+        "mailhub-*-*.png",
+        "manifest:missing_staff_workflow_evidence_manifest"
       ]
     },
     {

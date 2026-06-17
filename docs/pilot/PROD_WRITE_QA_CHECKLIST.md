@@ -50,6 +50,7 @@
 証跡（meta）
 - [ ] `docs/pilot/prod/mailhub-meta-topbar-readonly.png`
 - [ ] `docs/pilot/prod/mailhub-meta-health-readonly.png`
+- [ ] `docs/pilot/prod/staff-workflow-evidence-manifest.json` に READ ONLY確認者と上記2ファイル名を記録
 
 ---
 
@@ -102,6 +103,7 @@ action（ファイル名用）：
 - [ ] Gmail側：`docs/pilot/prod/gmail-<messageId>-<action>.png`
 - [ ] MailHub側：`docs/pilot/prod/mailhub-<messageId>-<action>.png`
 - [ ] Activity CSV：`docs/pilot/prod/activity-<YYYYMMDD>-prod.csv`
+- [ ] `docs/pilot/prod/staff-workflow-evidence-manifest.json` の `controlledWritePilot` に messageId、操作担当、上記3ファイル名を記録
 
 ### 復帰（必須）
 - [ ] `MAILHUB_READ_ONLY=1` に戻して再デプロイ（緊急停止）
@@ -110,6 +112,7 @@ action（ファイル名用）：
 
 証跡（meta）
 - [ ] `docs/pilot/prod/mailhub-meta-topbar-back-to-readonly.png`
+- [ ] `staff-workflow-evidence-manifest.json` の `controlledWritePilot.returnedToReadOnly` を `true` にする
 
 ---
 
@@ -145,4 +148,31 @@ action（ファイル名用）：
 - Activity CSV: `docs/pilot/prod/activity-<YYYYMMDD>-prod.csv`
 - meta（WRITE）: `docs/pilot/prod/mailhub-meta-topbar-write.png`
 - meta（復帰）: `docs/pilot/prod/mailhub-meta-topbar-back-to-readonly.png`
+- manifest: `docs/pilot/prod/staff-workflow-evidence-manifest.json`
 
+### manifest雛形
+
+```json
+{
+  "schema": "mailhub.staff-workflow-evidence.v1",
+  "capturedAt": "2026-06-17T00:00:00.000Z",
+  "capturedBy": "admin@vtj.co.jp",
+  "environment": "production",
+  "readOnlyRollout": {
+    "readOnly": true,
+    "mailhubTopbar": "mailhub-meta-topbar-readonly.png",
+    "mailhubHealth": "mailhub-meta-health-readonly.png",
+    "verifiedStaffEmails": ["staff@vtj.co.jp"]
+  },
+  "controlledWritePilot": {
+    "messageId": "message-id",
+    "actorEmail": "staff@vtj.co.jp",
+    "mailhubWriteTopbar": "mailhub-meta-topbar-write.png",
+    "mailhubBackToReadOnlyTopbar": "mailhub-meta-topbar-back-to-readonly.png",
+    "activityCsv": "activity-20260617-prod.csv",
+    "gmailProof": "gmail-message-id-assign.png",
+    "mailhubProof": "mailhub-message-id-assign.png",
+    "returnedToReadOnly": true
+  }
+}
+```

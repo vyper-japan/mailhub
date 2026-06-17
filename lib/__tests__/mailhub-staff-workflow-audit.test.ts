@@ -41,6 +41,28 @@ function writeProductionEvidence(dir: string) {
   ]) {
     writeFileSync(join(dir, name), "evidence", "utf8");
   }
+  writeJson(join(dir, "staff-workflow-evidence-manifest.json"), {
+    schema: "mailhub.staff-workflow-evidence.v1",
+    capturedAt: "2026-06-17T12:00:00.000Z",
+    capturedBy: "admin@vtj.co.jp",
+    environment: "production",
+    readOnlyRollout: {
+      readOnly: true,
+      mailhubTopbar: "mailhub-meta-topbar-readonly.png",
+      mailhubHealth: "mailhub-meta-health-readonly.png",
+      verifiedStaffEmails: ["maki@vtj.co.jp"],
+    },
+    controlledWritePilot: {
+      messageId: "msg-001",
+      actorEmail: "maki@vtj.co.jp",
+      mailhubWriteTopbar: "mailhub-meta-topbar-write.png",
+      mailhubBackToReadOnlyTopbar: "mailhub-meta-topbar-back-to-readonly.png",
+      activityCsv: "activity-20260617-prod.csv",
+      gmailProof: "gmail-msg-001-assign.png",
+      mailhubProof: "mailhub-msg-001-assign.png",
+      returnedToReadOnly: true,
+    },
+  });
 }
 
 const productionEnv = {
@@ -147,6 +169,131 @@ describe("MailHub staff workflow audit", () => {
         "readonly_evidence_missing",
         "write_pilot_evidence_missing",
       ]));
+
+      const contract = runNodeScript(staffContractPath, [
+        "--audit",
+        outPath,
+        "--repo-head",
+        artifact.repoHead,
+      ]);
+      expect(contract.status).toBe(0);
+    });
+  });
+
+  test("does not accept production screenshots without the staff evidence manifest", () => {
+    withTempDir((dir) => {
+      const outPath = join(dir, "staff.json");
+      const evidenceDir = join(dir, "prod");
+      const assigneesPath = join(dir, "assignees.json");
+      writeProductionEvidence(evidenceDir);
+      rmSync(join(evidenceDir, "staff-workflow-evidence-manifest.json"), { force: true });
+      writeJson(assigneesPath, [{ email: "yuka@vtj.co.jp", displayName: "Yuka" }]);
+
+      const result = runNodeScript(staffAuditPath, [
+        "--out",
+        outPath,
+        "--prod-evidence-dir",
+        evidenceDir,
+        "--assignees",
+        assigneesPath,
+      ], productionEnv);
+
+      expect(result.status).toBe(0);
+      const artifact = JSON.parse(readFileSync(outPath, "utf8")) as {
+        requirements: {
+          readOnlyRolloutEvidenceReady: boolean;
+          writePilotEvidenceReady: boolean;
+        };
+        evidence: {
+          readOnlyEvidenceIssues: string[];
+          writePilotEvidenceIssues: string[];
+          manifest: {
+            readOnlyManifestReady: boolean;
+            writePilotManifestReady: boolean;
+          };
+        };
+        gate: { staffWorkflowPermissionsReady: boolean; p1Blockers: string[] };
+        repoHead: string;
+      };
+      expect(artifact.requirements.readOnlyRolloutEvidenceReady).toBe(false);
+      expect(artifact.requirements.writePilotEvidenceReady).toBe(false);
+      expect(artifact.gate.staffWorkflowPermissionsReady).toBe(false);
+      expect(artifact.gate.p1Blockers).toEqual(expect.arrayContaining([
+        "readonly_evidence_missing",
+        "write_pilot_evidence_missing",
+      ]));
+      expect(artifact.evidence.readOnlyEvidenceIssues).toEqual(expect.arrayContaining([
+        "staff-workflow-evidence-manifest.json",
+        "manifest:missing_staff_workflow_evidence_manifest",
+      ]));
+      expect(artifact.evidence.writePilotEvidenceIssues).toEqual(expect.arrayContaining([
+        "staff-workflow-evidence-manifest.json",
+        "manifest:missing_staff_workflow_evidence_manifest",
+      ]));
+      expect(artifact.evidence.manifest.readOnlyManifestReady).toBe(false);
+      expect(artifact.evidence.manifest.writePilotManifestReady).toBe(false);
+
+      const contract = runNodeScript(staffContractPath, [
+        "--audit",
+        outPath,
+        "--repo-head",
+        artifact.repoHead,
+      ]);
+      expect(contract.status).toBe(0);
+    });
+  });
+
+  test("rejects staff evidence manifest that points at unexpected meta filenames", () => {
+    withTempDir((dir) => {
+      const outPath = join(dir, "staff.json");
+      const evidenceDir = join(dir, "prod");
+      const assigneesPath = join(dir, "assignees.json");
+      writeProductionEvidence(evidenceDir);
+      writeFileSync(join(evidenceDir, "wrong-readonly.png"), "evidence", "utf8");
+      writeJson(join(evidenceDir, "staff-workflow-evidence-manifest.json"), {
+        schema: "mailhub.staff-workflow-evidence.v1",
+        capturedAt: "2026-06-17T12:00:00.000Z",
+        capturedBy: "admin@vtj.co.jp",
+        environment: "production",
+        readOnlyRollout: {
+          readOnly: true,
+          mailhubTopbar: "wrong-readonly.png",
+          mailhubHealth: "mailhub-meta-health-readonly.png",
+          verifiedStaffEmails: ["maki@vtj.co.jp"],
+        },
+        controlledWritePilot: {
+          messageId: "msg-001",
+          actorEmail: "maki@vtj.co.jp",
+          mailhubWriteTopbar: "mailhub-meta-topbar-write.png",
+          mailhubBackToReadOnlyTopbar: "mailhub-meta-topbar-back-to-readonly.png",
+          activityCsv: "activity-20260617-prod.csv",
+          gmailProof: "gmail-msg-001-assign.png",
+          mailhubProof: "mailhub-msg-001-assign.png",
+          returnedToReadOnly: true,
+        },
+      });
+      writeJson(assigneesPath, [{ email: "yuka@vtj.co.jp", displayName: "Yuka" }]);
+
+      const result = runNodeScript(staffAuditPath, [
+        "--out",
+        outPath,
+        "--prod-evidence-dir",
+        evidenceDir,
+        "--assignees",
+        assigneesPath,
+      ], productionEnv);
+
+      expect(result.status).toBe(0);
+      const artifact = JSON.parse(readFileSync(outPath, "utf8")) as {
+        requirements: { readOnlyRolloutEvidenceReady: boolean; writePilotEvidenceReady: boolean };
+        evidence: { readOnlyEvidenceIssues: string[] };
+        gate: { staffWorkflowPermissionsReady: boolean };
+        repoHead: string;
+      };
+      expect(artifact.requirements.readOnlyRolloutEvidenceReady).toBe(false);
+      expect(artifact.requirements.writePilotEvidenceReady).toBe(true);
+      expect(artifact.gate.staffWorkflowPermissionsReady).toBe(false);
+      expect(artifact.evidence.readOnlyEvidenceIssues).toContain("manifest:unexpected_readonly_mailhub_topbar:wrong-readonly.png");
 
       const contract = runNodeScript(staffContractPath, [
         "--audit",

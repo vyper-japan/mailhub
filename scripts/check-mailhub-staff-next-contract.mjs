@@ -204,8 +204,17 @@ function main() {
   if (readOnlyRolloutEvidenceReady && stringArray(auditEvidence.readonlyMissing).length > 0) {
     errors.push("readonly_evidence_ready_with_missing_files");
   }
+  if (readOnlyRolloutEvidenceReady && stringArray(auditEvidence.readOnlyEvidenceIssues).length > 0) {
+    errors.push("readonly_evidence_ready_with_issues");
+  }
+  const auditEvidenceManifest = objectValue(auditEvidence.manifest);
+  if (readOnlyRolloutEvidenceReady && auditEvidenceManifest.readOnlyManifestReady !== true) {
+    errors.push("readonly_evidence_ready_without_manifest");
+  }
   if (writePilotEvidenceReady) {
     if (stringArray(auditEvidence.writeMissing).length > 0) errors.push("write_pilot_ready_with_missing_meta");
+    if (stringArray(auditEvidence.writePilotEvidenceIssues).length > 0) errors.push("write_pilot_ready_with_issues");
+    if (auditEvidenceManifest.writePilotManifestReady !== true) errors.push("write_pilot_ready_without_manifest");
     if ((auditEvidence.activityCsvCount ?? 0) < 1) errors.push("write_pilot_ready_without_activity_csv");
     if ((auditEvidence.gmailProofCount ?? 0) < 1) errors.push("write_pilot_ready_without_gmail_proof");
     if ((auditEvidence.mailhubProofCount ?? 0) < 1) errors.push("write_pilot_ready_without_mailhub_proof");

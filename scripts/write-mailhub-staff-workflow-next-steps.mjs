@@ -26,10 +26,12 @@ const REQUIRED_SHEETS_ENV = [
 const REQUIRED_READONLY_EVIDENCE = [
   "mailhub-meta-topbar-readonly.png",
   "mailhub-meta-health-readonly.png",
+  "staff-workflow-evidence-manifest.json",
 ];
 const REQUIRED_WRITE_EVIDENCE = [
   "mailhub-meta-topbar-write.png",
   "mailhub-meta-topbar-back-to-readonly.png",
+  "staff-workflow-evidence-manifest.json",
   "activity-YYYYMMDD-prod.csv",
   "gmail-*-*.png",
   "mailhub-*-*.png",
@@ -104,7 +106,9 @@ function main() {
 
   const missingProductionEnv = stringArray(config.missingProductionEnv);
   const readonlyMissing = stringArray(evidence.readonlyMissing);
+  const readOnlyEvidenceIssues = stringArray(evidence.readOnlyEvidenceIssues);
   const writeMissing = stringArray(evidence.writeMissing);
+  const writePilotEvidenceIssues = stringArray(evidence.writePilotEvidenceIssues);
   const activityCsvCount = typeof evidence.activityCsvCount === "number" ? evidence.activityCsvCount : 0;
   const gmailProofCount = typeof evidence.gmailProofCount === "number" ? evidence.gmailProofCount : 0;
   const mailhubProofCount = typeof evidence.mailhubProofCount === "number" ? evidence.mailhubProofCount : 0;
@@ -146,8 +150,8 @@ function main() {
       durableConfig: durableConfigReady ? [] : ["MAILHUB_CONFIG_STORE=sheets", ...REQUIRED_SHEETS_ENV],
       durableActivity: durableActivityReady ? [] : ["MAILHUB_ACTIVITY_STORE=sheets", ...REQUIRED_SHEETS_ENV],
       readOnlyFlag: readOnlyEnabled ? [] : ["MAILHUB_READ_ONLY=1"],
-      readOnlyEvidence: readOnlyRolloutEvidenceReady ? [] : (readonlyMissing.length ? readonlyMissing : REQUIRED_READONLY_EVIDENCE),
-      writePilotEvidence: writePilotEvidenceReady ? [] : (writeEvidenceMissing.length ? writeEvidenceMissing : REQUIRED_WRITE_EVIDENCE),
+      readOnlyEvidence: readOnlyRolloutEvidenceReady ? [] : (readOnlyEvidenceIssues.length ? readOnlyEvidenceIssues : (readonlyMissing.length ? readonlyMissing : REQUIRED_READONLY_EVIDENCE)),
+      writePilotEvidence: writePilotEvidenceReady ? [] : (writePilotEvidenceIssues.length ? writePilotEvidenceIssues : (writeEvidenceMissing.length ? writeEvidenceMissing : REQUIRED_WRITE_EVIDENCE)),
     },
     present: {
       adminCount: staff.adminCount ?? 0,
@@ -192,13 +196,13 @@ function main() {
         status: status(readOnlyRolloutEvidenceReady, !basePrerequisitesReady || !readOnlyEnabled),
         description: "Capture production READ ONLY rollout evidence before any controlled write pilot.",
         requiredEnv: readOnlyEnabled ? [] : ["MAILHUB_READ_ONLY=1"],
-        requiredEvidence: readOnlyRolloutEvidenceReady ? [] : (readonlyMissing.length ? readonlyMissing : REQUIRED_READONLY_EVIDENCE),
+        requiredEvidence: readOnlyRolloutEvidenceReady ? [] : (readOnlyEvidenceIssues.length ? readOnlyEvidenceIssues : (readonlyMissing.length ? readonlyMissing : REQUIRED_READONLY_EVIDENCE)),
       },
       {
         id: "capture_controlled_write_pilot",
         status: status(writePilotEvidenceReady, !basePrerequisitesReady || !readOnlyRolloutEvidenceReady),
         description: "Capture a controlled production write pilot with MailHub, Gmail, and Activity evidence.",
-        requiredEvidence: writePilotEvidenceReady ? [] : (writeEvidenceMissing.length ? writeEvidenceMissing : REQUIRED_WRITE_EVIDENCE),
+        requiredEvidence: writePilotEvidenceReady ? [] : (writePilotEvidenceIssues.length ? writePilotEvidenceIssues : (writeEvidenceMissing.length ? writeEvidenceMissing : REQUIRED_WRITE_EVIDENCE)),
       },
       {
         id: "refresh_staff_and_readiness_artifacts",

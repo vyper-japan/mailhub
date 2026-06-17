@@ -136,8 +136,17 @@ function main() {
   if (requirements.readOnlyRolloutEvidenceReady === true && stringArray(evidence.readonlyMissing).length > 0) {
     errors.push("readonly_evidence_ready_with_missing_files");
   }
+  if (requirements.readOnlyRolloutEvidenceReady === true && stringArray(evidence.readOnlyEvidenceIssues).length > 0) {
+    errors.push("readonly_evidence_ready_with_issues");
+  }
+  const manifest = objectValue(evidence.manifest);
+  if (requirements.readOnlyRolloutEvidenceReady === true && manifest.readOnlyManifestReady !== true) {
+    errors.push("readonly_evidence_ready_without_manifest");
+  }
   if (requirements.writePilotEvidenceReady === true) {
     if (stringArray(evidence.writeMissing).length > 0) errors.push("write_evidence_ready_with_missing_meta");
+    if (stringArray(evidence.writePilotEvidenceIssues).length > 0) errors.push("write_evidence_ready_with_issues");
+    if (manifest.writePilotManifestReady !== true) errors.push("write_evidence_ready_without_manifest");
     if ((evidence.activityCsvCount ?? 0) < 1) errors.push("write_evidence_ready_without_activity_csv");
     if ((evidence.gmailProofCount ?? 0) < 1) errors.push("write_evidence_ready_without_gmail_proof");
     if ((evidence.mailhubProofCount ?? 0) < 1) errors.push("write_evidence_ready_without_mailhub_proof");

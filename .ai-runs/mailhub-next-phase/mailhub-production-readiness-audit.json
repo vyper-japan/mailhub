@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-06-17T13:13:46.486Z",
-  "repoHead": "29eb035171233c72a85ed41da695de32bd9fe906",
+  "generatedAt": "2026-06-17T13:34:54.007Z",
+  "repoHead": "caf2c3d345db5eb4ca1b3f4304f70ab9093ed28c",
   "inputs": {
     "sourceAudit": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.ai-runs/mailhub-next-phase/gmail-source-coverage-audit.json",
     "opsAudit": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.ai-runs/mailhub-next-phase/mailhub-operational-confirmations.json",
@@ -19,7 +19,7 @@
     "githubRoutingSecretsCheckedAt": "2026-06-17T08:38:38.855Z",
     "viewsAuditGeneratedAt": "2026-06-17T08:12:07.091Z",
     "rulesAuditGeneratedAt": "2026-06-17T08:10:18.407Z",
-    "staffWorkflowAuditGeneratedAt": "2026-06-17T13:13:46.303Z",
+    "staffWorkflowAuditGeneratedAt": "2026-06-17T13:34:46.630Z",
     "rulesConfigFingerprint": "sha256:64ce3c152193b489c6d1b48a3c89ad4ea195b7824e0c25c5412db1c4a1cababd"
   },
   "requirements": {
@@ -297,7 +297,9 @@
             "evidence": {
               "missing": [
                 "mailhub-meta-topbar-readonly.png",
-                "mailhub-meta-health-readonly.png"
+                "mailhub-meta-health-readonly.png",
+                "staff-workflow-evidence-manifest.json",
+                "manifest:missing_staff_workflow_evidence_manifest"
               ]
             }
           },
@@ -306,9 +308,19 @@
             "severity": "P1",
             "message": "Controlled production WRITE pilot evidence is missing.",
             "evidence": {
+              "missing": [
+                "mailhub-meta-topbar-write.png",
+                "mailhub-meta-topbar-back-to-readonly.png",
+                "staff-workflow-evidence-manifest.json",
+                "activity-YYYYMMDD-prod.csv",
+                "gmail-*-*.png",
+                "mailhub-*-*.png",
+                "manifest:missing_staff_workflow_evidence_manifest"
+              ],
               "missingMeta": [
                 "mailhub-meta-topbar-write.png",
-                "mailhub-meta-topbar-back-to-readonly.png"
+                "mailhub-meta-topbar-back-to-readonly.png",
+                "staff-workflow-evidence-manifest.json"
               ],
               "activityCsvCount": 0,
               "gmailProofCount": 0,
