@@ -191,6 +191,28 @@ npm run build
 - `npm run test`: 57 files / 517 tests passed.
 - `npm run build`: passed.
 
+## Verification Commands Run On 2026-06-17 Source Coverage Gate Wave
+
+```bash
+npm run audit:gmail-sources -- --out .ai-runs/mailhub-next-phase/gmail-source-coverage-audit.json --max-pages 3
+node --check scripts/audit-gmail-source-coverage.mjs
+git diff --check
+npm run test
+node -e 'const a=require("./.ai-runs/mailhub-next-phase/gmail-source-coverage-audit.json"); if(!a.zeroEstimateAnalysis?.coverageGate?.codeCoveragePass) process.exit(1); if(a.zeroEstimateAnalysis.knownCodeGaps.length) process.exit(2); console.log("source coverage gate pass", a.zeroEstimateAnalysis.noEvidenceOperationalFollowups.join(","));'
+```
+
+## 2026-06-17 Source Coverage Gate Wave Results
+
+- `npm run audit:gmail-sources`: passed.
+- Latest generatedAt: `2026-06-17T00:08:49.123Z`.
+- `zeroEstimateAnalysis.knownCodeGaps`: `[]`.
+- `zeroEstimateAnalysis.coverageGate.codeCoveragePass`: `true`.
+- `zeroEstimateAnalysis.noEvidenceOperationalFollowups`: `vyperglobal-yahoo`, `ebay`.
+- `node --check scripts/audit-gmail-source-coverage.mjs`: passed.
+- `git diff --check`: passed.
+- `npm run test`: 57 files / 517 tests passed.
+- Source coverage gate assertion command: passed.
+
 ## Useful Runtime Commands
 
 Start dev server for tunnel:

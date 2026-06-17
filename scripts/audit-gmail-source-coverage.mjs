@@ -200,6 +200,53 @@ async function buildZeroEstimateFollowups(gmail, userId, probes) {
   return followups;
 }
 
+function hasPositiveProbe(probes) {
+  return probes.some((probe) => (probe.resultSizeEstimate ?? 0) > 0 || (probe.firstPageIdsReturned ?? 0) > 0);
+}
+
+function buildZeroEstimateAnalysis(sourceChannels, zeroEstimateFollowups) {
+  const missingQueryChannels = sourceChannels
+    .filter((channel) => channel.addresses.length > 0 && !channel.query)
+    .map((channel) => channel.id);
+  const missingAddressChannels = sourceChannels
+    .filter((channel) => channel.addresses.length === 0)
+    .map((channel) => channel.id);
+  const operationalFollowups = zeroEstimateFollowups.map((item) => {
+    const activeInboxHasEvidence = hasPositiveProbe(item.scopes?.activeInbox ?? item.probes ?? []);
+    const allMailHasEvidence = hasPositiveProbe(item.scopes?.allMail ?? []);
+    const status = activeInboxHasEvidence
+      ? "active_inbox_fallback_found"
+      : allMailHasEvidence
+        ? "active_inbox_zero_historical_found"
+        : "no_shared_inbox_evidence";
+    return {
+      id: item.id,
+      label: item.label,
+      addresses: item.addresses,
+      status,
+      activeInboxHasEvidence,
+      allMailHasEvidence,
+      requiresOperatorConfirmation: !activeInboxHasEvidence,
+    };
+  });
+  const noEvidenceOperationalFollowups = operationalFollowups
+    .filter((item) => item.status === "no_shared_inbox_evidence")
+    .map((item) => item.id);
+  return {
+    knownCodeGaps: [...missingQueryChannels, ...missingAddressChannels],
+    missingQueryChannels,
+    missingAddressChannels,
+    operationalFollowups,
+    noEvidenceOperationalFollowups,
+    coverageGate: {
+      codeCoveragePass: missingQueryChannels.length === 0 && missingAddressChannels.length === 0,
+      activeInboxZeroRequiresOperatorConfirmation: operationalFollowups
+        .filter((item) => item.requiresOperatorConfirmation)
+        .map((item) => item.id),
+    },
+  };
+}
+
 function buildAudit(channels, probes, sharedInboxEmail, zeroEstimateFollowups) {
   const aggregate = probes.find((item) => item.id === "stores") ?? null;
   const sourceChannels = probes.filter((item) => item.id !== "all" && item.id !== "stores");
@@ -210,6 +257,7 @@ function buildAudit(channels, probes, sharedInboxEmail, zeroEstimateFollowups) {
     .filter((item) => item.hasNextPageToken)
     .map((item) => item.id);
   const addressCount = new Set(sourceChannels.flatMap((item) => item.addresses)).size;
+  const zeroEstimateAnalysis = buildZeroEstimateAnalysis(sourceChannels, zeroEstimateFollowups);
 
   return {
     generatedAt: new Date().toISOString(),
@@ -231,6 +279,7 @@ function buildAudit(channels, probes, sharedInboxEmail, zeroEstimateFollowups) {
       zeroEstimateChannels,
       paginatedChannels,
     },
+    zeroEstimateAnalysis,
     zeroEstimateFollowups,
     channels: probes,
     channelInventory: channels.map((channel) => ({
@@ -282,6 +331,11 @@ async function main() {
         sourceAddressCount: audit.sourceAddressCount,
         aggregate: audit.aggregate,
         risks: audit.risks,
+        zeroEstimateAnalysis: {
+          knownCodeGaps: audit.zeroEstimateAnalysis.knownCodeGaps,
+          noEvidenceOperationalFollowups: audit.zeroEstimateAnalysis.noEvidenceOperationalFollowups,
+          codeCoveragePass: audit.zeroEstimateAnalysis.coverageGate.codeCoveragePass,
+        },
       },
       null,
       2,

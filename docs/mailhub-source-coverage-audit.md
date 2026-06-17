@@ -56,7 +56,7 @@ Command:
 npm run audit:gmail-sources -- --out .ai-runs/mailhub-next-phase/gmail-source-coverage-audit.json --max-pages 3
 ```
 
-Latest result: 2026-06-17 JST. This is an `INBOX`-scoped audit.
+Latest result: 2026-06-17 JST (`2026-06-17T00:08:49.123Z`). This is an `INBOX`-scoped audit.
 
 | Check | Result |
 |---|---|
@@ -67,6 +67,8 @@ Latest result: 2026-06-17 JST. This is an `INBOX`-scoped audit.
 | `stores` pages fetched | 3 |
 | `stores` unique messages seen lower bound | 150 |
 | `stores` still has more after fetched pages | yes |
+| Known code coverage gaps | 0 |
+| Code coverage gate | pass |
 
 Confirmed non-zero source channels in the active inbox:
 
@@ -98,13 +100,15 @@ Channels with a current zero estimate:
 
 Zero-estimate follow-up split:
 
-| Channel | Active inbox fallback | All-mail fallback |
-|---|---:|---:|
-| `gopro-yahoo` | 0 | historical hits found |
-| `vyperglobal-rakuten` | 0 | historical hits found |
-| `vyperglobal-yahoo` | 0 | 0 |
-| `ams-vyper` | 0 | historical hits found |
-| `datacolor` | 0 | historical hits found |
-| `ebay` | 0 | 0 |
+| Channel | Active inbox fallback | All-mail fallback | Machine status |
+|---|---:|---:|---|
+| `gopro-yahoo` | 0 | historical hits found | `active_inbox_zero_historical_found` |
+| `vyperglobal-rakuten` | 0 | historical hits found | `active_inbox_zero_historical_found` |
+| `vyperglobal-yahoo` | 0 | 0 | `no_shared_inbox_evidence` |
+| `ams-vyper` | 0 | historical hits found | `active_inbox_zero_historical_found` |
+| `datacolor` | 0 | historical hits found | `active_inbox_zero_historical_found` |
+| `ebay` | 0 | 0 | `no_shared_inbox_evidence` |
 
-The remaining zero estimates are not code coverage gaps because the channels and queries are present in `lib/channels.ts`. They are operational follow-up items: confirm whether the shared inbox currently has no active inbox mail for those addresses, whether historical mail is archived/handled, or whether the source address is dormant.
+The audit now emits `zeroEstimateAnalysis.knownCodeGaps`, `missingQueryChannels`, `missingAddressChannels`, and `coverageGate.codeCoveragePass`. The latest result has no known code gaps. The remaining zero estimates are operational follow-up items: confirm whether the shared inbox currently has no active inbox mail for those addresses, whether historical mail is archived/handled, or whether the source address is dormant.
+
+The two addresses with no active or historical shared-inbox evidence are `vyperglobal-yahoo` and `ebay`; those require operator/source-of-truth confirmation before claiming full operational coverage.

@@ -30,6 +30,7 @@ MailHub の次フェーズを開始してください。
    `gopro-yahoo`, `vyperglobal-rakuten`, `vyperglobal-yahoo`, `ams-vyper`, `datacolor`, `ebay`
    - `gopro-yahoo`, `vyperglobal-rakuten`, `ams-vyper`, `datacolor`: active inbox 0 / all-mail historical hitsあり
    - `vyperglobal-yahoo`, `ebay`: active inbox 0 / all-mail fallback 0
+   - latest source audit gate: `knownCodeGaps: []`, `codeCoveragePass: true`
 2. 新規 default views (`invoice-docs`, `customer-inquiries`, `noise-candidates`) は `todo` ベースに変更済み。実データ監査では `invoice-docs` は 552件、`customer-inquiries`/`noise-candidates` は 1000件下限かつ続きあり。現状は automation queue ではなく manual-review shortcut として扱い、チューニングは operator feedback 後に行う
 3. suppressive rule safety gate は explicit `messageIds` + `messageSummaries` 対応済み。summary 欠落時は fail closed。production auto-discard policy はまだ有効化せず、real-data validation 後に進める
 4. Brain suggestion は selected message に対する read-only deterministic UI/API まで追加済み
@@ -44,6 +45,7 @@ MailHub の次フェーズを開始してください。
 - brain ledger commit: `feat: add MailHub brain decision ledger`
 - brain ledger health commit: `feat: expose MailHub brain ledger health`
 - brain ledger sheets commit: `feat: support Sheets-backed MailHub brain ledger`
+- source coverage gate commit: `fix: classify MailHub source coverage gaps`
 - prior commit `16e703a fix: clarify MailHub source scope and rule safety`
 - source coverage commits already present:
   - `0e9f358 fix: include AMS source in MailHub coverage`
@@ -94,5 +96,11 @@ MailHub の次フェーズを開始してください。
   - `git diff --check` PASS
   - `npm run test` 57 files / 517 tests PASS
   - `npm run build` PASS
+- source coverage gate wave verification:
+  - `npm run audit:gmail-sources -- --out .ai-runs/mailhub-next-phase/gmail-source-coverage-audit.json --max-pages 3` PASS
+  - latest audit generatedAt `2026-06-17T00:08:49.123Z`
+  - `zeroEstimateAnalysis.knownCodeGaps` empty
+  - `zeroEstimateAnalysis.coverageGate.codeCoveragePass` true
+  - `zeroEstimateAnalysis.noEvidenceOperationalFollowups`: `vyperglobal-yahoo`, `ebay`
 - build PASS
 - tunnel URL: `https://hansen-bangkok-magnetic-projected.trycloudflare.com`

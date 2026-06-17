@@ -11,6 +11,7 @@ Continue from the completed INBOX-scoped source coverage and rule-safety wave:
 5. Operationally confirm remaining real Gmail INBOX zero-estimate channels: `gopro-yahoo`, `vyperglobal-rakuten`, `vyperglobal-yahoo`, `ams-vyper`, `datacolor`, `ebay`.
    - `gopro-yahoo`, `vyperglobal-rakuten`, `ams-vyper`, `datacolor`: active inbox 0, all-mail historical hits found.
    - `vyperglobal-yahoo`, `ebay`: active inbox 0 and all-mail fallback 0.
+   - Latest machine gate: `zeroEstimateAnalysis.knownCodeGaps` is empty and `coverageGate.codeCoveragePass` is true.
 6. Collect operator feedback on the default saved views. Real Gmail audit proves `customer-inquiries` and `noise-candidates` are too broad for bulk automation, so keep them as manual-review shortcuts unless narrowed.
 7. Add AI reply drafting only after a knowledge evidence source is defined; keep generated drafts separate from send actions.
 8. Expand the rule-safety gate only after real-data validation: current gate protects suppressive labels from invoice/inquiry/important-looking messages and fails closed when classification text is missing, but does not yet implement a full production auto-discard policy.
@@ -66,6 +67,7 @@ The next phase is done only when:
 - expected store/email source inventory is documented
 - actual app coverage is verified against that inventory
 - at least one concrete missing-mail/root-cause class is fixed or proven absent
+- source audit machine gate distinguishes code gaps from operational follow-ups
 - UI clearly communicates source/filter state
 - suppressive rule application cannot hide obvious invoice/inquiry/important messages without evidence
 - selected-message Brain suggestion is read-only, visible, and separated from executor/write paths

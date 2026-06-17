@@ -74,6 +74,11 @@
   - Added compact row serialization for planned actions, evidence, and warnings.
   - Health now reports Sheets-backed Brain ledger readiness via requested/resolved/sheetsConfigured.
   - Added tests for Sheets row round-trip and store resolution.
+- 2026-06-17 source coverage gate wave completed:
+  - Extended `scripts/audit-gmail-source-coverage.mjs` with `zeroEstimateAnalysis`.
+  - Latest real Gmail audit reports `knownCodeGaps: []` and `coverageGate.codeCoveragePass: true`.
+  - Remaining zero-estimate channels are machine-classified as operational follow-up, not code gaps.
+  - `vyperglobal-yahoo` and `ebay` remain the only `no_shared_inbox_evidence` operational confirmations.
 
 ## Not Done
 
