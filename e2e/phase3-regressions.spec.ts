@@ -286,4 +286,27 @@ test.describe("Phase 3 regressions E2E", () => {
       }, { timeout: 5000 })
       .toEqual({ label: "todo", hasChannel: false });
   });
+
+  test("T-11: READ ONLY initial load does not fire rules apply POST", async ({ page }) => {
+    console.log("progress: T-11 start");
+    await page.request.post("/api/mailhub/test/reset", { data: { readOnly: true } }).catch(() => {});
+    await page.addInitScript(() => {
+      localStorage.setItem("mailhub-onboarding-shown", "true");
+    });
+
+    const rulesApplyPosts: string[] = [];
+    page.on("request", (request) => {
+      if (request.method() === "POST" && request.url().includes("/api/mailhub/rules/apply")) {
+        rulesApplyPosts.push(request.postData() ?? "");
+      }
+    });
+
+    await page.goto("/?label=all");
+    await page.waitForSelector('[data-testid="message-row"]', { timeout: 10000 });
+    await expect(page.getByTestId("readonly-badge")).toBeVisible({ timeout: 10000 });
+    await page.waitForTimeout(1000);
+
+    expect(rulesApplyPosts).toEqual([]);
+    await page.request.post("/api/mailhub/test/reset", { data: { readOnly: false } }).catch(() => {});
+  });
 });

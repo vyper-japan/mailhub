@@ -873,6 +873,7 @@ export default function InboxShell({
   // TEST_MODEではE2Eが即クリックするので初期true（本番はhealthで判定）
   const [canOpenSettings, setCanOpenSettings] = useState<boolean>(testMode);
   const [readOnlyMode, setReadOnlyMode] = useState<boolean>(false);
+  const [writeGuardReady, setWriteGuardReady] = useState<boolean>(false);
   const [writeBlockedReason, setWriteBlockedReason] = useState<null | "read_only" | "insufficient_permissions">(null);
   const [gmailSendHealth, setGmailSendHealth] = useState<GmailSendHealthState>({
     gmailSendReady: false,
@@ -2229,6 +2230,7 @@ export default function InboxShell({
 
   const applyRulesBestEffort = useCallback(async (messageIds: string[]) => {
     if (messageIds.length === 0) return;
+    if (!writeGuardReady || readOnlyMode) return;
     try {
       const idSet = new Set(messageIds);
       const res = (await postJsonOrThrow("/api/mailhub/rules/apply", {
@@ -2263,7 +2265,7 @@ export default function InboxShell({
     } catch {
       // ignore（一覧表示が最優先）
     }
-  }, [messages]);
+  }, [messages, readOnlyMode, writeGuardReady]);
 
   const loadList = useCallback(async (
     nextLabelId: string,
@@ -2454,11 +2456,13 @@ export default function InboxShell({
               : null;
         setWriteBlockedReason(blocked);
         setReadOnlyMode(blocked !== null);
+        setWriteGuardReady(true);
       } catch {
         setCanOpenSettings(testMode);
         setIsAdmin(testMode);
         setWriteBlockedReason(null);
         setReadOnlyMode(false);
+        setWriteGuardReady(false);
       }
     })();
   }, [testMode]);
