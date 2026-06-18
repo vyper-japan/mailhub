@@ -1,7 +1,8 @@
 {
-  "generatedAt": "2026-06-17T20:51:39.495Z",
+  "generatedAt": "2026-06-18T08:26:59.124Z",
+  "repoHead": "dd54bd5ddbbe74fbcd859c020ecebb3f9b78fa85",
   "inputs": {
-    "envFile": ".env.local",
+    "envFile": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.env.local",
     "envFileLoaded": true,
     "envFileMode": "env_file",
     "valuePolicy": "Secret values are never printed; this artifact contains only env file path/load metadata, masked addresses, counts, fingerprints, and validation findings."

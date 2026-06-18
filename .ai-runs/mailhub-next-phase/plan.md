@@ -91,3 +91,38 @@ git push
 ```
 
 Then start a shield wave to identify the next external-value-free improvement.
+# 2026-06-18 SHIELD Checkpoint Plan
+
+## Current Objective
+
+Continue MailHub production-readiness hardening without making a false production-ready claim.
+
+The current task is no longer just an artifact refresh. The worktree has a 20-file source/test/script diff that hardens readiness evidence contracts, routing proof readiness, staff workflow evidence, GitHub secret readiness, and `.env.example` operator configuration samples.
+
+## Required Operating Mode
+
+Use SHIELD全開 / Avengers-style execution for the next session:
+
+- Before any further code edit, launch at least 6 independent read-only roles.
+- Integrate their results before implementing.
+- Split implementation ownership by file area if any more changes are needed.
+- Run a separate final critic/verifier wave after implementation.
+- Do not run external mail send, GitHub `--apply`, or Sheets mutation without explicit user approval.
+
+## Immediate Plan
+
+1. Read this checkpoint plus `progress.md`, `blockers.md`, `commands.md`, and `next.md`.
+2. Run `git status -sb`, `git diff --stat`, and `git diff --check`.
+3. Treat the latest verified state as:
+   - staff workflow R7 P1 findings were fixed.
+   - focused R8 re-review confirmed those two P1s are closed.
+   - full-scope final review is still pending because the diff spans 20 files.
+4. Launch a new 6-agent full-scope final review wave over all modified files, including `.env.example`.
+5. If no P0/P1 remains, run full validation:
+   - `npm run lint`
+   - `npm run typecheck`
+   - `npm run test`
+   - `npm run security:scan`
+   - `git diff --check`
+   - preferably `MAILHUB_TEST_MODE=1 NEXTAUTH_SECRET=dummy NEXTAUTH_URL=http://localhost:3000 NEXTAUTH_TRUST_HOST=true GOOGLE_CLIENT_ID=dummy GOOGLE_CLIENT_SECRET=dummy GOOGLE_SHARED_INBOX_EMAIL=inbox@vtj.co.jp GOOGLE_SHARED_INBOX_REFRESH_TOKEN=dummy npm run qa:strict`
+6. Refresh `.ai-runs/mailhub-next-phase` artifacts only after source diff is frozen. No-send/dry-run artifact refresh is allowed; external `--send` still requires explicit approval.

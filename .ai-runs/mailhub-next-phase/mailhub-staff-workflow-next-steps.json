@@ -1,9 +1,9 @@
 {
-  "generatedAt": "2026-06-17T22:34:09.392Z",
+  "generatedAt": "2026-06-18T08:27:40.607Z",
   "inputs": {
     "audit": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.ai-runs/mailhub-next-phase/mailhub-staff-workflow-audit.json",
-    "auditGeneratedAt": "2026-06-17T22:34:08.983Z",
-    "auditRepoHead": "b9c7d360919a7676f1745899960dd45f01f10bfc",
+    "auditGeneratedAt": "2026-06-18T08:27:24.300Z",
+    "auditRepoHead": "dd54bd5ddbbe74fbcd859c020ecebb3f9b78fa85",
     "errors": [],
     "warnings": []
   },
@@ -64,7 +64,7 @@
   "present": {
     "adminCount": 2,
     "teamMemberCount": 0,
-    "assigneeRegistryValidCount": 1,
+    "assigneeRegistryValidCount": 2,
     "configStore": "file",
     "activityStore": "memory"
   },

@@ -1,5 +1,55 @@
 # MailHub Next Phase Commands
 
+## Verification Commands Run On 2026-06-18 SHIELD Full-Diff Final Review
+
+```bash
+git status -sb
+git diff --stat
+git diff --check
+node --check scripts/send-mailhub-routing-probes.mjs
+npm run typecheck
+npm run test -- lib/__tests__/mailhub-staff-workflow-audit.test.ts lib/__tests__/mailhub-routing-probe-scripts.test.ts
+npm run lint
+npm run test
+npm run security:scan
+MAILHUB_TEST_MODE=1 NEXTAUTH_SECRET=dummy NEXTAUTH_URL=http://localhost:3000 NEXTAUTH_TRUST_HOST=true GOOGLE_CLIENT_ID=dummy GOOGLE_SHARED_INBOX_EMAIL=inbox@vtj.co.jp GOOGLE_SHARED_INBOX_REFRESH_TOKEN=dummy GOOGLE_CLIENT_SECRET=dummy npm run qa:strict
+npm run audit:gmail-sources -- --out .ai-runs/mailhub-next-phase/gmail-source-coverage-audit.json --max-pages 3
+npm run audit:gmail-views -- --out .ai-runs/mailhub-next-phase/gmail-default-views-audit.json --max-pages 10
+npm run audit:gmail-rules -- --out .ai-runs/mailhub-next-phase/gmail-rule-safety-audit.json --max 100
+npm run audit:gws-routing -- --out .ai-runs/mailhub-next-phase/mailhub-gws-routing-audit.json
+npm run audit:mailhub-ops -- --out .ai-runs/mailhub-next-phase/mailhub-operational-confirmations.json
+npm run audit:github-routing-secrets -- --no-fail --out .ai-runs/mailhub-next-phase/github-routing-secrets-readiness.json
+npm run audit:github-staff-secrets -- --no-fail --out .ai-runs/mailhub-next-phase/github-staff-secrets-readiness.json
+npm run audit:mailhub-staff-workflow -- --out .ai-runs/mailhub-next-phase/mailhub-staff-workflow-audit.json
+npm run audit:routing-probes -- --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-audit.json
+npm run probe:routing-preflight -- --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-preflight.json
+npm run probe:routing-send -- --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-send.json
+npm run audit:mailhub-readiness -- --out .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json
+npm run audit:mailhub-staff-next -- --out .ai-runs/mailhub-next-phase/mailhub-staff-workflow-next-steps.json
+npm run audit:mailhub-rule-config-next -- --out .ai-runs/mailhub-next-phase/mailhub-rule-config-next-steps.json
+npm run audit:mailhub-routing-next -- --out .ai-runs/mailhub-next-phase/mailhub-routing-next-steps.json
+npm run audit:github-routing-secrets-contract
+npm run audit:github-staff-secrets-contract
+npm run audit:mailhub-staff-workflow-contract
+npm run audit:mailhub-staff-next-contract
+npm run audit:mailhub-readiness-contract
+npm run audit:mailhub-rule-config-next-contract
+npm run audit:mailhub-routing-next-contract
+npm run audit:mailhub-routing-proof-contract
+npm run security:scan-artifacts
+```
+
+## 2026-06-18 SHIELD Full-Diff Results
+
+- Six-agent full-diff read-only review completed before edits.
+- Fixed 2 P1s from review.
+- `npm run test`: 74 files / 693 tests passed.
+- `qa:strict`: 131 Playwright tests passed.
+- Artifact contract chain: all listed contracts passed after regenerating next-step artifacts after readiness.
+- `security:scan-artifacts`: passed after artifact refresh.
+- No external mail send, GitHub setup `--apply`, or Sheets mutation was run.
+- Production readiness remains false with P0/P1 blockers documented in `blockers.md`.
+
 ## Verification Commands Already Run
 
 ```bash
@@ -2560,3 +2610,45 @@ If E2E needs the port:
 ```bash
 kill $(lsof -tiTCP:3001 -sTCP:LISTEN) 2>/dev/null || true
 ```
+# 2026-06-18 SHIELD Checkpoint Commands
+
+## Checkpoint Preparation
+
+- `sed -n '1,220p' /Users/takayukisuzuki/.agents/skills/ai-checkpoint/SKILL.md`
+  - Result: PASS, skill instructions loaded.
+- `git status -sb`
+  - Result: dirty `main...origin/main`, 20 modified tracked files.
+- `git diff --stat`
+  - Result before checkpoint file updates: 20 files changed, 3890 insertions, 213 deletions.
+- `bash scripts/ai_handoff_snapshot.sh .ai-runs/mailhub-next-phase`
+  - Result: FAIL, `scripts/ai_handoff_snapshot.sh` not found in this worktree.
+
+## Latest Verified Development Commands
+
+- `node --check scripts/audit-mailhub-staff-workflow.mjs`
+  - Result: PASS.
+- `node --check scripts/check-mailhub-staff-workflow-contract.mjs`
+  - Result: PASS.
+- `npm run test -- lib/__tests__/mailhub-staff-workflow-audit.test.ts`
+  - Result: PASS, 14 tests.
+- `git diff --check -- scripts/audit-mailhub-staff-workflow.mjs scripts/check-mailhub-staff-workflow-contract.mjs lib/__tests__/mailhub-staff-workflow-audit.test.ts`
+  - Result: PASS.
+- `npm run test -- lib/__tests__/mailhub-readiness-contract.test.ts lib/__tests__/mailhub-routing-probe-scripts.test.ts lib/__tests__/mailhub-staff-workflow-audit.test.ts`
+  - Result: PASS, 90 tests.
+- `git diff --check`
+  - Result: PASS before checkpoint file edits.
+
+## Commands To Rerun Next Session
+
+```bash
+git status -sb
+git diff --stat
+git diff --check
+npm run lint
+npm run typecheck
+npm run test
+npm run security:scan
+MAILHUB_TEST_MODE=1 NEXTAUTH_SECRET=dummy NEXTAUTH_URL=http://localhost:3000 NEXTAUTH_TRUST_HOST=true GOOGLE_CLIENT_ID=dummy GOOGLE_CLIENT_SECRET=dummy GOOGLE_SHARED_INBOX_EMAIL=inbox@vtj.co.jp GOOGLE_SHARED_INBOX_REFRESH_TOKEN=dummy npm run qa:strict
+```
+
+After source diff is frozen, refresh no-send artifacts and rerun contracts. Do not run external `--send` or setup `--apply` without explicit approval.

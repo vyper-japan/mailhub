@@ -151,3 +151,57 @@ npm run audit:mailhub-routing-proof-contract
 - Do not print secret values.
 - Do not use raw `gh secret set` command lists in artifacts when safe helper scripts exist.
 - Do not mark the active goal complete until production readiness is actually true and every explicit blocker is closed with evidence.
+# 2026-06-18 SHIELD Resume Prompt
+
+Continue MailHub next phase from `/Users/takayukisuzuki/VYPER-Dev/Mailhub`.
+
+First read:
+
+1. `.ai-runs/mailhub-next-phase/plan.md`
+2. `.ai-runs/mailhub-next-phase/progress.md`
+3. `.ai-runs/mailhub-next-phase/blockers.md`
+4. `.ai-runs/mailhub-next-phase/commands.md`
+5. `.ai-runs/mailhub-next-phase/next.md`
+
+Important current state:
+
+- Previous session should be treated as checkpointed because one artifact-refresh subagent became unresponsive during close/wait.
+- Do not wait on old agent IDs.
+- Current dirty worktree includes source/test/script changes, not just `.ai-runs` artifacts.
+- R7 found two staff workflow P1s; both were fixed.
+- R8 focused re-review confirmed those two P1s are closed.
+- Full final PASS is still pending because the diff spans 20 modified tracked files including `.env.example`.
+- Previous `qa:strict` and artifact contract evidence is stale for the latest diff.
+
+Mandatory SHIELD requirement:
+
+- Before any more code edits, launch at least 6 independent read-only roles over the full diff.
+- Include `.env.example` in scope or deliberately remove it.
+- Integrate agent results before further implementation.
+- Run final separate critic/verifier after any further implementation.
+- Do not run external mail sends, GitHub setup `--apply`, or Sheets mutations without explicit user approval.
+
+Start with:
+
+```bash
+git status -sb
+git diff --stat
+git diff --check
+```
+
+Then run full-scope review and validation:
+
+```bash
+npm run lint
+npm run typecheck
+npm run test
+npm run security:scan
+MAILHUB_TEST_MODE=1 NEXTAUTH_SECRET=dummy NEXTAUTH_URL=http://localhost:3000 NEXTAUTH_TRUST_HOST=true GOOGLE_CLIENT_ID=dummy GOOGLE_CLIENT_SECRET=dummy GOOGLE_SHARED_INBOX_EMAIL=inbox@vtj.co.jp GOOGLE_SHARED_INBOX_REFRESH_TOKEN=dummy npm run qa:strict
+```
+
+Do not claim production complete. Remaining blockers include:
+
+- P0 `current_shared_gmail_routing`
+- P1 `rule_config_source_not_production`
+- P1 `staff_workflow_permissions`
+- P1 `staff_github_config_not_ready`

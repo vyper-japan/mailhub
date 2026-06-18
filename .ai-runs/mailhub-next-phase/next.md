@@ -1,5 +1,88 @@
 # MailHub Next Phase Next Actions
 
+## 2026-06-18 Current State After SHIELD Full-Diff Review
+
+The previous "Resume Here" checklist below has been completed.
+
+Current verified state:
+
+- Full-diff 6-role SHIELD review completed, including `.env.example`.
+- Two P1 findings from review were fixed.
+- Post-fix critic/verifier passed.
+- Full validation passed, including `qa:strict` with 131 Playwright tests.
+- No-send/read-only artifact refresh completed.
+- Artifact contract chain passed.
+
+Do not claim production complete. Current readiness remains:
+
+- P0 `current_shared_gmail_routing`
+- P1 `rule_config_source_not_production`
+- P1 `staff_workflow_permissions`
+- P1 `staff_github_config_not_ready`
+
+Next meaningful work requires real external setup/evidence:
+
+1. Configure external non-`@vtj.co.jp` SMTP proof settings, then request explicit user approval before any `--send`.
+2. Configure Sheets-backed rule config and run the Sheets rule safety audit.
+3. Configure production staff env, staff allowlist, durable Sheets stores, READ ONLY, and collect real read-only / controlled-write evidence.
+4. Configure GitHub Actions production staff variables/secrets through the safe helper; `--apply` still requires explicit approval.
+
+## 2026-06-18 Resume Here
+
+Use this section first. Some older sections below still describe the state before the SHIELD R5-R8 hardening and are stale where they say only `.ai-runs` artifacts are dirty.
+
+### First Commands
+
+```bash
+cd /Users/takayukisuzuki/VYPER-Dev/Mailhub
+git status -sb
+git diff --stat
+git diff --check
+```
+
+Expected at checkpoint: 20 modified tracked files plus the checkpoint files themselves after this update.
+
+### Mandatory SHIELD Restart
+
+Before any further edit, launch a visible 6-role read-only wave over the full diff:
+
+- Full-scope false-ready critic: readiness TTL, staff workflow, routing proof, GitHub readiness
+- Full-scope secret/side-effect critic: `.env.example`, send script, GitHub setup/check scripts, artifact JSON fields
+- Full-scope test/fixture critic: dynamic fresh fixtures, stale negative tests, contract tamper tests
+- Artifact/contract planner: no-send refresh order, stale repoHead handling, readiness-contract failure path
+- Diff ownership reviewer: confirm `.env.example` is intentionally in scope or remove it from this changeset
+- Command verifier: current minimum validation set and stale verification claims
+
+Do not wait indefinitely on a stuck agent. Use finite waits; if an agent stalls, close/ignore it and replace it with a new focused reviewer.
+
+### Latest Known Good Checks
+
+- Staff workflow focused tests: PASS, 14 tests.
+- Readiness/routing/staff focused tests: PASS, 90 tests.
+- Staff R7 P1 findings: closed and R8-focused-reviewed.
+
+### Still Needed
+
+1. Full-scope final review over all modified files, including `.env.example`.
+2. Rerun full validation:
+
+```bash
+npm run lint
+npm run typecheck
+npm run test
+npm run security:scan
+git diff --check
+```
+
+3. Prefer rerunning:
+
+```bash
+MAILHUB_TEST_MODE=1 NEXTAUTH_SECRET=dummy NEXTAUTH_URL=http://localhost:3000 NEXTAUTH_TRUST_HOST=true GOOGLE_CLIENT_ID=dummy GOOGLE_CLIENT_SECRET=dummy GOOGLE_SHARED_INBOX_EMAIL=inbox@vtj.co.jp GOOGLE_SHARED_INBOX_REFRESH_TOKEN=dummy npm run qa:strict
+```
+
+4. Only after source diff is frozen, refresh no-send artifacts and contracts.
+5. Do not claim production complete. Current production blockers remain P0/P1.
+
 ## 2026-06-18 Current Priority
 
 Use `.ai-runs/mailhub-next-phase/complete-handoff.md` as the authoritative handoff for the next session.

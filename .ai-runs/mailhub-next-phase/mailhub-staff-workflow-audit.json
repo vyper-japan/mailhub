@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-06-17T22:34:08.983Z",
-  "repoHead": "b9c7d360919a7676f1745899960dd45f01f10bfc",
+  "generatedAt": "2026-06-18T08:27:24.300Z",
+  "repoHead": "dd54bd5ddbbe74fbcd859c020ecebb3f9b78fa85",
   "inputs": {
     "envFile": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.env.local",
     "assignees": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.mailhub/assignees.json",
@@ -32,11 +32,9 @@
     "teamNonVtj": [],
     "assigneeRegistry": {
       "count": 2,
-      "validCount": 1,
+      "validCount": 2,
       "invalid": [],
-      "nonVtj": [
-        "target-only@example.com"
-      ],
+      "nonVtj": [],
       "source": "file"
     }
   },

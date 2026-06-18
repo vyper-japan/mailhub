@@ -1,5 +1,168 @@
 # MailHub Next Phase Progress
 
+## 2026-06-18 SHIELD Full-Diff Final Review Completed
+
+This session resumed from `next-session-prompt.md`, ran the required first checks, and completed the full-diff SHIELD review before further edits.
+
+Initial checks:
+
+- `git status -sb`: dirty on `main...origin/main`
+- `git diff --stat`: 26 files changed before artifact refresh
+- `git diff --check`: PASS
+
+Six independent read-only roles reviewed the full diff, including `.env.example`.
+
+Results:
+
+- PASS: diff ownership / `.env.example` scope.
+- PASS: secret leakage and unsafe side-effect review.
+- PASS: test/fixture review.
+- P1 fixed: `lib/__tests__/mailhub-staff-workflow-audit.test.ts` had a too-narrow parsed artifact type that made `npm run typecheck` fail.
+- P1 fixed: `scripts/send-mailhub-routing-probes.mjs --send --verify-after-send` could leave readiness generated from an intermediate send artifact timestamp and then overwrite the send artifact with a different `generatedAt`.
+- Known P0 remains: `current_shared_gmail_routing` still needs real external routing proof from a non-`@vtj.co.jp` sender.
+
+Implementation completed:
+
+- Extended the staff workflow audit test artifact type with the mutated readiness fields and `blockers`.
+- Made routing probe send result `generatedAt` stable across intermediate and final artifact writes.
+
+Post-fix independent review:
+
+- Critic: PASS.
+- Verifier: MATCH for typecheck, focused tests, and stable routing send `generatedAt`.
+
+Validation completed:
+
+- `node --check scripts/send-mailhub-routing-probes.mjs`: PASS
+- `npm run typecheck`: PASS
+- `npm run test -- lib/__tests__/mailhub-staff-workflow-audit.test.ts lib/__tests__/mailhub-routing-probe-scripts.test.ts`: PASS, 56 tests
+- `npm run lint`: PASS
+- `npm run test`: PASS, 74 files / 693 tests
+- `npm run security:scan`: PASS
+- `git diff --check`: PASS
+- `MAILHUB_TEST_MODE=1 NEXTAUTH_SECRET=dummy NEXTAUTH_URL=http://localhost:3000 NEXTAUTH_TRUST_HOST=true GOOGLE_CLIENT_ID=dummy GOOGLE_CLIENT_SECRET=dummy GOOGLE_SHARED_INBOX_EMAIL=inbox@vtj.co.jp GOOGLE_SHARED_INBOX_REFRESH_TOKEN=dummy npm run qa:strict`: PASS, 131 Playwright tests
+
+No-send/read-only artifact refresh completed:
+
+- Gmail source, default views, rule safety audits refreshed.
+- GWS routing, operational confirmations, GitHub routing/staff readiness, staff workflow, routing probe plan/preflight/dry-run, readiness, routing/rule/staff next-step artifacts refreshed.
+- No external mail send, GitHub `--apply`, or Sheets mutation was run.
+
+Contract chain after refresh:
+
+- `npm run audit:github-routing-secrets-contract`: PASS
+- `npm run audit:github-staff-secrets-contract`: PASS
+- `npm run audit:mailhub-staff-workflow-contract`: PASS
+- `npm run audit:mailhub-staff-next-contract`: PASS
+- `npm run audit:mailhub-readiness-contract`: PASS
+- `npm run audit:mailhub-rule-config-next-contract`: PASS
+- `npm run audit:mailhub-routing-next-contract`: PASS
+- `npm run audit:mailhub-routing-proof-contract`: PASS
+- `npm run security:scan-artifacts`: PASS
+
+Current readiness remains intentionally not production complete:
+
+- `productionReady=false`
+- P0: `current_shared_gmail_routing`
+- P1: `rule_config_source_not_production`, `staff_workflow_permissions`, `staff_github_config_not_ready`
+
+## 2026-06-18 SHIELD Checkpoint
+
+This session should be resumed in a new session. One long-running artifact-refresh subagent became unresponsive during close/wait, so do not wait on old agent IDs. Continue from local git state and the verified command results below.
+
+### Current Worktree
+
+- Branch: `main...origin/main`
+- Dirty tracked files: 20
+- No commit was made in this checkpoint step.
+- Important: older handoff text saying the worktree has only `.ai-runs` artifact refresh diffs is stale. Current dirty state includes source, script, test, and `.env.example` changes.
+
+Modified paths at checkpoint:
+
+- `.env.example`
+- `lib/__tests__/mailhub-readiness-contract.test.ts`
+- `lib/__tests__/mailhub-routing-probe-scripts.test.ts`
+- `lib/__tests__/mailhub-staff-secrets-readiness.test.ts`
+- `lib/__tests__/mailhub-staff-workflow-audit.test.ts`
+- `scripts/audit-gmail-default-views.mjs`
+- `scripts/audit-gmail-rule-safety.mjs`
+- `scripts/audit-gmail-source-coverage.mjs`
+- `scripts/audit-mailhub-gws-routing.mjs`
+- `scripts/audit-mailhub-operational-confirmations.mjs`
+- `scripts/audit-mailhub-production-readiness.mjs`
+- `scripts/audit-mailhub-routing-probes.mjs`
+- `scripts/audit-mailhub-staff-workflow.mjs`
+- `scripts/check-mailhub-readiness-contract.mjs`
+- `scripts/check-mailhub-routing-probe-secrets.mjs`
+- `scripts/check-mailhub-routing-proof-contract.mjs`
+- `scripts/check-mailhub-staff-secret-readiness-contract.mjs`
+- `scripts/check-mailhub-staff-secrets.mjs`
+- `scripts/check-mailhub-staff-workflow-contract.mjs`
+- `scripts/send-mailhub-routing-probes.mjs`
+
+### SHIELD Waves Completed
+
+R5 read-only wave completed before implementation:
+
+- Explorer A: handoff/current goal audit
+- Explorer B: readiness artifact and manifest schema audit
+- Explorer C: tests/fixtures/diff scope audit
+- Critic A: false-ready risk
+- Critic B: secret/log leakage risk
+- Verifier/Planner: required command and artifact refresh path
+
+R5 found two important false-ready risks:
+
+- readiness freshness TTL applied too narrowly to routing artifacts.
+- staff evidence manifest could be refreshed while old referenced proof files remained stale.
+
+Implementation completed:
+
+- Readiness gate now applies 24h input-artifact freshness specs to all child artifacts, not only routing children.
+- Readiness contract now checks expected input freshness metadata.
+- Staff workflow audit now checks manifest-referenced proof file mtimes.
+- Staff workflow audit now checks the controlled-write CSV matching row timestamp.
+- Staff workflow contract now rejects tampered ready artifacts with stale/missing `evidenceFileFreshness`.
+- Tests were added/updated for stale non-routing input artifacts, stale staff proof files, stale controlled-write CSV row time, and tampered ready artifacts.
+
+R6 read-only wave handled test/lint fallout:
+
+- Fixed stale positive fixtures in routing/readiness tests by using `freshFixtureTimestamp`.
+- Removed an unused test variable.
+- Verified fixture changes did not remove stale negative coverage.
+
+R7 final review wave found:
+
+- PASS: readiness false-ready risk after all-input TTL.
+- PASS: routing fixture drift did not mask negative tests.
+- PASS inside scripts/tests for secret/log leakage and live-send defaults.
+- P1 found in staff evidence freshness:
+  - mtime-only freshness still allowed stale controlled-write CSV row timestamp.
+  - staff workflow contract did not reject tampered ready artifacts with stale `evidenceFileFreshness`.
+- GAP: full sign-off not possible because artifacts and previous `qa:strict` were stale against current 20-file diff.
+- Scope note: `.env.example` is modified and must be included in full final review or deliberately reverted.
+
+R8 focused re-review after the staff P1 fix:
+
+- PASS for the two staff P1 closures.
+- It still rejected full PASS on scope grounds because many files outside the focused three-file scope remain modified.
+
+### Verified Commands After Latest Fix
+
+- `node --check scripts/audit-mailhub-staff-workflow.mjs`: PASS
+- `node --check scripts/check-mailhub-staff-workflow-contract.mjs`: PASS
+- `npm run test -- lib/__tests__/mailhub-staff-workflow-audit.test.ts`: PASS, 14 tests
+- `npm run test -- lib/__tests__/mailhub-readiness-contract.test.ts lib/__tests__/mailhub-routing-probe-scripts.test.ts lib/__tests__/mailhub-staff-workflow-audit.test.ts`: PASS, 90 tests
+- `git diff --check`: PASS before the checkpoint write
+
+Earlier but now stale or needs rerun after latest changes:
+
+- `npm run lint`: had passed after R6, but should be rerun after the R7/R8 staff fixes.
+- `npm run typecheck`: had passed before the latest staff P1 fix, rerun needed.
+- `npm run test`: had passed before the latest staff P1 fix, rerun needed.
+- `npm run security:scan`: had passed before the latest staff P1 fix, rerun needed.
+- `qa:strict`: previous PASS is stale for the current 20-file diff and must be rerun before final sign-off.
+
 ## Done
 
 - Inbox no longer white-screens in verified local/tunnel state.

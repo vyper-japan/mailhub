@@ -98,3 +98,26 @@ npm run setup:mailhub-staff-github-config -- --apply
 - Do not expose `.env.local` values.
 - Do not send external mail without explicit readiness and user intent.
 - Do not mark production-complete while any P0/P1 above remains.
+# 2026-06-18 SHIELD Checkpoint Blockers
+
+## Current Process Blockers
+
+- Full-scope final review is pending. Focused reviews passed their narrow scopes, but the current diff spans 20 files.
+- `qa:strict` evidence is stale against the latest R7/R8 staff workflow fixes.
+- `.ai-runs` readiness artifacts are stale or contract-invalid under the hardened readiness contract until refreshed after the source diff is frozen.
+- One artifact-refresh subagent became unresponsive during close/wait. In the next session, ignore old agent IDs and restart any needed artifact-refresh planning locally or with a new wave.
+- `scripts/ai_handoff_snapshot.sh` does not exist in this worktree, so the checkpoint was written directly.
+
+## Product / Operational Blockers
+
+- P0 `current_shared_gmail_routing`: external routing proof for canonical target addresses is still missing. Do not close without explicit external SMTP proof from a non-`@vtj.co.jp` sender.
+- P1 `rule_config_source_not_production`: current rule safety evidence is file-backed; Sheets-backed production rule config audit still required.
+- P1 `staff_workflow_permissions`: production staff workflow still needs production mode, staff allowlist/team members, durable Sheets config/activity, READ ONLY, and real read-only / controlled write pilot evidence.
+- P1 `staff_github_config_not_ready`: GitHub Actions staff production vars/secrets readiness remains incomplete.
+
+## Commands Requiring Explicit Approval
+
+- `npm run probe:routing-send -- --send`
+- `npm run probe:routing-send -- --send --verify-after-send`
+- GitHub setup commands with `--apply`
+- Any Sheets mutation/apply path
