@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-06-18T23:17:39.062Z",
-  "repoHead": "4bfd480a8b4a87e5ec00a0f695216b741d95f7d0",
+  "generatedAt": "2026-06-18T23:56:52.589Z",
+  "repoHead": "b59ccdbd4efb0d49aeb8a6e1808c126bac6c4636",
   "valuePolicy": "Secret values are never printed; this artifact contains only key names, blocker ids, readiness booleans, and commands.",
   "readiness": {
     "productionReady": false,
@@ -24,6 +24,8 @@
       "MAILHUB_ENV",
       "NEXTAUTH_URL",
       "NEXTAUTH_SECRET",
+      "GOOGLE_CLIENT_ID",
+      "GOOGLE_SHARED_INBOX_EMAIL",
       "MAILHUB_ADMINS",
       "MAILHUB_TEAM_MEMBERS",
       "MAILHUB_CONFIG_STORE",
@@ -118,7 +120,7 @@
   "safeCommands": {
     "dryRun": [
       "npm run setup:mailhub-routing-secrets",
-      "npm run setup:mailhub-staff-github-config",
+      "npm run setup:mailhub-staff-github-config -- --out .ai-runs/mailhub-next-phase/mailhub-staff-github-config-plan.json",
       "npm run setup:mailhub-staff-env -- --strict --out .ai-runs/mailhub-next-phase/mailhub-staff-env-readiness.json",
       "npm run ops:readiness-refresh -- --plan-only"
     ],
