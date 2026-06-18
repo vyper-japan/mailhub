@@ -38,6 +38,20 @@ const REQUIRED_SECRET_CONFIG = [
   "GOOGLE_SHARED_INBOX_REFRESH_TOKEN",
   "MAILHUB_SHEETS_PRIVATE_KEY",
 ];
+const REQUIRED_VARIABLE_CONFIG = [
+  "MAILHUB_ENV",
+  "NEXTAUTH_URL",
+  "GOOGLE_CLIENT_ID",
+  "GOOGLE_SHARED_INBOX_EMAIL",
+  "MAILHUB_ADMINS",
+  "MAILHUB_TEAM_MEMBERS",
+  "MAILHUB_CONFIG_STORE",
+  "MAILHUB_ACTIVITY_STORE",
+  "MAILHUB_SHEETS_ID",
+  "MAILHUB_SHEETS_SPREADSHEET_ID",
+  "MAILHUB_SHEETS_CLIENT_EMAIL",
+  "MAILHUB_READ_ONLY",
+];
 const OPTIONAL_RULE_SHEET_CONFIG = ["MAILHUB_SHEETS_TAB_RULES", "MAILHUB_SHEETS_TAB_ASSIGNEE_RULES"];
 const REQUIRED_SEMANTIC_VARIABLE_VALUES = {
   MAILHUB_ENV: "production",
@@ -47,6 +61,7 @@ const REQUIRED_SEMANTIC_VARIABLE_VALUES = {
 };
 const SEMANTIC_VARIABLE_NAMES = Object.keys(REQUIRED_SEMANTIC_VARIABLE_VALUES);
 const URL_SEMANTIC_VARIABLE_NAMES = ["NEXTAUTH_URL"];
+const PUBLIC_RUNTIME_VARIABLE_NAMES = ["GOOGLE_CLIENT_ID", "GOOGLE_SHARED_INBOX_EMAIL"];
 const STAFF_EMAIL_LIST_VARIABLE_NAMES = REQUIRED_STAFF_ACCESS;
 const VALID_SOURCES = new Set(["github_actions_config", "env", "json"]);
 const STAFF_GITHUB_SETUP_COMMANDS = [
@@ -157,6 +172,10 @@ function isKnownSemanticIssue(issue) {
     issue === `${name}_must_not_be_localhost`);
   if (urlSemanticIssue) return true;
 
+  const publicRuntimeVariableIssue = PUBLIC_RUNTIME_VARIABLE_NAMES.some((name) =>
+    issue === `${name}_must_be_variable`);
+  if (publicRuntimeVariableIssue) return true;
+
   return STAFF_EMAIL_LIST_VARIABLE_NAMES.some((name) =>
     issue === `${name}_value_unverified` ||
     issue === `${name}_must_be_variable` ||
@@ -249,6 +268,9 @@ function main() {
     }
     if (SEMANTIC_VARIABLE_NAMES.includes(name) && source !== "variable") {
       errors.push(`semantic_config_non_variable_source:${name}`);
+    }
+    if (REQUIRED_VARIABLE_CONFIG.includes(name) && source !== "variable") {
+      errors.push(`variable_config_non_variable_source:${name}`);
     }
     if (STAFF_EMAIL_LIST_VARIABLE_NAMES.includes(name) && source !== "variable") {
       errors.push(`staff_access_config_non_variable_source:${name}`);

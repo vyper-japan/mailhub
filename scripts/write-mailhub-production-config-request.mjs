@@ -191,7 +191,7 @@ function main() {
     safeCommands: {
       dryRun: [
         "npm run setup:mailhub-routing-secrets",
-        "npm run setup:mailhub-staff-github-config",
+        "npm run setup:mailhub-staff-github-config -- --out .ai-runs/mailhub-next-phase/mailhub-staff-github-config-plan.json",
         "npm run setup:mailhub-staff-env -- --strict --out .ai-runs/mailhub-next-phase/mailhub-staff-env-readiness.json",
         "npm run ops:readiness-refresh -- --plan-only",
       ],

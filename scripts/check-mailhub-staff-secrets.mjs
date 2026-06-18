@@ -51,6 +51,21 @@ const REQUIRED_SECRET_CONFIG = [
   "MAILHUB_SHEETS_PRIVATE_KEY",
 ];
 
+const REQUIRED_VARIABLE_CONFIG = [
+  "MAILHUB_ENV",
+  "NEXTAUTH_URL",
+  "GOOGLE_CLIENT_ID",
+  "GOOGLE_SHARED_INBOX_EMAIL",
+  "MAILHUB_ADMINS",
+  "MAILHUB_TEAM_MEMBERS",
+  "MAILHUB_CONFIG_STORE",
+  "MAILHUB_ACTIVITY_STORE",
+  "MAILHUB_SHEETS_ID",
+  "MAILHUB_SHEETS_SPREADSHEET_ID",
+  "MAILHUB_SHEETS_CLIENT_EMAIL",
+  "MAILHUB_READ_ONLY",
+];
+
 const OPTIONAL_RULE_SHEET_CONFIG = [
   "MAILHUB_SHEETS_TAB_RULES",
   "MAILHUB_SHEETS_TAB_ASSIGNEE_RULES",
@@ -181,6 +196,13 @@ function missingSecretConfigNames(names, secretNames) {
   return names.filter((name) => !secretNames.has(name));
 }
 
+function staffConfigPresentNames(secretNames, variableNames) {
+  return new Set([
+    ...REQUIRED_SECRET_CONFIG.filter((name) => secretNames.has(name)),
+    ...REQUIRED_VARIABLE_CONFIG.filter((name) => variableNames.has(name)),
+  ]);
+}
+
 function groupReadiness(requirements, present) {
   const required = requirements.map(requirementLabel);
   const presentNames = presentRequirementNames(requirements, present);
@@ -194,6 +216,7 @@ function groupReadiness(requirements, present) {
 }
 
 function sourceForName(name, secretNames, variableNames) {
+  if (REQUIRED_VARIABLE_CONFIG.includes(name) && variableNames.has(name)) return "variable";
   if (secretNames.has(name)) return "secret";
   if (variableNames.has(name)) return "variable";
   return null;
@@ -269,11 +292,20 @@ function staffEmailListSemanticIssues(variables, secretNames) {
   });
 }
 
-function semanticIssues(variables, secretNames) {
+function publicRuntimeVariableSourceIssues(variableNames, secretNames) {
+  return ["GOOGLE_CLIENT_ID", "GOOGLE_SHARED_INBOX_EMAIL"].flatMap((name) => {
+    if (variableNames.has(name)) return [];
+    if (secretNames.has(name)) return [`${name}_must_be_variable`];
+    return [];
+  });
+}
+
+function semanticIssues(variables, secretNames, variableNames) {
   return [
     ...fixedSemanticIssues(variables, secretNames),
     ...nextAuthUrlSemanticIssues(variables, secretNames),
     ...staffEmailListSemanticIssues(variables, secretNames),
+    ...publicRuntimeVariableSourceIssues(variableNames, secretNames),
   ];
 }
 
@@ -288,7 +320,7 @@ function main() {
   const config = args.fromEnv ? readEnvConfig() : args.configJson ? readConfigJson(args.configJson) : readGitHubConfig(args.repo);
   const secretNames = new Set(config.secrets.map((item) => item.name).filter(Boolean));
   const variableNames = new Set(config.variables.map((item) => item.name).filter(Boolean));
-  const present = new Set([...secretNames, ...variableNames]);
+  const present = staffConfigPresentNames(secretNames, variableNames);
   const groups = {
     productionRuntime: groupReadiness(REQUIRED_PRODUCTION_RUNTIME, present),
     staffAccess: groupReadiness(REQUIRED_STAFF_ACCESS, present),
@@ -301,7 +333,7 @@ function main() {
   const missingSecretConfig = missingSecretConfigNames(REQUIRED_SECRET_CONFIG, secretNames);
   const sensitiveSecretVariableIssueCodes = sensitiveSecretVariableIssues(secretNames, variableNames);
   const productionSemanticIssues = [
-    ...semanticIssues(config.variables, secretNames),
+    ...semanticIssues(config.variables, secretNames, variableNames),
     ...sensitiveSecretVariableIssueCodes,
   ];
   const readyForSecretBackedStaffConfig = missingSecretConfig.length === 0 && sensitiveSecretVariableIssueCodes.length === 0;
@@ -324,7 +356,7 @@ function main() {
     requiredProductionStaffConfig: REQUIRED_PRODUCTION_STAFF_CONFIG.map(requirementLabel),
     requiredSecretConfig: REQUIRED_SECRET_CONFIG,
     optionalRuleSheetConfig: OPTIONAL_RULE_SHEET_CONFIG,
-    configuredOptionalRuleSheetConfig: configuredOptional(OPTIONAL_RULE_SHEET_CONFIG, present),
+    configuredOptionalRuleSheetConfig: configuredOptional(OPTIONAL_RULE_SHEET_CONFIG, variableNames),
     missingProductionStaffConfig,
     missingSecretConfig,
     semanticIssues: productionSemanticIssues,

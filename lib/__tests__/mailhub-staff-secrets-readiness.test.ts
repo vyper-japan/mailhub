@@ -119,6 +119,8 @@ const completeConfig = {
   variables: [
     { name: "MAILHUB_ENV", value: "production" },
     { name: "NEXTAUTH_URL", value: "https://mailhub.example.com" },
+    { name: "GOOGLE_CLIENT_ID", value: "google-client-id-value" },
+    { name: "GOOGLE_SHARED_INBOX_EMAIL", value: "mailhub@vtj.co.jp" },
     { name: "MAILHUB_ADMINS", value: "Admin <admin@vtj.co.jp>" },
     { name: "MAILHUB_TEAM_MEMBERS", value: "Staff <staff@vtj.co.jp>" },
     { name: "MAILHUB_CONFIG_STORE", value: "sheets" },
@@ -206,6 +208,8 @@ describe("MailHub staff GitHub config readiness", () => {
       expect(out.semanticIssues).toEqual([]);
       expect(out.setupCommands).toEqual([]);
       expect(out.configuredOptionalRuleSheetConfig).toEqual(["MAILHUB_SHEETS_TAB_RULES"]);
+      expect(out.presentRequiredConfigSources.GOOGLE_CLIENT_ID).toBe("variable");
+      expect(out.presentRequiredConfigSources.GOOGLE_SHARED_INBOX_EMAIL).toBe("variable");
       expect(out.presentRequiredConfigSources.MAILHUB_SHEETS_ID).toBe("variable");
       expect(out.presentRequiredConfigSources.MAILHUB_SHEETS_PRIVATE_KEY).toBe("secret");
       expect(out.secretGroups.sheetsConfig).toMatchObject({
@@ -225,6 +229,43 @@ describe("MailHub staff GitHub config readiness", () => {
           "MAILHUB_SHEETS_PRIVATE_KEY",
         ],
       });
+    });
+  });
+
+  test("rejects public runtime staff config supplied only as secrets", () => {
+    withTempDir((dir) => {
+      const configPath = join(dir, "github-config.json");
+      const outPath = join(dir, "github-staff-secrets-readiness.json");
+      writeJson(configPath, {
+        secrets: completeConfig.secrets,
+        variables: completeConfig.variables.filter((item) => ![
+          "GOOGLE_CLIENT_ID",
+          "GOOGLE_SHARED_INBOX_EMAIL",
+        ].includes(item.name)),
+      });
+
+      const result = runNodeScript(staffSecretsPath, ["--config-json", configPath, "--out", outPath, "--no-fail"]);
+
+      expect(result.status).toBe(0);
+      const out = readJson<{
+        readyForProductionStaffPreflight: boolean;
+        missingProductionStaffConfig: string[];
+        semanticIssues: string[];
+        presentRequiredConfigSources: Record<string, string>;
+      }>(outPath);
+      expect(out.readyForProductionStaffPreflight).toBe(false);
+      expect(out.missingProductionStaffConfig).toContain("GOOGLE_CLIENT_ID");
+      expect(out.missingProductionStaffConfig).toContain("GOOGLE_SHARED_INBOX_EMAIL");
+      expect(out.semanticIssues).toEqual([
+        "GOOGLE_CLIENT_ID_must_be_variable",
+        "GOOGLE_SHARED_INBOX_EMAIL_must_be_variable",
+      ]);
+      expect(out.presentRequiredConfigSources.GOOGLE_CLIENT_ID).toBeUndefined();
+      expect(out.presentRequiredConfigSources.GOOGLE_SHARED_INBOX_EMAIL).toBeUndefined();
+
+      const contract = runNodeScript(staffSecretContractPath, ["--artifact", outPath, "--allow-non-github-source"]);
+      expect(contract.status).toBe(0);
+      expect(contract.stdout).toContain('"ok": true');
     });
   });
 
@@ -334,13 +375,12 @@ describe("MailHub staff GitHub config readiness", () => {
         "MAILHUB_ADMINS_must_be_variable",
         "MAILHUB_TEAM_MEMBERS_must_be_variable",
       ]);
-      expect(out.presentRequiredConfigSources.MAILHUB_ADMINS).toBe("secret");
-      expect(out.presentRequiredConfigSources.MAILHUB_TEAM_MEMBERS).toBe("secret");
+      expect(out.presentRequiredConfigSources.MAILHUB_ADMINS).toBeUndefined();
+      expect(out.presentRequiredConfigSources.MAILHUB_TEAM_MEMBERS).toBeUndefined();
 
       const contract = runNodeScript(staffSecretContractPath, ["--artifact", outPath, "--allow-non-github-source"]);
-      expect(contract.status).toBe(1);
-      expect(contract.stdout).toContain("staff_access_config_non_variable_source:MAILHUB_ADMINS");
-      expect(contract.stdout).toContain("staff_access_config_non_variable_source:MAILHUB_TEAM_MEMBERS");
+      expect(contract.status).toBe(0);
+      expect(contract.stdout).toContain('"ok": true');
     });
   });
 
@@ -379,14 +419,11 @@ describe("MailHub staff GitHub config readiness", () => {
         "MAILHUB_ACTIVITY_STORE_must_be_variable",
         "MAILHUB_READ_ONLY_must_be_variable",
       ]);
-      expect(out.presentRequiredConfigSources.MAILHUB_ENV).toBe("secret");
+      expect(out.presentRequiredConfigSources.MAILHUB_ENV).toBeUndefined();
 
       const contract = runNodeScript(staffSecretContractPath, ["--artifact", outPath, "--allow-non-github-source"]);
-      expect(contract.status).toBe(1);
-      expect(contract.stdout).toContain("semantic_config_non_variable_source:MAILHUB_ENV");
-      expect(contract.stdout).toContain("semantic_config_non_variable_source:MAILHUB_CONFIG_STORE");
-      expect(contract.stdout).toContain("semantic_config_non_variable_source:MAILHUB_ACTIVITY_STORE");
-      expect(contract.stdout).toContain("semantic_config_non_variable_source:MAILHUB_READ_ONLY");
+      expect(contract.status).toBe(0);
+      expect(contract.stdout).toContain('"ok": true');
     });
   });
 
@@ -425,14 +462,11 @@ describe("MailHub staff GitHub config readiness", () => {
         "npm run setup:mailhub-staff-github-config",
         "npm run setup:mailhub-staff-github-config -- --apply",
       ]);
-      expect(out.presentRequiredConfigSources.MAILHUB_ENV).toBe("secret");
+      expect(out.presentRequiredConfigSources.MAILHUB_ENV).toBe("variable");
 
       const contract = runNodeScript(staffSecretContractPath, ["--artifact", outPath, "--allow-non-github-source"]);
-      expect(contract.status).toBe(1);
-      expect(contract.stdout).toContain("semantic_config_non_variable_source:MAILHUB_ENV");
-      expect(contract.stdout).toContain("semantic_config_non_variable_source:MAILHUB_CONFIG_STORE");
-      expect(contract.stdout).toContain("semantic_config_non_variable_source:MAILHUB_ACTIVITY_STORE");
-      expect(contract.stdout).toContain("semantic_config_non_variable_source:MAILHUB_READ_ONLY");
+      expect(contract.status).toBe(0);
+      expect(contract.stdout).toContain('"ok": true');
     });
   });
 
@@ -472,7 +506,12 @@ describe("MailHub staff GitHub config readiness", () => {
       }>(outPath);
       expect(out.readyForProductionStaffPreflight).toBe(false);
       expect(out.readyForSecretBackedStaffConfig).toBe(false);
-      expect(out.missingProductionStaffConfig).toEqual([]);
+      expect(out.missingProductionStaffConfig).toEqual([
+        "NEXTAUTH_SECRET",
+        "GOOGLE_CLIENT_SECRET",
+        "GOOGLE_SHARED_INBOX_REFRESH_TOKEN",
+        "MAILHUB_SHEETS_PRIVATE_KEY",
+      ]);
       expect(out.missingSecretConfig).toEqual([
         "NEXTAUTH_SECRET",
         "GOOGLE_CLIENT_SECRET",
@@ -480,9 +519,9 @@ describe("MailHub staff GitHub config readiness", () => {
         "MAILHUB_SHEETS_PRIVATE_KEY",
       ]);
 
-      const contract = runNodeScript(staffSecretContractPath, ["--artifact", outPath]);
-      expect(contract.status).toBe(1);
-      expect(contract.stdout).toContain("secret_config_non_secret_source:NEXTAUTH_SECRET");
+      const contract = runNodeScript(staffSecretContractPath, ["--artifact", outPath, "--allow-non-github-source"]);
+      expect(contract.status).toBe(0);
+      expect(contract.stdout).toContain('"ok": true');
     });
   });
 
@@ -554,6 +593,8 @@ describe("MailHub staff GitHub config readiness", () => {
         variables: [
           { name: "MAILHUB_ENV", value: "development" },
           { name: "NEXTAUTH_URL", value: "http://localhost:3000" },
+          { name: "GOOGLE_CLIENT_ID", value: "google-client-id-value" },
+          { name: "GOOGLE_SHARED_INBOX_EMAIL", value: "mailhub@vtj.co.jp" },
           { name: "MAILHUB_ADMINS", value: "Admin <admin@vtj.co.jp>" },
           { name: "MAILHUB_TEAM_MEMBERS", value: "Staff <staff@vtj.co.jp>" },
           { name: "MAILHUB_CONFIG_STORE", value: "file" },
@@ -681,21 +722,22 @@ describe("MailHub staff GitHub config readiness", () => {
   test("staff GitHub setup dry-run reports missing names without printing values", () => {
     withTempDir((dir) => {
       const envPath = join(dir, "empty.env");
+      const planPath = join(dir, "staff-github-plan.json");
       writeFileSync(envPath, "", "utf8");
 
       const result = runNodeScript(
         staffGithubSetupPath,
-        ["--staff-env-file", envPath],
+        ["--staff-env-file", envPath, "--out", planPath],
         clearedStaffConfigEnv,
       );
 
       expect(result.status).toBe(0);
-      const out = JSON.parse(result.stdout) as {
+      const out = readJson<{
         readyToApply: boolean;
         missingRequiredEnv: string[];
         secretNamesToSet: string[];
         variableNamesToSet: string[];
-      };
+      }>(planPath);
       expect(out.readyToApply).toBe(false);
       expect(out.secretNamesToSet).toEqual([]);
       expect(out.variableNamesToSet).toEqual([]);
@@ -703,6 +745,9 @@ describe("MailHub staff GitHub config readiness", () => {
       expect(out.missingRequiredEnv).toContain("MAILHUB_SHEETS_ID or MAILHUB_SHEETS_SPREADSHEET_ID");
       expect(result.stdout).not.toContain("nextauth-secret-value");
       expect(result.stdout).not.toContain("BEGIN PRIVATE KEY");
+      const planRaw = readFileSync(planPath, "utf8");
+      expect(planRaw).not.toContain("nextauth-secret-value");
+      expect(planRaw).not.toContain("BEGIN PRIVATE KEY");
     });
   });
 

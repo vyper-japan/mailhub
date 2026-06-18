@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
 import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 
 const repoRoot = process.cwd();
 const envPath = join(repoRoot, ".env.local");
@@ -37,15 +37,17 @@ function parseArgs(argv) {
     apply: false,
     includeOptional: true,
     envFile: envPath,
+    out: "",
   };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     if (arg === "--repo") args.repo = argv[++i] || "";
     else if (arg === "--staff-env-file") args.envFile = argv[++i] || "";
+    else if (arg === "--out") args.out = argv[++i] || "";
     else if (arg === "--apply") args.apply = true;
     else if (arg === "--no-optional") args.includeOptional = false;
     else if (arg === "--help" || arg === "-h") {
-      console.log(`Usage: node scripts/setup-mailhub-staff-github-config.mjs [--repo owner/name] [--staff-env-file path] [--apply] [--no-optional]
+      console.log(`Usage: node scripts/setup-mailhub-staff-github-config.mjs [--repo owner/name] [--staff-env-file path] [--out path] [--apply] [--no-optional]
 
 Reads MailHub production staff config from environment/.env.local and, only with --apply, writes it to GitHub Actions secrets and variables.
 Values are never printed. Secret values are passed to gh via stdin; variables are passed to gh via --body.
@@ -200,6 +202,12 @@ function setVariable({ ghBin, repo, name, value }) {
   });
 }
 
+function writeOut(path, result) {
+  if (!path) return;
+  mkdirSync(dirname(path), { recursive: true });
+  writeFileSync(path, `${JSON.stringify(result, null, 2)}\n`, "utf8");
+}
+
 function main() {
   const args = parseArgs(process.argv.slice(2));
   const envFileLoaded = loadEnvFile(args.envFile);
@@ -239,6 +247,7 @@ function main() {
     }
   }
 
+  writeOut(args.out, result);
   console.log(JSON.stringify(result, null, 2));
 }
 

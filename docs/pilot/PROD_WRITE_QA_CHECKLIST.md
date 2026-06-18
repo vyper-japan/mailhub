@@ -19,18 +19,41 @@
 - [ ] `MAILHUB_ENV=production`
 - [ ] `MAILHUB_READ_ONLY=1`（最初は必ず）
 - [ ] `MAILHUB_TEST_MODE` は未設定（本番で使わない）
-- [ ] `MAILHUB_ADMINS`（CSVでadminユーザー）
-- [ ] `NEXTAUTH_URL`（本番URL）
-- [ ] `NEXTAUTH_SECRET`（本番用）
-- [ ] `GOOGLE_*`（本番用：refresh token含む）
+- [ ] `MAILHUB_ADMINS`（CSVでadminユーザー、`@vtj.co.jp`）
+- [ ] `MAILHUB_TEAM_MEMBERS`（CSVでstaffユーザー、`@vtj.co.jp`、最低1名）
+- [ ] `NEXTAUTH_URL`（本番HTTPS URL、localhost不可）
+- [ ] `NEXTAUTH_SECRET`（本番用、GitHub Actions secret）
+- [ ] `GOOGLE_CLIENT_ID`（GitHub Actions variable）
+- [ ] `GOOGLE_SHARED_INBOX_EMAIL`（GitHub Actions variable）
+- [ ] `GOOGLE_CLIENT_SECRET`（GitHub Actions secret）
+- [ ] `GOOGLE_SHARED_INBOX_REFRESH_TOKEN`（GitHub Actions secret）
 
 ### 推奨（永続化）
 - [ ] `MAILHUB_CONFIG_STORE=sheets`
 - [ ] `MAILHUB_ACTIVITY_STORE=sheets`
+- [ ] `MAILHUB_SHEETS_ID` または `MAILHUB_SHEETS_SPREADSHEET_ID`（GitHub Actions variable）
+- [ ] `MAILHUB_SHEETS_CLIENT_EMAIL`（GitHub Actions variable）
+- [ ] `MAILHUB_SHEETS_PRIVATE_KEY`（GitHub Actions secret）
+- [ ] `MAILHUB_SHEETS_TAB_RULES=ConfigRules`（任意、変更する場合のみ）
+- [ ] `MAILHUB_SHEETS_TAB_ASSIGNEE_RULES=ConfigAssigneeRules`（任意、変更する場合のみ）
+
+### GitHub Actions source policy（readiness contract基準）
+- GitHub Actions secrets: `NEXTAUTH_SECRET`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_SHARED_INBOX_REFRESH_TOKEN`, `MAILHUB_SHEETS_PRIVATE_KEY`
+- GitHub Actions variables: `MAILHUB_ENV`, `NEXTAUTH_URL`, `GOOGLE_CLIENT_ID`, `GOOGLE_SHARED_INBOX_EMAIL`, `MAILHUB_ADMINS`, `MAILHUB_TEAM_MEMBERS`, `MAILHUB_CONFIG_STORE`, `MAILHUB_ACTIVITY_STORE`, `MAILHUB_SHEETS_ID`/`MAILHUB_SHEETS_SPREADSHEET_ID`, `MAILHUB_SHEETS_CLIENT_EMAIL`, `MAILHUB_READ_ONLY`
+- Routing proof workflow は別途 `GOOGLE_CLIENT_ID` / `GOOGLE_SHARED_INBOX_EMAIL` を secrets として読むため、同名 secret が残っていても staff runtime の primary source は variables として検証する
 
 ### Alerts（本番運用）
 - [ ] `MAILHUB_ALERTS_SECRET`（必須・長いランダム値）
 - [ ] `SLACK_WEBHOOK_URL`（使うなら）
+
+### Preflight（値は出さない）
+```bash
+npm run setup:mailhub-staff-github-config -- \
+  --out .ai-runs/mailhub-next-phase/mailhub-staff-github-config-plan.json
+npm run audit:github-staff-secrets -- --no-fail \
+  --out .ai-runs/mailhub-next-phase/github-staff-secrets-readiness.json
+npm run audit:github-staff-secrets-contract
+```
 
 ---
 
