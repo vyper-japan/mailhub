@@ -165,7 +165,7 @@ jobs:
             --wait-seconds "${{ github.event.inputs.waitSeconds }}" \
             --poll-seconds "${{ github.event.inputs.pollSeconds }}" \
             --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-send.json
-          node -e 'const s=require("./.ai-runs/mailhub-next-phase/mailhub-routing-probe-send.json"); if(s.mode!=="sent") process.exit(1); if(s.probeCount!==8) process.exit(2); if(s.sent.length!==8) process.exit(3); if(!s.verification) process.exit(4); if(!s.verification.allExpectedAddressesConfirmed) process.exit(5); if(!s.verification.productionReady) process.exit(6); console.log(JSON.stringify({marker:s.marker, sent:s.sent.length, verification:s.verification}, null, 2));'
+          node -e 'const s=require("./.ai-runs/mailhub-next-phase/mailhub-routing-probe-send.json"); if(s.mode!=="sent") process.exit(1); if(s.probeCount!==8) process.exit(2); if(s.sent.length!==8) process.exit(3); if(!s.verification) process.exit(4); if(!s.verification.allExpectedAddressesConfirmed) process.exit(5); if((s.verification.p0Blockers||[]).includes("current_shared_gmail_routing")) process.exit(6); console.log(JSON.stringify({marker:s.marker, sent:s.sent.length, routingConfirmed:s.verification.allExpectedAddressesConfirmed, p0Blockers:s.verification.p0Blockers}, null, 2));'
 
       - name: Refresh readiness contract after send_verify
         if: github.event.inputs.mode == 'send_verify'

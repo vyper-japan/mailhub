@@ -13,6 +13,8 @@ const routingNextStepsPath = resolve(process.cwd(), "scripts/write-mailhub-routi
 const routingNextContractPath = resolve(process.cwd(), "scripts/check-mailhub-routing-next-contract.mjs");
 const routingProofContractPath = resolve(process.cwd(), "scripts/check-mailhub-routing-proof-contract.mjs");
 const routingSecretSetupPath = resolve(process.cwd(), "scripts/setup-mailhub-routing-probe-secrets.mjs");
+const readinessRefreshPath = resolve(process.cwd(), "scripts/refresh-mailhub-readiness-artifacts.mjs");
+const routingProbeWorkflowPath = resolve(process.cwd(), ".github/workflows/mailhub-routing-probe.yml");
 
 function formatRoutingProbeMarker(date: Date) {
   const pad = (value: number) => String(value).padStart(2, "0");
@@ -1130,6 +1132,81 @@ describe("MailHub routing probe CLI gates", () => {
       ]);
       expect(calls.every((call) => call.stdinLength > 0)).toBe(true);
     });
+  });
+
+  test("readiness refresh plan is non-send and non-apply", () => {
+    const result = runNodeScript(
+      readinessRefreshPath,
+      ["--plan-only", "--rules-source", "sheets"],
+    );
+
+    expect(result.status).toBe(0);
+    const out = JSON.parse(result.stdout) as {
+      mode: string;
+      rulesSource: string;
+      commands: string[];
+    };
+    expect(out.mode).toBe("plan_only");
+    expect(out.rulesSource).toBe("sheets");
+    expect(out.commands.join("\n")).toContain("MAILHUB_CONFIG_STORE=sheets");
+    expect(out.commands.join("\n")).not.toContain(process.cwd());
+    expect(out.commands.join("\n")).not.toMatch(/\s--send(\s|$)/);
+    expect(out.commands.join("\n")).not.toMatch(/\s--apply(\s|$)/);
+    expect(out.commands.some((command) => command.includes("npm run probe:routing-send -- --out"))).toBe(true);
+  });
+
+  test("readiness refresh plan rejects absolute artifact paths", () => {
+    const result = runNodeScript(
+      readinessRefreshPath,
+      ["--plan-only", "--out-dir", tmpdir()],
+    );
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("out_dir_must_be_repo_relative");
+  });
+
+  test("readiness refresh plan preserves existing routing proof artifacts", () => {
+    const outDir = `.tmp-mailhub-refresh-${process.pid}-${Date.now()}`;
+    try {
+      mkdirSync(outDir, { recursive: true });
+      writeFileSync(join(outDir, "mailhub-routing-probe-preflight.json"), JSON.stringify({
+        mode: "preflight",
+        smtpPreflight: { readyForProductionProof: true },
+      }), "utf8");
+      writeFileSync(join(outDir, "mailhub-routing-probe-audit.json"), JSON.stringify({
+        mode: "verify_marker",
+        gate: { allExpectedAddressesConfirmed: true },
+      }), "utf8");
+      writeFileSync(join(outDir, "mailhub-routing-probe-send.json"), JSON.stringify({
+        mode: "sent",
+        verification: { allExpectedAddressesConfirmed: true },
+      }), "utf8");
+
+      const result = runNodeScript(
+        readinessRefreshPath,
+        ["--plan-only", "--out-dir", outDir],
+      );
+
+      expect(result.status).toBe(0);
+      const out = JSON.parse(result.stdout) as {
+        preserveRoutingProof: boolean;
+        commands: string[];
+      };
+      expect(out.preserveRoutingProof).toBe(true);
+      expect(out.commands.join("\n")).not.toContain("npm run probe:routing-send");
+      expect(out.commands.join("\n")).not.toContain("npm run audit:routing-probes");
+      expect(out.commands.join("\n")).not.toContain("npm run probe:routing-preflight");
+    } finally {
+      rmSync(outDir, { recursive: true, force: true });
+    }
+  });
+
+  test("routing probe workflow validates routing proof without requiring total production readiness", () => {
+    const workflow = readFileSync(routingProbeWorkflowPath, "utf8");
+
+    expect(workflow).toContain("current_shared_gmail_routing");
+    expect(workflow).toContain("routingConfirmed:s.verification.allExpectedAddressesConfirmed");
+    expect(workflow).not.toContain("if(!s.verification.productionReady)");
   });
 
   test("routing next-step artifact blocks send_verify until external SMTP proof secrets are ready", () => {

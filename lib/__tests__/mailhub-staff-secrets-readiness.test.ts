@@ -737,6 +737,40 @@ describe("MailHub staff GitHub config readiness", () => {
     });
   });
 
+  test("staff GitHub setup blocks invalid staff email lists before apply", () => {
+    withTempDir((dir) => {
+      const envPath = join(dir, "staff.env");
+      writeFileSync(envPath, "", "utf8");
+
+      const result = runNodeScript(
+        staffGithubSetupPath,
+        ["--staff-env-file", envPath],
+        {
+          ...completeStaffEnv,
+          MAILHUB_ADMINS: "Admin <admin@example.com>",
+          MAILHUB_TEAM_MEMBERS: "bad-team-member",
+        },
+      );
+
+      expect(result.status).toBe(0);
+      const out = JSON.parse(result.stdout) as {
+        readyToApply: boolean;
+        missingRequiredEnv: string[];
+        semanticIssues: string[];
+      };
+      expect(out.readyToApply).toBe(false);
+      expect(out.missingRequiredEnv).toEqual([]);
+      expect(out.semanticIssues).toEqual([
+        "MAILHUB_ADMINS_must_be_non_empty_vtj_email_list",
+        "MAILHUB_ADMINS_has_non_vtj_email",
+        "MAILHUB_TEAM_MEMBERS_must_be_non_empty_vtj_email_list",
+        "MAILHUB_TEAM_MEMBERS_has_invalid_email",
+      ]);
+      expect(result.stdout).not.toContain("admin@example.com");
+      expect(result.stdout).not.toContain("bad-team-member");
+    });
+  });
+
   test("staff GitHub setup applies secrets and variables through gh without printing values", () => {
     withTempDir((dir) => {
       const envPath = join(dir, "staff.env");

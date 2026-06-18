@@ -91,6 +91,38 @@ function valueFor(name) {
   return typeof value === "string" && value.trim() ? value.trim() : "";
 }
 
+function splitCsv(raw) {
+  return raw
+    .split(/[,\n]/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function parseEmailList(raw) {
+  return splitCsv(raw).map((entry) => {
+    const match = entry.match(/^(.+?)\s*<(.+?)>$/) || entry.match(/^(\S+@\S+)$/);
+    const email = (match ? (match[2] ?? match[1]) : entry).toLowerCase().trim();
+    return {
+      raw: entry,
+      email,
+      valid: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email),
+      vtj: email.endsWith("@vtj.co.jp"),
+    };
+  });
+}
+
+function emailListIssues(name) {
+  const raw = valueFor(name);
+  const entries = parseEmailList(raw);
+  if (entries.length === 0) return [`${name}_must_be_non_empty_vtj_email_list`];
+  const validVtj = entries.filter((entry) => entry.valid && entry.vtj);
+  const issues = [];
+  if (validVtj.length === 0) issues.push(`${name}_must_be_non_empty_vtj_email_list`);
+  if (entries.some((entry) => !entry.valid)) issues.push(`${name}_has_invalid_email`);
+  if (entries.some((entry) => entry.valid && !entry.vtj)) issues.push(`${name}_has_non_vtj_email`);
+  return issues;
+}
+
 function selectedSheetsIdName() {
   return SHEETS_ID_NAMES.find((name) => valueFor(name)) || "MAILHUB_SHEETS_ID";
 }
@@ -129,6 +161,8 @@ function semanticIssues() {
   if (valueFor("MAILHUB_READ_ONLY") && valueFor("MAILHUB_READ_ONLY") !== "1") {
     issues.push("MAILHUB_READ_ONLY_must_be_1");
   }
+  if (valueFor("MAILHUB_ADMINS")) issues.push(...emailListIssues("MAILHUB_ADMINS"));
+  if (valueFor("MAILHUB_TEAM_MEMBERS")) issues.push(...emailListIssues("MAILHUB_TEAM_MEMBERS"));
   return issues;
 }
 
