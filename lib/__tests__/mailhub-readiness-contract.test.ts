@@ -1,6 +1,6 @@
 import { readFileSync, mkdtempSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
-import { join, resolve } from "path";
+import { isAbsolute, join, resolve } from "path";
 import { spawnSync } from "child_process";
 import { describe, expect, test } from "vitest";
 
@@ -775,6 +775,39 @@ describe("MailHub readiness contract check", () => {
         ]),
       );
     });
+  });
+
+  test("aggregate readiness stores repo-local child artifact paths as relative paths", () => {
+    const dir = mkdtempSync(join(process.cwd(), ".tmp-mailhub-readiness-contract-"));
+    try {
+      const outPath = join(dir, "readiness.json");
+      const repoHead = gitRevParse("HEAD");
+      const repoParentHead = gitRevParse("HEAD~1");
+      const paths = writeReadyAggregateArtifacts(dir, repoHead);
+
+      const result = runAudit(aggregateArgs(paths, outPath));
+      expect(result.status).toBe(0);
+      const out = readJson<{
+        inputs: Record<string, string> & {
+          inputFreshness: Array<{ key: string; path: string; readyForProduction: boolean }>;
+        };
+      }>(outPath);
+
+      for (const key of inputFreshnessKeys) {
+        expect(isAbsolute(out.inputs[key])).toBe(false);
+        expect(out.inputs[key]).toContain(".tmp-mailhub-readiness-contract-");
+      }
+      for (const entry of out.inputs.inputFreshness) {
+        expect(isAbsolute(entry.path)).toBe(false);
+        expect(entry.path).toContain(".tmp-mailhub-readiness-contract-");
+        expect(entry.readyForProduction).toBe(true);
+      }
+
+      const contract = runContract(outPath, repoHead, repoParentHead);
+      expect(contract.status).toBe(0);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 
   test("aggregate readiness blocks production-ready output from stale repoHead child artifacts", () => {

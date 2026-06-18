@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname, join, relative, resolve } from "node:path";
 import { execFileSync } from "node:child_process";
 import { isFreshRepoHead } from "./artifact-freshness.mjs";
 
@@ -99,6 +99,13 @@ function stringArray(value) {
 
 function objectValue(value) {
   return value && typeof value === "object" && !Array.isArray(value) ? value : {};
+}
+
+function artifactPath(path) {
+  const absolutePath = resolve(repoRoot, path);
+  const relativePath = relative(repoRoot, absolutePath);
+  if (!relativePath || relativePath.startsWith("..") || relativePath.startsWith("/")) return path;
+  return relativePath;
 }
 
 function probeAddresses(value) {
@@ -389,7 +396,7 @@ function inputFreshnessEntry({ key, timestampFields, repoHeadPolicy, maxAgeMs },
 
   return {
     key,
-    path,
+    path: artifactPath(path),
     present,
     timestampField: timestamp.field,
     timestamp: timestamp.value,
@@ -636,17 +643,17 @@ function main() {
     generatedAt: new Date().toISOString(),
     repoHead,
     inputs: {
-      sourceAudit: args.sourceAudit,
-      opsAudit: args.opsAudit,
-      gwsRoutingAudit: args.gwsRoutingAudit,
-      routingProbeAudit: args.routingProbeAudit,
-      routingProbeSend: args.routingProbeSend,
-      routingProbePreflight: args.routingProbePreflight,
-      githubRoutingSecrets: args.githubRoutingSecrets,
-      githubStaffSecrets: args.githubStaffSecrets,
-      viewsAudit: args.viewsAudit,
-      rulesAudit: args.rulesAudit,
-      staffWorkflowAudit: args.staffWorkflowAudit,
+      sourceAudit: artifactPath(args.sourceAudit),
+      opsAudit: artifactPath(args.opsAudit),
+      gwsRoutingAudit: artifactPath(args.gwsRoutingAudit),
+      routingProbeAudit: artifactPath(args.routingProbeAudit),
+      routingProbeSend: artifactPath(args.routingProbeSend),
+      routingProbePreflight: artifactPath(args.routingProbePreflight),
+      githubRoutingSecrets: artifactPath(args.githubRoutingSecrets),
+      githubStaffSecrets: artifactPath(args.githubStaffSecrets),
+      viewsAudit: artifactPath(args.viewsAudit),
+      rulesAudit: artifactPath(args.rulesAudit),
+      staffWorkflowAudit: artifactPath(args.staffWorkflowAudit),
       sourceAuditGeneratedAt: sourceAudit.generatedAt ?? null,
       opsAuditGeneratedAt: opsAudit.generatedAt ?? null,
       gwsRoutingAuditGeneratedAt: gwsRoutingAudit.generatedAt ?? null,
