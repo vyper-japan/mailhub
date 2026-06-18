@@ -782,7 +782,6 @@ describe("MailHub readiness contract check", () => {
     try {
       const outPath = join(dir, "readiness.json");
       const repoHead = gitRevParse("HEAD");
-      const repoParentHead = gitRevParse("HEAD~1");
       const paths = writeReadyAggregateArtifacts(dir, repoHead);
 
       const result = runAudit(aggregateArgs(paths, outPath));
@@ -803,7 +802,7 @@ describe("MailHub readiness contract check", () => {
         expect(entry.readyForProduction).toBe(true);
       }
 
-      const contract = runContract(outPath, repoHead, repoParentHead);
+      const contract = runContract(outPath, repoHead, "parent123");
       expect(contract.status).toBe(0);
     } finally {
       rmSync(dir, { recursive: true, force: true });
