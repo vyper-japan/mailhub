@@ -184,6 +184,8 @@ function baseReadinessAudit(
       staffGithubConfigReady: false,
       staffReadOnlyRolloutReady: false,
       staffControlledWritePilotReady: false,
+      staffWorkflowDurableConfigReady: false,
+      staffWorkflowDurableActivityReady: false,
     },
     inputs: {
       ...inputArtifactPaths,
@@ -258,6 +260,17 @@ function baseReadinessAudit(
           },
           staffWorkflowRequirements: {
             staffWorkflowPermissionsReady: false,
+            readOnlyRolloutReady: false,
+            controlledWritePilotReady: false,
+            durableConfigReady: false,
+            durableActivityReady: false,
+          },
+          aggregatedStaffWorkflow: {
+            staffWorkflowPermissionsReady: false,
+            staffReadOnlyRolloutReady: false,
+            staffControlledWritePilotReady: false,
+            staffWorkflowDurableConfigReady: false,
+            staffWorkflowDurableActivityReady: false,
           },
           staffWorkflowBlockers: [{ id: "not_production_env", severity: "P1" }],
           escalatesToP0AfterRoutingProof: true,
@@ -448,6 +461,10 @@ function writeReadyAggregateArtifacts(
       },
       requirements: {
         staffWorkflowPermissionsReady: true,
+        readOnlyRolloutReady: true,
+        controlledWritePilotReady: true,
+        durableConfigReady: true,
+        durableActivityReady: true,
       },
       blockers: [],
     },
@@ -1385,6 +1402,47 @@ describe("MailHub readiness contract check", () => {
       expect(result.stdout).toContain("staff_github_config_semantic_non_variable_source:MAILHUB_ACTIVITY_STORE");
       expect(result.stdout).toContain("staff_github_config_semantic_non_variable_source:MAILHUB_READ_ONLY");
       expect(result.stdout).toContain("staff_github_config_ready_without_semantic_variable_sources");
+    });
+  });
+
+  test("rejects staff workflow rollout claims that contradict the referenced artifact", () => {
+    withTempDir((dir) => {
+      const auditPath = join(dir, "readiness.json");
+      const staffWorkflowPath = join(dir, "mailhub-staff-workflow-audit.json");
+      writeJson(staffWorkflowPath, {
+        generatedAt: freshFixtureTimestamp,
+        repoHead: "head123",
+        gate: {
+          staffWorkflowPermissionsReady: false,
+          readOnlyRolloutReady: false,
+          controlledWritePilotReady: false,
+        },
+        requirements: {
+          staffWorkflowPermissionsReady: false,
+          readOnlyRolloutReady: false,
+          controlledWritePilotReady: false,
+          durableConfigReady: false,
+          durableActivityReady: false,
+        },
+      });
+      const audit = baseReadinessAudit(dir);
+      writeJson(auditPath, {
+        ...audit,
+        requirements: {
+          ...audit.requirements,
+          staffReadOnlyRolloutReady: true,
+          staffControlledWritePilotReady: true,
+        },
+        inputs: {
+          ...audit.inputs,
+          staffWorkflowAudit: staffWorkflowPath,
+        },
+      });
+
+      const result = runContract(auditPath);
+      expect(result.status).toBe(1);
+      expect(result.stdout).toContain("staff_readonly_rollout_gate_mismatch_with_child_requirements");
+      expect(result.stdout).toContain("staff_controlled_write_pilot_gate_mismatch_with_child_requirements");
     });
   });
 

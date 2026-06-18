@@ -197,6 +197,8 @@ function main() {
   const ruleSafetyAuditEnv = objectValue(inputs.ruleSafetyAuditEnv);
   const githubStaffSecretsPath = typeof inputs.githubStaffSecrets === "string" ? inputs.githubStaffSecrets : "";
   const githubStaffSecrets = readOptionalJson(githubStaffSecretsPath);
+  const staffWorkflowAuditPath = typeof inputs.staffWorkflowAudit === "string" ? inputs.staffWorkflowAudit : "";
+  const staffWorkflowAudit = readOptionalJson(staffWorkflowAuditPath);
   const inputFreshness = inputFreshnessEntries(inputs.inputFreshness);
   const ruleConfigSourceSheets = ruleSheetsFromConfig(ruleConfigSource.ruleSheets);
   const viewSafety = objectValue(audit.viewSafety);
@@ -348,6 +350,10 @@ function main() {
     if (requirements.currentRuleSafetyEnvSourceExplicit !== true) errors.push("production_ready_without_rule_safety_env_source");
     if (requirements.currentRuleConfigSourceProductionReady !== true) errors.push("production_ready_without_production_rule_config_source");
     if (requirements.staffWorkflowPermissionsReady !== true) errors.push("production_ready_without_staff_workflow_permissions");
+    if (requirements.staffReadOnlyRolloutReady !== true) errors.push("production_ready_without_staff_readonly_rollout");
+    if (requirements.staffControlledWritePilotReady !== true) errors.push("production_ready_without_staff_controlled_write_pilot");
+    if (requirements.staffWorkflowDurableConfigReady !== true) errors.push("production_ready_without_staff_durable_config");
+    if (requirements.staffWorkflowDurableActivityReady !== true) errors.push("production_ready_without_staff_durable_activity");
     if (requirements.staffGithubConfigReady !== true) errors.push("production_ready_without_staff_github_config");
   } else if (p0Blockers.length === 0) {
     errors.push("not_ready_without_p0_blockers");
@@ -473,6 +479,24 @@ function main() {
   }
 
   const staffWorkflowBlocker = blockers.find((item) => item.id === "staff_workflow_permissions");
+  if (typeof requirements.staffReadOnlyRolloutReady !== "boolean") {
+    errors.push("staff_readonly_rollout_gate_missing");
+  }
+  if (typeof requirements.staffControlledWritePilotReady !== "boolean") {
+    errors.push("staff_controlled_write_pilot_gate_missing");
+  }
+  if (typeof requirements.staffWorkflowDurableConfigReady !== "boolean") {
+    errors.push("staff_workflow_durable_config_gate_missing");
+  }
+  if (typeof requirements.staffWorkflowDurableActivityReady !== "boolean") {
+    errors.push("staff_workflow_durable_activity_gate_missing");
+  }
+  if (requirements.staffWorkflowPermissionsReady === true) {
+    if (requirements.staffReadOnlyRolloutReady !== true) errors.push("staff_workflow_ready_without_readonly_rollout");
+    if (requirements.staffControlledWritePilotReady !== true) errors.push("staff_workflow_ready_without_controlled_write_pilot");
+    if (requirements.staffWorkflowDurableConfigReady !== true) errors.push("staff_workflow_ready_without_durable_config");
+    if (requirements.staffWorkflowDurableActivityReady !== true) errors.push("staff_workflow_ready_without_durable_activity");
+  }
   if (requirements.staffWorkflowPermissionsReady !== true) {
     if (!p0Blockers.includes("staff_workflow_permissions") && !p1Blockers.includes("staff_workflow_permissions")) {
       errors.push("staff_workflow_not_ready_without_blocker");
@@ -489,12 +513,48 @@ function main() {
       if (typeof staffWorkflowRequirements.staffWorkflowPermissionsReady !== "boolean") {
         errors.push("staff_workflow_blocker_missing_requirements");
       }
+      const aggregatedStaffWorkflow = objectValue(evidence.aggregatedStaffWorkflow);
+      if (typeof aggregatedStaffWorkflow.staffWorkflowPermissionsReady !== "boolean") {
+        errors.push("staff_workflow_blocker_missing_aggregated_gate");
+      }
       if (requirements.currentSharedGmailRoutingReady === true && staffWorkflowBlocker.severity !== "P0") {
         errors.push("staff_workflow_must_be_p0_after_routing_ready");
       }
     }
   } else if (staffWorkflowBlocker) {
     warnings.push("staff_workflow_blocker_detail_present_when_ready");
+  }
+  if (staffWorkflowAudit) {
+    const staffAuditRequirements = objectValue(staffWorkflowAudit.requirements);
+    const staffAuditGate = objectValue(staffWorkflowAudit.gate);
+    const staffAuditReadOnlyRolloutReady =
+      staffAuditGate.readOnlyRolloutReady === true &&
+      staffAuditRequirements.readOnlyRolloutReady === true;
+    const staffAuditControlledWritePilotReady =
+      staffAuditGate.controlledWritePilotReady === true &&
+      staffAuditRequirements.controlledWritePilotReady === true;
+    const staffAuditPermissionsReady =
+      staffAuditGate.staffWorkflowPermissionsReady === true &&
+      staffAuditRequirements.staffWorkflowPermissionsReady === true &&
+      staffAuditReadOnlyRolloutReady &&
+      staffAuditControlledWritePilotReady &&
+      staffAuditRequirements.durableConfigReady === true &&
+      staffAuditRequirements.durableActivityReady === true;
+    if (requirements.staffWorkflowPermissionsReady !== staffAuditPermissionsReady) {
+      errors.push("staff_workflow_gate_mismatch_with_child_requirements");
+    }
+    if (requirements.staffReadOnlyRolloutReady !== staffAuditReadOnlyRolloutReady) {
+      errors.push("staff_readonly_rollout_gate_mismatch_with_child_requirements");
+    }
+    if (requirements.staffControlledWritePilotReady !== staffAuditControlledWritePilotReady) {
+      errors.push("staff_controlled_write_pilot_gate_mismatch_with_child_requirements");
+    }
+    if (requirements.staffWorkflowDurableConfigReady !== (staffAuditRequirements.durableConfigReady === true)) {
+      errors.push("staff_workflow_durable_config_gate_mismatch");
+    }
+    if (requirements.staffWorkflowDurableActivityReady !== (staffAuditRequirements.durableActivityReady === true)) {
+      errors.push("staff_workflow_durable_activity_gate_mismatch");
+    }
   }
 
   const staffGithubConfigBlocker = blockers.find((item) => item.id === "staff_github_config_not_ready");

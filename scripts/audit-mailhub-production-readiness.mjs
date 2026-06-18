@@ -488,7 +488,23 @@ function main() {
   const ruleConfigSourceProductionReady =
     ruleConfigSource.resolvedSource === "sheets" && ruleConfigSource.warnings.length === 0;
   const ruleSafetyReady = Boolean(rulesAudit.ruleSafetyGate?.realDataRuleRiskPass) && ruleConfigFingerprintPresent;
-  const staffWorkflowPermissionsReady = Boolean(staffWorkflowAudit?.gate?.staffWorkflowPermissionsReady);
+  const staffWorkflowGate = objectValue(staffWorkflowAudit?.gate);
+  const staffWorkflowRequirements = objectValue(staffWorkflowAudit?.requirements);
+  const staffWorkflowDurableConfigReady = staffWorkflowRequirements.durableConfigReady === true;
+  const staffWorkflowDurableActivityReady = staffWorkflowRequirements.durableActivityReady === true;
+  const staffReadOnlyRolloutReady =
+    staffWorkflowGate.readOnlyRolloutReady === true &&
+    staffWorkflowRequirements.readOnlyRolloutReady === true;
+  const staffControlledWritePilotReady =
+    staffWorkflowGate.controlledWritePilotReady === true &&
+    staffWorkflowRequirements.controlledWritePilotReady === true;
+  const staffWorkflowPermissionsReady =
+    staffWorkflowGate.staffWorkflowPermissionsReady === true &&
+    staffWorkflowRequirements.staffWorkflowPermissionsReady === true &&
+    staffReadOnlyRolloutReady &&
+    staffControlledWritePilotReady &&
+    staffWorkflowDurableConfigReady &&
+    staffWorkflowDurableActivityReady;
   const staffGithubConfigSources = objectValue(githubStaffSecrets?.presentRequiredConfigSources);
   const staffGithubSemanticSourceIssues = githubStaffSecrets ? semanticVariableSourceIssues(staffGithubConfigSources) : [];
   const staffGithubSemanticSourcesReady = githubStaffSecrets ? semanticVariableSourcesReady(staffGithubConfigSources) : false;
@@ -606,6 +622,13 @@ function main() {
     blockers.push(blocker("staff_workflow_permissions", staffWorkflowBlockerSeverity, "Production staff workflow and permission rollout evidence is not complete.", {
       staffWorkflowGate: staffWorkflowAudit?.gate ?? null,
       staffWorkflowRequirements: staffWorkflowAudit?.requirements ?? null,
+      aggregatedStaffWorkflow: {
+        staffWorkflowPermissionsReady,
+        staffReadOnlyRolloutReady,
+        staffControlledWritePilotReady,
+        staffWorkflowDurableConfigReady,
+        staffWorkflowDurableActivityReady,
+      },
       staffWorkflowBlockers: staffWorkflowAudit?.blockers ?? ["missing_staff_workflow_audit"],
       escalatesToP0AfterRoutingProof: !currentSharedGmailRoutingReady,
     }));
@@ -689,8 +712,10 @@ function main() {
       currentRuleSafetyEnvSourceExplicit: ruleSafetyEnvSourceExplicit,
       staffWorkflowPermissionsReady,
       staffGithubConfigReady,
-      staffReadOnlyRolloutReady: staffWorkflowAudit?.gate?.readOnlyRolloutReady === true,
-      staffControlledWritePilotReady: staffWorkflowAudit?.gate?.controlledWritePilotReady === true,
+      staffReadOnlyRolloutReady,
+      staffControlledWritePilotReady,
+      staffWorkflowDurableConfigReady,
+      staffWorkflowDurableActivityReady,
     },
     viewSafety,
     blockers,
@@ -705,6 +730,8 @@ function main() {
         ruleSafetyEnvSourceExplicit &&
         ruleConfigSourceProductionReady &&
         staffWorkflowPermissionsReady &&
+        staffWorkflowDurableConfigReady &&
+        staffWorkflowDurableActivityReady &&
         staffGithubConfigReady &&
         blockers.filter((item) => item.severity === "P0").length === 0,
       p0Blockers: blockers.filter((item) => item.severity === "P0").map((item) => item.id),
