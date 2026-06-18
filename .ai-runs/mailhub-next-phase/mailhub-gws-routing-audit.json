@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-06-18T09:45:36.578Z",
-  "repoHead": "7d06f880924f7f918a922f3716133bcbb45d6dcd",
+  "generatedAt": "2026-06-18T21:35:16.506Z",
+  "repoHead": "cf20aef2ee9cd77e048d157f5026887ed3870439",
   "inputs": {
     "opsAudit": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.ai-runs/mailhub-next-phase/mailhub-operational-confirmations.json",
     "domain": "vtj.co.jp",
     "project": "ec-data-hub",
     "memberEmail": "mailhub@vtj.co.jp",
-    "opsAuditGeneratedAt": "2026-06-18T09:28:58.333Z"
+    "opsAuditGeneratedAt": "2026-06-18T21:35:08.443Z"
   },
   "dns": {
     "mxRecords": [
