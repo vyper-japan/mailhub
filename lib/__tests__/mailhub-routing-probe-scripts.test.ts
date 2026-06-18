@@ -622,6 +622,9 @@ function writeReadinessFixtures(
       durableActivityReady: staffWorkflowReady,
       readOnlyRolloutEvidenceReady: staffWorkflowReady,
       writePilotEvidenceReady: staffWorkflowReady,
+      readOnlyRolloutReady: staffWorkflowReady,
+      controlledWritePilotReady: staffWorkflowReady,
+      staffWorkflowPermissionsReady: staffWorkflowReady,
     },
     blockers: staffWorkflowReady
       ? []
