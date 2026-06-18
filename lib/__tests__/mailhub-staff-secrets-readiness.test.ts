@@ -552,7 +552,7 @@ describe("MailHub staff GitHub config readiness", () => {
         ...completeConfig,
         variables: [
           { name: "MAILHUB_ENV", value: "development" },
-          { name: "NEXTAUTH_URL", value: "https://mailhub.example.com" },
+          { name: "NEXTAUTH_URL", value: "http://localhost:3000" },
           { name: "MAILHUB_ADMINS", value: "Admin <admin@vtj.co.jp>" },
           { name: "MAILHUB_TEAM_MEMBERS", value: "Staff <staff@vtj.co.jp>" },
           { name: "MAILHUB_CONFIG_STORE", value: "file" },
@@ -581,6 +581,8 @@ describe("MailHub staff GitHub config readiness", () => {
         "MAILHUB_CONFIG_STORE_must_be_sheets",
         "MAILHUB_ACTIVITY_STORE_value_unverified",
         "MAILHUB_READ_ONLY_must_be_1",
+        "NEXTAUTH_URL_must_be_https",
+        "NEXTAUTH_URL_must_not_be_localhost",
       ]);
       expect(out.setupCommands).toEqual([
         "npm run setup:mailhub-staff-github-config",
@@ -714,6 +716,7 @@ describe("MailHub staff GitHub config readiness", () => {
         {
           ...completeStaffEnv,
           MAILHUB_ENV: "development",
+          NEXTAUTH_URL: "http://localhost:3000",
           MAILHUB_CONFIG_STORE: "file",
           MAILHUB_READ_ONLY: "0",
         },
@@ -729,6 +732,8 @@ describe("MailHub staff GitHub config readiness", () => {
       expect(out.missingRequiredEnv).toEqual([]);
       expect(out.semanticIssues).toEqual([
         "MAILHUB_ENV_must_be_production",
+        "NEXTAUTH_URL_must_be_https",
+        "NEXTAUTH_URL_must_not_be_localhost",
         "MAILHUB_CONFIG_STORE_must_be_sheets",
         "MAILHUB_READ_ONLY_must_be_1",
       ]);

@@ -123,6 +123,24 @@ function emailListIssues(name) {
   return issues;
 }
 
+function nextAuthUrlIssues() {
+  const raw = valueFor("NEXTAUTH_URL");
+  if (!raw) return [];
+  const issues = [];
+  let url;
+  try {
+    url = new URL(raw);
+  } catch {
+    return ["NEXTAUTH_URL_must_be_valid_url"];
+  }
+  if (url.protocol !== "https:") issues.push("NEXTAUTH_URL_must_be_https");
+  const host = url.hostname.toLowerCase();
+  if (host === "localhost" || host === "127.0.0.1" || host === "::1" || host.endsWith(".local")) {
+    issues.push("NEXTAUTH_URL_must_not_be_localhost");
+  }
+  return issues;
+}
+
 function selectedSheetsIdName() {
   return SHEETS_ID_NAMES.find((name) => valueFor(name)) || "MAILHUB_SHEETS_ID";
 }
@@ -152,6 +170,7 @@ function semanticIssues() {
   if (valueFor("MAILHUB_ENV") && valueFor("MAILHUB_ENV") !== "production") {
     issues.push("MAILHUB_ENV_must_be_production");
   }
+  issues.push(...nextAuthUrlIssues());
   if (valueFor("MAILHUB_CONFIG_STORE") && valueFor("MAILHUB_CONFIG_STORE") !== "sheets") {
     issues.push("MAILHUB_CONFIG_STORE_must_be_sheets");
   }

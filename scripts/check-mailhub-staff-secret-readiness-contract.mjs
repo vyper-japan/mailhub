@@ -46,6 +46,7 @@ const REQUIRED_SEMANTIC_VARIABLE_VALUES = {
   MAILHUB_READ_ONLY: "1",
 };
 const SEMANTIC_VARIABLE_NAMES = Object.keys(REQUIRED_SEMANTIC_VARIABLE_VALUES);
+const URL_SEMANTIC_VARIABLE_NAMES = ["NEXTAUTH_URL"];
 const STAFF_EMAIL_LIST_VARIABLE_NAMES = REQUIRED_STAFF_ACCESS;
 const VALID_SOURCES = new Set(["github_actions_config", "env", "json"]);
 const STAFF_GITHUB_SETUP_COMMANDS = [
@@ -147,6 +148,14 @@ function isKnownSemanticIssue(issue) {
   const fixedSemanticIssue = Object.entries(REQUIRED_SEMANTIC_VARIABLE_VALUES).some(([name, expected]) =>
     issue === `${name}_value_unverified` || issue === `${name}_must_be_${expected}` || issue === `${name}_must_be_variable`);
   if (fixedSemanticIssue) return true;
+
+  const urlSemanticIssue = URL_SEMANTIC_VARIABLE_NAMES.some((name) =>
+    issue === `${name}_value_unverified` ||
+    issue === `${name}_must_be_variable` ||
+    issue === `${name}_must_be_valid_url` ||
+    issue === `${name}_must_be_https` ||
+    issue === `${name}_must_not_be_localhost`);
+  if (urlSemanticIssue) return true;
 
   return STAFF_EMAIL_LIST_VARIABLE_NAMES.some((name) =>
     issue === `${name}_value_unverified` ||

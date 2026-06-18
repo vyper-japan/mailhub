@@ -232,6 +232,27 @@ function fixedSemanticIssues(variables, secretNames) {
   });
 }
 
+function nextAuthUrlSemanticIssues(variables, secretNames) {
+  const issues = [];
+  const item = variables.find((variable) => variable.name === "NEXTAUTH_URL");
+  if (secretNames.has("NEXTAUTH_URL")) issues.push("NEXTAUTH_URL_must_be_variable");
+  if (!item) return issues;
+  if (typeof item.value !== "string") return [...issues, "NEXTAUTH_URL_value_unverified"];
+
+  let url;
+  try {
+    url = new URL(item.value);
+  } catch {
+    return [...issues, "NEXTAUTH_URL_must_be_valid_url"];
+  }
+  if (url.protocol !== "https:") issues.push("NEXTAUTH_URL_must_be_https");
+  const host = url.hostname.toLowerCase();
+  if (host === "localhost" || host === "127.0.0.1" || host === "::1" || host.endsWith(".local")) {
+    issues.push("NEXTAUTH_URL_must_not_be_localhost");
+  }
+  return issues;
+}
+
 function staffEmailListSemanticIssues(variables, secretNames) {
   return STAFF_EMAIL_LIST_VARIABLE_NAMES.flatMap((name) => {
     const issues = [];
@@ -251,6 +272,7 @@ function staffEmailListSemanticIssues(variables, secretNames) {
 function semanticIssues(variables, secretNames) {
   return [
     ...fixedSemanticIssues(variables, secretNames),
+    ...nextAuthUrlSemanticIssues(variables, secretNames),
     ...staffEmailListSemanticIssues(variables, secretNames),
   ];
 }
@@ -317,6 +339,7 @@ function main() {
     semanticWarnings: [
       "source_policy:NEXTAUTH_SECRET, GOOGLE_CLIENT_SECRET, GOOGLE_SHARED_INBOX_REFRESH_TOKEN, and MAILHUB_SHEETS_PRIVATE_KEY must be GitHub Actions secrets, not variables",
       "semantic_check:MAILHUB_ENV value must be production",
+      "semantic_check:NEXTAUTH_URL must be a verified HTTPS non-localhost GitHub Actions variable",
       "semantic_check:MAILHUB_READ_ONLY value must be 1 before read-only rollout",
       "semantic_check:MAILHUB_CONFIG_STORE and MAILHUB_ACTIVITY_STORE values must be sheets",
       `semantic_source_policy:${SEMANTIC_VARIABLE_NAMES.join(", ")} must be GitHub Actions variables, not secrets`,
