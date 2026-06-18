@@ -1,0 +1,135 @@
+{
+  "generatedAt": "2026-06-18T23:17:39.062Z",
+  "repoHead": "4bfd480a8b4a87e5ec00a0f695216b741d95f7d0",
+  "valuePolicy": "Secret values are never printed; this artifact contains only key names, blocker ids, readiness booleans, and commands.",
+  "readiness": {
+    "productionReady": false,
+    "p0Blockers": [
+      "current_shared_gmail_routing"
+    ],
+    "p1Blockers": [
+      "rule_config_source_not_production",
+      "staff_workflow_permissions",
+      "staff_github_config_not_ready"
+    ]
+  },
+  "currentMissing": {
+    "externalSmtpSecrets": [
+      "MAILHUB_PROBE_SMTP_HOST",
+      "MAILHUB_PROBE_SMTP_USER",
+      "MAILHUB_PROBE_SMTP_PASS",
+      "MAILHUB_PROBE_FROM"
+    ],
+    "staffProductionConfig": [
+      "MAILHUB_ENV",
+      "NEXTAUTH_URL",
+      "NEXTAUTH_SECRET",
+      "MAILHUB_ADMINS",
+      "MAILHUB_TEAM_MEMBERS",
+      "MAILHUB_CONFIG_STORE",
+      "MAILHUB_ACTIVITY_STORE",
+      "MAILHUB_SHEETS_ID or MAILHUB_SHEETS_SPREADSHEET_ID",
+      "MAILHUB_SHEETS_CLIENT_EMAIL",
+      "MAILHUB_SHEETS_PRIVATE_KEY",
+      "MAILHUB_READ_ONLY"
+    ],
+    "staffSecretConfig": [
+      "NEXTAUTH_SECRET",
+      "MAILHUB_SHEETS_PRIVATE_KEY"
+    ],
+    "staffRequiredActions": [],
+    "ruleRequiredActions": []
+  },
+  "requiredInputs": {
+    "externalSmtpProof": {
+      "purpose": "Prove current external routing into the shared Gmail inbox for all MailHub source addresses.",
+      "requiredGitHubSecrets": [
+        "MAILHUB_PROBE_SMTP_HOST",
+        "MAILHUB_PROBE_SMTP_USER",
+        "MAILHUB_PROBE_SMTP_PASS",
+        "MAILHUB_PROBE_FROM"
+      ],
+      "optionalGitHubSecrets": [
+        "MAILHUB_PROBE_SMTP_PORT",
+        "MAILHUB_PROBE_SMTP_SECURE"
+      ],
+      "constraints": [
+        "MAILHUB_PROBE_FROM must be a non-@vtj.co.jp external sender.",
+        "Values may be supplied via .env.local for local setup dry-run/apply, but must not be committed."
+      ]
+    },
+    "staffGitHubConfig": {
+      "purpose": "Enable read-only staff rollout with durable Sheets-backed config/activity stores.",
+      "requiredGitHubSecrets": [
+        "NEXTAUTH_SECRET",
+        "GOOGLE_CLIENT_SECRET",
+        "GOOGLE_SHARED_INBOX_REFRESH_TOKEN",
+        "MAILHUB_SHEETS_PRIVATE_KEY"
+      ],
+      "requiredGitHubVariables": [
+        "MAILHUB_ENV",
+        "NEXTAUTH_URL",
+        "GOOGLE_CLIENT_ID",
+        "GOOGLE_SHARED_INBOX_EMAIL",
+        "MAILHUB_ADMINS",
+        "MAILHUB_TEAM_MEMBERS",
+        "MAILHUB_CONFIG_STORE",
+        "MAILHUB_ACTIVITY_STORE",
+        "MAILHUB_SHEETS_ID or MAILHUB_SHEETS_SPREADSHEET_ID",
+        "MAILHUB_SHEETS_CLIENT_EMAIL",
+        "MAILHUB_READ_ONLY"
+      ],
+      "requiredVariableValues": {
+        "MAILHUB_ENV": "production",
+        "MAILHUB_CONFIG_STORE": "sheets",
+        "MAILHUB_ACTIVITY_STORE": "sheets",
+        "MAILHUB_READ_ONLY": "1"
+      },
+      "constraints": [
+        "NEXTAUTH_URL must be a verified HTTPS non-localhost URL.",
+        "MAILHUB_ADMINS and MAILHUB_TEAM_MEMBERS must be non-empty @vtj.co.jp email lists."
+      ]
+    },
+    "sheetsRuleSource": {
+      "purpose": "Move Auto Rules and Assignee Rules readiness from local file config to production Sheets config.",
+      "requiredEnvOrGitHubConfig": [
+        "MAILHUB_CONFIG_STORE=sheets",
+        "MAILHUB_SHEETS_ID or MAILHUB_SHEETS_SPREADSHEET_ID",
+        "MAILHUB_SHEETS_CLIENT_EMAIL",
+        "MAILHUB_SHEETS_PRIVATE_KEY",
+        "MAILHUB_SHEETS_TAB_RULES",
+        "MAILHUB_SHEETS_TAB_ASSIGNEE_RULES"
+      ],
+      "defaultRuleTabs": {
+        "MAILHUB_SHEETS_TAB_RULES": "ConfigRules",
+        "MAILHUB_SHEETS_TAB_ASSIGNEE_RULES": "ConfigAssigneeRules"
+      }
+    },
+    "readOnlyRolloutEvidence": {
+      "purpose": "Capture authenticated production read-only UI evidence before controlled write pilot.",
+      "requiredFiles": [
+        "mailhub-meta-topbar-readonly.png",
+        "mailhub-meta-health-readonly.png",
+        "staff-workflow-evidence-manifest.json"
+      ],
+      "note": "Unauthenticated /api/mailhub/config/health returns 401; capture requires an authenticated browser/session."
+    }
+  },
+  "safeCommands": {
+    "dryRun": [
+      "npm run setup:mailhub-routing-secrets",
+      "npm run setup:mailhub-staff-github-config",
+      "npm run setup:mailhub-staff-env -- --strict --out .ai-runs/mailhub-next-phase/mailhub-staff-env-readiness.json",
+      "npm run ops:readiness-refresh -- --plan-only"
+    ],
+    "applyAfterValuesArePresentAndApproved": [
+      "npm run setup:mailhub-routing-secrets -- --apply",
+      "npm run setup:mailhub-staff-github-config -- --apply"
+    ],
+    "proofAfterSmtpSecretsArePresentAndApproved": [
+      "npm run probe:routing-preflight -- --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-preflight.json",
+      "npm run probe:routing-send -- --send --verify-after-send --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-send.json",
+      "npm run ops:readiness-refresh -- --rules-source sheets"
+    ]
+  }
+}
