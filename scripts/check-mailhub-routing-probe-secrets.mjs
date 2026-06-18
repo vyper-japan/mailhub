@@ -5,6 +5,7 @@ import { dirname } from "node:path";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 
 const DEFAULT_REPO = "vyper-japan/mailhub";
+const repoRoot = process.cwd();
 
 const REQUIRED_PREFLIGHT_SECRETS = [
   "MAILHUB_PROBE_SMTP_HOST",
@@ -70,6 +71,18 @@ function readEnvSecrets() {
     .map((name) => ({ name }));
 }
 
+function currentRepoHead() {
+  try {
+    return execFileSync("git", ["rev-parse", "HEAD"], {
+      cwd: repoRoot,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    }).trim();
+  } catch {
+    return null;
+  }
+}
+
 function missingSecrets(required, present) {
   return required.filter((name) => !present.has(name));
 }
@@ -101,6 +114,7 @@ function main() {
     repo: args.repo,
     source: args.fromEnv ? "env" : args.secretsJson ? "json" : "github_actions_secrets",
     checkedAt: new Date().toISOString(),
+    repoHead: currentRepoHead(),
     secretCount: secrets.length,
     requiredPreflightSecrets: REQUIRED_PREFLIGHT_SECRETS,
     requiredSendVerifySecrets: REQUIRED_SEND_VERIFY_SECRETS,

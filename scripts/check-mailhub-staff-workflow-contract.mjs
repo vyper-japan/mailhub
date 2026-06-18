@@ -7,6 +7,7 @@ import { isFreshRepoHead } from "./artifact-freshness.mjs";
 
 const repoRoot = process.cwd();
 const defaultAuditPath = join(repoRoot, ".ai-runs", "mailhub-next-phase", "mailhub-staff-workflow-audit.json");
+const STAFF_EVIDENCE_MANIFEST_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
 function parseArgs(argv) {
   const out = {
@@ -52,10 +53,32 @@ function stringArray(value) {
   return Array.isArray(value) ? value.filter((item) => typeof item === "string") : [];
 }
 
+function timestampFreshness(value, maxAgeMs, nowMs = Date.now()) {
+  if (typeof value !== "string" || value.length === 0) {
+    return { fresh: false, status: "missing_timestamp", ageMs: null, maxAgeMs };
+  }
+  const timestampMs = Date.parse(value);
+  if (!Number.isFinite(timestampMs)) {
+    return { fresh: false, status: "invalid_timestamp", ageMs: null, maxAgeMs };
+  }
+  const ageMs = nowMs - timestampMs;
+  if (ageMs < 0) return { fresh: false, status: "future_timestamp", ageMs, maxAgeMs };
+  if (ageMs > maxAgeMs) return { fresh: false, status: "stale_timestamp", ageMs, maxAgeMs };
+  return { fresh: true, status: "fresh", ageMs, maxAgeMs };
+}
+
 function blockers(value) {
   return Array.isArray(value)
     ? value.filter((item) => item && typeof item === "object" && typeof item.id === "string")
     : [];
+}
+
+function freshnessEntries(value) {
+  return Array.isArray(value) ? value.filter((item) => item && typeof item === "object") : [];
+}
+
+function hasStaleFreshnessEntries(entries) {
+  return entries.some((item) => item.fresh !== true || item.status !== "fresh");
 }
 
 function main() {
@@ -152,13 +175,50 @@ function main() {
     errors.push("readonly_evidence_ready_with_issues");
   }
   const manifest = objectValue(evidence.manifest);
+  const manifestCapturedAt = typeof manifest.manifestCapturedAt === "string" ? manifest.manifestCapturedAt : null;
+  const manifestCapturedAtFreshness = timestampFreshness(manifestCapturedAt, STAFF_EVIDENCE_MANIFEST_MAX_AGE_MS);
+  const manifestFreshnessStatusToError = {
+    missing_timestamp: "missing_manifest_captured_at",
+    invalid_timestamp: "invalid_manifest_captured_at",
+    future_timestamp: "future_manifest_captured_at",
+    stale_timestamp: "stale_manifest_captured_at",
+  };
+  const manifestClaimsReady =
+    manifest.readOnlyManifestReady === true ||
+    manifest.writePilotManifestReady === true ||
+    requirements.readOnlyRolloutEvidenceReady === true ||
+    requirements.writePilotEvidenceReady === true;
+  if (manifest.manifestPresent !== false && manifestClaimsReady && manifestCapturedAtFreshness.fresh !== true) {
+    errors.push(manifestFreshnessStatusToError[manifestCapturedAtFreshness.status] ?? "manifest_captured_at_not_fresh");
+  }
+  if (manifest.manifestPresent !== false &&
+    typeof manifest.manifestCapturedAtFresh === "boolean" &&
+    manifest.manifestCapturedAtFresh !== manifestCapturedAtFreshness.fresh) {
+    errors.push("manifest_captured_at_fresh_mismatch");
+  }
   if (requirements.readOnlyRolloutEvidenceReady === true && manifest.readOnlyManifestReady !== true) {
     errors.push("readonly_evidence_ready_without_manifest");
+  }
+  if (requirements.readOnlyRolloutEvidenceReady === true && manifestCapturedAtFreshness.fresh !== true) {
+    errors.push("readonly_evidence_ready_with_stale_manifest_captured_at");
+  }
+  const manifestEvidenceFileFreshness = objectValue(manifest.evidenceFileFreshness);
+  const readOnlyFileFreshness = freshnessEntries(manifestEvidenceFileFreshness.readOnly);
+  const writePilotFileFreshness = freshnessEntries(manifestEvidenceFileFreshness.writePilot);
+  if (
+    requirements.readOnlyRolloutEvidenceReady === true &&
+    (readOnlyFileFreshness.length < 2 || hasStaleFreshnessEntries(readOnlyFileFreshness))
+  ) {
+    errors.push("readonly_evidence_ready_with_stale_file_mtime");
   }
   if (requirements.writePilotEvidenceReady === true) {
     if (stringArray(evidence.writeMissing).length > 0) errors.push("write_evidence_ready_with_missing_meta");
     if (stringArray(evidence.writePilotEvidenceIssues).length > 0) errors.push("write_evidence_ready_with_issues");
     if (manifest.writePilotManifestReady !== true) errors.push("write_evidence_ready_without_manifest");
+    if (manifestCapturedAtFreshness.fresh !== true) errors.push("write_evidence_ready_with_stale_manifest_captured_at");
+    if (writePilotFileFreshness.length < 5 || hasStaleFreshnessEntries(writePilotFileFreshness)) {
+      errors.push("write_evidence_ready_with_stale_file_mtime");
+    }
     if ((evidence.activityCsvCount ?? 0) < 1) errors.push("write_evidence_ready_without_activity_csv");
     if ((evidence.gmailProofCount ?? 0) < 1) errors.push("write_evidence_ready_without_gmail_proof");
     if ((evidence.mailhubProofCount ?? 0) < 1) errors.push("write_evidence_ready_without_mailhub_proof");

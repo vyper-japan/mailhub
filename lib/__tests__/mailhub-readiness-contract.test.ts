@@ -6,6 +6,41 @@ import { describe, expect, test } from "vitest";
 
 const readinessContractPath = resolve(process.cwd(), "scripts/check-mailhub-readiness-contract.mjs");
 const readinessAuditPath = resolve(process.cwd(), "scripts/audit-mailhub-production-readiness.mjs");
+const inputArtifactMaxAgeMs = 24 * 60 * 60 * 1000;
+
+function formatRoutingProbeMarker(date: Date) {
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return [
+    "MAILHUB-ROUTING-PROBE-",
+    date.getUTCFullYear(),
+    pad(date.getUTCMonth() + 1),
+    pad(date.getUTCDate()),
+    "T",
+    pad(date.getUTCHours()),
+    pad(date.getUTCMinutes()),
+    pad(date.getUTCSeconds()),
+    "Z",
+  ].join("");
+}
+
+const freshFixtureTimestamp = new Date().toISOString();
+const routingProbeMarker = formatRoutingProbeMarker(new Date(freshFixtureTimestamp));
+const canonicalRoutingProbeAddresses = [
+  "gopro_y@vtj.co.jp",
+  "gopro_order_yahoo@vtj.co.jp",
+  "vyper_r@vtj.co.jp",
+  "vyper_rakuten@vtj.co.jp",
+  "vyperglobal_y@vtj.co.jp",
+  "ams_vyper@vtj.co.jp",
+  "datacolor_shopify@vtj.co.jp",
+  "ebay@vtj.co.jp",
+];
+const canonicalRoutingProbePlan = canonicalRoutingProbeAddresses.map((address, index) => ({
+  channelId: `channel-${index}`,
+  label: `Channel ${index}`,
+  address,
+  subject: routingProbeMarker,
+}));
 
 function withTempDir<T>(fn: (dir: string) => T): T {
   const dir = mkdtempSync(join(tmpdir(), "mailhub-readiness-contract-"));
@@ -57,15 +92,85 @@ function gitRevParse(ref: string) {
   return result.stdout.trim();
 }
 
-function baseReadinessAudit(overrides: Record<string, unknown> = {}) {
+const inputFreshnessKeys = [
+  "sourceAudit",
+  "opsAudit",
+  "gwsRoutingAudit",
+  "routingProbeAudit",
+  "routingProbeSend",
+  "routingProbePreflight",
+  "githubRoutingSecrets",
+  "githubStaffSecrets",
+  "viewsAudit",
+  "rulesAudit",
+  "staffWorkflowAudit",
+];
+
+function inputFreshnessTimestampField(key: string) {
+  return key.startsWith("github") ? "checkedAt" : "generatedAt";
+}
+
+function writeBaseInputArtifacts(
+  dir: string,
+  repoHead = "head123",
+  overrides: Record<string, Record<string, unknown>> = {},
+) {
+  const paths = Object.fromEntries(
+    inputFreshnessKeys.map((key) => [key, join(dir, `${key}.json`)]),
+  ) as Record<string, string>;
+
+  for (const key of inputFreshnessKeys) {
+    writeJson(paths[key], {
+      [inputFreshnessTimestampField(key)]: freshFixtureTimestamp,
+      repoHead,
+      ...(overrides[key] ?? {}),
+    });
+  }
+
+  return paths;
+}
+
+function baseInputFreshness(paths: Record<string, string>, repoHead = "head123") {
+  return inputFreshnessKeys.map((key) => {
+    return {
+      key,
+      path: paths[key],
+      present: true,
+      timestampField: inputFreshnessTimestampField(key),
+      timestamp: freshFixtureTimestamp,
+      repoHeadPolicy: "fresh_repo_head",
+      requiresFreshRepoHead: true,
+      repoHead,
+      repoHeadFresh: true,
+      maxAgeMs: inputArtifactMaxAgeMs,
+      timestampFresh: true,
+      status: "fresh",
+      readyForProduction: true,
+    };
+  });
+}
+
+function baseReadinessAudit(
+  dirOrOverrides: string | Record<string, unknown> = {},
+  maybeOverrides: Record<string, unknown> = {},
+) {
+  const dir = typeof dirOrOverrides === "string"
+    ? dirOrOverrides
+    : mkdtempSync(join(tmpdir(), "mailhub-readiness-contract-inputs-"));
+  const overrides = typeof dirOrOverrides === "string" ? maybeOverrides : dirOrOverrides;
+  const inputArtifactPaths = writeBaseInputArtifacts(dir);
+
   return {
-    generatedAt: "2026-06-17T00:00:00.000Z",
+    generatedAt: freshFixtureTimestamp,
     repoHead: "head123",
     requirements: {
+      inputArtifactsFresh: true,
       sourceCodeCoverageReady: true,
       sourceInventoryReady: true,
       currentSharedGmailRoutingReady: false,
       routingProbeReady: false,
+      routingProbeSendReady: false,
+      routingProofChainReady: false,
       routingProbePreflightReady: false,
       routingProbeGithubSecretsReady: false,
       defaultViewsRealDataValidated: true,
@@ -81,6 +186,8 @@ function baseReadinessAudit(overrides: Record<string, unknown> = {}) {
       staffControlledWritePilotReady: false,
     },
     inputs: {
+      ...inputArtifactPaths,
+      inputFreshness: baseInputFreshness(inputArtifactPaths),
       rulesConfigFingerprint: "sha256:abc123",
       ruleConfigSource: {
         requestedSource: "sheets",
@@ -118,6 +225,15 @@ function baseReadinessAudit(overrides: Record<string, unknown> = {}) {
             targetAddressCount: 8,
             allExpectedAddressesConfirmed: false,
             missingAddresses: ["gopro_y@vtj.co.jp"],
+          },
+          routingProbeSend: {
+            mode: "dry_run",
+            probeCount: 8,
+            sentCount: 0,
+          },
+          routingProofChain: {
+            ready: false,
+            issues: ["routing_probe_send_not_sent"],
           },
           routingProbePreflight: {
             readyForProductionProof: false,
@@ -171,11 +287,213 @@ function baseReadinessAudit(overrides: Record<string, unknown> = {}) {
   };
 }
 
+function writeReadyAggregateArtifacts(
+  dir: string,
+  repoHead: string,
+  overrides: Record<string, Record<string, unknown>> = {},
+) {
+  const paths: Record<string, string> = {
+    sourceAudit: join(dir, "source.json"),
+    opsAudit: join(dir, "ops.json"),
+    gwsRoutingAudit: join(dir, "gws.json"),
+    routingProbeAudit: join(dir, "routing-probe.json"),
+    routingProbeSend: join(dir, "routing-probe-send.json"),
+    routingProbePreflight: join(dir, "routing-preflight.json"),
+    githubRoutingSecrets: join(dir, "github-routing-secrets.json"),
+    githubStaffSecrets: join(dir, "github-staff-secrets-readiness.json"),
+    viewsAudit: join(dir, "views.json"),
+    rulesAudit: join(dir, "rules.json"),
+    staffWorkflowAudit: join(dir, "staff-workflow.json"),
+  };
+  const artifacts: Record<string, Record<string, unknown>> = {
+    sourceAudit: {
+      generatedAt: freshFixtureTimestamp,
+      repoHead,
+      zeroEstimateAnalysis: {
+        knownCodeGaps: [],
+        coverageGate: { codeCoveragePass: true },
+      },
+    },
+    opsAudit: {
+      generatedAt: freshFixtureTimestamp,
+      repoHead,
+      gate: {
+        sourceInventoryMissing: [],
+        currentSharedGmailRoutingUnconfirmed: [],
+        noSharedInboxEvidence: [],
+        routingConfirmationRequired: [],
+      },
+    },
+    gwsRoutingAudit: {
+      generatedAt: freshFixtureTimestamp,
+      repoHead,
+      gate: {},
+      dns: { mxRecords: [{ exchange: "mx01.lolipop.jp", priority: 50 }] },
+    },
+    routingProbeAudit: {
+      generatedAt: freshFixtureTimestamp,
+      repoHead,
+      mode: "verify_marker",
+      inputs: {
+        marker: routingProbeMarker,
+      },
+      plannedAddressProbes: canonicalRoutingProbePlan.map(({ channelId, label, address }) => ({ channelId, label, address })),
+      gate: {
+        targetAddressCount: canonicalRoutingProbeAddresses.length,
+        markerProvided: true,
+        allExpectedAddressesConfirmed: true,
+        matchedAddresses: canonicalRoutingProbeAddresses,
+        missingAddresses: [],
+      },
+    },
+    routingProbeSend: {
+      generatedAt: freshFixtureTimestamp,
+      repoHead,
+      mode: "sent",
+      marker: routingProbeMarker,
+      probeCount: canonicalRoutingProbePlan.length,
+      addressProbes: canonicalRoutingProbePlan,
+      sent: canonicalRoutingProbePlan.map(({ channelId, address }, index) => ({
+        channelId,
+        address,
+        accepted: [address],
+        rejected: [],
+        messageId: `fixture-message-${index}`,
+      })),
+      smtpPreflight: {
+        readyForProductionProof: true,
+      },
+      verification: {
+        status: "matched",
+        allExpectedAddressesConfirmed: true,
+      },
+    },
+    routingProbePreflight: {
+      generatedAt: freshFixtureTimestamp,
+      repoHead,
+      smtpPreflight: {
+        readyForProductionProof: true,
+        missingRequiredEnv: [],
+        warnings: [],
+      },
+    },
+    githubRoutingSecrets: {
+      checkedAt: freshFixtureTimestamp,
+      repoHead,
+      readyForPreflightProductionProof: true,
+      readyForSendVerify: true,
+      missingPreflightSecrets: [],
+      missingSendVerifySecrets: [],
+    },
+    githubStaffSecrets: {
+      source: "github_actions_config",
+      checkedAt: freshFixtureTimestamp,
+      repoHead,
+      secretCount: 12,
+      variableCount: 12,
+      readyForProductionStaffPreflight: true,
+      readyForSecretBackedStaffConfig: true,
+      missingProductionStaffConfig: [],
+      missingSecretConfig: [],
+      semanticIssues: [],
+      setupCommands: [],
+      presentRequiredConfigSources: {
+        MAILHUB_ENV: "variable",
+        MAILHUB_CONFIG_STORE: "variable",
+        MAILHUB_ACTIVITY_STORE: "variable",
+        MAILHUB_READ_ONLY: "variable",
+      },
+    },
+    viewsAudit: {
+      generatedAt: freshFixtureTimestamp,
+      repoHead,
+      gate: {
+        syntaxReady: true,
+        manualReviewOnly: false,
+        bulkAutomationSafe: true,
+        syntaxFailedViews: [],
+        manualReviewOnlyViews: [],
+        bulkUnsafeViews: [],
+      },
+      views: [],
+    },
+    rulesAudit: {
+      generatedAt: freshFixtureTimestamp,
+      repoHead,
+      inputs: {
+        envFileMode: "process_env_only",
+        valuePolicy: "present",
+      },
+      config: {
+        ruleSetFingerprint: "sha256:abc123",
+        requestedSource: "sheets",
+        resolvedSource: "sheets",
+        ruleSheets: {
+          labelRules: "ConfigRules",
+          assigneeRules: "ConfigAssigneeRules",
+        },
+        warnings: [],
+      },
+      ruleSafetyGate: {
+        realDataRuleRiskPass: true,
+      },
+    },
+    staffWorkflowAudit: {
+      generatedAt: freshFixtureTimestamp,
+      repoHead,
+      gate: {
+        staffWorkflowPermissionsReady: true,
+        readOnlyRolloutReady: true,
+        controlledWritePilotReady: true,
+      },
+      requirements: {
+        staffWorkflowPermissionsReady: true,
+      },
+      blockers: [],
+    },
+  };
+
+  for (const key of Object.keys(paths)) {
+    writeJson(paths[key], { ...artifacts[key], ...(overrides[key] ?? {}) });
+  }
+
+  return paths;
+}
+
+function aggregateArgs(paths: Record<string, string>, outPath: string) {
+  return [
+    "--source-audit",
+    paths.sourceAudit,
+    "--ops-audit",
+    paths.opsAudit,
+    "--gws-routing-audit",
+    paths.gwsRoutingAudit,
+    "--routing-probe-audit",
+    paths.routingProbeAudit,
+    "--routing-probe-send",
+    paths.routingProbeSend,
+    "--routing-probe-preflight",
+    paths.routingProbePreflight,
+    "--github-routing-secrets",
+    paths.githubRoutingSecrets,
+    "--github-staff-secrets",
+    paths.githubStaffSecrets,
+    "--views-audit",
+    paths.viewsAudit,
+    "--rules-audit",
+    paths.rulesAudit,
+    "--staff-workflow-audit",
+    paths.staffWorkflowAudit,
+    "--out",
+    outPath,
+  ];
+}
+
 describe("MailHub readiness contract check", () => {
   test("accepts explicit not-ready routing evidence", () => {
     withTempDir((dir) => {
       const auditPath = join(dir, "readiness.json");
-      writeJson(auditPath, baseReadinessAudit());
+      writeJson(auditPath, baseReadinessAudit(dir));
 
       const result = runContract(auditPath);
       expect(result.status).toBe(0);
@@ -188,7 +506,7 @@ describe("MailHub readiness contract check", () => {
   test("rejects stale readiness artifacts outside current lineage", () => {
     withTempDir((dir) => {
       const auditPath = join(dir, "readiness.json");
-      writeJson(auditPath, baseReadinessAudit({ repoHead: "old123" }));
+      writeJson(auditPath, baseReadinessAudit(dir, { repoHead: "old123" }));
 
       const result = runContract(auditPath);
       expect(result.status).toBe(1);
@@ -196,10 +514,411 @@ describe("MailHub readiness contract check", () => {
     });
   });
 
+  test("rejects production-ready claims when child input freshness is not clean", () => {
+    withTempDir((dir) => {
+      const auditPath = join(dir, "readiness.json");
+      const audit = baseReadinessAudit(dir);
+      const staleInputFreshness = audit.inputs.inputFreshness.map((entry) =>
+        entry.key === "sourceAudit"
+          ? { ...entry, repoHead: "old123", repoHeadFresh: false, status: "stale_repo_head", readyForProduction: false }
+          : entry);
+      writeJson(auditPath, {
+        ...audit,
+        requirements: {
+          ...audit.requirements,
+          inputArtifactsFresh: false,
+          currentSharedGmailRoutingReady: true,
+          routingProbeReady: true,
+          routingProbePreflightReady: true,
+          routingProbeGithubSecretsReady: true,
+          defaultViewsBulkAutomationSafe: true,
+          staffWorkflowPermissionsReady: true,
+          staffGithubConfigReady: true,
+          staffReadOnlyRolloutReady: true,
+          staffControlledWritePilotReady: true,
+        },
+        inputs: {
+          ...audit.inputs,
+          inputFreshness: staleInputFreshness,
+        },
+        viewSafety: {
+          syntaxFailedViews: [],
+          manualReviewOnlyViews: ["invoice-docs"],
+          bulkUnsafeViews: [],
+        },
+        gate: {
+          productionReady: true,
+          p0Blockers: [],
+          p1Blockers: [],
+        },
+        blockers: [],
+      });
+
+      const result = runContract(auditPath);
+      expect(result.status).toBe(1);
+      expect(result.stdout).toContain("production_ready_with_stale_inputs");
+      expect(result.stdout).toContain("input_artifacts_not_fresh_without_stale_input_blocker");
+    });
+  });
+
+  test("rejects fresh aggregate input claims when referenced child artifacts are stale, unversioned, or missing", () => {
+    withTempDir((dir) => {
+      const auditPath = join(dir, "readiness.json");
+      const audit = baseReadinessAudit(dir);
+      const sourceAudit = audit.inputs.inputFreshness.find((entry) => entry.key === "sourceAudit");
+      const opsAudit = audit.inputs.inputFreshness.find((entry) => entry.key === "opsAudit");
+      const routingProbeAudit = audit.inputs.inputFreshness.find((entry) => entry.key === "routingProbeAudit");
+      if (!sourceAudit || !opsAudit || !routingProbeAudit) throw new Error("missing test input freshness fixture");
+
+      writeJson(sourceAudit.path, {
+        generatedAt: "2026-06-17T00:00:00.000Z",
+        repoHead: "old123",
+      });
+      writeJson(opsAudit.path, {
+        generatedAt: "2026-06-17T00:00:00.000Z",
+      });
+      rmSync(routingProbeAudit.path, { force: true });
+      writeJson(auditPath, audit);
+
+      const result = runContract(auditPath);
+      expect(result.status).toBe(1);
+      expect(result.stdout).toContain("input_freshness_child_repo_head_mismatch:sourceAudit");
+      expect(result.stdout).toContain("input_freshness_child_status_mismatch:sourceAudit");
+      expect(result.stdout).toContain("input_freshness_child_repo_head_mismatch:opsAudit");
+      expect(result.stdout).toContain("input_freshness_child_status_mismatch:opsAudit");
+      expect(result.stdout).toContain("input_freshness_child_present_mismatch:routingProbeAudit");
+      expect(result.stdout).toContain("input_artifacts_fresh_with_stale_inputs");
+    });
+  });
+
+  test("rejects fresh aggregate routing probe child claims when generatedAt is stale", () => {
+    withTempDir((dir) => {
+      const auditPath = join(dir, "readiness.json");
+      const audit = baseReadinessAudit(dir);
+      const routingProbeSend = audit.inputs.inputFreshness.find((entry) => entry.key === "routingProbeSend");
+      const routingProbeAudit = audit.inputs.inputFreshness.find((entry) => entry.key === "routingProbeAudit");
+      if (!routingProbeSend || !routingProbeAudit) throw new Error("missing routing probe freshness fixture");
+
+      writeJson(routingProbeSend.path, {
+        generatedAt: "2000-01-01T00:00:00.000Z",
+        repoHead: "head123",
+      });
+      writeJson(routingProbeAudit.path, {
+        generatedAt: "2000-01-01T00:00:00.000Z",
+        repoHead: "head123",
+      });
+      writeJson(auditPath, audit);
+
+      const result = runContract(auditPath);
+      expect(result.status).toBe(1);
+      expect(result.stdout).toContain("input_freshness_child_status_mismatch:routingProbeSend");
+      expect(result.stdout).toContain("input_freshness_child_ready_mismatch:routingProbeSend");
+      expect(result.stdout).toContain("input_freshness_child_timestamp_mismatch:routingProbeSend");
+      expect(result.stdout).toContain("input_freshness_child_timestamp_fresh_mismatch:routingProbeSend");
+      expect(result.stdout).toContain("input_freshness_stale_timestamp_ready:routingProbeSend");
+      expect(result.stdout).toContain("input_freshness_child_status_mismatch:routingProbeAudit");
+      expect(result.stdout).toContain("input_freshness_child_ready_mismatch:routingProbeAudit");
+      expect(result.stdout).toContain("input_freshness_child_timestamp_mismatch:routingProbeAudit");
+      expect(result.stdout).toContain("input_freshness_child_timestamp_fresh_mismatch:routingProbeAudit");
+      expect(result.stdout).toContain("input_freshness_stale_timestamp_ready:routingProbeAudit");
+      expect(result.stdout).toContain("input_artifacts_fresh_with_stale_inputs");
+    });
+  });
+
+  test("rejects fresh aggregate non-routing child claims when generatedAt or checkedAt is stale", () => {
+    withTempDir((dir) => {
+      const auditPath = join(dir, "readiness.json");
+      const audit = baseReadinessAudit(dir);
+      const sourceAudit = audit.inputs.inputFreshness.find((entry) => entry.key === "sourceAudit");
+      const githubRoutingSecrets = audit.inputs.inputFreshness.find((entry) => entry.key === "githubRoutingSecrets");
+      if (!sourceAudit || !githubRoutingSecrets) throw new Error("missing non-routing freshness fixture");
+
+      writeJson(sourceAudit.path, {
+        generatedAt: "2000-01-01T00:00:00.000Z",
+        repoHead: "head123",
+      });
+      writeJson(githubRoutingSecrets.path, {
+        checkedAt: "2000-01-01T00:00:00.000Z",
+        repoHead: "head123",
+      });
+      writeJson(auditPath, audit);
+
+      const result = runContract(auditPath);
+      expect(result.status).toBe(1);
+      expect(result.stdout).toContain("input_freshness_child_status_mismatch:sourceAudit");
+      expect(result.stdout).toContain("input_freshness_child_ready_mismatch:sourceAudit");
+      expect(result.stdout).toContain("input_freshness_child_timestamp_mismatch:sourceAudit");
+      expect(result.stdout).toContain("input_freshness_child_timestamp_fresh_mismatch:sourceAudit");
+      expect(result.stdout).toContain("input_freshness_stale_timestamp_ready:sourceAudit");
+      expect(result.stdout).toContain("input_freshness_child_status_mismatch:githubRoutingSecrets");
+      expect(result.stdout).toContain("input_freshness_child_ready_mismatch:githubRoutingSecrets");
+      expect(result.stdout).toContain("input_freshness_child_timestamp_mismatch:githubRoutingSecrets");
+      expect(result.stdout).toContain("input_freshness_child_timestamp_fresh_mismatch:githubRoutingSecrets");
+      expect(result.stdout).toContain("input_freshness_stale_timestamp_ready:githubRoutingSecrets");
+      expect(result.stdout).toContain("input_artifacts_fresh_with_stale_inputs");
+    });
+  });
+
+  test("rejects routing probe timestampField spoof that hides stale generatedAt", () => {
+    withTempDir((dir) => {
+      const auditPath = join(dir, "readiness.json");
+      const audit = baseReadinessAudit(dir);
+      const spoofedInputFreshness = audit.inputs.inputFreshness.map((entry) =>
+        entry.key === "routingProbeSend" || entry.key === "routingProbeAudit"
+          ? { ...entry, timestampField: "checkedAt", timestamp: freshFixtureTimestamp }
+          : entry);
+      const routingProbeSend = spoofedInputFreshness.find((entry) => entry.key === "routingProbeSend");
+      const routingProbeAudit = spoofedInputFreshness.find((entry) => entry.key === "routingProbeAudit");
+      if (!routingProbeSend || !routingProbeAudit) throw new Error("missing routing probe freshness fixture");
+
+      writeJson(routingProbeSend.path, {
+        generatedAt: "2000-01-01T00:00:00.000Z",
+        checkedAt: freshFixtureTimestamp,
+        repoHead: "head123",
+      });
+      writeJson(routingProbeAudit.path, {
+        generatedAt: "2000-01-01T00:00:00.000Z",
+        checkedAt: freshFixtureTimestamp,
+        repoHead: "head123",
+      });
+      writeJson(auditPath, {
+        ...audit,
+        inputs: {
+          ...audit.inputs,
+          inputFreshness: spoofedInputFreshness,
+        },
+      });
+
+      const result = runContract(auditPath);
+      expect(result.status).toBe(1);
+      expect(result.stdout).toContain("input_freshness_child_timestamp_field_mismatch:routingProbeSend");
+      expect(result.stdout).toContain("input_freshness_child_status_mismatch:routingProbeSend");
+      expect(result.stdout).toContain("input_freshness_child_ready_mismatch:routingProbeSend");
+      expect(result.stdout).toContain("input_freshness_child_timestamp_mismatch:routingProbeSend");
+      expect(result.stdout).toContain("input_freshness_child_timestamp_fresh_mismatch:routingProbeSend");
+      expect(result.stdout).toContain("input_freshness_stale_timestamp_ready:routingProbeSend");
+      expect(result.stdout).toContain("input_freshness_child_timestamp_field_mismatch:routingProbeAudit");
+      expect(result.stdout).toContain("input_freshness_child_status_mismatch:routingProbeAudit");
+      expect(result.stdout).toContain("input_freshness_child_ready_mismatch:routingProbeAudit");
+      expect(result.stdout).toContain("input_freshness_child_timestamp_mismatch:routingProbeAudit");
+      expect(result.stdout).toContain("input_freshness_child_timestamp_fresh_mismatch:routingProbeAudit");
+      expect(result.stdout).toContain("input_freshness_stale_timestamp_ready:routingProbeAudit");
+      expect(result.stdout).toContain("input_artifacts_fresh_with_stale_inputs");
+    });
+  });
+
+  test("rejects freshness entries without matching declared input paths", () => {
+    withTempDir((dir) => {
+      const auditPath = join(dir, "readiness.json");
+      const audit = baseReadinessAudit(dir);
+      delete (audit.inputs as Record<string, unknown>).opsAudit;
+      writeJson(auditPath, audit);
+
+      const result = runContract(auditPath);
+      expect(result.status).toBe(1);
+      expect(result.stdout).toContain("input_freshness_missing_declared_path:opsAudit");
+      expect(result.stdout).toContain("input_artifacts_fresh_with_stale_inputs");
+    });
+  });
+
+  test("rejects stale declared routing probe send artifacts hidden by fresh freshness shadows", () => {
+    withTempDir((dir) => {
+      const auditPath = join(dir, "readiness.json");
+      const staleRoutingProbeSendPath = join(dir, "stale-routing-probe-send.json");
+      const audit = baseReadinessAudit(dir);
+      writeJson(staleRoutingProbeSendPath, {
+        generatedAt: "2026-06-17T00:00:00.000Z",
+        repoHead: "old123",
+      });
+      writeJson(auditPath, {
+        ...audit,
+        inputs: {
+          ...audit.inputs,
+          routingProbeSend: staleRoutingProbeSendPath,
+        },
+      });
+
+      const result = runContract(auditPath);
+      expect(result.status).toBe(1);
+      expect(result.stdout).toContain("input_freshness_path_mismatch:routingProbeSend");
+      expect(result.stdout).toContain("input_freshness_child_repo_head_mismatch:routingProbeSend");
+      expect(result.stdout).toContain("input_freshness_child_status_mismatch:routingProbeSend");
+      expect(result.stdout).toContain("input_artifacts_fresh_with_stale_inputs");
+    });
+  });
+
+  test("aggregate readiness blocks production-ready output from unversioned child artifacts", () => {
+    withTempDir((dir) => {
+      const outPath = join(dir, "readiness.json");
+      const repoHead = gitRevParse("HEAD");
+      const paths = writeReadyAggregateArtifacts(dir, repoHead, {
+        sourceAudit: { repoHead: undefined },
+      });
+
+      const result = runAudit(aggregateArgs(paths, outPath));
+      expect(result.status).toBe(0);
+      const out = readJson<{
+        requirements: { inputArtifactsFresh: boolean };
+        gate: { productionReady: boolean; p0Blockers: string[] };
+        blockers: Array<{
+          id: string;
+          evidence?: { staleInputs?: Array<{ key: string; status: string }> };
+        }>;
+      }>(outPath);
+      expect(out.requirements.inputArtifactsFresh).toBe(false);
+      expect(out.gate.productionReady).toBe(false);
+      expect(out.gate.p0Blockers).toContain("staleInput");
+      const blocker = out.blockers.find((item) => item.id === "staleInput");
+      expect(blocker?.evidence?.staleInputs).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ key: "sourceAudit", status: "missing_repo_head" }),
+        ]),
+      );
+    });
+  });
+
+  test("aggregate readiness blocks production-ready output from stale repoHead child artifacts", () => {
+    withTempDir((dir) => {
+      const outPath = join(dir, "readiness.json");
+      const repoHead = gitRevParse("HEAD");
+      const paths = writeReadyAggregateArtifacts(dir, repoHead, {
+        staffWorkflowAudit: { repoHead: "old123" },
+      });
+
+      const result = runAudit(aggregateArgs(paths, outPath));
+      expect(result.status).toBe(0);
+      const out = readJson<{
+        requirements: { inputArtifactsFresh: boolean };
+        gate: { productionReady: boolean; p0Blockers: string[] };
+        blockers: Array<{
+          id: string;
+          evidence?: { staleInputs?: Array<{ key: string; status: string }> };
+        }>;
+      }>(outPath);
+      expect(out.requirements.inputArtifactsFresh).toBe(false);
+      expect(out.gate.productionReady).toBe(false);
+      expect(out.gate.p0Blockers).toContain("staleInput");
+      const blocker = out.blockers.find((item) => item.id === "staleInput");
+      expect(blocker?.evidence?.staleInputs).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ key: "staffWorkflowAudit", status: "stale_repo_head" }),
+        ]),
+      );
+    });
+  });
+
+  test("aggregate readiness blocks current-repoHead non-routing child artifacts with old timestamps", () => {
+    withTempDir((dir) => {
+      const outPath = join(dir, "readiness.json");
+      const repoHead = gitRevParse("HEAD");
+      const oldTimestamp = "2000-01-01T00:00:00.000Z";
+      const paths = writeReadyAggregateArtifacts(dir, repoHead, {
+        sourceAudit: {
+          generatedAt: oldTimestamp,
+        },
+        githubRoutingSecrets: {
+          checkedAt: oldTimestamp,
+        },
+      });
+
+      const result = runAudit(aggregateArgs(paths, outPath));
+      expect(result.status).toBe(0);
+      const out = readJson<{
+        requirements: { inputArtifactsFresh: boolean };
+        gate: { productionReady: boolean; p0Blockers: string[] };
+        blockers: Array<{
+          id: string;
+          evidence?: { staleInputs?: Array<{ key: string; status: string }> };
+        }>;
+      }>(outPath);
+      expect(out.requirements.inputArtifactsFresh).toBe(false);
+      expect(out.gate.productionReady).toBe(false);
+      expect(out.gate.p0Blockers).toContain("staleInput");
+      const blocker = out.blockers.find((item) => item.id === "staleInput");
+      expect(blocker?.evidence?.staleInputs).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ key: "sourceAudit", status: "stale_timestamp" }),
+          expect.objectContaining({ key: "githubRoutingSecrets", status: "stale_timestamp" }),
+        ]),
+      );
+    });
+  });
+
+  test("aggregate readiness blocks current-repoHead routing proof with old external timestamps", () => {
+    withTempDir((dir) => {
+      const outPath = join(dir, "readiness.json");
+      const repoHead = gitRevParse("HEAD");
+      const oldTimestamp = "2000-01-01T00:00:00.000Z";
+      const oldMarker = "MAILHUB-ROUTING-PROBE-20000101T000000Z";
+      const oldProbePlan = canonicalRoutingProbeAddresses.map((address, index) => ({
+        channelId: `channel-${index}`,
+        label: `Channel ${index}`,
+        address,
+        subject: oldMarker,
+      }));
+      const paths = writeReadyAggregateArtifacts(dir, repoHead, {
+        routingProbeAudit: {
+          generatedAt: oldTimestamp,
+          inputs: { marker: oldMarker },
+        },
+        routingProbeSend: {
+          generatedAt: oldTimestamp,
+          marker: oldMarker,
+          addressProbes: oldProbePlan,
+          sent: oldProbePlan.map(({ channelId, address }, index) => ({
+            channelId,
+            address,
+            accepted: [address],
+            rejected: [],
+            messageId: `fixture-message-${index}`,
+          })),
+        },
+      });
+
+      const result = runAudit(aggregateArgs(paths, outPath));
+      expect(result.status).toBe(0);
+      const out = readJson<{
+        requirements: {
+          inputArtifactsFresh: boolean;
+          routingProofChainReady: boolean;
+          currentSharedGmailRoutingReady: boolean;
+        };
+        gate: { productionReady: boolean; p0Blockers: string[] };
+        blockers: Array<{
+          id: string;
+          evidence?: {
+            staleInputs?: Array<{ key: string; status: string }>;
+            routingProofChain?: { issues?: string[] };
+          };
+        }>;
+      }>(outPath);
+      expect(out.requirements.inputArtifactsFresh).toBe(false);
+      expect(out.requirements.routingProofChainReady).toBe(false);
+      expect(out.requirements.currentSharedGmailRoutingReady).toBe(false);
+      expect(out.gate.productionReady).toBe(false);
+      expect(out.gate.p0Blockers).toEqual(expect.arrayContaining(["staleInput", "current_shared_gmail_routing"]));
+      const staleBlocker = out.blockers.find((item) => item.id === "staleInput");
+      expect(staleBlocker?.evidence?.staleInputs).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ key: "routingProbeAudit", status: "stale_timestamp" }),
+          expect.objectContaining({ key: "routingProbeSend", status: "stale_timestamp" }),
+        ]),
+      );
+      const routingBlocker = out.blockers.find((item) => item.id === "current_shared_gmail_routing");
+      expect(routingBlocker?.evidence?.routingProofChain?.issues).toEqual(
+        expect.arrayContaining([
+          "routing_probe_audit_generated_at_stale",
+          "routing_probe_send_generated_at_stale",
+          "routing_probe_marker_stale",
+        ]),
+      );
+    });
+  });
+
   test("rejects routing blockers without preflight gap evidence", () => {
     withTempDir((dir) => {
       const auditPath = join(dir, "readiness.json");
-      writeJson(auditPath, baseReadinessAudit({
+      writeJson(auditPath, baseReadinessAudit(dir, {
         blockers: [
           {
             id: "current_shared_gmail_routing",
@@ -231,7 +950,7 @@ describe("MailHub readiness contract check", () => {
   test("rejects routing blockers without GitHub secret gap evidence", () => {
     withTempDir((dir) => {
       const auditPath = join(dir, "readiness.json");
-      writeJson(auditPath, baseReadinessAudit({
+      writeJson(auditPath, baseReadinessAudit(dir, {
         blockers: [
           {
             id: "current_shared_gmail_routing",
@@ -267,7 +986,7 @@ describe("MailHub readiness contract check", () => {
   test("rejects rule safety readiness without a config fingerprint", () => {
     withTempDir((dir) => {
       const auditPath = join(dir, "readiness.json");
-      const audit = baseReadinessAudit();
+      const audit = baseReadinessAudit(dir);
       writeJson(auditPath, {
         ...audit,
         requirements: {
@@ -286,7 +1005,7 @@ describe("MailHub readiness contract check", () => {
   test("rejects missing rule config source gate", () => {
     withTempDir((dir) => {
       const auditPath = join(dir, "readiness.json");
-      const audit = baseReadinessAudit();
+      const audit = baseReadinessAudit(dir);
       const requirements = { ...audit.requirements };
       delete (requirements as Record<string, unknown>).currentRuleConfigSourceProductionReady;
       writeJson(auditPath, {
@@ -303,7 +1022,7 @@ describe("MailHub readiness contract check", () => {
   test("rejects missing rule safety env source gate", () => {
     withTempDir((dir) => {
       const auditPath = join(dir, "readiness.json");
-      const audit = baseReadinessAudit();
+      const audit = baseReadinessAudit(dir);
       const requirements = { ...audit.requirements };
       delete (requirements as Record<string, unknown>).currentRuleSafetyEnvSourceExplicit;
       writeJson(auditPath, {
@@ -320,7 +1039,7 @@ describe("MailHub readiness contract check", () => {
   test("rejects production-ready rule safety without explicit env source", () => {
     withTempDir((dir) => {
       const auditPath = join(dir, "readiness.json");
-      const audit = baseReadinessAudit();
+      const audit = baseReadinessAudit(dir);
       writeJson(auditPath, {
         ...audit,
         requirements: {
@@ -361,7 +1080,7 @@ describe("MailHub readiness contract check", () => {
   test("rejects env-file mode that did not load an env file", () => {
     withTempDir((dir) => {
       const auditPath = join(dir, "readiness.json");
-      const audit = baseReadinessAudit();
+      const audit = baseReadinessAudit(dir);
       writeJson(auditPath, {
         ...audit,
         inputs: {
@@ -383,7 +1102,7 @@ describe("MailHub readiness contract check", () => {
   test("rejects non-production rule config source without blocker evidence", () => {
     withTempDir((dir) => {
       const auditPath = join(dir, "readiness.json");
-      const audit = baseReadinessAudit();
+      const audit = baseReadinessAudit(dir);
       writeJson(auditPath, {
         ...audit,
         requirements: {
@@ -402,7 +1121,7 @@ describe("MailHub readiness contract check", () => {
   test("accepts non-production rule config source when explicit blocker evidence is present", () => {
     withTempDir((dir) => {
       const auditPath = join(dir, "readiness.json");
-      const audit = baseReadinessAudit();
+      const audit = baseReadinessAudit(dir);
       writeJson(auditPath, {
         ...audit,
         requirements: {
@@ -438,7 +1157,7 @@ describe("MailHub readiness contract check", () => {
   test("rejects missing staff GitHub config gate", () => {
     withTempDir((dir) => {
       const auditPath = join(dir, "readiness.json");
-      const audit = baseReadinessAudit();
+      const audit = baseReadinessAudit(dir);
       const requirements = { ...audit.requirements };
       delete (requirements as Record<string, unknown>).staffGithubConfigReady;
       writeJson(auditPath, {
@@ -455,7 +1174,7 @@ describe("MailHub readiness contract check", () => {
   test("rejects staff GitHub config gaps without blocker evidence", () => {
     withTempDir((dir) => {
       const auditPath = join(dir, "readiness.json");
-      const audit = baseReadinessAudit();
+      const audit = baseReadinessAudit(dir);
       writeJson(auditPath, {
         ...audit,
         gate: {
@@ -614,7 +1333,7 @@ describe("MailHub readiness contract check", () => {
           MAILHUB_READ_ONLY: "secret",
         },
       });
-      const audit = baseReadinessAudit();
+      const audit = baseReadinessAudit(dir);
       writeJson(auditPath, {
         ...audit,
         requirements: {
@@ -647,7 +1366,7 @@ describe("MailHub readiness contract check", () => {
         missingProductionStaffConfig: ["MAILHUB_ENV"],
         missingSecretConfig: ["NEXTAUTH_SECRET"],
       });
-      const audit = baseReadinessAudit();
+      const audit = baseReadinessAudit(dir);
       writeJson(auditPath, {
         ...audit,
         requirements: {
@@ -694,7 +1413,7 @@ describe("MailHub readiness contract check", () => {
         missingSecretConfig: [],
         semanticIssues: [],
       });
-      const audit = baseReadinessAudit();
+      const audit = baseReadinessAudit(dir);
       writeJson(auditPath, {
         ...audit,
         requirements: {
@@ -729,7 +1448,7 @@ describe("MailHub readiness contract check", () => {
   test("rejects bulk-unsafe default views without unsafe view evidence", () => {
     withTempDir((dir) => {
       const auditPath = join(dir, "readiness.json");
-      writeJson(auditPath, baseReadinessAudit({
+      writeJson(auditPath, baseReadinessAudit(dir, {
         viewSafety: {
           syntaxFailedViews: [],
           manualReviewOnlyViews: ["customer-inquiries"],
@@ -746,7 +1465,7 @@ describe("MailHub readiness contract check", () => {
   test("rejects bulk-unsafe default views that are not marked manual-review only", () => {
     withTempDir((dir) => {
       const auditPath = join(dir, "readiness.json");
-      const audit = baseReadinessAudit();
+      const audit = baseReadinessAudit(dir);
       writeJson(auditPath, {
         ...audit,
         requirements: {
@@ -764,7 +1483,7 @@ describe("MailHub readiness contract check", () => {
   test("rejects validated default views with syntax failure evidence", () => {
     withTempDir((dir) => {
       const auditPath = join(dir, "readiness.json");
-      writeJson(auditPath, baseReadinessAudit({
+      writeJson(auditPath, baseReadinessAudit(dir, {
         viewSafety: {
           syntaxFailedViews: ["invoice-docs"],
           manualReviewOnlyViews: ["invoice-docs"],
@@ -781,7 +1500,7 @@ describe("MailHub readiness contract check", () => {
   test("rejects production-ready claims missing shared routing readiness", () => {
     withTempDir((dir) => {
       const auditPath = join(dir, "readiness.json");
-      writeJson(auditPath, baseReadinessAudit({
+      writeJson(auditPath, baseReadinessAudit(dir, {
         gate: {
           productionReady: true,
           p0Blockers: [],
@@ -799,7 +1518,7 @@ describe("MailHub readiness contract check", () => {
   test("rejects shared routing readiness without address-level routing probe proof", () => {
     withTempDir((dir) => {
       const auditPath = join(dir, "readiness.json");
-      writeJson(auditPath, baseReadinessAudit({
+      writeJson(auditPath, baseReadinessAudit(dir, {
         requirements: {
           sourceCodeCoverageReady: true,
           sourceInventoryReady: true,
@@ -826,6 +1545,46 @@ describe("MailHub readiness contract check", () => {
       expect(result.status).toBe(1);
       expect(result.stdout).toContain("production_ready_without_routing_probe_proof");
       expect(result.stdout).toContain("shared_routing_ready_without_routing_probe_proof");
+    });
+  });
+
+  test("rejects shared routing readiness without sent artifact proof chain", () => {
+    withTempDir((dir) => {
+      const auditPath = join(dir, "readiness.json");
+      const audit = baseReadinessAudit(dir);
+      writeJson(auditPath, {
+        ...audit,
+        requirements: {
+          ...audit.requirements,
+          currentSharedGmailRoutingReady: true,
+          routingProbeReady: true,
+          routingProbeSendReady: false,
+          routingProofChainReady: false,
+          routingProbePreflightReady: true,
+          routingProbeGithubSecretsReady: true,
+          defaultViewsBulkAutomationSafe: true,
+          staffWorkflowPermissionsReady: true,
+          staffGithubConfigReady: true,
+        },
+        viewSafety: {
+          syntaxFailedViews: [],
+          manualReviewOnlyViews: [],
+          bulkUnsafeViews: [],
+        },
+        gate: {
+          productionReady: true,
+          p0Blockers: [],
+          p1Blockers: [],
+        },
+        blockers: [],
+      });
+
+      const result = runContract(auditPath);
+      expect(result.status).toBe(1);
+      expect(result.stdout).toContain("production_ready_without_routing_probe_send_artifact");
+      expect(result.stdout).toContain("production_ready_without_routing_proof_chain");
+      expect(result.stdout).toContain("shared_routing_ready_without_send_artifact");
+      expect(result.stdout).toContain("shared_routing_ready_without_routing_proof_chain");
     });
   });
 });

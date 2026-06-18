@@ -62,6 +62,7 @@ const REQUIRED_SEMANTIC_VARIABLE_VALUES = {
   MAILHUB_READ_ONLY: "1",
 };
 const SEMANTIC_VARIABLE_NAMES = Object.keys(REQUIRED_SEMANTIC_VARIABLE_VALUES);
+const STAFF_EMAIL_LIST_VARIABLE_NAMES = REQUIRED_STAFF_ACCESS;
 const STAFF_GITHUB_SETUP_DRY_RUN_COMMAND = "npm run setup:mailhub-staff-github-config";
 const STAFF_GITHUB_SETUP_APPLY_COMMAND = "npm run setup:mailhub-staff-github-config -- --apply";
 
@@ -202,7 +203,25 @@ function configuredOptional(names, present) {
   return names.filter((name) => present.has(name));
 }
 
-function semanticIssues(variables, secretNames) {
+function splitCsv(raw) {
+  return raw
+    .split(/[,\n]/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function parseEmailList(raw) {
+  return splitCsv(raw).map((entry) => {
+    const match = entry.match(/^(.+?)\s*<(.+?)>$/) || entry.match(/^(\S+@\S+)$/);
+    const email = (match ? (match[2] ?? match[1]) : entry).toLowerCase().trim();
+    return {
+      valid: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email),
+      vtj: email.endsWith("@vtj.co.jp"),
+    };
+  });
+}
+
+function fixedSemanticIssues(variables, secretNames) {
   return Object.entries(REQUIRED_SEMANTIC_VARIABLE_VALUES).flatMap(([name, expected]) => {
     const issues = [];
     const item = variables.find((variable) => variable.name === name);
@@ -211,6 +230,35 @@ function semanticIssues(variables, secretNames) {
     if (typeof item.value !== "string") return [...issues, `${name}_value_unverified`];
     return item.value === expected ? issues : [...issues, `${name}_must_be_${expected}`];
   });
+}
+
+function staffEmailListSemanticIssues(variables, secretNames) {
+  return STAFF_EMAIL_LIST_VARIABLE_NAMES.flatMap((name) => {
+    const issues = [];
+    const item = variables.find((variable) => variable.name === name);
+    if (secretNames.has(name)) issues.push(`${name}_must_be_variable`);
+    if (!item) return issues;
+    if (typeof item.value !== "string") return [...issues, `${name}_value_unverified`];
+
+    const entries = parseEmailList(item.value);
+    if (entries.length === 0) issues.push(`${name}_must_be_non_empty_vtj_email_list`);
+    if (entries.some((entry) => !entry.valid)) issues.push(`${name}_has_invalid_email`);
+    if (entries.some((entry) => entry.valid && !entry.vtj)) issues.push(`${name}_has_non_vtj_email`);
+    return issues;
+  });
+}
+
+function semanticIssues(variables, secretNames) {
+  return [
+    ...fixedSemanticIssues(variables, secretNames),
+    ...staffEmailListSemanticIssues(variables, secretNames),
+  ];
+}
+
+function sensitiveSecretVariableIssues(secretNames, variableNames) {
+  return REQUIRED_SECRET_CONFIG
+    .filter((name) => secretNames.has(name) && variableNames.has(name))
+    .map((name) => `${name}_must_not_be_variable`);
 }
 
 function main() {
@@ -229,7 +277,15 @@ function main() {
   };
   const missingProductionStaffConfig = missingRequirementNames(REQUIRED_PRODUCTION_STAFF_CONFIG, present);
   const missingSecretConfig = missingSecretConfigNames(REQUIRED_SECRET_CONFIG, secretNames);
-  const productionSemanticIssues = semanticIssues(config.variables, secretNames);
+  const sensitiveSecretVariableIssueCodes = sensitiveSecretVariableIssues(secretNames, variableNames);
+  const productionSemanticIssues = [
+    ...semanticIssues(config.variables, secretNames),
+    ...sensitiveSecretVariableIssueCodes,
+  ];
+  const readyForSecretBackedStaffConfig = missingSecretConfig.length === 0 && sensitiveSecretVariableIssueCodes.length === 0;
+  const readyForProductionStaffPreflight = missingProductionStaffConfig.length === 0 &&
+    missingSecretConfig.length === 0 &&
+    productionSemanticIssues.length === 0;
   const presentRequiredConfigNames = presentRequirementNames(REQUIRED_PRODUCTION_STAFF_CONFIG, present);
   const presentRequiredConfigSources = Object.fromEntries(
     flattenRequirements(REQUIRED_PRODUCTION_STAFF_CONFIG)
@@ -250,9 +306,9 @@ function main() {
     missingProductionStaffConfig,
     missingSecretConfig,
     semanticIssues: productionSemanticIssues,
-    readyForSecretBackedStaffConfig: missingSecretConfig.length === 0,
-    readyForProductionStaffPreflight: missingProductionStaffConfig.length === 0 && missingSecretConfig.length === 0 && productionSemanticIssues.length === 0,
-    setupCommands: missingProductionStaffConfig.length === 0 && missingSecretConfig.length === 0 && productionSemanticIssues.length === 0
+    readyForSecretBackedStaffConfig,
+    readyForProductionStaffPreflight,
+    setupCommands: readyForProductionStaffPreflight
       ? []
       : [STAFF_GITHUB_SETUP_DRY_RUN_COMMAND, STAFF_GITHUB_SETUP_APPLY_COMMAND],
     secretGroups: groups,
@@ -264,6 +320,8 @@ function main() {
       "semantic_check:MAILHUB_READ_ONLY value must be 1 before read-only rollout",
       "semantic_check:MAILHUB_CONFIG_STORE and MAILHUB_ACTIVITY_STORE values must be sheets",
       `semantic_source_policy:${SEMANTIC_VARIABLE_NAMES.join(", ")} must be GitHub Actions variables, not secrets`,
+      "semantic_check:MAILHUB_ADMINS and MAILHUB_TEAM_MEMBERS must be non-empty @vtj.co.jp email lists",
+      `semantic_source_policy:${STAFF_EMAIL_LIST_VARIABLE_NAMES.join(", ")} must be GitHub Actions variables, not secrets`,
     ],
     note: "Only GitHub Actions secret names, variable names, updatedAt metadata, and non-secret semantic check results were printed; secret values are never accessible or printed.",
   };

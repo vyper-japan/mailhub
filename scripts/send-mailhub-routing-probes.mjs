@@ -2,7 +2,7 @@
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { spawnSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import nodemailer from "nodemailer";
 
 const repoRoot = process.cwd();
@@ -12,6 +12,29 @@ const defaultOpsAuditPath = join(runDir, "mailhub-operational-confirmations.json
 const defaultOutPath = join(runDir, "mailhub-routing-probe-send.json");
 const defaultRoutingAuditOutPath = join(runDir, "mailhub-routing-probe-audit.json");
 const defaultReadinessOutPath = join(runDir, "mailhub-production-readiness-audit.json");
+const CANONICAL_ROUTING_PROBE_ADDRESSES = [
+  "gopro_y@vtj.co.jp",
+  "gopro_order_yahoo@vtj.co.jp",
+  "vyper_r@vtj.co.jp",
+  "vyper_rakuten@vtj.co.jp",
+  "vyperglobal_y@vtj.co.jp",
+  "ams_vyper@vtj.co.jp",
+  "datacolor_shopify@vtj.co.jp",
+  "ebay@vtj.co.jp",
+];
+
+function currentRepoHead() {
+  try {
+    return execFileSync("git", ["rev-parse", "HEAD"], {
+      cwd: repoRoot,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    }).trim();
+  } catch {
+    return null;
+  }
+}
+
 const REQUIRED_GMAIL_VERIFY_ENV = [
   "GOOGLE_CLIENT_ID",
   "GOOGLE_CLIENT_SECRET",
@@ -106,6 +129,11 @@ function readJson(path) {
   return JSON.parse(readFileSync(path, "utf8"));
 }
 
+function writeResult(path, result) {
+  mkdirSync(dirname(path), { recursive: true });
+  writeFileSync(path, `${JSON.stringify(result, null, 2)}\n`, "utf8");
+}
+
 function targetConfirmations(opsAudit) {
   const unconfirmed = new Set(opsAudit.gate?.currentSharedGmailRoutingUnconfirmed ?? []);
   return (opsAudit.operationalConfirmations ?? [])
@@ -115,6 +143,37 @@ function targetConfirmations(opsAudit) {
       label: item.label,
       addresses: item.addresses ?? [],
     }));
+}
+
+function sorted(values) {
+  return [...values].sort();
+}
+
+function sameStringSet(a, b) {
+  return JSON.stringify(sorted(a)) === JSON.stringify(sorted(b));
+}
+
+function duplicateStrings(values) {
+  const seen = new Set();
+  const duplicates = new Set();
+  for (const value of values) {
+    if (seen.has(value)) duplicates.add(value);
+    seen.add(value);
+  }
+  return [...duplicates].sort();
+}
+
+function canonicalRecipientPlanIssues(addressProbes) {
+  const addresses = addressProbes.map((probe) => probe.address);
+  const issues = [];
+  if (addresses.length !== CANONICAL_ROUTING_PROBE_ADDRESSES.length) {
+    issues.push("routing_probe_send_address_count_not_canonical");
+  }
+  if (duplicateStrings(addresses).length > 0) issues.push("routing_probe_send_duplicate_addresses");
+  if (!sameStringSet(addresses, CANONICAL_ROUTING_PROBE_ADDRESSES)) {
+    issues.push("routing_probe_send_canonical_address_mismatch");
+  }
+  return issues;
 }
 
 function makeMarker() {
@@ -142,9 +201,27 @@ function extractEmailAddress(value) {
   return (angleMatch?.[1] ?? trimmed).trim().toLowerCase();
 }
 
+function isValidMailboxAddress(email) {
+  if (!email) return false;
+  const match = email.match(/^([A-Z0-9.!#$%&'*+/=?^_`{|}~-]+)@([A-Z0-9-]+(?:\.[A-Z0-9-]+)+)$/i);
+  if (!match) return false;
+  const [, local, domain] = match;
+  if (local.startsWith(".") || local.endsWith(".") || local.includes("..")) return false;
+  return domain.split(".").every((label) => label && !label.startsWith("-") && !label.endsWith("-"));
+}
+
+function isValidEmailAddress(value) {
+  const trimmed = value?.trim() || "";
+  if (!trimmed) return false;
+  if ((trimmed.includes("<") || trimmed.includes(">")) && !/^[^<>]*<[^<>]+>$/.test(trimmed)) {
+    return false;
+  }
+  return isValidMailboxAddress(extractEmailAddress(trimmed));
+}
+
 function emailDomain(value) {
   const email = extractEmailAddress(value);
-  return email.includes("@") ? email.split("@").pop() : null;
+  return isValidMailboxAddress(email) ? email.split("@").pop() : null;
 }
 
 function isVtjAddress(value) {
@@ -153,7 +230,7 @@ function isVtjAddress(value) {
 
 function maskEmail(value) {
   const email = extractEmailAddress(value);
-  if (!email) return null;
+  if (!isValidMailboxAddress(email)) return null;
   return email.replace(/^(.).+(@.+)$/, "$1***$2");
 }
 
@@ -166,6 +243,7 @@ function smtpPreflightFromEnv({ allowVtjFrom }) {
   ];
   const missingRequiredEnv = requiredKeys.filter((key) => !process.env[key]?.trim());
   const from = process.env.MAILHUB_PROBE_FROM?.trim() || "";
+  const fromValid = isValidEmailAddress(from);
   const fromDomain = emailDomain(from);
   const fromIsVtj = isVtjAddress(from);
   const rawPort = process.env.MAILHUB_PROBE_SMTP_PORT?.trim() || "587";
@@ -173,8 +251,9 @@ function smtpPreflightFromEnv({ allowVtjFrom }) {
   const portValid = Number.isInteger(port) && port > 0 && port <= 65535;
   const rawSecure = process.env.MAILHUB_PROBE_SMTP_SECURE?.trim().toLowerCase();
   const secureValid = !rawSecure || rawSecure === "true" || rawSecure === "false";
-  const fromAllowedForSend = Boolean(from) && (!fromIsVtj || allowVtjFrom);
+  const fromAllowedForSend = fromValid && (!fromIsVtj || allowVtjFrom);
   const warnings = [];
+  if (from && !fromValid) warnings.push("invalid_MAILHUB_PROBE_FROM");
   if (fromIsVtj) warnings.push("vtj_from_not_external_route_proof");
   if (allowVtjFrom && fromIsVtj) warnings.push("allow_vtj_from_is_smoke_only_not_production_proof");
   if (!portValid) warnings.push("invalid_MAILHUB_PROBE_SMTP_PORT");
@@ -192,6 +271,7 @@ function smtpPreflightFromEnv({ allowVtjFrom }) {
     missingRequiredEnv,
     from: maskEmail(from),
     fromDomain,
+    fromValid,
     fromIsVtj,
     allowVtjFrom,
     portValid,
@@ -249,16 +329,6 @@ async function verifyAfterSend(args, marker) {
     await sleep(args.pollSeconds * 1000);
   } while (true);
 
-  runScript("audit-mailhub-production-readiness.mjs", [
-    "--out",
-    args.readinessOut,
-    "--ops-audit",
-    args.opsAudit,
-    "--routing-probe-audit",
-    args.routingAuditOut,
-  ]);
-  const readinessAudit = readJson(args.readinessOut);
-
   return {
     status: matched ? "matched" : "timeout_or_missing",
     waitSeconds: args.waitSeconds,
@@ -267,6 +337,50 @@ async function verifyAfterSend(args, marker) {
     routingAuditOut: args.routingAuditOut,
     readinessOut: args.readinessOut,
     allExpectedAddressesConfirmed: Boolean(finalAudit?.gate?.allExpectedAddressesConfirmed),
+  };
+}
+
+function regenerateReadinessAfterSend(args) {
+  runScript("audit-mailhub-production-readiness.mjs", [
+    "--out",
+    args.readinessOut,
+    "--ops-audit",
+    args.opsAudit,
+    "--routing-probe-audit",
+    args.routingAuditOut,
+    "--routing-probe-send",
+    args.out,
+  ]);
+  return readJson(args.readinessOut);
+}
+
+function buildResult({ args, opsAudit, marker, generatedAt, from, smtpPreflight, addressProbes, sent, verification }) {
+  return {
+    generatedAt,
+    repoHead: currentRepoHead(),
+    mode: args.send ? "sent" : args.preflight ? "preflight" : "dry_run",
+    marker,
+    inputs: {
+      opsAudit: args.opsAudit,
+      opsAuditGeneratedAt: opsAudit.generatedAt ?? null,
+      from: maskEmail(from),
+      allowVtjFrom: args.allowVtjFrom,
+      preflight: args.preflight,
+      verifyAfterSend: args.verifyAfterSend,
+    },
+    smtpPreflight,
+    probeCount: addressProbes.length,
+    addressProbes,
+    sent,
+    verification,
+    nextVerificationCommand: `npm run audit:routing-probes -- --marker ${marker} --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-audit.json`,
+    nextReadinessCommand: `npm run audit:mailhub-readiness -- --out .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json`,
+  };
+}
+
+function addReadinessGateToVerification(verification, readinessAudit) {
+  return {
+    ...verification,
     productionReady: Boolean(readinessAudit.gate?.productionReady),
     p0Blockers: readinessAudit.gate?.p0Blockers ?? [],
   };
@@ -275,6 +389,7 @@ async function verifyAfterSend(args, marker) {
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   const marker = args.marker.trim() || makeMarker();
+  const generatedAt = new Date().toISOString();
   const opsAudit = readJson(args.opsAudit);
   const targets = targetConfirmations(opsAudit);
   const addressProbes = targets.flatMap((target) =>
@@ -297,8 +412,15 @@ async function main() {
     }
   }
   if (args.send && !from) throw new Error("missing_env:MAILHUB_PROBE_FROM");
+  if (args.send && !isValidEmailAddress(from)) throw new Error("invalid_env:MAILHUB_PROBE_FROM");
   if (args.send && isVtjAddress(from) && !args.allowVtjFrom) {
     throw new Error("vtj_from_not_external_route_proof: use a non-vtj external sender or pass --allow-vtj-from for a non-production-proof smoke");
+  }
+  if (args.send) {
+    const canonicalIssues = canonicalRecipientPlanIssues(addressProbes);
+    if (canonicalIssues.length > 0) {
+      throw new Error(`non_canonical_routing_probe_recipients:${canonicalIssues.join(",")}`);
+    }
   }
 
   const sent = [];
@@ -330,32 +452,35 @@ async function main() {
     }
     if (args.verifyAfterSend) {
       verification = await verifyAfterSend(args, marker);
+      writeResult(args.out, buildResult({
+        args,
+        opsAudit,
+        marker,
+        generatedAt,
+        from,
+        smtpPreflight,
+        addressProbes,
+        sent,
+        verification,
+      }));
+      const readinessAudit = regenerateReadinessAfterSend(args);
+      verification = addReadinessGateToVerification(verification, readinessAudit);
     }
   }
 
-  const result = {
-    generatedAt: new Date().toISOString(),
-    mode: args.send ? "sent" : args.preflight ? "preflight" : "dry_run",
+  const result = buildResult({
+    args,
+    opsAudit,
     marker,
-    inputs: {
-      opsAudit: args.opsAudit,
-      opsAuditGeneratedAt: opsAudit.generatedAt ?? null,
-      from: maskEmail(from),
-      allowVtjFrom: args.allowVtjFrom,
-      preflight: args.preflight,
-      verifyAfterSend: args.verifyAfterSend,
-    },
+    generatedAt,
+    from,
     smtpPreflight,
-    probeCount: addressProbes.length,
     addressProbes,
     sent,
     verification,
-    nextVerificationCommand: `npm run audit:routing-probes -- --marker ${marker} --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-audit.json`,
-    nextReadinessCommand: `npm run audit:mailhub-readiness -- --out .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json`,
-  };
+  });
 
-  mkdirSync(dirname(args.out), { recursive: true });
-  writeFileSync(args.out, `${JSON.stringify(result, null, 2)}\n`, "utf8");
+  writeResult(args.out, result);
   console.log(JSON.stringify({
     outPath: args.out,
     mode: result.mode,

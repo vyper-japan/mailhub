@@ -9,6 +9,18 @@ const repoRoot = process.cwd();
 const defaultOpsAuditPath = join(repoRoot, ".ai-runs", "mailhub-next-phase", "mailhub-operational-confirmations.json");
 const defaultOutPath = join(repoRoot, ".ai-runs", "mailhub-next-phase", "mailhub-gws-routing-audit.json");
 
+function currentRepoHead() {
+  try {
+    return execFileSync("git", ["rev-parse", "HEAD"], {
+      cwd: repoRoot,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    }).trim();
+  } catch {
+    return null;
+  }
+}
+
 function parseArgs(argv) {
   const out = {
     opsAudit: defaultOpsAuditPath,
@@ -123,6 +135,7 @@ async function main() {
   const allGroupsHaveMailhubMember = groupAudits.every((item) => item.mailhubMember);
   const result = {
     generatedAt: new Date().toISOString(),
+    repoHead: currentRepoHead(),
     inputs: {
       opsAudit: args.opsAudit,
       domain: args.domain,

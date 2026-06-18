@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, utimesSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { join, resolve } from "path";
 import { spawnSync } from "child_process";
@@ -6,6 +6,7 @@ import { describe, expect, test } from "vitest";
 
 const staffAuditPath = resolve(process.cwd(), "scripts/audit-mailhub-staff-workflow.mjs");
 const staffContractPath = resolve(process.cwd(), "scripts/check-mailhub-staff-workflow-contract.mjs");
+const freshFixtureTimestamp = new Date().toISOString();
 
 function withTempDir<T>(fn: (dir: string) => T): T {
   const dir = mkdtempSync(join(tmpdir(), "mailhub-staff-workflow-"));
@@ -34,10 +35,13 @@ function writePng(path: string) {
   writeFileSync(path, validPng);
 }
 
-function writeActivityCsv(path: string, overrides: Partial<{ actor: string; action: string; messageId: string }> = {}) {
+function writeActivityCsv(
+  path: string,
+  overrides: Partial<{ actor: string; action: string; messageId: string; timeISO: string }> = {},
+) {
   writeFileSync(path, [
     "timeISO,actor,action,messageId,subject,channel,status,label,metaJSON,reason",
-    `2026-06-17T12:01:00.000Z,${overrides.actor ?? "maki@vtj.co.jp"},${overrides.action ?? "assign"},${overrides.messageId ?? "msg-001"},Pilot,stores,ok,MailHub/Todo,{},pilot`,
+    `${overrides.timeISO ?? freshFixtureTimestamp},${overrides.actor ?? "maki@vtj.co.jp"},${overrides.action ?? "assign"},${overrides.messageId ?? "msg-001"},Pilot,stores,ok,MailHub/Todo,{},pilot`,
   ].join("\n"), "utf8");
 }
 
@@ -77,7 +81,7 @@ function writeProductionEvidence(dir: string) {
   writeActivityCsv(join(dir, "activity-20260617-prod.csv"));
   writeJson(join(dir, "staff-workflow-evidence-manifest.json"), {
     schema: "mailhub.staff-workflow-evidence.v1",
-    capturedAt: "2026-06-17T12:00:00.000Z",
+    capturedAt: freshFixtureTimestamp,
     capturedBy: "admin@vtj.co.jp",
     environment: "production",
     readOnlyRollout: {
@@ -267,6 +271,259 @@ describe("MailHub staff workflow audit", () => {
     });
   });
 
+  test("rejects controlled write CSV evidence when the matching row timestamp is stale", () => {
+    withTempDir((dir) => {
+      const outPath = join(dir, "staff.json");
+      const evidenceDir = join(dir, "prod");
+      const assigneesPath = join(dir, "assignees.json");
+      writeProductionEvidence(evidenceDir);
+      writeActivityCsv(join(evidenceDir, "activity-20260617-prod.csv"), {
+        timeISO: "2000-01-01T00:00:00.000Z",
+      });
+      writeJson(assigneesPath, [{ email: "yuka@vtj.co.jp", displayName: "Yuka" }]);
+
+      const result = runNodeScript(staffAuditPath, [
+        "--out",
+        outPath,
+        "--prod-evidence-dir",
+        evidenceDir,
+        "--assignees",
+        assigneesPath,
+      ], productionEnv);
+
+      expect(result.status).toBe(0);
+      const artifact = JSON.parse(readFileSync(outPath, "utf8")) as {
+        requirements: {
+          writePilotEvidenceReady: boolean;
+          controlledWritePilotReady: boolean;
+          staffWorkflowPermissionsReady: boolean;
+        };
+        evidence: {
+          writePilotEvidenceIssues: string[];
+          manifest: { writePilotManifestReady: boolean };
+        };
+        gate: { staffWorkflowPermissionsReady: boolean };
+      };
+      expect(artifact.requirements.writePilotEvidenceReady).toBe(false);
+      expect(artifact.requirements.controlledWritePilotReady).toBe(false);
+      expect(artifact.requirements.staffWorkflowPermissionsReady).toBe(false);
+      expect(artifact.evidence.manifest.writePilotManifestReady).toBe(false);
+      expect(artifact.evidence.writePilotEvidenceIssues).toContain(
+        "manifest:activity_csv_stale_controlled_write_time:activity-20260617-prod.csv:stale_timestamp",
+      );
+      expect(artifact.gate.staffWorkflowPermissionsReady).toBe(false);
+    });
+  });
+
+  test("rejects staff evidence manifest captured outside the freshness window", () => {
+    withTempDir((dir) => {
+      const outPath = join(dir, "staff.json");
+      const evidenceDir = join(dir, "prod");
+      const assigneesPath = join(dir, "assignees.json");
+      writeProductionEvidence(evidenceDir);
+      const manifestPath = join(evidenceDir, "staff-workflow-evidence-manifest.json");
+      const manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as { capturedAt: string };
+      manifest.capturedAt = "2000-01-01T00:00:00.000Z";
+      writeJson(manifestPath, manifest);
+      writeJson(assigneesPath, [{ email: "yuka@vtj.co.jp", displayName: "Yuka" }]);
+
+      const result = runNodeScript(staffAuditPath, [
+        "--out",
+        outPath,
+        "--prod-evidence-dir",
+        evidenceDir,
+        "--assignees",
+        assigneesPath,
+      ], productionEnv);
+
+      expect(result.status).toBe(0);
+      const artifact = JSON.parse(readFileSync(outPath, "utf8")) as {
+        repoHead: string;
+        requirements: {
+          readOnlyRolloutEvidenceReady: boolean;
+          writePilotEvidenceReady: boolean;
+          readOnlyRolloutReady: boolean;
+          controlledWritePilotReady: boolean;
+          staffWorkflowPermissionsReady: boolean;
+        };
+        evidence: {
+          readOnlyEvidenceIssues: string[];
+          writePilotEvidenceIssues: string[];
+          manifest: {
+            manifestCapturedAtFresh: boolean;
+            readOnlyManifestReady: boolean;
+            writePilotManifestReady: boolean;
+          };
+        };
+        blockers: unknown[];
+        gate: {
+          readOnlyRolloutReady: boolean;
+          controlledWritePilotReady: boolean;
+          staffWorkflowPermissionsReady: boolean;
+          p0Blockers: string[];
+          p1Blockers: string[];
+        };
+      };
+      expect(artifact.requirements.readOnlyRolloutEvidenceReady).toBe(false);
+      expect(artifact.requirements.writePilotEvidenceReady).toBe(false);
+      expect(artifact.evidence.manifest.manifestCapturedAtFresh).toBe(false);
+      expect(artifact.evidence.manifest.readOnlyManifestReady).toBe(false);
+      expect(artifact.evidence.manifest.writePilotManifestReady).toBe(false);
+      expect(artifact.evidence.readOnlyEvidenceIssues).toContain("manifest:stale_manifest_captured_at");
+      expect(artifact.evidence.writePilotEvidenceIssues).toContain("manifest:stale_manifest_captured_at");
+      expect(artifact.gate.staffWorkflowPermissionsReady).toBe(false);
+
+      const contract = runNodeScript(staffContractPath, [
+        "--audit",
+        outPath,
+        "--repo-head",
+        artifact.repoHead,
+      ]);
+      expect(contract.status).toBe(0);
+
+      artifact.requirements.readOnlyRolloutEvidenceReady = true;
+      artifact.requirements.writePilotEvidenceReady = true;
+      artifact.requirements.readOnlyRolloutReady = true;
+      artifact.requirements.controlledWritePilotReady = true;
+      artifact.requirements.staffWorkflowPermissionsReady = true;
+      artifact.evidence.manifest.manifestCapturedAtFresh = true;
+      artifact.evidence.manifest.readOnlyManifestReady = true;
+      artifact.evidence.manifest.writePilotManifestReady = true;
+      artifact.blockers = [];
+      artifact.gate.readOnlyRolloutReady = true;
+      artifact.gate.controlledWritePilotReady = true;
+      artifact.gate.staffWorkflowPermissionsReady = true;
+      artifact.gate.p0Blockers = [];
+      artifact.gate.p1Blockers = [];
+      writeJson(outPath, artifact);
+
+      const tamperedContract = runNodeScript(staffContractPath, [
+        "--audit",
+        outPath,
+        "--repo-head",
+        artifact.repoHead,
+      ]);
+      expect(tamperedContract.status).toBe(1);
+      expect(tamperedContract.stdout).toContain("stale_manifest_captured_at");
+      expect(tamperedContract.stdout).toContain("manifest_captured_at_fresh_mismatch");
+      expect(tamperedContract.stdout).toContain("readonly_evidence_ready_with_stale_manifest_captured_at");
+      expect(tamperedContract.stdout).toContain("write_evidence_ready_with_stale_manifest_captured_at");
+    });
+  });
+
+  test("rejects fresh staff evidence manifest when referenced proof file mtimes are stale", () => {
+    withTempDir((dir) => {
+      const outPath = join(dir, "staff.json");
+      const evidenceDir = join(dir, "prod");
+      const assigneesPath = join(dir, "assignees.json");
+      writeProductionEvidence(evidenceDir);
+      const staleTime = new Date(Date.now() - 48 * 60 * 60 * 1000);
+      utimesSync(join(evidenceDir, "mailhub-meta-topbar-readonly.png"), staleTime, staleTime);
+      utimesSync(join(evidenceDir, "activity-20260617-prod.csv"), staleTime, staleTime);
+      writeJson(assigneesPath, [{ email: "yuka@vtj.co.jp", displayName: "Yuka" }]);
+
+      const result = runNodeScript(staffAuditPath, [
+        "--out",
+        outPath,
+        "--prod-evidence-dir",
+        evidenceDir,
+        "--assignees",
+        assigneesPath,
+      ], productionEnv);
+
+      expect(result.status).toBe(0);
+      const artifact = JSON.parse(readFileSync(outPath, "utf8")) as {
+        repoHead: string;
+        requirements: {
+          readOnlyRolloutEvidenceReady: boolean;
+          writePilotEvidenceReady: boolean;
+          readOnlyRolloutReady: boolean;
+          controlledWritePilotReady: boolean;
+          staffWorkflowPermissionsReady: boolean;
+        };
+        evidence: {
+          readOnlyEvidenceIssues: string[];
+          writePilotEvidenceIssues: string[];
+          manifest: {
+            manifestCapturedAtFresh: boolean;
+            readOnlyManifestReady: boolean;
+            writePilotManifestReady: boolean;
+            evidenceFileFreshness: {
+              readOnly: Array<{ field: string; filename: string; fresh: boolean; status: string }>;
+              writePilot: Array<{ field: string; filename: string; fresh: boolean; status: string }>;
+            };
+          };
+        };
+        blockers: unknown[];
+        gate: { staffWorkflowPermissionsReady: boolean; p1Blockers: string[] };
+      };
+      expect(artifact.evidence.manifest.manifestCapturedAtFresh).toBe(true);
+      expect(artifact.requirements.readOnlyRolloutEvidenceReady).toBe(false);
+      expect(artifact.requirements.writePilotEvidenceReady).toBe(false);
+      expect(artifact.evidence.manifest.readOnlyManifestReady).toBe(false);
+      expect(artifact.evidence.manifest.writePilotManifestReady).toBe(false);
+      expect(artifact.evidence.readOnlyEvidenceIssues).toContain(
+        "manifest:stale_evidence_file_mtime_readonly_mailhub_topbar:mailhub-meta-topbar-readonly.png",
+      );
+      expect(artifact.evidence.writePilotEvidenceIssues).toContain(
+        "manifest:stale_evidence_file_mtime_write_activity_csv:activity-20260617-prod.csv",
+      );
+      expect(artifact.evidence.manifest.evidenceFileFreshness.readOnly).toEqual(expect.arrayContaining([
+        expect.objectContaining({
+          field: "readonly_mailhub_topbar",
+          filename: "mailhub-meta-topbar-readonly.png",
+          fresh: false,
+          status: "stale_timestamp",
+        }),
+      ]));
+      expect(artifact.evidence.manifest.evidenceFileFreshness.writePilot).toEqual(expect.arrayContaining([
+        expect.objectContaining({
+          field: "write_activity_csv",
+          filename: "activity-20260617-prod.csv",
+          fresh: false,
+          status: "stale_timestamp",
+        }),
+      ]));
+      expect(artifact.gate.staffWorkflowPermissionsReady).toBe(false);
+      expect(artifact.gate.p1Blockers).toEqual(expect.arrayContaining([
+        "readonly_evidence_missing",
+        "write_pilot_evidence_missing",
+      ]));
+
+      const contract = runNodeScript(staffContractPath, [
+        "--audit",
+        outPath,
+        "--repo-head",
+        artifact.repoHead,
+      ]);
+      expect(contract.status).toBe(0);
+
+      artifact.requirements.readOnlyRolloutEvidenceReady = true;
+      artifact.requirements.writePilotEvidenceReady = true;
+      artifact.requirements.readOnlyRolloutReady = true;
+      artifact.requirements.controlledWritePilotReady = true;
+      artifact.requirements.staffWorkflowPermissionsReady = true;
+      artifact.evidence.readOnlyEvidenceIssues = [];
+      artifact.evidence.writePilotEvidenceIssues = [];
+      artifact.evidence.manifest.readOnlyManifestReady = true;
+      artifact.evidence.manifest.writePilotManifestReady = true;
+      artifact.blockers = [];
+      artifact.gate.staffWorkflowPermissionsReady = true;
+      artifact.gate.p1Blockers = [];
+      writeJson(outPath, artifact);
+
+      const tamperedContract = runNodeScript(staffContractPath, [
+        "--audit",
+        outPath,
+        "--repo-head",
+        artifact.repoHead,
+      ]);
+      expect(tamperedContract.status).toBe(1);
+      expect(tamperedContract.stdout).toContain("readonly_evidence_ready_with_stale_file_mtime");
+      expect(tamperedContract.stdout).toContain("write_evidence_ready_with_stale_file_mtime");
+    });
+  });
+
   test("contract rejects ready artifact when staff access allowlist is not ready", () => {
     withTempDir((dir) => {
       const outPath = join(dir, "staff.json");
@@ -436,7 +693,7 @@ describe("MailHub staff workflow audit", () => {
       writePng(join(evidenceDir, "gmail-msg-001-done.png"));
       writeJson(join(evidenceDir, "staff-workflow-evidence-manifest.json"), {
         schema: "mailhub.staff-workflow-evidence.v1",
-        capturedAt: "2026-06-17T12:00:00.000Z",
+        capturedAt: freshFixtureTimestamp,
         capturedBy: "admin@vtj.co.jp",
         environment: "production",
         readOnlyRollout: {
@@ -597,7 +854,7 @@ describe("MailHub staff workflow audit", () => {
       writeFileSync(join(evidenceDir, "wrong-readonly.png"), "evidence", "utf8");
       writeJson(join(evidenceDir, "staff-workflow-evidence-manifest.json"), {
         schema: "mailhub.staff-workflow-evidence.v1",
-        capturedAt: "2026-06-17T12:00:00.000Z",
+        capturedAt: freshFixtureTimestamp,
         capturedBy: "admin@vtj.co.jp",
         environment: "production",
         readOnlyRollout: {

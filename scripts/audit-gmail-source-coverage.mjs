@@ -2,6 +2,7 @@
 
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
+import { execFileSync } from "node:child_process";
 import vm from "node:vm";
 import ts from "typescript";
 import { google } from "googleapis";
@@ -10,6 +11,18 @@ const repoRoot = process.cwd();
 const envPath = join(repoRoot, ".env.local");
 const channelsPath = join(repoRoot, "lib", "channels.ts");
 const defaultOutPath = join(repoRoot, ".mailhub", "gmail-source-coverage-audit.json");
+
+function currentRepoHead() {
+  try {
+    return execFileSync("git", ["rev-parse", "HEAD"], {
+      cwd: repoRoot,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    }).trim();
+  } catch {
+    return null;
+  }
+}
 
 function loadEnvFile(path) {
   if (!existsSync(path)) return;
@@ -261,6 +274,7 @@ function buildAudit(channels, probes, sharedInboxEmail, zeroEstimateFollowups) {
 
   return {
     generatedAt: new Date().toISOString(),
+    repoHead: currentRepoHead(),
     sharedInboxEmailMasked: sharedInboxEmail.replace(/^(.{0,3}).*(@.*)$/, (_m, a, b) => `${a}***${b}`),
     sourceChannelCount: sourceChannels.length,
     sourceAddressCount: addressCount,

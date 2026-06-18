@@ -46,6 +46,7 @@ const REQUIRED_SEMANTIC_VARIABLE_VALUES = {
   MAILHUB_READ_ONLY: "1",
 };
 const SEMANTIC_VARIABLE_NAMES = Object.keys(REQUIRED_SEMANTIC_VARIABLE_VALUES);
+const STAFF_EMAIL_LIST_VARIABLE_NAMES = REQUIRED_STAFF_ACCESS;
 const VALID_SOURCES = new Set(["github_actions_config", "env", "json"]);
 const STAFF_GITHUB_SETUP_COMMANDS = [
   "npm run setup:mailhub-staff-github-config",
@@ -140,6 +141,21 @@ function validateGroup({ artifact, groupName, required, errors }) {
   return { presentNames, missingNames, ready: group.ready === true };
 }
 
+function isKnownSemanticIssue(issue) {
+  if (REQUIRED_SECRET_CONFIG.some((name) => issue === `${name}_must_not_be_variable`)) return true;
+
+  const fixedSemanticIssue = Object.entries(REQUIRED_SEMANTIC_VARIABLE_VALUES).some(([name, expected]) =>
+    issue === `${name}_value_unverified` || issue === `${name}_must_be_${expected}` || issue === `${name}_must_be_variable`);
+  if (fixedSemanticIssue) return true;
+
+  return STAFF_EMAIL_LIST_VARIABLE_NAMES.some((name) =>
+    issue === `${name}_value_unverified` ||
+    issue === `${name}_must_be_variable` ||
+    issue === `${name}_must_be_non_empty_vtj_email_list` ||
+    issue === `${name}_has_invalid_email` ||
+    issue === `${name}_has_non_vtj_email`);
+}
+
 function main() {
   const args = parseArgs(process.argv.slice(2));
   const artifact = readJson(args.artifact);
@@ -161,6 +177,8 @@ function main() {
   const expectedMissing = expectedRequired.filter((name) => !presentRequiredConfigNames.includes(name));
   const expectedMissingSecrets = REQUIRED_SECRET_CONFIG.filter((name) => artifact.presentRequiredConfigSources?.[name] !== "secret");
   const sourceMap = objectValue(artifact.presentRequiredConfigSources);
+  const sensitiveSecretVariableIssueNames = REQUIRED_SECRET_CONFIG.filter((name) =>
+    semanticIssues.includes(`${name}_must_not_be_variable`));
   const artifactRepoHead = typeof artifact.repoHead === "string" ? artifact.repoHead : null;
 
   if (typeof artifact.repo !== "string" || artifact.repo.trim() === "") errors.push("missing_repo");
@@ -184,11 +202,12 @@ function main() {
   if (!sameArray(missingProductionStaffConfig, expectedMissing)) errors.push("missing_production_staff_config_mismatch");
   if (!sameArray(missingSecretConfig, expectedMissingSecrets)) errors.push("missing_secret_config_mismatch");
   for (const issue of semanticIssues) {
-    const matched = Object.entries(REQUIRED_SEMANTIC_VARIABLE_VALUES).some(([name, expected]) =>
-      issue === `${name}_value_unverified` || issue === `${name}_must_be_${expected}` || issue === `${name}_must_be_variable`);
-    if (!matched) errors.push(`unknown_semantic_issue:${issue}`);
+    if (!isKnownSemanticIssue(issue)) errors.push(`unknown_semantic_issue:${issue}`);
   }
-  if ((artifact.readyForSecretBackedStaffConfig === true) !== (missingSecretConfig.length === 0)) {
+  for (const name of sensitiveSecretVariableIssueNames) {
+    errors.push(`sensitive_secret_config_present_as_variable:${name}`);
+  }
+  if ((artifact.readyForSecretBackedStaffConfig === true) !== (missingSecretConfig.length === 0 && sensitiveSecretVariableIssueNames.length === 0)) {
     errors.push("secret_backed_staff_config_ready_mismatch");
   }
   if ((artifact.readyForProductionStaffPreflight === true) !== (missingProductionStaffConfig.length === 0 && missingSecretConfig.length === 0 && semanticIssues.length === 0)) {
@@ -221,6 +240,9 @@ function main() {
     }
     if (SEMANTIC_VARIABLE_NAMES.includes(name) && source !== "variable") {
       errors.push(`semantic_config_non_variable_source:${name}`);
+    }
+    if (STAFF_EMAIL_LIST_VARIABLE_NAMES.includes(name) && source !== "variable") {
+      errors.push(`staff_access_config_non_variable_source:${name}`);
     }
   }
 

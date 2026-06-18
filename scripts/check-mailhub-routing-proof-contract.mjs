@@ -13,8 +13,20 @@ const defaultPaths = {
   readiness: join(runDir, "mailhub-production-readiness-audit.json"),
 };
 
-const EXPECTED_TARGET_ADDRESS_COUNT = 8;
+const CANONICAL_ROUTING_PROBE_ADDRESSES = [
+  "gopro_y@vtj.co.jp",
+  "gopro_order_yahoo@vtj.co.jp",
+  "vyper_r@vtj.co.jp",
+  "vyper_rakuten@vtj.co.jp",
+  "vyperglobal_y@vtj.co.jp",
+  "ams_vyper@vtj.co.jp",
+  "datacolor_shopify@vtj.co.jp",
+  "ebay@vtj.co.jp",
+];
+const EXPECTED_TARGET_ADDRESS_COUNT = CANONICAL_ROUTING_PROBE_ADDRESSES.length;
 const ROUTING_BLOCKER_ID = "current_shared_gmail_routing";
+const ROUTING_PROOF_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+const ROUTING_PROBE_MARKER_RE = /^MAILHUB-ROUTING-PROBE-(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z$/;
 
 function parseArgs(argv) {
   const out = { ...defaultPaths };
@@ -64,14 +76,66 @@ function sorted(values) {
   return [...values].sort();
 }
 
+function sameStringSet(a, b) {
+  return sameArray(sorted(a), sorted(b));
+}
+
 function isProbeMarker(value) {
-  return typeof value === "string" && /^MAILHUB-ROUTING-PROBE-\d{8}T\d{6}Z$/.test(value);
+  return probeMarkerDate(value) !== null;
+}
+
+function probeMarkerDate(value) {
+  if (typeof value !== "string") return null;
+  const match = value.match(ROUTING_PROBE_MARKER_RE);
+  if (!match) return null;
+  const [, year, month, day, hour, minute, second] = match.map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day, hour, minute, second));
+  const valid =
+    date.getUTCFullYear() === year &&
+    date.getUTCMonth() === month - 1 &&
+    date.getUTCDate() === day &&
+    date.getUTCHours() === hour &&
+    date.getUTCMinutes() === minute &&
+    date.getUTCSeconds() === second;
+  return valid ? date : null;
+}
+
+function timestampFreshness(value, maxAgeMs, nowMs = Date.now()) {
+  if (typeof value !== "string" || value.length === 0) {
+    return { fresh: false, status: "missing_timestamp", ageMs: null, maxAgeMs };
+  }
+  const timestampMs = Date.parse(value);
+  if (!Number.isFinite(timestampMs)) {
+    return { fresh: false, status: "invalid_timestamp", ageMs: null, maxAgeMs };
+  }
+  const ageMs = nowMs - timestampMs;
+  if (ageMs < 0) return { fresh: false, status: "future_timestamp", ageMs, maxAgeMs };
+  if (ageMs > maxAgeMs) return { fresh: false, status: "stale_timestamp", ageMs, maxAgeMs };
+  return { fresh: true, status: "fresh", ageMs, maxAgeMs };
+}
+
+function markerTimestampFreshness(marker, maxAgeMs, nowMs = Date.now()) {
+  const markerDate = probeMarkerDate(marker);
+  if (!markerDate) return { fresh: false, status: "invalid_timestamp", ageMs: null, maxAgeMs };
+  return timestampFreshness(markerDate.toISOString(), maxAgeMs, nowMs);
+}
+
+function proofTimestampIssue(label, freshness) {
+  if (freshness.fresh) return null;
+  const suffix = {
+    missing_timestamp: "missing",
+    invalid_timestamp: "invalid",
+    future_timestamp: "future",
+    stale_timestamp: "stale",
+  }[freshness.status] ?? freshness.status;
+  return `${label}_${suffix}`;
 }
 
 function validateProbeList({ label, artifact, probes, errors }) {
   const addresses = probeAddresses(probes);
   if (artifact.probeCount !== addresses.length) errors.push(`${label}_probe_count_mismatch`);
   if (addresses.length !== EXPECTED_TARGET_ADDRESS_COUNT) errors.push(`${label}_target_address_count_mismatch`);
+  if (!sameStringSet(addresses, CANONICAL_ROUTING_PROBE_ADDRESSES)) errors.push(`${label}_canonical_address_mismatch`);
   if (unique(addresses).length !== addresses.length) errors.push(`${label}_duplicate_probe_address`);
   if (!isProbeMarker(artifact.marker)) errors.push(`${label}_invalid_marker`);
 
@@ -87,6 +151,13 @@ function validateProbeList({ label, artifact, probes, errors }) {
   return addresses;
 }
 
+function sentAddresses(value) {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((item) => item && typeof item === "object" && typeof item.address === "string")
+    .map((item) => item.address);
+}
+
 function main() {
   const args = parseArgs(process.argv.slice(2));
   const preflight = readJson(args.preflight, "preflight");
@@ -100,8 +171,13 @@ function main() {
   const sendSent = Array.isArray(send.sent) ? send.sent : [];
   const auditGate = objectValue(audit.gate);
   const readinessGate = objectValue(readiness.gate);
+  const readinessRequirements = objectValue(readiness.requirements);
   const readinessBlockers = Array.isArray(readiness.blockers) ? readiness.blockers.filter((item) => item && typeof item === "object") : [];
   const auditMarker = typeof audit.inputs?.marker === "string" ? audit.inputs.marker : null;
+  const nowMs = Date.now();
+  const auditGeneratedAtFreshness = timestampFreshness(audit.generatedAt, ROUTING_PROOF_MAX_AGE_MS, nowMs);
+  const sendGeneratedAtFreshness = timestampFreshness(send.generatedAt, ROUTING_PROOF_MAX_AGE_MS, nowMs);
+  const markerFreshness = markerTimestampFreshness(auditMarker, ROUTING_PROOF_MAX_AGE_MS, nowMs);
 
   if (preflight.mode !== "preflight") errors.push("preflight_mode_mismatch");
   if (preflight.inputs?.preflight !== true) errors.push("preflight_input_flag_missing");
@@ -144,13 +220,24 @@ function main() {
     errors,
   });
   const auditAddresses = probeAddresses(audit.plannedAddressProbes);
+  const sendSentAddresses = sentAddresses(sendSent);
+  const preflightCanonical = sameStringSet(preflightAddresses, CANONICAL_ROUTING_PROBE_ADDRESSES);
+  const sendCanonical = sameStringSet(sendAddresses, CANONICAL_ROUTING_PROBE_ADDRESSES);
+  const auditCanonical = sameStringSet(auditAddresses, CANONICAL_ROUTING_PROBE_ADDRESSES);
 
   if (audit.mode !== "plan_only" && audit.mode !== "verify_marker") errors.push("audit_mode_invalid");
   if (auditGate.targetAddressCount !== auditAddresses.length) errors.push("audit_target_address_count_mismatch");
   if (auditGate.targetAddressCount !== EXPECTED_TARGET_ADDRESS_COUNT) errors.push("audit_expected_target_address_count_mismatch");
+  if (!auditCanonical) errors.push("audit_canonical_address_mismatch");
   if (unique(auditAddresses).length !== auditAddresses.length) errors.push("audit_duplicate_planned_address");
-  if (!sameArray(sorted(preflightAddresses), sorted(auditAddresses))) errors.push("preflight_audit_address_mismatch");
-  if (!sameArray(sorted(sendAddresses), sorted(auditAddresses))) errors.push("send_audit_address_mismatch");
+  if (!sameStringSet(preflightAddresses, auditAddresses)) errors.push("preflight_audit_address_mismatch");
+  if (!sameStringSet(sendAddresses, auditAddresses)) errors.push("send_audit_address_mismatch");
+  if (send.mode === "sent" && !sameStringSet(sendSentAddresses, sendAddresses)) {
+    errors.push("send_sent_address_mismatch");
+  }
+  if (sendSent.some((item) => Array.isArray(item.rejected) && item.rejected.length > 0)) {
+    errors.push("send_contains_rejected_addresses");
+  }
 
   const matchedAddresses = stringArray(auditGate.matchedAddresses);
   const missingAddresses = stringArray(auditGate.missingAddresses);
@@ -170,6 +257,71 @@ function main() {
     if ((auditGate.allExpectedAddressesConfirmed === true) !== (missingAddresses.length === 0)) {
       errors.push("verify_marker_confirmation_mismatch");
     }
+  }
+
+  const sendProofReady =
+    send.mode === "sent" &&
+    sendGeneratedAtFreshness.fresh &&
+    sendSent.length === sendAddresses.length &&
+    sendCanonical &&
+    sameStringSet(sendSentAddresses, sendAddresses) &&
+    send.smtpPreflight?.readyForProductionProof === true &&
+    send.verification?.status === "matched" &&
+    send.verification?.allExpectedAddressesConfirmed === true;
+  const auditProofReady =
+    audit.mode === "verify_marker" &&
+    auditGeneratedAtFreshness.fresh &&
+    markerFreshness.fresh &&
+    auditGate.markerProvided === true &&
+    auditGate.allExpectedAddressesConfirmed === true &&
+    missingAddresses.length === 0 &&
+    auditCanonical &&
+    sameStringSet(matchedAddresses, auditAddresses);
+  const proofChainReady =
+    readyForProductionProof &&
+    preflightCanonical &&
+    sendProofReady &&
+    auditProofReady &&
+    send.marker === auditMarker &&
+    sameStringSet(sendAddresses, auditAddresses);
+
+  const readinessSharedRoutingReady = readinessRequirements.currentSharedGmailRoutingReady === true;
+  const readinessRoutingProbeReady = readinessRequirements.routingProbeReady === true;
+  const readinessRoutingProbeSendReady = readinessRequirements.routingProbeSendReady === true;
+  const readinessRoutingProofChainReady = readinessRequirements.routingProofChainReady === true;
+  const shouldValidateProofAge =
+    send.mode === "sent" ||
+    readinessSharedRoutingReady ||
+    readinessRoutingProbeSendReady ||
+    readinessRoutingProofChainReady ||
+    readinessGate.productionReady === true;
+
+  if (shouldValidateProofAge) {
+    const auditGeneratedAtIssue = proofTimestampIssue("routing_probe_audit_generated_at", auditGeneratedAtFreshness);
+    const sendGeneratedAtIssue = proofTimestampIssue("routing_probe_send_generated_at", sendGeneratedAtFreshness);
+    const markerIssue = proofTimestampIssue("routing_probe_marker", markerFreshness);
+    if (auditGeneratedAtIssue) errors.push(auditGeneratedAtIssue);
+    if (sendGeneratedAtIssue) errors.push(sendGeneratedAtIssue);
+    if (markerIssue) errors.push(markerIssue);
+  }
+
+  if (send.mode !== "sent" && (readinessSharedRoutingReady || readinessRoutingProbeSendReady || readinessRoutingProofChainReady)) {
+    errors.push("shared_routing_ready_without_sent_artifact");
+  }
+  if (audit.mode !== "verify_marker" && (readinessSharedRoutingReady || readinessRoutingProofChainReady)) {
+    errors.push("shared_routing_ready_without_verify_marker_audit");
+  }
+  if (readinessRoutingProbeReady !== (auditGate.allExpectedAddressesConfirmed === true)) {
+    errors.push("readiness_routing_probe_gate_mismatch");
+  }
+  if (readinessRoutingProbeSendReady !== sendProofReady) {
+    errors.push("readiness_routing_probe_send_mismatch");
+  }
+  if (readinessRoutingProofChainReady !== proofChainReady) {
+    errors.push("readiness_routing_proof_chain_mismatch");
+  }
+  if (readinessSharedRoutingReady && !proofChainReady) {
+    errors.push("shared_routing_ready_without_routing_proof_chain");
   }
 
   const readinessP0 = stringArray(readinessGate.p0Blockers);

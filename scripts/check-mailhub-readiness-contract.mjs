@@ -17,6 +17,25 @@ const REQUIRED_SEMANTIC_VARIABLE_NAMES = [
   "MAILHUB_ACTIVITY_STORE",
   "MAILHUB_READ_ONLY",
 ];
+const STALE_INPUT_BLOCKER_ID = "staleInput";
+const INPUT_ARTIFACT_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+const ROUTING_PROOF_MAX_AGE_MS = INPUT_ARTIFACT_MAX_AGE_MS;
+const EXPECTED_INPUT_FRESHNESS_SPECS = [
+  { key: "sourceAudit", timestampField: "generatedAt", maxAgeMs: INPUT_ARTIFACT_MAX_AGE_MS },
+  { key: "opsAudit", timestampField: "generatedAt", maxAgeMs: INPUT_ARTIFACT_MAX_AGE_MS },
+  { key: "gwsRoutingAudit", timestampField: "generatedAt", maxAgeMs: INPUT_ARTIFACT_MAX_AGE_MS },
+  { key: "routingProbeAudit", timestampField: "generatedAt", maxAgeMs: ROUTING_PROOF_MAX_AGE_MS },
+  { key: "routingProbeSend", timestampField: "generatedAt", maxAgeMs: ROUTING_PROOF_MAX_AGE_MS },
+  { key: "routingProbePreflight", timestampField: "generatedAt", maxAgeMs: INPUT_ARTIFACT_MAX_AGE_MS },
+  { key: "githubRoutingSecrets", timestampField: "checkedAt", maxAgeMs: INPUT_ARTIFACT_MAX_AGE_MS },
+  { key: "githubStaffSecrets", timestampField: "checkedAt", maxAgeMs: INPUT_ARTIFACT_MAX_AGE_MS },
+  { key: "viewsAudit", timestampField: "generatedAt", maxAgeMs: INPUT_ARTIFACT_MAX_AGE_MS },
+  { key: "rulesAudit", timestampField: "generatedAt", maxAgeMs: INPUT_ARTIFACT_MAX_AGE_MS },
+  { key: "staffWorkflowAudit", timestampField: "generatedAt", maxAgeMs: INPUT_ARTIFACT_MAX_AGE_MS },
+];
+const EXPECTED_INPUT_FRESHNESS_KEYS = EXPECTED_INPUT_FRESHNESS_SPECS.map((spec) => spec.key);
+const CHILD_MAX_AGE_MS_BY_KEY = new Map(EXPECTED_INPUT_FRESHNESS_SPECS.map((spec) => [spec.key, spec.maxAgeMs]));
+const CHILD_TIMESTAMP_FIELD_BY_KEY = new Map(EXPECTED_INPUT_FRESHNESS_SPECS.map((spec) => [spec.key, spec.timestampField]));
 
 function parseArgs(argv) {
   const out = {
@@ -74,6 +93,96 @@ function ruleSheetsFromConfig(value) {
   return labelRules && assigneeRules ? [labelRules, assigneeRules] : [];
 }
 
+function inputFreshnessEntries(value) {
+  return Array.isArray(value) ? value.filter((item) => item && typeof item === "object") : [];
+}
+
+function readChildArtifact(path) {
+  if (!path || !existsSync(path)) return { present: false, artifact: null, invalidJson: false };
+  try {
+    return {
+      present: true,
+      artifact: JSON.parse(readFileSync(path, "utf8")),
+      invalidJson: false,
+    };
+  } catch {
+    return { present: true, artifact: null, invalidJson: true };
+  }
+}
+
+function childTimestampField(key, entry) {
+  const pinnedField = CHILD_TIMESTAMP_FIELD_BY_KEY.get(key);
+  if (pinnedField) return pinnedField;
+  if (typeof entry.timestampField === "string" && entry.timestampField.length > 0) return entry.timestampField;
+  return key.startsWith("github") ? "checkedAt" : "generatedAt";
+}
+
+function timestampFreshness(value, maxAgeMs, nowMs = Date.now()) {
+  if (!Number.isFinite(maxAgeMs) || maxAgeMs <= 0) return null;
+  if (typeof value !== "string" || value.length === 0) {
+    return { fresh: false, status: "missing_timestamp", ageMs: null, maxAgeMs };
+  }
+  const timestampMs = Date.parse(value);
+  if (!Number.isFinite(timestampMs)) {
+    return { fresh: false, status: "invalid_timestamp", ageMs: null, maxAgeMs };
+  }
+  const ageMs = nowMs - timestampMs;
+  if (ageMs < 0) return { fresh: false, status: "future_timestamp", ageMs, maxAgeMs };
+  if (ageMs > maxAgeMs) return { fresh: false, status: "stale_timestamp", ageMs, maxAgeMs };
+  return { fresh: true, status: "fresh", ageMs, maxAgeMs };
+}
+
+function childInputFreshness(entry, repoHead, repoParentHead, nowMs = Date.now()) {
+  const key = typeof entry.key === "string" && entry.key.length > 0 ? entry.key : "unknown";
+  const path = typeof entry.path === "string" && entry.path.length > 0 ? entry.path : "";
+  const timestampField = childTimestampField(key, entry);
+  const maxAgeMs = CHILD_MAX_AGE_MS_BY_KEY.get(key) ?? null;
+  const { present, artifact, invalidJson } = readChildArtifact(path);
+  const artifactValue = objectValue(artifact);
+  const artifactRepoHead = typeof artifactValue.repoHead === "string" && artifactValue.repoHead.length > 0
+    ? artifactValue.repoHead
+    : null;
+  const timestamp = present && !invalidJson && typeof artifactValue[timestampField] === "string"
+    ? artifactValue[timestampField]
+    : null;
+  const timestampInfo = present && !invalidJson ? timestampFreshness(timestamp, maxAgeMs, nowMs) : null;
+  const base = {
+    key,
+    path,
+    timestampField,
+    timestamp,
+    maxAgeMs,
+    timestampFresh: timestampInfo ? timestampInfo.fresh : null,
+    timestampAgeMs: timestampInfo ? timestampInfo.ageMs : null,
+  };
+
+  if (!present) {
+    return { ...base, present: false, repoHead: null, repoHeadFresh: null, status: "missing_required", readyForProduction: false };
+  }
+  if (invalidJson) {
+    return { ...base, present: true, repoHead: null, repoHeadFresh: null, status: "invalid_json", readyForProduction: false };
+  }
+  if (!artifactRepoHead) {
+    return { ...base, present: true, repoHead: null, repoHeadFresh: null, status: "missing_repo_head", readyForProduction: false };
+  }
+
+  const repoHeadFresh = isFreshRepoHead({ repoRoot, artifactRepoHead, repoHead, repoParentHead });
+  const readyForProduction = repoHeadFresh && (!timestampInfo || timestampInfo.fresh);
+  return {
+    ...base,
+    present: true,
+    repoHead: artifactRepoHead,
+    repoHeadFresh,
+    status: !repoHeadFresh ? "stale_repo_head" : timestampInfo?.status ?? "fresh",
+    readyForProduction,
+  };
+}
+
+function declaredInputPath(inputs, key) {
+  const path = inputs[key];
+  return typeof path === "string" && path.length > 0 ? path : "";
+}
+
 function main() {
   const args = parseArgs(process.argv.slice(2));
   const audit = readJson(args.audit);
@@ -88,6 +197,7 @@ function main() {
   const ruleSafetyAuditEnv = objectValue(inputs.ruleSafetyAuditEnv);
   const githubStaffSecretsPath = typeof inputs.githubStaffSecrets === "string" ? inputs.githubStaffSecrets : "";
   const githubStaffSecrets = readOptionalJson(githubStaffSecretsPath);
+  const inputFreshness = inputFreshnessEntries(inputs.inputFreshness);
   const ruleConfigSourceSheets = ruleSheetsFromConfig(ruleConfigSource.ruleSheets);
   const viewSafety = objectValue(audit.viewSafety);
   const gate = objectValue(audit.gate);
@@ -99,6 +209,117 @@ function main() {
   if (!auditRepoHead) errors.push("missing_repo_head");
   else if (!isFreshRepoHead({ repoRoot, artifactRepoHead: auditRepoHead, repoHead, repoParentHead })) {
     errors.push("stale_repo_head");
+  }
+
+  const staleInputBlocker = blockers.find((item) => item.id === STALE_INPUT_BLOCKER_ID);
+  const staleInputEntriesByKey = new Map();
+  const recordStaleInput = (entry) => {
+    if (typeof entry.key === "string" && entry.key.length > 0 && !staleInputEntriesByKey.has(entry.key)) {
+      staleInputEntriesByKey.set(entry.key, entry);
+    }
+  };
+  if (typeof requirements.inputArtifactsFresh !== "boolean") {
+    errors.push("input_artifacts_fresh_gate_missing");
+  }
+  if (inputFreshness.length === 0) {
+    errors.push("input_freshness_metadata_missing");
+  }
+  for (const key of EXPECTED_INPUT_FRESHNESS_KEYS) {
+    if (!inputFreshness.some((entry) => entry.key === key)) {
+      errors.push(`input_freshness_missing_entry:${key}`);
+    }
+  }
+  for (const entry of inputFreshness) {
+    const key = typeof entry.key === "string" && entry.key.length > 0 ? entry.key : "unknown";
+    const entryPath = typeof entry.path === "string" && entry.path.length > 0 ? entry.path : "";
+    const declaredPath = declaredInputPath(inputs, key);
+    const present = entry.present === true;
+    const artifactRepoHead = typeof entry.repoHead === "string" && entry.repoHead.length > 0 ? entry.repoHead : null;
+    const status = typeof entry.status === "string" ? entry.status : "";
+    const readyForProduction = entry.readyForProduction === true;
+    const requiresFreshRepoHead = entry.requiresFreshRepoHead === true;
+    const actualInputFreshness = childInputFreshness({
+      ...entry,
+      path: declaredPath || entryPath,
+    }, repoHead, repoParentHead);
+
+    if (typeof entry.key !== "string" || entry.key.length === 0) errors.push("input_freshness_entry_missing_key");
+    if (typeof entry.path !== "string" || entry.path.length === 0) errors.push(`input_freshness_entry_missing_path:${key}`);
+    if (!declaredPath) {
+      errors.push(`input_freshness_missing_declared_path:${key}`);
+      recordStaleInput({
+        key,
+        path: entryPath,
+        present: false,
+        repoHead: null,
+        repoHeadFresh: null,
+        status: "missing_declared_input_path",
+        readyForProduction: false,
+      });
+    } else if (entryPath !== declaredPath) {
+      errors.push(`input_freshness_path_mismatch:${key}`);
+      recordStaleInput({
+        ...actualInputFreshness,
+        path: declaredPath,
+        inputFreshnessPath: entryPath,
+        declaredPath,
+        status: actualInputFreshness.readyForProduction === true ? "path_mismatch" : actualInputFreshness.status,
+        readyForProduction: false,
+      });
+    }
+    if (typeof entry.present !== "boolean") errors.push(`input_freshness_entry_missing_present:${key}`);
+    if (typeof entry.readyForProduction !== "boolean") errors.push(`input_freshness_entry_missing_ready:${key}`);
+    if (!status) errors.push(`input_freshness_entry_missing_status:${key}`);
+    if (readyForProduction && status !== "fresh") errors.push(`input_freshness_ready_with_non_fresh_status:${key}`);
+    if (readyForProduction && present && !artifactRepoHead) errors.push(`input_freshness_ready_without_repo_head:${key}`);
+    if (!readyForProduction) recordStaleInput(entry);
+
+    if (present && artifactRepoHead) {
+      const actuallyFresh = isFreshRepoHead({ repoRoot, artifactRepoHead, repoHead, repoParentHead });
+      if (entry.repoHeadFresh !== actuallyFresh) errors.push(`input_freshness_repo_head_fresh_mismatch:${key}`);
+      if (!actuallyFresh && readyForProduction) errors.push(`input_freshness_stale_repo_head_ready:${key}`);
+    }
+    if (present && requiresFreshRepoHead && !artifactRepoHead) {
+      errors.push(`input_freshness_missing_repo_head:${key}`);
+    }
+
+    if (entry.present !== actualInputFreshness.present) errors.push(`input_freshness_child_present_mismatch:${key}`);
+    if (artifactRepoHead !== actualInputFreshness.repoHead) errors.push(`input_freshness_child_repo_head_mismatch:${key}`);
+    if (entry.repoHeadFresh !== actualInputFreshness.repoHeadFresh) errors.push(`input_freshness_child_repo_head_fresh_mismatch:${key}`);
+    if (status && status !== actualInputFreshness.status) errors.push(`input_freshness_child_status_mismatch:${key}`);
+    if (entry.readyForProduction !== actualInputFreshness.readyForProduction) errors.push(`input_freshness_child_ready_mismatch:${key}`);
+    if (actualInputFreshness.maxAgeMs !== null) {
+      if (entry.timestampField !== actualInputFreshness.timestampField) errors.push(`input_freshness_child_timestamp_field_mismatch:${key}`);
+      if (entry.maxAgeMs !== actualInputFreshness.maxAgeMs) errors.push(`input_freshness_max_age_mismatch:${key}`);
+      if (entry.timestamp !== actualInputFreshness.timestamp) errors.push(`input_freshness_child_timestamp_mismatch:${key}`);
+      if (entry.timestampFresh !== actualInputFreshness.timestampFresh) errors.push(`input_freshness_child_timestamp_fresh_mismatch:${key}`);
+      if (actualInputFreshness.timestampFresh !== true && readyForProduction) errors.push(`input_freshness_stale_timestamp_ready:${key}`);
+    }
+    if (actualInputFreshness.readyForProduction !== true) recordStaleInput(actualInputFreshness);
+  }
+  const staleInputEntries = [...staleInputEntriesByKey.values()];
+  if (requirements.inputArtifactsFresh === true && staleInputEntries.length > 0) {
+    errors.push("input_artifacts_fresh_with_stale_inputs");
+  }
+  if (requirements.inputArtifactsFresh !== true) {
+    if (!p0Blockers.includes(STALE_INPUT_BLOCKER_ID)) {
+      errors.push("input_artifacts_not_fresh_without_stale_input_blocker");
+    }
+    if (!staleInputBlocker) {
+      errors.push("stale_input_blocker_missing_detail");
+    } else {
+      const evidence = objectValue(staleInputBlocker.evidence);
+      const staleInputs = inputFreshnessEntries(evidence.staleInputs);
+      if (staleInputs.length === 0) errors.push("stale_input_blocker_missing_stale_inputs");
+      if (typeof evidence.currentRepoHead !== "string") errors.push("stale_input_blocker_missing_current_repo_head");
+      for (const entry of staleInputEntries) {
+        if (!staleInputs.some((staleInput) => staleInput.key === entry.key)) {
+          errors.push(`stale_input_blocker_missing_entry:${entry.key ?? "unknown"}`);
+        }
+      }
+    }
+  } else if (staleInputBlocker) {
+    warnings.push("stale_input_blocker_detail_present_when_ready");
   }
 
   for (const id of p0Blockers) {
@@ -114,8 +335,11 @@ function main() {
 
   if (productionReady) {
     if (p0Blockers.length > 0) errors.push("production_ready_with_p0_blockers");
+    if (requirements.inputArtifactsFresh !== true) errors.push("production_ready_with_stale_inputs");
     if (requirements.currentSharedGmailRoutingReady !== true) errors.push("production_ready_without_current_shared_gmail_routing");
     if (requirements.routingProbeReady !== true) errors.push("production_ready_without_routing_probe_proof");
+    if (requirements.routingProbeSendReady !== true) errors.push("production_ready_without_routing_probe_send_artifact");
+    if (requirements.routingProofChainReady !== true) errors.push("production_ready_without_routing_proof_chain");
     if (requirements.sourceCodeCoverageReady !== true) errors.push("production_ready_without_source_code_coverage");
     if (requirements.sourceInventoryReady !== true) errors.push("production_ready_without_source_inventory");
     if (requirements.defaultViewsRealDataValidated !== true) errors.push("production_ready_without_default_views_validation");
@@ -131,6 +355,24 @@ function main() {
 
   if (requirements.currentSharedGmailRoutingReady === true && requirements.routingProbeReady !== true) {
     errors.push("shared_routing_ready_without_routing_probe_proof");
+  }
+  if (requirements.currentSharedGmailRoutingReady === true && requirements.routingProbeSendReady !== true) {
+    errors.push("shared_routing_ready_without_send_artifact");
+  }
+  if (requirements.currentSharedGmailRoutingReady === true && requirements.routingProofChainReady !== true) {
+    errors.push("shared_routing_ready_without_routing_proof_chain");
+  }
+  if (requirements.routingProofChainReady === true && requirements.routingProbeReady !== true) {
+    errors.push("routing_proof_chain_ready_without_marker_audit");
+  }
+  if (requirements.routingProofChainReady === true && requirements.routingProbeSendReady !== true) {
+    errors.push("routing_proof_chain_ready_without_send_artifact");
+  }
+  if (typeof requirements.routingProbeSendReady !== "boolean") {
+    errors.push("routing_probe_send_gate_missing");
+  }
+  if (typeof requirements.routingProofChainReady !== "boolean") {
+    errors.push("routing_proof_chain_gate_missing");
   }
 
   if (requirements.currentRuleConfigRealDataSafetyReady === true && requirements.currentRuleConfigFingerprintPresent !== true) {
@@ -355,11 +597,14 @@ function main() {
   if (p0Blockers.includes("current_shared_gmail_routing")) {
     const evidence = objectValue(routingBlocker?.evidence);
     const routingProbeGate = objectValue(evidence.routingProbeGate);
+    const routingProbeSend = objectValue(evidence.routingProbeSend);
+    const routingProofChain = objectValue(evidence.routingProofChain);
     const routingProbePreflight = objectValue(evidence.routingProbePreflight);
     const routingProbeGithubSecrets = objectValue(evidence.routingProbeGithubSecrets);
     const mxRecords = Array.isArray(evidence.mxRecords) ? evidence.mxRecords : [];
     const unconfirmed = stringArray(evidence.currentSharedGmailRoutingUnconfirmed);
     const missingAddresses = stringArray(routingProbeGate.missingAddresses);
+    const routingProofIssues = stringArray(routingProofChain.issues);
     const missingEnv = stringArray(routingProbePreflight.missingRequiredEnv);
     const missingGithubSecrets = stringArray(routingProbeGithubSecrets.missingSendVerifySecrets);
 
@@ -370,6 +615,12 @@ function main() {
     }
     if ((routingProbeGate.targetAddressCount ?? 0) > 0 && missingAddresses.length === 0 && routingProbeGate.allExpectedAddressesConfirmed !== true) {
       errors.push("routing_blocker_missing_probe_addresses");
+    }
+    if (requirements.routingProbeSendReady !== true && !routingProbeSend.missingArtifact && typeof routingProbeSend.mode !== "string") {
+      errors.push("routing_blocker_missing_send_artifact_gap");
+    }
+    if (requirements.routingProofChainReady !== true && routingProofIssues.length === 0) {
+      errors.push("routing_blocker_missing_proof_chain_gap");
     }
     if (requirements.routingProbePreflightReady !== true && missingEnv.length === 0) {
       errors.push("routing_blocker_missing_preflight_gap");

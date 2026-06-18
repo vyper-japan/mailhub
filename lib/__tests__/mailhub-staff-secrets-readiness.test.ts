@@ -93,10 +93,10 @@ const completeStaffEnv = {
   NEXTAUTH_SECRET: "nextauth-secret-value",
   GOOGLE_CLIENT_ID: "google-client-id-value",
   GOOGLE_CLIENT_SECRET: "google-client-secret-value",
-  GOOGLE_SHARED_INBOX_EMAIL: "mailhub@example.com",
+  GOOGLE_SHARED_INBOX_EMAIL: "mailhub@vtj.co.jp",
   GOOGLE_SHARED_INBOX_REFRESH_TOKEN: "refresh-token-value",
-  MAILHUB_ADMINS: "Admin <admin@example.com>",
-  MAILHUB_TEAM_MEMBERS: "Staff <staff@example.com>",
+  MAILHUB_ADMINS: "Admin <admin@vtj.co.jp>",
+  MAILHUB_TEAM_MEMBERS: "Staff <staff@vtj.co.jp>",
   MAILHUB_CONFIG_STORE: "sheets",
   MAILHUB_ACTIVITY_STORE: "sheets",
   MAILHUB_SHEETS_ID: "sheet-id-value",
@@ -118,8 +118,8 @@ const completeConfig = {
   variables: [
     { name: "MAILHUB_ENV", value: "production" },
     { name: "NEXTAUTH_URL", value: "https://mailhub.example.com" },
-    { name: "MAILHUB_ADMINS", value: "Admin <admin@example.com>" },
-    { name: "MAILHUB_TEAM_MEMBERS", value: "Staff <staff@example.com>" },
+    { name: "MAILHUB_ADMINS", value: "Admin <admin@vtj.co.jp>" },
+    { name: "MAILHUB_TEAM_MEMBERS", value: "Staff <staff@vtj.co.jp>" },
     { name: "MAILHUB_CONFIG_STORE", value: "sheets" },
     { name: "MAILHUB_ACTIVITY_STORE", value: "sheets" },
     { name: "MAILHUB_SHEETS_ID", value: "sheet-id-value" },
@@ -224,6 +224,122 @@ describe("MailHub staff GitHub config readiness", () => {
           "MAILHUB_SHEETS_PRIVATE_KEY",
         ],
       });
+    });
+  });
+
+  test("rejects invalid and non-vtj staff email list variables without printing values", () => {
+    withTempDir((dir) => {
+      const configPath = join(dir, "github-config.json");
+      const outPath = join(dir, "github-staff-secrets-readiness.json");
+      writeJson(configPath, {
+        ...completeConfig,
+        variables: completeConfig.variables.map((item) => {
+          if (item.name === "MAILHUB_ADMINS") return { ...item, value: "Admin <admin@example.com>" };
+          if (item.name === "MAILHUB_TEAM_MEMBERS") return { ...item, value: "bad-team-member" };
+          return item;
+        }),
+      });
+
+      const result = runNodeScript(staffSecretsPath, ["--config-json", configPath, "--out", outPath, "--no-fail"]);
+
+      expect(result.status).toBe(0);
+      const out = readJson<{
+        readyForProductionStaffPreflight: boolean;
+        missingProductionStaffConfig: string[];
+        missingSecretConfig: string[];
+        semanticIssues: string[];
+        setupCommands: string[];
+      }>(outPath);
+      expect(out.readyForProductionStaffPreflight).toBe(false);
+      expect(out.missingProductionStaffConfig).toEqual([]);
+      expect(out.missingSecretConfig).toEqual([]);
+      expect(out.semanticIssues).toEqual([
+        "MAILHUB_ADMINS_has_non_vtj_email",
+        "MAILHUB_TEAM_MEMBERS_has_invalid_email",
+      ]);
+      expect(out.setupCommands).toEqual([
+        "npm run setup:mailhub-staff-github-config",
+        "npm run setup:mailhub-staff-github-config -- --apply",
+      ]);
+      expect(result.stdout).not.toContain("admin@example.com");
+      expect(result.stdout).not.toContain("bad-team-member");
+      expect(readFileSync(outPath, "utf8")).not.toContain("admin@example.com");
+      expect(readFileSync(outPath, "utf8")).not.toContain("bad-team-member");
+
+      const contract = runNodeScript(staffSecretContractPath, ["--artifact", outPath, "--allow-non-github-source"]);
+      expect(contract.status).toBe(0);
+      expect(contract.stdout).toContain('"ok": true');
+    });
+  });
+
+  test("rejects blank or unverified staff email list variables as known semantic issues", () => {
+    withTempDir((dir) => {
+      const configPath = join(dir, "github-config.json");
+      const outPath = join(dir, "github-staff-secrets-readiness.json");
+      writeJson(configPath, {
+        ...completeConfig,
+        variables: completeConfig.variables.map((item) => {
+          if (item.name === "MAILHUB_ADMINS") return { ...item, value: "" };
+          if (item.name === "MAILHUB_TEAM_MEMBERS") return { name: "MAILHUB_TEAM_MEMBERS" };
+          return item;
+        }),
+      });
+
+      const result = runNodeScript(staffSecretsPath, ["--config-json", configPath, "--out", outPath, "--no-fail"]);
+
+      expect(result.status).toBe(0);
+      const out = readJson<{
+        readyForProductionStaffPreflight: boolean;
+        semanticIssues: string[];
+      }>(outPath);
+      expect(out.readyForProductionStaffPreflight).toBe(false);
+      expect(out.semanticIssues).toEqual([
+        "MAILHUB_ADMINS_must_be_non_empty_vtj_email_list",
+        "MAILHUB_TEAM_MEMBERS_value_unverified",
+      ]);
+
+      const contract = runNodeScript(staffSecretContractPath, ["--artifact", outPath, "--allow-non-github-source"]);
+      expect(contract.status).toBe(0);
+      expect(contract.stdout).toContain('"ok": true');
+    });
+  });
+
+  test("rejects staff email lists supplied only as secrets", () => {
+    withTempDir((dir) => {
+      const configPath = join(dir, "github-config.json");
+      const outPath = join(dir, "github-staff-secrets-readiness.json");
+      writeJson(configPath, {
+        secrets: [
+          ...completeConfig.secrets,
+          { name: "MAILHUB_ADMINS" },
+          { name: "MAILHUB_TEAM_MEMBERS" },
+        ],
+        variables: completeConfig.variables.filter((item) => ![
+          "MAILHUB_ADMINS",
+          "MAILHUB_TEAM_MEMBERS",
+        ].includes(item.name)),
+      });
+
+      const result = runNodeScript(staffSecretsPath, ["--config-json", configPath, "--out", outPath, "--no-fail"]);
+
+      expect(result.status).toBe(0);
+      const out = readJson<{
+        readyForProductionStaffPreflight: boolean;
+        semanticIssues: string[];
+        presentRequiredConfigSources: Record<string, string>;
+      }>(outPath);
+      expect(out.readyForProductionStaffPreflight).toBe(false);
+      expect(out.semanticIssues).toEqual([
+        "MAILHUB_ADMINS_must_be_variable",
+        "MAILHUB_TEAM_MEMBERS_must_be_variable",
+      ]);
+      expect(out.presentRequiredConfigSources.MAILHUB_ADMINS).toBe("secret");
+      expect(out.presentRequiredConfigSources.MAILHUB_TEAM_MEMBERS).toBe("secret");
+
+      const contract = runNodeScript(staffSecretContractPath, ["--artifact", outPath, "--allow-non-github-source"]);
+      expect(contract.status).toBe(1);
+      expect(contract.stdout).toContain("staff_access_config_non_variable_source:MAILHUB_ADMINS");
+      expect(contract.stdout).toContain("staff_access_config_non_variable_source:MAILHUB_TEAM_MEMBERS");
     });
   });
 
@@ -369,6 +485,65 @@ describe("MailHub staff GitHub config readiness", () => {
     });
   });
 
+  test("rejects sensitive staff config duplicated as secrets and variables without printing values", () => {
+    withTempDir((dir) => {
+      const configPath = join(dir, "github-config.json");
+      const outPath = join(dir, "github-staff-secrets-readiness.json");
+      const duplicatedSensitiveVariables = [
+        { name: "NEXTAUTH_SECRET", value: "variable-nextauth-secret-value" },
+        { name: "GOOGLE_CLIENT_SECRET", value: "variable-google-client-secret-value" },
+        { name: "GOOGLE_SHARED_INBOX_REFRESH_TOKEN", value: "variable-refresh-token-value" },
+        { name: "MAILHUB_SHEETS_PRIVATE_KEY", value: "variable-private-key-value" },
+      ];
+      writeJson(configPath, {
+        secrets: completeConfig.secrets,
+        variables: [
+          ...completeConfig.variables,
+          ...duplicatedSensitiveVariables,
+        ],
+      });
+
+      const audit = runNodeScript(staffSecretsPath, ["--config-json", configPath, "--out", outPath, "--no-fail"]);
+
+      expect(audit.status).toBe(0);
+      const out = readJson<{
+        readyForProductionStaffPreflight: boolean;
+        readyForSecretBackedStaffConfig: boolean;
+        missingProductionStaffConfig: string[];
+        missingSecretConfig: string[];
+        semanticIssues: string[];
+        setupCommands: string[];
+        presentRequiredConfigSources: Record<string, string>;
+      }>(outPath);
+      expect(out.readyForProductionStaffPreflight).toBe(false);
+      expect(out.readyForSecretBackedStaffConfig).toBe(false);
+      expect(out.missingProductionStaffConfig).toEqual([]);
+      expect(out.missingSecretConfig).toEqual([]);
+      expect(out.semanticIssues).toEqual([
+        "NEXTAUTH_SECRET_must_not_be_variable",
+        "GOOGLE_CLIENT_SECRET_must_not_be_variable",
+        "GOOGLE_SHARED_INBOX_REFRESH_TOKEN_must_not_be_variable",
+        "MAILHUB_SHEETS_PRIVATE_KEY_must_not_be_variable",
+      ]);
+      expect(out.setupCommands).toEqual([
+        "npm run setup:mailhub-staff-github-config",
+        "npm run setup:mailhub-staff-github-config -- --apply",
+      ]);
+      expect(out.presentRequiredConfigSources.NEXTAUTH_SECRET).toBe("secret");
+      for (const variable of duplicatedSensitiveVariables) {
+        expect(audit.stdout).not.toContain(variable.value);
+        expect(readFileSync(outPath, "utf8")).not.toContain(variable.value);
+      }
+
+      const contract = runNodeScript(staffSecretContractPath, ["--artifact", outPath, "--allow-non-github-source"]);
+      expect(contract.status).toBe(1);
+      expect(contract.stdout).toContain("sensitive_secret_config_present_as_variable:NEXTAUTH_SECRET");
+      expect(contract.stdout).toContain("sensitive_secret_config_present_as_variable:GOOGLE_CLIENT_SECRET");
+      expect(contract.stdout).toContain("sensitive_secret_config_present_as_variable:GOOGLE_SHARED_INBOX_REFRESH_TOKEN");
+      expect(contract.stdout).toContain("sensitive_secret_config_present_as_variable:MAILHUB_SHEETS_PRIVATE_KEY");
+    });
+  });
+
   test("rejects present GitHub variables with unverified or non-production semantic values", () => {
     withTempDir((dir) => {
       const configPath = join(dir, "github-config.json");
@@ -378,8 +553,8 @@ describe("MailHub staff GitHub config readiness", () => {
         variables: [
           { name: "MAILHUB_ENV", value: "development" },
           { name: "NEXTAUTH_URL", value: "https://mailhub.example.com" },
-          { name: "MAILHUB_ADMINS", value: "Admin <admin@example.com>" },
-          { name: "MAILHUB_TEAM_MEMBERS", value: "Staff <staff@example.com>" },
+          { name: "MAILHUB_ADMINS", value: "Admin <admin@vtj.co.jp>" },
+          { name: "MAILHUB_TEAM_MEMBERS", value: "Staff <staff@vtj.co.jp>" },
           { name: "MAILHUB_CONFIG_STORE", value: "file" },
           { name: "MAILHUB_ACTIVITY_STORE" },
           { name: "MAILHUB_SHEETS_ID", value: "sheet-id-value" },

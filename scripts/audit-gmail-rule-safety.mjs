@@ -3,11 +3,24 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { dirname, join } from "node:path";
+import { execFileSync } from "node:child_process";
 import { google } from "googleapis";
 
 const repoRoot = process.cwd();
 const defaultEnvPath = join(repoRoot, ".env.local");
 const defaultOutPath = join(repoRoot, ".mailhub", "gmail-rule-safety-audit.json");
+
+function currentRepoHead() {
+  try {
+    return execFileSync("git", ["rev-parse", "HEAD"], {
+      cwd: repoRoot,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    }).trim();
+  } catch {
+    return null;
+  }
+}
 
 const RISKY_DOMAINS = new Set([
   "gmail.com",
@@ -485,6 +498,7 @@ async function main() {
 
   const audit = {
     generatedAt: new Date().toISOString(),
+    repoHead: currentRepoHead(),
     inputs: {
       envFile: args.envFile || null,
       envFileLoaded,

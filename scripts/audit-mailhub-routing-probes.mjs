@@ -2,10 +2,23 @@
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
+import { execFileSync } from "node:child_process";
 import { google } from "googleapis";
 
 const repoRoot = process.cwd();
 const envPath = join(repoRoot, ".env.local");
+
+function currentRepoHead() {
+  try {
+    return execFileSync("git", ["rev-parse", "HEAD"], {
+      cwd: repoRoot,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    }).trim();
+  } catch {
+    return null;
+  }
+}
 const runDir = join(repoRoot, ".ai-runs", "mailhub-next-phase");
 const defaultOpsAuditPath = join(runDir, "mailhub-operational-confirmations.json");
 const defaultOutPath = join(runDir, "mailhub-routing-probe-audit.json");
@@ -171,6 +184,7 @@ async function main() {
   )];
   const result = {
     generatedAt: new Date().toISOString(),
+    repoHead: currentRepoHead(),
     inputs: {
       opsAudit: args.opsAudit,
       opsAuditGeneratedAt: opsAudit.generatedAt ?? null,

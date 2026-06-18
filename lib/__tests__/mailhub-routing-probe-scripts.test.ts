@@ -1,7 +1,7 @@
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { dirname, join, resolve } from "path";
-import { execFileSync, spawnSync } from "child_process";
+import { execFileSync, spawn, spawnSync } from "child_process";
 import { describe, expect, test } from "vitest";
 
 const routingProbeAuditPath = resolve(process.cwd(), "scripts/audit-mailhub-routing-probes.mjs");
@@ -14,6 +14,47 @@ const routingNextContractPath = resolve(process.cwd(), "scripts/check-mailhub-ro
 const routingProofContractPath = resolve(process.cwd(), "scripts/check-mailhub-routing-proof-contract.mjs");
 const routingSecretSetupPath = resolve(process.cwd(), "scripts/setup-mailhub-routing-probe-secrets.mjs");
 
+function formatRoutingProbeMarker(date: Date) {
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return [
+    "MAILHUB-ROUTING-PROBE-",
+    date.getUTCFullYear(),
+    pad(date.getUTCMonth() + 1),
+    pad(date.getUTCDate()),
+    "T",
+    pad(date.getUTCHours()),
+    pad(date.getUTCMinutes()),
+    pad(date.getUTCSeconds()),
+    "Z",
+  ].join("");
+}
+
+const freshFixtureTimestamp = new Date().toISOString();
+const routingProbeMarker = formatRoutingProbeMarker(new Date(freshFixtureTimestamp));
+const canonicalRoutingProbeAddresses = [
+  "gopro_y@vtj.co.jp",
+  "gopro_order_yahoo@vtj.co.jp",
+  "vyper_r@vtj.co.jp",
+  "vyper_rakuten@vtj.co.jp",
+  "vyperglobal_y@vtj.co.jp",
+  "ams_vyper@vtj.co.jp",
+  "datacolor_shopify@vtj.co.jp",
+  "ebay@vtj.co.jp",
+];
+const canonicalRoutingProbePlan = canonicalRoutingProbeAddresses.map((address, index) => ({
+  channelId: `channel-${index}`,
+  label: `Channel ${index}`,
+  address,
+  subject: routingProbeMarker,
+}));
+const nonCanonicalRoutingProbeAddresses = canonicalRoutingProbeAddresses.map((_, index) => `noncanonical_${index}@vtj.co.jp`);
+const nonCanonicalRoutingProbePlan = nonCanonicalRoutingProbeAddresses.map((address, index) => ({
+  channelId: `noncanonical-channel-${index}`,
+  label: `Noncanonical Channel ${index}`,
+  address,
+  subject: routingProbeMarker,
+}));
+
 function withTempDir<T>(fn: (dir: string) => T): T {
   const dir = mkdtempSync(join(tmpdir(), "mailhub-routing-probes-"));
   try {
@@ -21,6 +62,41 @@ function withTempDir<T>(fn: (dir: string) => T): T {
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
+}
+
+async function withTempDirAsync<T>(fn: (dir: string) => Promise<T>): Promise<T> {
+  const dir = mkdtempSync(join(tmpdir(), "mailhub-routing-probes-"));
+  try {
+    return await fn(dir);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+function delay(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function readEventually(path: string, timeoutMs = 5000): Promise<string> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    try {
+      const value = readFileSync(path, "utf8").trim();
+      if (value) return value;
+    } catch {
+      // Wait for the child process to create the file.
+    }
+    await delay(25);
+  }
+  throw new Error(`timed out waiting for ${path}`);
+}
+
+async function stopChild(child: ReturnType<typeof spawn>) {
+  if (child.exitCode !== null || child.signalCode !== null) return;
+  await new Promise<void>((resolve) => {
+    child.once("exit", () => resolve());
+    child.kill();
+  });
 }
 
 function writeJson(path: string, value: unknown) {
@@ -86,6 +162,109 @@ function runNodeScript(
   });
 }
 
+async function withLocalSmtpServer<T>(
+  dir: string,
+  fn: (server: { port: number }) => Promise<T>,
+): Promise<T> {
+  const serverPath = join(dir, "fake-smtp-server.mjs");
+  const portPath = join(dir, "fake-smtp-port.txt");
+  writeFileSync(
+    serverPath,
+    [
+      "import { writeFileSync } from 'node:fs';",
+      "import net from 'node:net';",
+      "",
+      "const portFile = process.env.MAILHUB_SMTP_PORT_FILE;",
+      "function write(socket, line) { socket.write(`${line}\\r\\n`); }",
+      "",
+      "const server = net.createServer((socket) => {",
+      "  let buffer = '';",
+      "  let inData = false;",
+      "  let loginStep = null;",
+      "",
+      "  function handle(line) {",
+      "    const upper = line.toUpperCase();",
+      "    if (inData) {",
+      "      if (line === '.') {",
+      "        inData = false;",
+      "        write(socket, '250 queued');",
+      "      }",
+      "      return;",
+      "    }",
+      "    if (loginStep === 'user') {",
+      "      loginStep = 'pass';",
+      "      write(socket, '334 UGFzc3dvcmQ6');",
+      "      return;",
+      "    }",
+      "    if (loginStep === 'pass') {",
+      "      loginStep = null;",
+      "      write(socket, '235 authenticated');",
+      "      return;",
+      "    }",
+      "    if (upper.startsWith('EHLO') || upper.startsWith('HELO')) {",
+      "      socket.write('250-localhost\\r\\n250-AUTH PLAIN LOGIN\\r\\n250 OK\\r\\n');",
+      "    } else if (upper.startsWith('AUTH PLAIN')) {",
+      "      write(socket, '235 authenticated');",
+      "    } else if (upper === 'AUTH LOGIN') {",
+      "      loginStep = 'user';",
+      "      write(socket, '334 VXNlcm5hbWU6');",
+      "    } else if (upper.startsWith('AUTH LOGIN ')) {",
+      "      loginStep = 'pass';",
+      "      write(socket, '334 UGFzc3dvcmQ6');",
+      "    } else if (upper.startsWith('MAIL FROM:') || upper.startsWith('RCPT TO:') || upper === 'RSET' || upper === 'NOOP') {",
+      "      write(socket, '250 ok');",
+      "    } else if (upper === 'DATA') {",
+      "      inData = true;",
+      "      write(socket, '354 end with dot');",
+      "    } else if (upper === 'QUIT') {",
+      "      write(socket, '221 bye');",
+      "      socket.end();",
+      "    } else {",
+      "      write(socket, '250 ok');",
+      "    }",
+      "  }",
+      "",
+      "  write(socket, '220 local mailhub smtp fixture');",
+      "  socket.on('data', (chunk) => {",
+      "    buffer += chunk.toString('utf8');",
+      "    let index;",
+      "    while ((index = buffer.indexOf('\\n')) >= 0) {",
+      "      const line = buffer.slice(0, index).replace(/\\r$/, '');",
+      "      buffer = buffer.slice(index + 1);",
+      "      handle(line);",
+      "    }",
+      "  });",
+      "});",
+      "",
+      "server.listen(0, '127.0.0.1', () => {",
+      "  const address = server.address();",
+      "  writeFileSync(portFile, String(address.port));",
+      "});",
+      "process.on('SIGTERM', () => server.close(() => process.exit(0)));",
+      "process.on('SIGINT', () => server.close(() => process.exit(0)));",
+    ].join("\n"),
+    "utf8",
+  );
+  const child = spawn(process.execPath, [serverPath], {
+    env: { ...process.env, MAILHUB_SMTP_PORT_FILE: portPath },
+    stdio: ["ignore", "ignore", "pipe"],
+  });
+  let stderr = "";
+  child.stderr?.on("data", (chunk) => {
+    stderr += chunk.toString("utf8");
+  });
+  try {
+    const port = Number(await readEventually(portPath));
+    if (!Number.isInteger(port) || port <= 0) throw new Error(`invalid SMTP fixture port: ${port}`);
+    return await fn({ port });
+  } catch (error) {
+    if (stderr) throw new Error(`${error instanceof Error ? error.message : String(error)}\n${stderr}`);
+    throw error;
+  } finally {
+    await stopChild(child);
+  }
+}
+
 const missingLocalGmailEnv = {
   GOOGLE_CLIENT_ID: "",
   GOOGLE_CLIENT_SECRET: "",
@@ -95,7 +274,7 @@ const missingLocalGmailEnv = {
 
 function opsAuditFixture() {
   return {
-    generatedAt: "2026-06-17T00:00:00.000Z",
+    generatedAt: freshFixtureTimestamp,
     gate: {
       sourceInventoryMissing: [],
       productionCompleteClaimReady: false,
@@ -123,17 +302,72 @@ function opsAuditFixture() {
   };
 }
 
+function opsAuditFixtureFromProbePlan(
+  probePlan: Array<{ channelId: string; label: string; address: string }>,
+) {
+  const ids = probePlan.map((probe) => probe.channelId);
+  return {
+    generatedAt: freshFixtureTimestamp,
+    gate: {
+      sourceInventoryMissing: [],
+      productionCompleteClaimReady: false,
+      currentSharedGmailRoutingUnconfirmed: ids,
+      noSharedInboxEvidence: ids,
+      routingConfirmationRequired: ids,
+    },
+    operationalConfirmations: probePlan.map((probe) => ({
+      id: probe.channelId,
+      label: probe.label,
+      addresses: [probe.address],
+    })),
+  };
+}
+
 function writeReadinessFixtures(
   dir: string,
   routingProbeGate: Record<string, unknown>,
-  options: { staffWorkflowReady?: boolean } = {},
+  options: {
+    staffWorkflowReady?: boolean;
+    routingSendReady?: boolean;
+    routingProbeAddressPlan?: Array<{ channelId: string; label: string; address: string; subject?: string }>;
+  } = {},
 ) {
   const staffWorkflowReady = options.staffWorkflowReady === true;
+  const routingSendReady = options.routingSendReady === true;
+  const repoHead = currentRepoHead();
+  const marker = routingProbeMarker;
+  const routingProbeAddresses = ["first@example.com", "second@example.com", "third@example.com"];
+  const routingProbeAddressPlan = options.routingProbeAddressPlan ?? routingProbeAddresses.map((address, index) => ({
+    channelId: index < 2 ? "multi-source" : "single-source",
+    label: index < 2 ? "Multi Source" : "Single Source",
+    address,
+    subject: marker,
+  }));
+  const presentRoutingSecretNames = routingSendReady
+    ? [
+        "MAILHUB_PROBE_SMTP_HOST",
+        "MAILHUB_PROBE_SMTP_USER",
+        "MAILHUB_PROBE_SMTP_PASS",
+        "MAILHUB_PROBE_FROM",
+        "GOOGLE_CLIENT_ID",
+        "GOOGLE_CLIENT_SECRET",
+        "GOOGLE_SHARED_INBOX_EMAIL",
+        "GOOGLE_SHARED_INBOX_REFRESH_TOKEN",
+      ]
+    : [
+        "MAILHUB_PROBE_SMTP_USER",
+        "MAILHUB_PROBE_SMTP_PASS",
+        "GOOGLE_CLIENT_ID",
+        "GOOGLE_CLIENT_SECRET",
+        "GOOGLE_SHARED_INBOX_EMAIL",
+        "GOOGLE_SHARED_INBOX_REFRESH_TOKEN",
+      ];
   const paths = {
     source: join(dir, "source.json"),
     ops: join(dir, "ops.json"),
     gws: join(dir, "gws.json"),
     routing: join(dir, "routing.json"),
+    send: join(dir, "send.json"),
     preflight: join(dir, "preflight.json"),
     githubSecrets: join(dir, "github-secrets.json"),
     githubStaffSecrets: join(dir, "github-staff-secrets.json"),
@@ -143,15 +377,21 @@ function writeReadinessFixtures(
     out: join(dir, "readiness.json"),
   };
   writeJson(paths.source, {
-    generatedAt: "2026-06-17T00:00:00.000Z",
+    generatedAt: freshFixtureTimestamp,
+    repoHead,
     zeroEstimateAnalysis: {
       knownCodeGaps: [],
       coverageGate: { codeCoveragePass: true },
     },
   });
-  writeJson(paths.ops, opsAuditFixture());
+  writeJson(paths.ops, {
+    ...opsAuditFixture(),
+    generatedAt: freshFixtureTimestamp,
+    repoHead,
+  });
   writeJson(paths.gws, {
-    generatedAt: "2026-06-17T00:00:00.000Z",
+    generatedAt: freshFixtureTimestamp,
+    repoHead,
     gate: {
       currentSharedGmailRoutingConfirmed: false,
     },
@@ -160,26 +400,70 @@ function writeReadinessFixtures(
     },
   });
   writeJson(paths.routing, {
-    generatedAt: "2026-06-17T00:00:00.000Z",
+    generatedAt: freshFixtureTimestamp,
+    repoHead,
+    inputs: {
+      marker: routingProbeGate.markerProvided === true ? marker : null,
+    },
+    mode: routingProbeGate.markerProvided === true ? "verify_marker" : "plan_only",
+    plannedAddressProbes: routingProbeAddressPlan.map(({ channelId, label, address }) => ({ channelId, label, address })),
     gate: routingProbeGate,
   });
-  writeJson(paths.preflight, {
-    generatedAt: "2026-06-17T00:00:00.000Z",
+  writeJson(paths.send, {
+    generatedAt: freshFixtureTimestamp,
+    repoHead,
+    mode: routingSendReady ? "sent" : "dry_run",
+    marker,
+    inputs: {
+      preflight: false,
+      verifyAfterSend: routingSendReady,
+    },
     smtpPreflight: {
-      missingRequiredEnv: ["MAILHUB_PROBE_SMTP_HOST", "MAILHUB_PROBE_FROM"],
-      readyForSend: false,
-      readyForProductionProof: false,
+      missingRequiredEnv: routingSendReady ? [] : ["MAILHUB_PROBE_SMTP_HOST", "MAILHUB_PROBE_FROM"],
+      readyForSend: routingSendReady,
+      readyForProductionProof: routingSendReady,
+      fromIsVtj: false,
+      warnings: [],
+    },
+    probeCount: routingProbeAddressPlan.length,
+    addressProbes: routingProbeAddressPlan,
+    sent: routingSendReady
+      ? routingProbeAddressPlan.map(({ channelId, address }, index) => ({
+          channelId,
+          address,
+          accepted: [address],
+          rejected: [],
+          messageId: `fixture-message-${index}`,
+        }))
+      : [],
+    verification: routingSendReady
+      ? {
+          status: "matched",
+          allExpectedAddressesConfirmed: true,
+          productionReady: true,
+          p0Blockers: [],
+        }
+      : null,
+  });
+  writeJson(paths.preflight, {
+    generatedAt: freshFixtureTimestamp,
+    repoHead,
+    smtpPreflight: {
+      missingRequiredEnv: routingSendReady ? [] : ["MAILHUB_PROBE_SMTP_HOST", "MAILHUB_PROBE_FROM"],
+      readyForSend: routingSendReady,
+      readyForProductionProof: routingSendReady,
       warnings: [],
     },
   });
   writeJson(paths.githubSecrets, {
-    checkedAt: "2026-06-17T00:00:00.000Z",
+    checkedAt: freshFixtureTimestamp,
+    repoHead,
     source: "github_actions_secrets",
-    secretCount: 4,
-    readyForPreflightProductionProof: false,
-    readyForSendVerify: false,
-    missingPreflightSecrets: ["MAILHUB_PROBE_SMTP_HOST", "MAILHUB_PROBE_FROM"],
-    missingSendVerifySecrets: ["MAILHUB_PROBE_SMTP_HOST", "MAILHUB_PROBE_FROM"],
+    secretCount: presentRoutingSecretNames.length,
+    readyForPreflightProductionProof: routingSendReady,
+    readyForSendVerify: routingSendReady,
+    missingPreflightSecrets: routingSendReady ? [] : ["MAILHUB_PROBE_SMTP_HOST", "MAILHUB_PROBE_FROM"],
+    missingSendVerifySecrets: routingSendReady ? [] : ["MAILHUB_PROBE_SMTP_HOST", "MAILHUB_PROBE_FROM"],
     secretGroups: {
       externalSmtpProof: {
         required: [
@@ -188,9 +472,9 @@ function writeReadinessFixtures(
           "MAILHUB_PROBE_SMTP_PASS",
           "MAILHUB_PROBE_FROM",
         ],
-        present: ["MAILHUB_PROBE_SMTP_USER", "MAILHUB_PROBE_SMTP_PASS"],
-        missing: ["MAILHUB_PROBE_SMTP_HOST", "MAILHUB_PROBE_FROM"],
-        ready: false,
+        present: presentRoutingSecretNames.filter((name) => name.startsWith("MAILHUB_PROBE_")),
+        missing: routingSendReady ? [] : ["MAILHUB_PROBE_SMTP_HOST", "MAILHUB_PROBE_FROM"],
+        ready: routingSendReady,
       },
       gmailProof: {
         required: [
@@ -209,16 +493,11 @@ function writeReadinessFixtures(
         ready: true,
       },
     },
-    presentRequiredSecretNames: [
-      "GOOGLE_CLIENT_ID",
-      "GOOGLE_CLIENT_SECRET",
-      "GOOGLE_SHARED_INBOX_EMAIL",
-      "GOOGLE_SHARED_INBOX_REFRESH_TOKEN",
-    ],
+    presentRequiredSecretNames: presentRoutingSecretNames,
   });
   writeJson(paths.githubStaffSecrets, {
-    checkedAt: "2026-06-17T00:00:00.000Z",
-    repoHead: currentRepoHead(),
+    checkedAt: freshFixtureTimestamp,
+    repoHead,
     source: "github_actions_config",
     secretCount: staffWorkflowReady ? 4 : 0,
     variableCount: staffWorkflowReady ? 11 : 0,
@@ -294,7 +573,8 @@ function writeReadinessFixtures(
       : {},
   });
   writeJson(paths.views, {
-    generatedAt: "2026-06-17T00:00:00.000Z",
+    generatedAt: freshFixtureTimestamp,
+    repoHead,
     gate: {
       syntaxReady: true,
       manualReviewOnly: true,
@@ -306,7 +586,8 @@ function writeReadinessFixtures(
     views: [{ id: "invoices", syntaxAccepted: true, hasMoreAfterMaxPages: false }],
   });
   writeJson(paths.rules, {
-    generatedAt: "2026-06-17T00:00:00.000Z",
+    generatedAt: freshFixtureTimestamp,
+    repoHead,
     inputs: {
       envFile: ".env.local",
       envFileLoaded: true,
@@ -322,7 +603,8 @@ function writeReadinessFixtures(
     ruleSafetyGate: { realDataRuleRiskPass: true },
   });
   writeJson(paths.staffWorkflow, {
-    generatedAt: "2026-06-17T00:00:00.000Z",
+    generatedAt: freshFixtureTimestamp,
+    repoHead,
     gate: {
       staffWorkflowPermissionsReady: staffWorkflowReady,
       readOnlyRolloutReady: staffWorkflowReady,
@@ -1564,7 +1846,7 @@ describe("MailHub routing probe CLI gates", () => {
         "datacolor_shopify@vtj.co.jp",
         "ebay@vtj.co.jp",
       ];
-      const marker = "MAILHUB-ROUTING-PROBE-20260617T000000Z";
+      const marker = routingProbeMarker;
       const probes = addresses.map((address, index) => ({
         channelId: `channel-${index}`,
         label: `Channel ${index}`,
@@ -1573,6 +1855,7 @@ describe("MailHub routing probe CLI gates", () => {
       }));
 
       writeJson(preflightPath, {
+        generatedAt: freshFixtureTimestamp,
         mode: "preflight",
         marker,
         inputs: { preflight: true, verifyAfterSend: false },
@@ -1648,6 +1931,324 @@ describe("MailHub routing probe CLI gates", () => {
     });
   });
 
+  test("routing proof contract accepts complete sent proof chain", () => {
+    withTempDir((dir) => {
+      const preflightPath = join(dir, "preflight.json");
+      const sendPath = join(dir, "send.json");
+      const auditPath = join(dir, "audit.json");
+      const readinessPath = join(dir, "readiness.json");
+      const addresses = [
+        "gopro_y@vtj.co.jp",
+        "gopro_order_yahoo@vtj.co.jp",
+        "vyper_r@vtj.co.jp",
+        "vyper_rakuten@vtj.co.jp",
+        "vyperglobal_y@vtj.co.jp",
+        "ams_vyper@vtj.co.jp",
+        "datacolor_shopify@vtj.co.jp",
+        "ebay@vtj.co.jp",
+      ];
+      const marker = routingProbeMarker;
+      const probes = addresses.map((address, index) => ({
+        channelId: `channel-${index}`,
+        label: `Channel ${index}`,
+        address,
+        subject: marker,
+      }));
+
+      writeJson(preflightPath, {
+        generatedAt: freshFixtureTimestamp,
+        mode: "preflight",
+        marker,
+        inputs: { preflight: true, verifyAfterSend: false },
+        smtpPreflight: {
+          missingRequiredEnv: [],
+          readyForProductionProof: true,
+          fromIsVtj: false,
+        },
+        probeCount: probes.length,
+        addressProbes: probes,
+        sent: [],
+        verification: null,
+      });
+      writeJson(sendPath, {
+        generatedAt: freshFixtureTimestamp,
+        mode: "sent",
+        marker,
+        smtpPreflight: {
+          missingRequiredEnv: [],
+          readyForProductionProof: true,
+          fromIsVtj: false,
+        },
+        probeCount: probes.length,
+        addressProbes: probes,
+        sent: probes.map(({ channelId, address }, index) => ({
+          channelId,
+          address,
+          accepted: [address],
+          rejected: [],
+          messageId: `fixture-${index}`,
+        })),
+        verification: {
+          status: "matched",
+          allExpectedAddressesConfirmed: true,
+          productionReady: true,
+          p0Blockers: [],
+        },
+      });
+      writeJson(auditPath, {
+        generatedAt: freshFixtureTimestamp,
+        mode: "verify_marker",
+        inputs: { marker },
+        plannedAddressProbes: probes.map(({ channelId, label, address }) => ({ channelId, label, address })),
+        gate: {
+          markerProvided: true,
+          targetAddressCount: addresses.length,
+          matchedAddresses: addresses,
+          missingAddresses: [],
+          allExpectedAddressesConfirmed: true,
+        },
+      });
+      writeJson(readinessPath, {
+        requirements: {
+          currentSharedGmailRoutingReady: true,
+          routingProbeReady: true,
+          routingProbeSendReady: true,
+          routingProofChainReady: true,
+        },
+        gate: {
+          productionReady: true,
+          p0Blockers: [],
+        },
+        blockers: [],
+      });
+
+      const result = runNodeScript(routingProofContractPath, [
+        "--preflight",
+        preflightPath,
+        "--send",
+        sendPath,
+        "--audit",
+        auditPath,
+        "--readiness",
+        readinessPath,
+      ]);
+
+      expect(result.status).toBe(0);
+      expect(JSON.parse(result.stdout)).toMatchObject({
+        ok: true,
+        sentCount: addresses.length,
+        readyForProductionProof: true,
+        allExpectedAddressesConfirmed: true,
+        productionReady: true,
+      });
+    });
+  });
+
+  test("routing proof contract rejects 8 matching non-canonical address artifacts", () => {
+    withTempDir((dir) => {
+      const preflightPath = join(dir, "preflight.json");
+      const sendPath = join(dir, "send.json");
+      const auditPath = join(dir, "audit.json");
+      const readinessPath = join(dir, "readiness.json");
+      const marker = routingProbeMarker;
+      const addresses = nonCanonicalRoutingProbeAddresses;
+      const probes = nonCanonicalRoutingProbePlan;
+
+      writeJson(preflightPath, {
+        mode: "preflight",
+        marker,
+        inputs: { preflight: true, verifyAfterSend: false },
+        smtpPreflight: {
+          missingRequiredEnv: [],
+          readyForProductionProof: true,
+          fromIsVtj: false,
+        },
+        probeCount: probes.length,
+        addressProbes: probes,
+        sent: [],
+        verification: null,
+      });
+      writeJson(sendPath, {
+        mode: "sent",
+        marker,
+        smtpPreflight: {
+          missingRequiredEnv: [],
+          readyForProductionProof: true,
+          fromIsVtj: false,
+        },
+        probeCount: probes.length,
+        addressProbes: probes,
+        sent: probes.map(({ channelId, address }, index) => ({
+          channelId,
+          address,
+          accepted: [address],
+          rejected: [],
+          messageId: `fixture-${index}`,
+        })),
+        verification: {
+          status: "matched",
+          allExpectedAddressesConfirmed: true,
+          productionReady: true,
+          p0Blockers: [],
+        },
+      });
+      writeJson(auditPath, {
+        mode: "verify_marker",
+        inputs: { marker },
+        plannedAddressProbes: probes.map(({ channelId, label, address }) => ({ channelId, label, address })),
+        gate: {
+          markerProvided: true,
+          targetAddressCount: addresses.length,
+          matchedAddresses: addresses,
+          missingAddresses: [],
+          allExpectedAddressesConfirmed: true,
+        },
+      });
+      writeJson(readinessPath, {
+        requirements: {
+          currentSharedGmailRoutingReady: true,
+          routingProbeReady: true,
+          routingProbeSendReady: true,
+          routingProofChainReady: true,
+        },
+        gate: {
+          productionReady: true,
+          p0Blockers: [],
+        },
+        blockers: [],
+      });
+
+      const result = runNodeScript(routingProofContractPath, [
+        "--preflight",
+        preflightPath,
+        "--send",
+        sendPath,
+        "--audit",
+        auditPath,
+        "--readiness",
+        readinessPath,
+      ]);
+
+      expect(result.status).toBe(1);
+      const out = JSON.parse(result.stdout) as { errors: string[] };
+      expect(out.errors).toEqual(
+        expect.arrayContaining([
+          "preflight_canonical_address_mismatch",
+          "send_canonical_address_mismatch",
+          "audit_canonical_address_mismatch",
+          "readiness_routing_probe_send_mismatch",
+          "readiness_routing_proof_chain_mismatch",
+          "shared_routing_ready_without_routing_proof_chain",
+        ]),
+      );
+      expect(out.errors).not.toContain("preflight_target_address_count_mismatch");
+      expect(out.errors).not.toContain("send_target_address_count_mismatch");
+      expect(out.errors).not.toContain("audit_expected_target_address_count_mismatch");
+    });
+  });
+
+  test("routing proof contract rejects complete proof chain with old external timestamps", () => {
+    withTempDir((dir) => {
+      const preflightPath = join(dir, "preflight.json");
+      const sendPath = join(dir, "send.json");
+      const auditPath = join(dir, "audit.json");
+      const readinessPath = join(dir, "readiness.json");
+      const oldTimestamp = "2000-01-01T00:00:00.000Z";
+      const oldMarker = "MAILHUB-ROUTING-PROBE-20000101T000000Z";
+      const probes = canonicalRoutingProbeAddresses.map((address, index) => ({
+        channelId: `channel-${index}`,
+        label: `Channel ${index}`,
+        address,
+        subject: oldMarker,
+      }));
+
+      writeJson(preflightPath, {
+        generatedAt: freshFixtureTimestamp,
+        mode: "preflight",
+        marker: oldMarker,
+        inputs: { preflight: true, verifyAfterSend: false },
+        smtpPreflight: {
+          missingRequiredEnv: [],
+          readyForProductionProof: true,
+          fromIsVtj: false,
+        },
+        probeCount: probes.length,
+        addressProbes: probes,
+        sent: [],
+        verification: null,
+      });
+      writeJson(sendPath, {
+        generatedAt: oldTimestamp,
+        mode: "sent",
+        marker: oldMarker,
+        smtpPreflight: {
+          missingRequiredEnv: [],
+          readyForProductionProof: true,
+          fromIsVtj: false,
+        },
+        probeCount: probes.length,
+        addressProbes: probes,
+        sent: probes.map(({ channelId, address }, index) => ({
+          channelId,
+          address,
+          accepted: [address],
+          rejected: [],
+          messageId: `fixture-${index}`,
+        })),
+        verification: {
+          status: "matched",
+          allExpectedAddressesConfirmed: true,
+          productionReady: true,
+          p0Blockers: [],
+        },
+      });
+      writeJson(auditPath, {
+        generatedAt: oldTimestamp,
+        mode: "verify_marker",
+        inputs: { marker: oldMarker },
+        plannedAddressProbes: probes.map(({ channelId, label, address }) => ({ channelId, label, address })),
+        gate: {
+          markerProvided: true,
+          targetAddressCount: canonicalRoutingProbeAddresses.length,
+          matchedAddresses: canonicalRoutingProbeAddresses,
+          missingAddresses: [],
+          allExpectedAddressesConfirmed: true,
+        },
+      });
+      writeJson(readinessPath, {
+        requirements: {
+          currentSharedGmailRoutingReady: true,
+          routingProbeReady: true,
+          routingProbeSendReady: true,
+          routingProofChainReady: true,
+        },
+        gate: {
+          productionReady: true,
+          p0Blockers: [],
+        },
+        blockers: [],
+      });
+
+      const result = runNodeScript(routingProofContractPath, [
+        "--preflight",
+        preflightPath,
+        "--send",
+        sendPath,
+        "--audit",
+        auditPath,
+        "--readiness",
+        readinessPath,
+      ]);
+
+      expect(result.status).toBe(1);
+      expect(result.stdout).toContain("routing_probe_audit_generated_at_stale");
+      expect(result.stdout).toContain("routing_probe_send_generated_at_stale");
+      expect(result.stdout).toContain("routing_probe_marker_stale");
+      expect(result.stdout).toContain("readiness_routing_probe_send_mismatch");
+      expect(result.stdout).toContain("readiness_routing_proof_chain_mismatch");
+    });
+  });
+
   test("routing proof contract rejects send and readiness contradictions", () => {
     withTempDir((dir) => {
       const preflightPath = join(dir, "preflight.json");
@@ -1704,6 +2305,12 @@ describe("MailHub routing probe CLI gates", () => {
         },
       });
       writeJson(readinessPath, {
+        requirements: {
+          currentSharedGmailRoutingReady: true,
+          routingProbeReady: true,
+          routingProbeSendReady: true,
+          routingProofChainReady: true,
+        },
         gate: {
           productionReady: true,
           p0Blockers: [],
@@ -1728,8 +2335,107 @@ describe("MailHub routing probe CLI gates", () => {
       expect(result.stdout).toContain("preflight_ready_with_vtj_sender");
       expect(result.stdout).toContain("dry_run_must_not_send_mail");
       expect(result.stdout).toContain("plan_only_must_not_match_addresses");
+      expect(result.stdout).toContain("shared_routing_ready_without_sent_artifact");
+      expect(result.stdout).toContain("shared_routing_ready_without_verify_marker_audit");
+      expect(result.stdout).toContain("shared_routing_ready_without_routing_proof_chain");
       expect(result.stdout).toContain("production_ready_without_confirmed_routing_probe");
       expect(result.stdout).toContain("unconfirmed_routing_without_readiness_p0");
+    });
+  });
+
+  test("routing proof contract rejects marker-only audit when send artifact is dry-run", () => {
+    withTempDir((dir) => {
+      const preflightPath = join(dir, "preflight.json");
+      const sendPath = join(dir, "send.json");
+      const auditPath = join(dir, "audit.json");
+      const readinessPath = join(dir, "readiness.json");
+      const addresses = [
+        "gopro_y@vtj.co.jp",
+        "gopro_order_yahoo@vtj.co.jp",
+        "vyper_r@vtj.co.jp",
+        "vyper_rakuten@vtj.co.jp",
+        "vyperglobal_y@vtj.co.jp",
+        "ams_vyper@vtj.co.jp",
+        "datacolor_shopify@vtj.co.jp",
+        "ebay@vtj.co.jp",
+      ];
+      const marker = "MAILHUB-ROUTING-PROBE-20260617T000000Z";
+      const probes = addresses.map((address, index) => ({
+        channelId: `channel-${index}`,
+        label: `Channel ${index}`,
+        address,
+        subject: marker,
+      }));
+
+      writeJson(preflightPath, {
+        mode: "preflight",
+        marker,
+        inputs: { preflight: true, verifyAfterSend: false },
+        smtpPreflight: {
+          missingRequiredEnv: [],
+          readyForProductionProof: true,
+          fromIsVtj: false,
+        },
+        probeCount: probes.length,
+        addressProbes: probes,
+        sent: [],
+        verification: null,
+      });
+      writeJson(sendPath, {
+        mode: "dry_run",
+        marker,
+        smtpPreflight: {
+          missingRequiredEnv: [],
+          readyForProductionProof: true,
+          fromIsVtj: false,
+        },
+        probeCount: probes.length,
+        addressProbes: probes,
+        sent: [],
+        verification: null,
+      });
+      writeJson(auditPath, {
+        mode: "verify_marker",
+        inputs: { marker },
+        plannedAddressProbes: probes.map(({ channelId, label, address }) => ({ channelId, label, address })),
+        gate: {
+          markerProvided: true,
+          targetAddressCount: addresses.length,
+          matchedAddresses: addresses,
+          missingAddresses: [],
+          allExpectedAddressesConfirmed: true,
+        },
+      });
+      writeJson(readinessPath, {
+        requirements: {
+          currentSharedGmailRoutingReady: true,
+          routingProbeReady: true,
+          routingProbeSendReady: true,
+          routingProofChainReady: true,
+        },
+        gate: {
+          productionReady: true,
+          p0Blockers: [],
+        },
+        blockers: [],
+      });
+
+      const result = runNodeScript(routingProofContractPath, [
+        "--preflight",
+        preflightPath,
+        "--send",
+        sendPath,
+        "--audit",
+        auditPath,
+        "--readiness",
+        readinessPath,
+      ]);
+
+      expect(result.status).toBe(1);
+      expect(result.stdout).toContain("shared_routing_ready_without_sent_artifact");
+      expect(result.stdout).toContain("readiness_routing_probe_send_mismatch");
+      expect(result.stdout).toContain("readiness_routing_proof_chain_mismatch");
+      expect(result.stdout).toContain("shared_routing_ready_without_routing_proof_chain");
     });
   });
 
@@ -1884,6 +2590,8 @@ describe("MailHub routing probe CLI gates", () => {
         paths.gws,
         "--routing-probe-audit",
         paths.routing,
+        "--routing-probe-send",
+        paths.send,
         "--routing-probe-preflight",
         paths.preflight,
         "--github-routing-secrets",
@@ -1904,6 +2612,8 @@ describe("MailHub routing probe CLI gates", () => {
       const out = readJson<{
         requirements: {
           routingProbeReady: boolean;
+          routingProbeSendReady: boolean;
+          routingProofChainReady: boolean;
           routingProbePreflightReady: boolean;
           routingProbeGithubSecretsReady: boolean;
           currentSharedGmailRoutingReady: boolean;
@@ -1939,6 +2649,8 @@ describe("MailHub routing probe CLI gates", () => {
         }>;
       }>(paths.out);
       expect(out.requirements.routingProbeReady).toBe(false);
+      expect(out.requirements.routingProbeSendReady).toBe(false);
+      expect(out.requirements.routingProofChainReady).toBe(false);
       expect(out.requirements.routingProbePreflightReady).toBe(false);
       expect(out.requirements.routingProbeGithubSecretsReady).toBe(false);
       expect(out.requirements.currentSharedGmailRoutingReady).toBe(false);
@@ -1971,23 +2683,19 @@ describe("MailHub routing probe CLI gates", () => {
     });
   });
 
-  test("production readiness accepts complete address-level probe evidence", () => {
+  test("production readiness rejects marker-only routing evidence without sent artifact proof", () => {
     withTempDir((dir) => {
-      const paths = writeReadinessFixtures(
-        dir,
-        {
-          markerProvided: true,
-          targetChannelCount: 2,
-          targetAddressCount: 3,
-          matchedChannels: ["multi-source", "single-source"],
-          missingChannels: [],
-          matchedAddresses: ["first@example.com", "second@example.com", "third@example.com"],
-          missingAddresses: [],
-          allExpectedChannelsConfirmed: true,
-          allExpectedAddressesConfirmed: true,
-        },
-        { staffWorkflowReady: true },
-      );
+      const paths = writeReadinessFixtures(dir, {
+        markerProvided: true,
+        targetChannelCount: 2,
+        targetAddressCount: 3,
+        matchedChannels: ["multi-source", "single-source"],
+        missingChannels: [],
+        matchedAddresses: ["first@example.com", "second@example.com", "third@example.com"],
+        missingAddresses: [],
+        allExpectedChannelsConfirmed: true,
+        allExpectedAddressesConfirmed: true,
+      });
 
       const result = runNodeScript(readinessAuditPath, [
         "--source-audit",
@@ -1998,6 +2706,10 @@ describe("MailHub routing probe CLI gates", () => {
         paths.gws,
         "--routing-probe-audit",
         paths.routing,
+        "--routing-probe-send",
+        paths.send,
+        "--routing-probe-preflight",
+        paths.preflight,
         "--github-routing-secrets",
         paths.githubSecrets,
         "--github-staff-secrets",
@@ -2016,6 +2728,87 @@ describe("MailHub routing probe CLI gates", () => {
       const out = readJson<{
         requirements: {
           routingProbeReady: boolean;
+          routingProbeSendReady: boolean;
+          routingProofChainReady: boolean;
+          currentSharedGmailRoutingReady: boolean;
+        };
+        gate: {
+          productionReady: boolean;
+          p0Blockers: string[];
+        };
+        blockers: Array<{
+          id: string;
+          evidence?: {
+            routingProofChain?: { issues?: string[] };
+          };
+        }>;
+      }>(paths.out);
+      expect(out.requirements.routingProbeReady).toBe(true);
+      expect(out.requirements.routingProbeSendReady).toBe(false);
+      expect(out.requirements.routingProofChainReady).toBe(false);
+      expect(out.requirements.currentSharedGmailRoutingReady).toBe(false);
+      expect(out.gate.productionReady).toBe(false);
+      expect(out.gate.p0Blockers).toContain("current_shared_gmail_routing");
+      const blocker = out.blockers.find((item) => item.id === "current_shared_gmail_routing");
+      expect(blocker?.evidence?.routingProofChain?.issues).toContain("routing_probe_send_not_sent");
+    });
+  });
+
+  test("production readiness accepts full canonical address-level send proof chain", () => {
+    withTempDir((dir) => {
+      const paths = writeReadinessFixtures(
+        dir,
+        {
+          markerProvided: true,
+          targetChannelCount: 8,
+          targetAddressCount: canonicalRoutingProbeAddresses.length,
+          matchedChannels: canonicalRoutingProbePlan.map((probe) => probe.channelId),
+          missingChannels: [],
+          matchedAddresses: canonicalRoutingProbeAddresses,
+          missingAddresses: [],
+          allExpectedChannelsConfirmed: true,
+          allExpectedAddressesConfirmed: true,
+        },
+        {
+          staffWorkflowReady: true,
+          routingSendReady: true,
+          routingProbeAddressPlan: canonicalRoutingProbePlan,
+        },
+      );
+
+      const result = runNodeScript(readinessAuditPath, [
+        "--source-audit",
+        paths.source,
+        "--ops-audit",
+        paths.ops,
+        "--gws-routing-audit",
+        paths.gws,
+        "--routing-probe-audit",
+        paths.routing,
+        "--routing-probe-send",
+        paths.send,
+        "--routing-probe-preflight",
+        paths.preflight,
+        "--github-routing-secrets",
+        paths.githubSecrets,
+        "--github-staff-secrets",
+        paths.githubStaffSecrets,
+        "--views-audit",
+        paths.views,
+        "--rules-audit",
+        paths.rules,
+        "--staff-workflow-audit",
+        paths.staffWorkflow,
+        "--out",
+        paths.out,
+      ]);
+
+      expect(result.status).toBe(0);
+      const out = readJson<{
+        requirements: {
+          routingProbeReady: boolean;
+          routingProbeSendReady: boolean;
+          routingProofChainReady: boolean;
           currentSharedGmailRoutingReady: boolean;
         };
         gate: {
@@ -2024,9 +2817,106 @@ describe("MailHub routing probe CLI gates", () => {
         };
       }>(paths.out);
       expect(out.requirements.routingProbeReady).toBe(true);
+      expect(out.requirements.routingProbeSendReady).toBe(true);
+      expect(out.requirements.routingProofChainReady).toBe(true);
       expect(out.requirements.currentSharedGmailRoutingReady).toBe(true);
       expect(out.gate.productionReady).toBe(true);
       expect(out.gate.p0Blockers).toEqual([]);
+    });
+  });
+
+  test("production readiness rejects subset send proof even when local and GitHub routing gates are ready", () => {
+    withTempDir((dir) => {
+      const paths = writeReadinessFixtures(
+        dir,
+        {
+          markerProvided: true,
+          targetChannelCount: 2,
+          targetAddressCount: 3,
+          matchedChannels: ["multi-source", "single-source"],
+          missingChannels: [],
+          matchedAddresses: ["first@example.com", "second@example.com", "third@example.com"],
+          missingAddresses: [],
+          allExpectedChannelsConfirmed: true,
+          allExpectedAddressesConfirmed: true,
+        },
+        { staffWorkflowReady: true, routingSendReady: true },
+      );
+
+      const result = runNodeScript(readinessAuditPath, [
+        "--source-audit",
+        paths.source,
+        "--ops-audit",
+        paths.ops,
+        "--gws-routing-audit",
+        paths.gws,
+        "--routing-probe-audit",
+        paths.routing,
+        "--routing-probe-send",
+        paths.send,
+        "--routing-probe-preflight",
+        paths.preflight,
+        "--github-routing-secrets",
+        paths.githubSecrets,
+        "--github-staff-secrets",
+        paths.githubStaffSecrets,
+        "--views-audit",
+        paths.views,
+        "--rules-audit",
+        paths.rules,
+        "--staff-workflow-audit",
+        paths.staffWorkflow,
+        "--out",
+        paths.out,
+      ]);
+
+      expect(result.status).toBe(0);
+      const out = readJson<{
+        requirements: {
+          routingProbeReady: boolean;
+          routingProbeSendReady: boolean;
+          routingProofChainReady: boolean;
+          routingProbePreflightReady: boolean;
+          routingProbeGithubSecretsReady: boolean;
+          currentSharedGmailRoutingReady: boolean;
+        };
+        gate: {
+          productionReady: boolean;
+          p0Blockers: string[];
+        };
+        blockers: Array<{
+          id: string;
+          evidence?: {
+            routingProofChain?: {
+              issues?: string[];
+              canonicalAddressCount?: number;
+              auditAddressCount?: number;
+              sendAddressCount?: number;
+            };
+          };
+        }>;
+      }>(paths.out);
+      expect(out.requirements.routingProbeReady).toBe(true);
+      expect(out.requirements.routingProbeSendReady).toBe(false);
+      expect(out.requirements.routingProofChainReady).toBe(false);
+      expect(out.requirements.routingProbePreflightReady).toBe(true);
+      expect(out.requirements.routingProbeGithubSecretsReady).toBe(true);
+      expect(out.requirements.currentSharedGmailRoutingReady).toBe(false);
+      expect(out.gate.productionReady).toBe(false);
+      expect(out.gate.p0Blockers).toContain("current_shared_gmail_routing");
+      const blocker = out.blockers.find((item) => item.id === "current_shared_gmail_routing");
+      expect(blocker?.evidence?.routingProofChain?.canonicalAddressCount).toBe(8);
+      expect(blocker?.evidence?.routingProofChain?.auditAddressCount).toBe(3);
+      expect(blocker?.evidence?.routingProofChain?.sendAddressCount).toBe(3);
+      expect(blocker?.evidence?.routingProofChain?.issues).toEqual(
+        expect.arrayContaining([
+          "routing_probe_audit_target_count_not_canonical",
+          "routing_probe_audit_address_count_not_canonical",
+          "routing_probe_audit_canonical_address_mismatch",
+          "routing_probe_send_address_count_not_canonical",
+          "routing_probe_send_canonical_address_mismatch",
+        ]),
+      );
     });
   });
 
@@ -2167,6 +3057,47 @@ describe("MailHub routing probe CLI gates", () => {
     });
   });
 
+  test("routing probe preflight blocks malformed MAILHUB_PROBE_FROM from send readiness", () => {
+    withTempDir((dir) => {
+      const opsPath = join(dir, "ops.json");
+      const outPath = join(dir, "send-plan.json");
+      writeJson(opsPath, opsAuditFixture());
+
+      const result = runNodeScript(
+        routingProbeSenderPath,
+        ["--ops-audit", opsPath, "--out", outPath, "--preflight"],
+        {
+          MAILHUB_PROBE_SMTP_HOST: "smtp.example.com",
+          MAILHUB_PROBE_SMTP_PORT: "587",
+          MAILHUB_PROBE_SMTP_SECURE: "false",
+          MAILHUB_PROBE_SMTP_USER: "probe-user",
+          MAILHUB_PROBE_SMTP_PASS: "probe-pass",
+          MAILHUB_PROBE_FROM: "not-an-email",
+        },
+      );
+
+      expect(result.status).toBe(0);
+      const out = readJson<{
+        smtpPreflight: {
+          missingRequiredEnv: string[];
+          from: string | null;
+          fromDomain: string | null;
+          fromValid: boolean;
+          readyForSend: boolean;
+          readyForProductionProof: boolean;
+          warnings: string[];
+        };
+      }>(outPath);
+      expect(out.smtpPreflight.missingRequiredEnv).toEqual([]);
+      expect(out.smtpPreflight.from).toBeNull();
+      expect(out.smtpPreflight.fromDomain).toBeNull();
+      expect(out.smtpPreflight.fromValid).toBe(false);
+      expect(out.smtpPreflight.readyForSend).toBe(false);
+      expect(out.smtpPreflight.readyForProductionProof).toBe(false);
+      expect(out.smtpPreflight.warnings).toContain("invalid_MAILHUB_PROBE_FROM");
+    });
+  });
+
   test("routing probe preflight keeps vtj.co.jp smoke senders out of production proof", () => {
     withTempDir((dir) => {
       const opsPath = join(dir, "ops.json");
@@ -2261,6 +3192,212 @@ describe("MailHub routing probe CLI gates", () => {
       expect(result.status).toBe(1);
       expect(result.stderr).toContain("missing_env_for_verify_after_send");
       expect(result.stderr).toContain("GOOGLE_CLIENT_ID");
+    });
+  });
+
+  test("routing probe sender writes sent artifact before verify-after-send readiness regeneration", async () => {
+    await withTempDirAsync(async (dir) => {
+      await withLocalSmtpServer(dir, async ({ port }) => {
+        const scriptsDir = join(dir, "scripts");
+        const opsPath = join(dir, "ops.json");
+        const outPath = join(dir, "send.json");
+        const routingAuditOut = join(dir, "routing-audit.json");
+        const readinessOut = join(dir, "readiness.json");
+        const readinessWitness = join(dir, "readiness-witness.json");
+        const marker = "MAILHUB-ROUTING-PROBE-20260617T000000Z";
+        mkdirSync(scriptsDir, { recursive: true });
+        writeJson(opsPath, opsAuditFixtureFromProbePlan(canonicalRoutingProbePlan));
+
+        writeFileSync(
+          join(scriptsDir, "audit-mailhub-routing-probes.mjs"),
+          [
+            "import { readFileSync, writeFileSync } from 'node:fs';",
+            "function arg(name) { const index = process.argv.indexOf(name); return index >= 0 ? process.argv[index + 1] : null; }",
+            "const ops = JSON.parse(readFileSync(arg('--ops-audit'), 'utf8'));",
+            "const marker = arg('--marker');",
+            "const unconfirmed = new Set(ops.gate.currentSharedGmailRoutingUnconfirmed);",
+            "const probes = ops.operationalConfirmations",
+            "  .filter((item) => unconfirmed.has(item.id))",
+            "  .flatMap((item) => item.addresses.map((address) => ({ channelId: item.id, label: item.label, address })));",
+            "writeFileSync(arg('--out'), `${JSON.stringify({",
+            "  generatedAt: new Date().toISOString(),",
+            "  mode: 'verify_marker',",
+            "  inputs: { marker },",
+            "  plannedAddressProbes: probes,",
+            "  gate: {",
+            "    markerProvided: true,",
+            "    targetChannelCount: unconfirmed.size,",
+            "    targetAddressCount: probes.length,",
+            "    matchedChannels: [...unconfirmed],",
+            "    missingChannels: [],",
+            "    matchedAddresses: probes.map((item) => item.address),",
+            "    missingAddresses: [],",
+            "    allExpectedChannelsConfirmed: true,",
+            "    allExpectedAddressesConfirmed: true,",
+            "  },",
+            "}, null, 2)}\\n`);",
+          ].join("\n"),
+          "utf8",
+        );
+        writeFileSync(
+          join(scriptsDir, "audit-mailhub-production-readiness.mjs"),
+          [
+            "import { readFileSync, writeFileSync } from 'node:fs';",
+            "function arg(name) { const index = process.argv.indexOf(name); return index >= 0 ? process.argv[index + 1] : null; }",
+            "const sendPath = arg('--routing-probe-send');",
+            "const send = JSON.parse(readFileSync(sendPath, 'utf8'));",
+            "writeFileSync(process.env.MAILHUB_READINESS_WITNESS, `${JSON.stringify({",
+            "  args: process.argv.slice(2),",
+            "  routingProbeSend: sendPath,",
+            "  artifactBeforeReadiness: {",
+            "    mode: send.mode,",
+            "    sentCount: Array.isArray(send.sent) ? send.sent.length : 0,",
+            "    verificationStatus: send.verification?.status ?? null,",
+            "    verificationAllExpectedAddressesConfirmed: send.verification?.allExpectedAddressesConfirmed ?? null,",
+            "    hasProductionReady: Object.prototype.hasOwnProperty.call(send.verification ?? {}, 'productionReady'),",
+            "  },",
+            "}, null, 2)}\\n`);",
+            "writeFileSync(arg('--out'), `${JSON.stringify({",
+            "  generatedAt: new Date().toISOString(),",
+            "  gate: { productionReady: true, p0Blockers: [] },",
+            "}, null, 2)}\\n`);",
+          ].join("\n"),
+          "utf8",
+        );
+
+        const result = runNodeScript(
+          routingProbeSenderPath,
+          [
+            "--ops-audit",
+            opsPath,
+            "--out",
+            outPath,
+            "--marker",
+            marker,
+            "--send",
+            "--verify-after-send",
+            "--routing-audit-out",
+            routingAuditOut,
+            "--readiness-out",
+            readinessOut,
+            "--wait-seconds",
+            "0",
+            "--probe-env-file",
+            join(dir, "missing.env"),
+          ],
+          {
+            GOOGLE_CLIENT_ID: "client-id",
+            GOOGLE_CLIENT_SECRET: "client-secret",
+            GOOGLE_SHARED_INBOX_EMAIL: "mailhub@example.com",
+            GOOGLE_SHARED_INBOX_REFRESH_TOKEN: "refresh-token",
+            MAILHUB_PROBE_SMTP_HOST: "127.0.0.1",
+            MAILHUB_PROBE_SMTP_PORT: String(port),
+            MAILHUB_PROBE_SMTP_SECURE: "false",
+            MAILHUB_PROBE_SMTP_USER: "probe-user",
+            MAILHUB_PROBE_SMTP_PASS: "probe-pass",
+            MAILHUB_PROBE_FROM: "external-probe@example.com",
+            MAILHUB_READINESS_WITNESS: readinessWitness,
+          },
+          { cwd: dir },
+        );
+
+        expect(result.status).toBe(0);
+        const witness = readJson<{
+          args: string[];
+          routingProbeSend: string;
+          artifactBeforeReadiness: {
+            mode: string;
+            sentCount: number;
+            verificationStatus: string | null;
+            verificationAllExpectedAddressesConfirmed: boolean | null;
+            hasProductionReady: boolean;
+          };
+        }>(readinessWitness);
+        expect(witness.args).toEqual(expect.arrayContaining(["--routing-probe-send", outPath]));
+        expect(witness.routingProbeSend).toBe(outPath);
+        expect(witness.artifactBeforeReadiness).toEqual({
+          mode: "sent",
+          sentCount: canonicalRoutingProbeAddresses.length,
+          verificationStatus: "matched",
+          verificationAllExpectedAddressesConfirmed: true,
+          hasProductionReady: false,
+        });
+
+        const out = readJson<{
+          mode: string;
+          sent: unknown[];
+          verification: {
+            status: string;
+            allExpectedAddressesConfirmed: boolean;
+            productionReady: boolean;
+            p0Blockers: string[];
+          };
+        }>(outPath);
+        expect(out.mode).toBe("sent");
+        expect(out.sent).toHaveLength(canonicalRoutingProbeAddresses.length);
+        expect(out.verification).toMatchObject({
+          status: "matched",
+          allExpectedAddressesConfirmed: true,
+          productionReady: true,
+          p0Blockers: [],
+        });
+      });
+    });
+  }, 15000);
+
+  test("routing probe sender refuses non-canonical recipients before SMTP send", () => {
+    withTempDir((dir) => {
+      const opsPath = join(dir, "ops.json");
+      const outPath = join(dir, "send-plan.json");
+      writeJson(opsPath, opsAuditFixtureFromProbePlan(nonCanonicalRoutingProbePlan));
+
+      const result = runNodeScript(
+        routingProbeSenderPath,
+        [
+          "--ops-audit",
+          opsPath,
+          "--out",
+          outPath,
+          "--send",
+          "--probe-env-file",
+          join(dir, "missing.env"),
+        ],
+        {
+          MAILHUB_PROBE_SMTP_HOST: "127.0.0.1",
+          MAILHUB_PROBE_SMTP_PORT: "9",
+          MAILHUB_PROBE_SMTP_SECURE: "false",
+          MAILHUB_PROBE_SMTP_USER: "probe-user",
+          MAILHUB_PROBE_SMTP_PASS: "probe-pass",
+          MAILHUB_PROBE_FROM: "external-probe@example.com",
+        },
+      );
+
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain("non_canonical_routing_probe_recipients");
+      expect(result.stderr).toContain("routing_probe_send_canonical_address_mismatch");
+      expect(result.stderr).not.toContain("ECONNREFUSED");
+    });
+  });
+
+  test("routing probe sender refuses malformed MAILHUB_PROBE_FROM before SMTP send", () => {
+    withTempDir((dir) => {
+      const opsPath = join(dir, "ops.json");
+      const outPath = join(dir, "send-plan.json");
+      writeJson(opsPath, opsAuditFixture());
+
+      const result = runNodeScript(
+        routingProbeSenderPath,
+        ["--ops-audit", opsPath, "--out", outPath, "--send"],
+        {
+          MAILHUB_PROBE_SMTP_HOST: "smtp.example.com",
+          MAILHUB_PROBE_SMTP_USER: "probe-user",
+          MAILHUB_PROBE_SMTP_PASS: "probe-pass",
+          MAILHUB_PROBE_FROM: "not-an-email",
+        },
+      );
+
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain("invalid_env:MAILHUB_PROBE_FROM");
     });
   });
 

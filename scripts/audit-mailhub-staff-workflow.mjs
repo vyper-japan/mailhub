@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
 const repoRoot = process.cwd();
@@ -42,6 +42,7 @@ const EVIDENCE_MANIFEST_SCHEMA = "mailhub.staff-workflow-evidence.v1";
 const VALID_WRITE_ACTIONS = new Set(["setWaiting", "archive", "mute", "assign"]);
 const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 const MIN_PNG_BYTES = 1024;
+const STAFF_EVIDENCE_MANIFEST_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
 function parseArgs(argv) {
   const out = {
@@ -218,6 +219,65 @@ function isIsoDate(value) {
   return typeof value === "string" && !Number.isNaN(Date.parse(value));
 }
 
+function timestampFreshness(value, maxAgeMs, nowMs = Date.now()) {
+  if (typeof value !== "string" || value.length === 0) {
+    return { fresh: false, status: "missing_timestamp", ageMs: null, maxAgeMs };
+  }
+  const timestampMs = Date.parse(value);
+  if (!Number.isFinite(timestampMs)) {
+    return { fresh: false, status: "invalid_timestamp", ageMs: null, maxAgeMs };
+  }
+  const ageMs = nowMs - timestampMs;
+  if (ageMs < 0) return { fresh: false, status: "future_timestamp", ageMs, maxAgeMs };
+  if (ageMs > maxAgeMs) return { fresh: false, status: "stale_timestamp", ageMs, maxAgeMs };
+  return { fresh: true, status: "fresh", ageMs, maxAgeMs };
+}
+
+function evidenceFileFreshness({ dir, files, filename, field, maxAgeMs, nowMs, errors }) {
+  if (typeof filename !== "string" || !files.includes(filename)) return null;
+  try {
+    const stats = statSync(join(dir, filename));
+    if (!stats.isFile()) {
+      errors.push(`evidence_file_not_file_${field}:${filename}`);
+      return {
+        field,
+        filename,
+        fresh: false,
+        status: "not_file",
+        mtime: null,
+        ageMs: null,
+        maxAgeMs,
+      };
+    }
+    const freshness = timestampFreshness(stats.mtime.toISOString(), maxAgeMs, nowMs);
+    if (freshness.status === "stale_timestamp") {
+      errors.push(`stale_evidence_file_mtime_${field}:${filename}`);
+    } else if (freshness.status === "future_timestamp") {
+      errors.push(`future_evidence_file_mtime_${field}:${filename}`);
+    }
+    return {
+      field,
+      filename,
+      fresh: freshness.fresh,
+      status: freshness.status,
+      mtime: stats.mtime.toISOString(),
+      ageMs: freshness.ageMs,
+      maxAgeMs,
+    };
+  } catch {
+    errors.push(`evidence_file_stat_error_${field}:${filename}`);
+    return {
+      field,
+      filename,
+      fresh: false,
+      status: "stat_error",
+      mtime: null,
+      ageMs: null,
+      maxAgeMs,
+    };
+  }
+}
+
 function validVtjEmail(value) {
   return typeof value === "string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) && value.toLowerCase().endsWith("@vtj.co.jp");
 }
@@ -297,7 +357,7 @@ function headerIndex(headers, candidates) {
   return headers.findIndex((header) => normalizedCandidates.has(normalizedHeader(header)));
 }
 
-function validateActivityCsv({ dir, files, filename, expected, errors }) {
+function validateActivityCsv({ dir, files, filename, expected, errors, nowMs = Date.now() }) {
   if (typeof filename !== "string" || !files.includes(filename)) return;
   try {
     const rows = parseCsv(readFileSync(join(dir, filename), "utf8"));
@@ -309,10 +369,12 @@ function validateActivityCsv({ dir, files, filename, expected, errors }) {
     const messageIndex = headerIndex(headers, ["messageId", "message_id"]);
     const actorIndex = headerIndex(headers, ["actorEmail", "actor", "email"]);
     const actionIndex = headerIndex(headers, ["action"]);
+    const timeIndex = headerIndex(headers, ["timeISO", "time_iso", "timestamp", "createdAt"]);
     const missing = [];
     if (messageIndex < 0) missing.push("messageId");
     if (actorIndex < 0) missing.push("actorEmail");
     if (actionIndex < 0) missing.push("action");
+    if (timeIndex < 0) missing.push("timeISO");
     if (missing.length > 0) {
       errors.push(`activity_csv_missing_headers:${filename}:${missing.join(",")}`);
       return;
@@ -323,6 +385,7 @@ function validateActivityCsv({ dir, files, filename, expected, errors }) {
       messageId: String(row[messageIndex] ?? "").trim(),
       actorEmail: String(row[actorIndex] ?? "").trim().toLowerCase(),
       action: String(row[actionIndex] ?? "").trim(),
+      timeISO: String(row[timeIndex] ?? "").trim(),
     }));
     const matchingRows = activityRows.filter((row) =>
       row.messageId === expected.messageId &&
@@ -331,6 +394,12 @@ function validateActivityCsv({ dir, files, filename, expected, errors }) {
     );
     if (matchingRows.length === 0) errors.push(`activity_csv_missing_controlled_write_row:${filename}`);
     if (matchingRows.length > 1) errors.push(`activity_csv_duplicate_controlled_write_row:${filename}:${matchingRows.length}`);
+    for (const row of matchingRows) {
+      const freshness = timestampFreshness(row.timeISO, STAFF_EVIDENCE_MANIFEST_MAX_AGE_MS, nowMs);
+      if (freshness.fresh !== true) {
+        errors.push(`activity_csv_stale_controlled_write_time:${filename}:${freshness.status}`);
+      }
+    }
     if (activityRows.length > 1) errors.push(`activity_csv_extra_write_rows:${filename}:${activityRows.length}`);
   } catch (e) {
     errors.push(`activity_csv_read_error:${filename}:${e instanceof Error ? e.message : String(e)}`);
@@ -363,13 +432,31 @@ function prodEvidenceManifest(path, files) {
   }
 
   const commonErrors = [];
+  const nowMs = Date.now();
+  const capturedAtFreshness = timestampFreshness(manifest.capturedAt, STAFF_EVIDENCE_MANIFEST_MAX_AGE_MS, nowMs);
   if (manifest.schema !== EVIDENCE_MANIFEST_SCHEMA) commonErrors.push("invalid_manifest_schema");
   if (!isIsoDate(manifest.capturedAt)) commonErrors.push("invalid_manifest_captured_at");
+  else if (capturedAtFreshness.status === "stale_timestamp") commonErrors.push("stale_manifest_captured_at");
+  else if (capturedAtFreshness.status === "future_timestamp") commonErrors.push("future_manifest_captured_at");
   if (!validVtjEmail(manifest.capturedBy)) commonErrors.push("invalid_manifest_captured_by");
   if (manifest.environment !== "production") commonErrors.push("manifest_not_production");
 
   const readOnlyRollout = objectValue(manifest.readOnlyRollout);
   const readOnlyManifestErrors = [...commonErrors];
+  const readOnlyEvidenceFileFreshness = [];
+  const writePilotEvidenceFileFreshness = [];
+  const trackEvidenceFileFreshness = ({ target, filename, field, errors }) => {
+    const freshness = evidenceFileFreshness({
+      dir: path,
+      files,
+      filename,
+      field,
+      maxAgeMs: STAFF_EVIDENCE_MANIFEST_MAX_AGE_MS,
+      nowMs,
+      errors,
+    });
+    if (freshness) target.push(freshness);
+  };
   if (readOnlyRollout.readOnly !== true) readOnlyManifestErrors.push("readonly_manifest_not_readonly");
   requireManifestFile({
     files,
@@ -378,11 +465,23 @@ function prodEvidenceManifest(path, files) {
     expected: "mailhub-meta-topbar-readonly.png",
     errors: readOnlyManifestErrors,
   });
+  trackEvidenceFileFreshness({
+    target: readOnlyEvidenceFileFreshness,
+    filename: readOnlyRollout.mailhubTopbar,
+    field: "readonly_mailhub_topbar",
+    errors: readOnlyManifestErrors,
+  });
   requireManifestFile({
     files,
     filename: readOnlyRollout.mailhubHealth,
     field: "readonly_mailhub_health",
     expected: "mailhub-meta-health-readonly.png",
+    errors: readOnlyManifestErrors,
+  });
+  trackEvidenceFileFreshness({
+    target: readOnlyEvidenceFileFreshness,
+    filename: readOnlyRollout.mailhubHealth,
+    field: "readonly_mailhub_health",
     errors: readOnlyManifestErrors,
   });
   const verifiedStaffEmails = stringArray(readOnlyRollout.verifiedStaffEmails);
@@ -414,6 +513,12 @@ function prodEvidenceManifest(path, files) {
     expected: "mailhub-meta-topbar-write.png",
     errors: writePilotManifestErrors,
   });
+  trackEvidenceFileFreshness({
+    target: writePilotEvidenceFileFreshness,
+    filename: controlledWritePilot.mailhubWriteTopbar,
+    field: "write_mailhub_topbar",
+    errors: writePilotManifestErrors,
+  });
   validatePngEvidenceFile({
     dir: path,
     files,
@@ -426,6 +531,12 @@ function prodEvidenceManifest(path, files) {
     filename: controlledWritePilot.mailhubBackToReadOnlyTopbar,
     field: "write_mailhub_back_to_readonly_topbar",
     expected: "mailhub-meta-topbar-back-to-readonly.png",
+    errors: writePilotManifestErrors,
+  });
+  trackEvidenceFileFreshness({
+    target: writePilotEvidenceFileFreshness,
+    filename: controlledWritePilot.mailhubBackToReadOnlyTopbar,
+    field: "write_mailhub_back_to_readonly_topbar",
     errors: writePilotManifestErrors,
   });
   validatePngEvidenceFile({
@@ -442,6 +553,12 @@ function prodEvidenceManifest(path, files) {
     pattern: /^activity-\d{8}-prod\.csv$/,
     errors: writePilotManifestErrors,
   });
+  trackEvidenceFileFreshness({
+    target: writePilotEvidenceFileFreshness,
+    filename: controlledWritePilot.activityCsv,
+    field: "write_activity_csv",
+    errors: writePilotManifestErrors,
+  });
   if (writeMessageId && writeActorEmail && VALID_WRITE_ACTIONS.has(writeAction)) {
     validateActivityCsv({
       dir: path,
@@ -453,6 +570,7 @@ function prodEvidenceManifest(path, files) {
         action: writeAction,
       },
       errors: writePilotManifestErrors,
+      nowMs,
     });
   }
   const expectedGmailProof = writeMessageId && VALID_WRITE_ACTIONS.has(writeAction)
@@ -469,6 +587,12 @@ function prodEvidenceManifest(path, files) {
     pattern: expectedGmailProof ? null : /^gmail-.+-.+\.png$/,
     errors: writePilotManifestErrors,
   });
+  trackEvidenceFileFreshness({
+    target: writePilotEvidenceFileFreshness,
+    filename: controlledWritePilot.gmailProof,
+    field: "write_gmail_proof",
+    errors: writePilotManifestErrors,
+  });
   validatePngEvidenceFile({
     dir: path,
     files,
@@ -482,6 +606,12 @@ function prodEvidenceManifest(path, files) {
     field: "write_mailhub_proof",
     expected: expectedMailhubProof,
     pattern: expectedMailhubProof ? null : /^mailhub-.+-.+\.png$/,
+    errors: writePilotManifestErrors,
+  });
+  trackEvidenceFileFreshness({
+    target: writePilotEvidenceFileFreshness,
+    filename: controlledWritePilot.mailhubProof,
+    field: "write_mailhub_proof",
     errors: writePilotManifestErrors,
   });
   validatePngEvidenceFile({
@@ -512,7 +642,14 @@ function prodEvidenceManifest(path, files) {
     manifestPresent: true,
     manifestSchema: manifest.schema ?? null,
     manifestCapturedAt: manifest.capturedAt ?? null,
+    manifestCapturedAtFresh: capturedAtFreshness.fresh,
+    manifestCapturedAtAgeMs: capturedAtFreshness.ageMs,
+    manifestCapturedAtMaxAgeMs: STAFF_EVIDENCE_MANIFEST_MAX_AGE_MS,
     manifestCapturedByConfigured: validVtjEmail(manifest.capturedBy),
+    evidenceFileFreshness: {
+      readOnly: readOnlyEvidenceFileFreshness,
+      writePilot: writePilotEvidenceFileFreshness,
+    },
     readOnlyManifestReady: readOnlyManifestErrors.length === 0,
     writePilotManifestReady: writePilotManifestErrors.length === 0,
     readOnlyManifestErrors,

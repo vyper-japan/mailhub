@@ -3,12 +3,25 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
+import { execFileSync } from "node:child_process";
 
 const repoRoot = process.cwd();
 const defaultSourceAuditPath = join(repoRoot, ".ai-runs", "mailhub-next-phase", "gmail-source-coverage-audit.json");
 const migrationStatusPath = join(repoRoot, "MAIL_MIGRATION_STATUS.md");
 const defaultOutPath = join(repoRoot, ".ai-runs", "mailhub-next-phase", "mailhub-operational-confirmations.json");
 const defaultMigrationEvidenceDir = join(homedir(), "Desktop", "Claude出力", "mx-migration");
+
+function currentRepoHead() {
+  try {
+    return execFileSync("git", ["rev-parse", "HEAD"], {
+      cwd: repoRoot,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    }).trim();
+  } catch {
+    return null;
+  }
+}
 
 function parseArgs(argv) {
   const out = {
@@ -221,6 +234,7 @@ function main() {
 
   const result = {
     generatedAt: new Date().toISOString(),
+    repoHead: currentRepoHead(),
     inputs: {
       sourceAudit: args.sourceAudit,
       migrationStatus: args.migrationStatus,
