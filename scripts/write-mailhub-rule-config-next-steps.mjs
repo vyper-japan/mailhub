@@ -24,8 +24,6 @@ const REQUIRED_GMAIL_ENV = [
   "GOOGLE_SHARED_INBOX_REFRESH_TOKEN",
 ];
 const DEFAULT_RULE_SHEETS = ["ConfigRules", "ConfigAssigneeRules"];
-const RULE_SAFETY_COMMAND =
-  "MAILHUB_CONFIG_STORE=sheets npm run audit:gmail-rules -- --env-file .env.local --config-source sheets --out .ai-runs/mailhub-next-phase/gmail-rule-safety-audit.json --max 100";
 
 function parseArgs(argv) {
   const out = {
@@ -117,9 +115,27 @@ function actionStatus(ready, blocked = false) {
   return blocked ? "blocked" : "required";
 }
 
+function shellWord(value) {
+  if (/^[A-Za-z0-9_./:=@-]+$/.test(value)) return value;
+  return `'${value.replaceAll("'", "'\\''")}'`;
+}
+
+function ruleSafetyCommand(envFile) {
+  return [
+    "MAILHUB_CONFIG_STORE=sheets",
+    "npm run audit:gmail-rules --",
+    "--env-file",
+    shellWord(envFile),
+    "--config-source sheets",
+    "--out .ai-runs/mailhub-next-phase/gmail-rule-safety-audit.json",
+    "--max 100",
+  ].join(" ");
+}
+
 function main() {
   const args = parseArgs(process.argv.slice(2));
   const localEnvFileLoaded = loadEnvFile(args.localEnvFile);
+  const ruleSafetyAuditCommand = ruleSafetyCommand(args.localEnvFile);
   const readiness = readOptionalJson(args.readiness);
   const rulesAudit = readOptionalJson(args.rulesAudit);
   const repoHead = args.repoHead || gitRevParse("HEAD");
@@ -274,16 +290,16 @@ function main() {
       {
         id: "run_sheets_rule_safety_audit",
         status: currentRuleConfigSourceProductionReady ? "done" : (canRunSheetsRuleSafetyAudit ? "ready" : "blocked"),
-        command: RULE_SAFETY_COMMAND,
+        command: ruleSafetyAuditCommand,
         expected: "config.resolvedSource=sheets, config.warnings=[], and ruleSafetyGate.realDataRuleRiskPass=true",
       },
       {
         id: "refresh_rule_and_readiness_artifacts",
         status: currentRuleConfigSourceProductionReady ? "done" : "required",
         commands: [
-          RULE_SAFETY_COMMAND,
+          ruleSafetyAuditCommand,
           "npm run audit:mailhub-readiness -- --out .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json",
-          "npm run audit:mailhub-rule-config-next -- --out .ai-runs/mailhub-next-phase/mailhub-rule-config-next-steps.json",
+          `npm run audit:mailhub-rule-config-next -- --local-env-file ${shellWord(args.localEnvFile)} --out .ai-runs/mailhub-next-phase/mailhub-rule-config-next-steps.json`,
         ],
       },
     ],

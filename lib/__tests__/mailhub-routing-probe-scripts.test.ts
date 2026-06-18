@@ -1140,7 +1140,7 @@ describe("MailHub routing probe CLI gates", () => {
   test("readiness refresh plan is non-send and non-apply", () => {
     const result = runNodeScript(
       readinessRefreshPath,
-      ["--plan-only", "--rules-source", "sheets"],
+      ["--plan-only", "--rules-source", "sheets", "--env-file", "env.example"],
     );
 
     expect(result.status).toBe(0);
@@ -1156,6 +1156,7 @@ describe("MailHub routing probe CLI gates", () => {
     expect(out.commands.join("\n")).not.toMatch(/\s--send(\s|$)/);
     expect(out.commands.join("\n")).not.toMatch(/\s--apply(\s|$)/);
     expect(out.commands.some((command) => command.includes("npm run probe:routing-send -- --out"))).toBe(true);
+    expect(out.commands.some((command) => command.includes("audit:mailhub-rule-config-next -- --local-env-file env.example"))).toBe(true);
   });
 
   test("readiness refresh plan rejects absolute artifact paths", () => {

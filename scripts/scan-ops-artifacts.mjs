@@ -19,6 +19,7 @@ const DEFAULT_TARGETS = [
   ".ai-runs/mailhub-next-phase/mailhub-staff-workflow-audit.json",
   ".ai-runs/mailhub-next-phase/mailhub-staff-workflow-next-steps.json",
   ".ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json",
+  ".ai-runs/mailhub-next-phase/mailhub-production-config-request.json",
   ".ai-runs/mailhub-next-phase/mailhub-rule-config-next-steps.json",
   ".ai-runs/mailhub-next-phase/mailhub-routing-next-steps.json",
 ];

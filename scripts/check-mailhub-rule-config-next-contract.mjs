@@ -18,8 +18,6 @@ const REQUIRED_ACTION_IDS = [
   "run_sheets_rule_safety_audit",
   "refresh_rule_and_readiness_artifacts",
 ];
-const RULE_SAFETY_COMMAND =
-  "MAILHUB_CONFIG_STORE=sheets npm run audit:gmail-rules -- --env-file .env.local --config-source sheets --out .ai-runs/mailhub-next-phase/gmail-rule-safety-audit.json --max 100";
 
 function parseArgs(argv) {
   const out = {
@@ -110,6 +108,23 @@ function actionCommand(action) {
   return action && typeof action === "object" && typeof action.command === "string" ? action.command : "";
 }
 
+function shellWord(value) {
+  if (/^[A-Za-z0-9_./:=@-]+$/.test(value)) return value;
+  return `'${value.replaceAll("'", "'\\''")}'`;
+}
+
+function ruleSafetyCommand(envFile) {
+  return [
+    "MAILHUB_CONFIG_STORE=sheets",
+    "npm run audit:gmail-rules --",
+    "--env-file",
+    shellWord(envFile),
+    "--config-source sheets",
+    "--out .ai-runs/mailhub-next-phase/gmail-rule-safety-audit.json",
+    "--max 100",
+  ].join(" ");
+}
+
 function actionStringArray(action, key) {
   if (!action || typeof action !== "object") return [];
   return stringArray(action[key]);
@@ -130,6 +145,10 @@ function main() {
   const actions = actionsById(next.nextActions);
   const inputErrors = stringArray(inputs.errors);
   const inputWarnings = stringArray(inputs.warnings);
+  const localEnvFile = typeof inputs.localEnvFile === "string" && inputs.localEnvFile.trim()
+    ? inputs.localEnvFile
+    : ".env.local";
+  const expectedRuleSafetyCommand = ruleSafetyCommand(localEnvFile);
   const readinessRequirements = objectValue(readiness.requirements);
   const readinessInputs = objectValue(readiness.inputs);
   const readinessRuleSource = objectValue(readinessInputs.ruleConfigSource);
@@ -297,9 +316,9 @@ function main() {
   });
 
   const auditAction = actions.get("run_sheets_rule_safety_audit");
-  if (actionCommand(auditAction) !== RULE_SAFETY_COMMAND) errors.push("rule_safety_command_mismatch");
+  if (actionCommand(auditAction) !== expectedRuleSafetyCommand) errors.push("rule_safety_command_mismatch");
   const refreshAction = actions.get("refresh_rule_and_readiness_artifacts");
-  if (!actionCommands(refreshAction).includes(RULE_SAFETY_COMMAND)) errors.push("refresh_missing_rule_safety_command");
+  if (!actionCommands(refreshAction).includes(expectedRuleSafetyCommand)) errors.push("refresh_missing_rule_safety_command");
   for (const action of actions.values()) {
     const serialized = JSON.stringify(action);
     if (/MAILHUB_SHEETS_PRIVATE_KEY\s*=/.test(serialized) || /GOOGLE_CLIENT_SECRET\s*=/.test(serialized)) {

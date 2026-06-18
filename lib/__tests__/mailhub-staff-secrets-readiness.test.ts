@@ -7,6 +7,7 @@ import { describe, expect, test } from "vitest";
 const staffSecretsPath = resolve(process.cwd(), "scripts/check-mailhub-staff-secrets.mjs");
 const staffSecretContractPath = resolve(process.cwd(), "scripts/check-mailhub-staff-secret-readiness-contract.mjs");
 const staffGithubSetupPath = resolve(process.cwd(), "scripts/setup-mailhub-staff-github-config.mjs");
+const productionConfigRequestPath = resolve(process.cwd(), "scripts/write-mailhub-production-config-request.mjs");
 
 function withTempDir<T>(fn: (dir: string) => T): T {
   const dir = mkdtempSync(join(tmpdir(), "mailhub-staff-secrets-"));
@@ -820,6 +821,86 @@ cat >/dev/null
       expect(log).toContain("variable set MAILHUB_ENV --repo vyper-japan/mailhub --body");
       expect(log).not.toContain("nextauth-secret-value");
       expect(log).not.toContain("BEGIN PRIVATE KEY");
+    });
+  });
+
+  test("production config request writes a secret-free P0/P1 input plan", () => {
+    withTempDir((dir) => {
+      const runDir = join(dir, "run");
+      const outPath = join(runDir, "mailhub-production-config-request.json");
+      mkdirSync(runDir, { recursive: true });
+      writeJson(join(runDir, "mailhub-production-readiness-audit.json"), {
+        productionReady: false,
+        p0Blockers: ["current_shared_gmail_routing"],
+        p1Blockers: [
+          "rule_config_source_not_production",
+          "staff_workflow_permissions",
+          "staff_github_config_not_ready",
+        ],
+      });
+      writeJson(join(runDir, "github-routing-secrets-readiness.json"), {
+        missingPreflightSecrets: [
+          "MAILHUB_PROBE_SMTP_HOST",
+          "MAILHUB_PROBE_SMTP_USER",
+          "MAILHUB_PROBE_SMTP_PASS",
+          "MAILHUB_PROBE_FROM",
+        ],
+      });
+      writeJson(join(runDir, "github-staff-secrets-readiness.json"), {
+        missingProductionStaffConfig: ["MAILHUB_TEAM_MEMBERS", "MAILHUB_SHEETS_ID or MAILHUB_SHEETS_SPREADSHEET_ID"],
+        missingSecretConfig: ["MAILHUB_SHEETS_PRIVATE_KEY"],
+      });
+      writeJson(join(runDir, "mailhub-rule-config-next-steps.json"), {
+        requiredActions: ["configure_sheets_rule_config_env", "verify_rule_sheets_tabs"],
+      });
+      writeJson(join(runDir, "mailhub-staff-workflow-next-steps.json"), {
+        requiredActions: ["configure_staff_access_allowlist"],
+      });
+
+      const result = runNodeScript(productionConfigRequestPath, ["--run-dir", runDir, "--out", outPath]);
+
+      expect(result.status).toBe(0);
+      const out = readJson<{
+        readiness: { productionReady: boolean; p0Blockers: string[]; p1Blockers: string[] };
+        currentMissing: {
+          externalSmtpSecrets: string[];
+          staffProductionConfig: string[];
+          staffSecretConfig: string[];
+          ruleRequiredActions: string[];
+        };
+        requiredInputs: {
+          externalSmtpProof: { requiredGitHubSecrets: string[]; constraints: string[] };
+          staffGitHubConfig: { requiredGitHubVariables: string[]; requiredGitHubSecrets: string[] };
+          sheetsRuleSource: { defaultRuleTabs: Record<string, string> };
+          readOnlyRolloutEvidence: { requiredFiles: string[] };
+        };
+        safeCommands: { applyAfterValuesArePresentAndApproved: string[]; proofAfterSmtpSecretsArePresentAndApproved: string[] };
+        valuePolicy: string;
+      }>(outPath);
+      expect(out.readiness.productionReady).toBe(false);
+      expect(out.readiness.p0Blockers).toEqual(["current_shared_gmail_routing"]);
+      expect(out.currentMissing.externalSmtpSecrets).toEqual([
+        "MAILHUB_PROBE_SMTP_HOST",
+        "MAILHUB_PROBE_SMTP_USER",
+        "MAILHUB_PROBE_SMTP_PASS",
+        "MAILHUB_PROBE_FROM",
+      ]);
+      expect(out.currentMissing.staffProductionConfig).toContain("MAILHUB_TEAM_MEMBERS");
+      expect(out.currentMissing.staffSecretConfig).toEqual(["MAILHUB_SHEETS_PRIVATE_KEY"]);
+      expect(out.requiredInputs.externalSmtpProof.constraints.join("\n")).toContain("non-@vtj.co.jp");
+      expect(out.requiredInputs.staffGitHubConfig.requiredGitHubVariables).toContain("MAILHUB_READ_ONLY");
+      expect(out.requiredInputs.staffGitHubConfig.requiredGitHubSecrets).toContain("MAILHUB_SHEETS_PRIVATE_KEY");
+      expect(out.requiredInputs.sheetsRuleSource.defaultRuleTabs.MAILHUB_SHEETS_TAB_RULES).toBe("ConfigRules");
+      expect(out.requiredInputs.readOnlyRolloutEvidence.requiredFiles).toContain("staff-workflow-evidence-manifest.json");
+      expect(out.safeCommands.applyAfterValuesArePresentAndApproved).toContain("npm run setup:mailhub-staff-github-config -- --apply");
+      expect(out.safeCommands.proofAfterSmtpSecretsArePresentAndApproved).toContain(
+        "npm run probe:routing-send -- --send --verify-after-send --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-send.json",
+      );
+      expect(out.valuePolicy).toContain("Secret values are never printed");
+      const serialized = JSON.stringify(out);
+      expect(serialized).not.toContain("nextauth-secret-value");
+      expect(serialized).not.toContain("BEGIN PRIVATE KEY");
+      expect(serialized).not.toContain("probe-pass");
     });
   });
 });

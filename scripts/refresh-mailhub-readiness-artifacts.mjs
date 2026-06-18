@@ -104,8 +104,9 @@ function buildCommands(args) {
     ...routingProbeRefresh,
     command("npm", ["run", "audit:mailhub-readiness", "--", "--out", artifact(outDir, "mailhub-production-readiness-audit.json")]),
     command("npm", ["run", "audit:mailhub-staff-next", "--", "--out", artifact(outDir, "mailhub-staff-workflow-next-steps.json")]),
-    command("npm", ["run", "audit:mailhub-rule-config-next", "--", "--out", artifact(outDir, "mailhub-rule-config-next-steps.json")]),
+    command("npm", ["run", "audit:mailhub-rule-config-next", "--", "--local-env-file", args.envFile, "--out", artifact(outDir, "mailhub-rule-config-next-steps.json")]),
     command("npm", ["run", "audit:mailhub-routing-next", "--", "--strict", "--out", artifact(outDir, "mailhub-routing-next-steps.json")]),
+    command("npm", ["run", "audit:mailhub-config-request", "--", "--run-dir", outDir, "--out", artifact(outDir, "mailhub-production-config-request.json")]),
   ];
   const contracts = [
     command("npm", ["run", "audit:github-routing-secrets-contract"]),
