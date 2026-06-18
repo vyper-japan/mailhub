@@ -1,11 +1,11 @@
 {
-  "generatedAt": "2026-06-18T21:35:21.840Z",
-  "repoHead": "cf20aef2ee9cd77e048d157f5026887ed3870439",
+  "generatedAt": "2026-06-18T21:44:29.644Z",
+  "repoHead": "9041680c70c1d17e8138ade38a6c884e0658ab6f",
   "mode": "dry_run",
-  "marker": "MAILHUB-ROUTING-PROBE-20260618T213521Z",
+  "marker": "MAILHUB-ROUTING-PROBE-20260618T214429Z",
   "inputs": {
     "opsAudit": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.ai-runs/mailhub-next-phase/mailhub-operational-confirmations.json",
-    "opsAuditGeneratedAt": "2026-06-18T21:35:08.443Z",
+    "opsAuditGeneratedAt": "2026-06-18T21:44:17.150Z",
     "from": null,
     "allowVtjFrom": false,
     "preflight": false,
@@ -45,53 +45,53 @@
       "channelId": "gopro-yahoo",
       "label": "GoPro Yahoo",
       "address": "gopro_y@vtj.co.jp",
-      "subject": "MAILHUB-ROUTING-PROBE-20260618T213521Z"
+      "subject": "MAILHUB-ROUTING-PROBE-20260618T214429Z"
     },
     {
       "channelId": "gopro-yahoo",
       "label": "GoPro Yahoo",
       "address": "gopro_order_yahoo@vtj.co.jp",
-      "subject": "MAILHUB-ROUTING-PROBE-20260618T213521Z"
+      "subject": "MAILHUB-ROUTING-PROBE-20260618T214429Z"
     },
     {
       "channelId": "vyperglobal-rakuten",
       "label": "VYPER GLOBAL 楽天",
       "address": "vyper_r@vtj.co.jp",
-      "subject": "MAILHUB-ROUTING-PROBE-20260618T213521Z"
+      "subject": "MAILHUB-ROUTING-PROBE-20260618T214429Z"
     },
     {
       "channelId": "vyperglobal-rakuten",
       "label": "VYPER GLOBAL 楽天",
       "address": "vyper_rakuten@vtj.co.jp",
-      "subject": "MAILHUB-ROUTING-PROBE-20260618T213521Z"
+      "subject": "MAILHUB-ROUTING-PROBE-20260618T214429Z"
     },
     {
       "channelId": "vyperglobal-yahoo",
       "label": "VYPER GLOBAL Yahoo",
       "address": "vyperglobal_y@vtj.co.jp",
-      "subject": "MAILHUB-ROUTING-PROBE-20260618T213521Z"
+      "subject": "MAILHUB-ROUTING-PROBE-20260618T214429Z"
     },
     {
       "channelId": "ams-vyper",
       "label": "Amazon Ads (AMS)",
       "address": "ams_vyper@vtj.co.jp",
-      "subject": "MAILHUB-ROUTING-PROBE-20260618T213521Z"
+      "subject": "MAILHUB-ROUTING-PROBE-20260618T214429Z"
     },
     {
       "channelId": "datacolor",
       "label": "Datacolor Shopify",
       "address": "datacolor_shopify@vtj.co.jp",
-      "subject": "MAILHUB-ROUTING-PROBE-20260618T213521Z"
+      "subject": "MAILHUB-ROUTING-PROBE-20260618T214429Z"
     },
     {
       "channelId": "ebay",
       "label": "eBay",
       "address": "ebay@vtj.co.jp",
-      "subject": "MAILHUB-ROUTING-PROBE-20260618T213521Z"
+      "subject": "MAILHUB-ROUTING-PROBE-20260618T214429Z"
     }
   ],
   "sent": [],
   "verification": null,
-  "nextVerificationCommand": "npm run audit:routing-probes -- --marker MAILHUB-ROUTING-PROBE-20260618T213521Z --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-audit.json",
+  "nextVerificationCommand": "npm run audit:routing-probes -- --marker MAILHUB-ROUTING-PROBE-20260618T214429Z --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-audit.json",
   "nextReadinessCommand": "npm run audit:mailhub-readiness -- --out .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json"
 }
