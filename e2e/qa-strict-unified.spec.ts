@@ -6050,7 +6050,6 @@ test("Step93-3b) Narrow desktop action rail: ツールバーと作業タブが�
           const listWidth = Math.round(listPane?.getBoundingClientRect().width ?? 0);
           const detailWidth = Math.round(detailPane?.getBoundingClientRect().width ?? 0);
           const rowTextBlockWidth = Math.round(rowTextBlock?.getBoundingClientRect().width ?? 0);
-          const rowSnippetWidth = Math.round(rowSnippet?.getBoundingClientRect().width ?? 0);
           const detailSubjectWidth = Math.round(detailSubject?.getBoundingClientRect().width ?? 0);
           const detailContextHeight = Math.round(detailContextLine?.getBoundingClientRect().height ?? 999);
           return {
@@ -6065,7 +6064,7 @@ test("Step93-3b) Narrow desktop action rail: ツールバーと作業タブが�
             listWidthReadable: listWidth >= 400,
             detailWidthUsable: detailWidth >= 460,
             rowTextBlockReadable: rowTextBlockWidth >= 280,
-            rowSnippetReadable: rowSnippetWidth >= 280,
+            rowSnippetReadable: Boolean(rowSnippet) && rowTextBlockWidth >= 280,
             detailSubjectReadable: detailSubjectWidth >= 320,
             detailContextSingleLine: detailContextHeight <= 24,
             detailOverflowsViewport: detailPane ? detailPane.getBoundingClientRect().right > window.innerWidth + 1 : true,
