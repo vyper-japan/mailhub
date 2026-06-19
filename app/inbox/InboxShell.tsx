@@ -7356,7 +7356,7 @@ export default function InboxShell({
                               />
                             )}
                             {/* checkbox / star / sender+subject / date */}
-                            <div className="grid w-full min-w-0 grid-cols-[20px_20px_minmax(0,1fr)_auto] items-start gap-1.5 sm:gap-2">
+                            <div className="grid w-full min-w-0 grid-cols-[20px_20px_minmax(0,1fr)_44px] items-start gap-1.5 sm:gap-2">
                             {/* チェックボックス */}
                             <div className="flex items-center justify-center">
                               <input
@@ -7425,7 +7425,7 @@ export default function InboxShell({
                             </button>
 
                             <div className="min-w-0">
-                              <div className="flex min-w-0 items-center gap-1.5">
+                              <div className="flex min-w-0 items-center gap-1">
                                 {isUnread && <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#1a73e8]" title="未読" />}
                                 {!seenIds.has(mail.id) && <span data-testid="badge-unseen" className="h-2 w-2 flex-shrink-0 rounded-full bg-orange-400" title="未確認" />}
                                 {mail.assigneeSlug === myAssigneeSlug && (
@@ -7433,7 +7433,7 @@ export default function InboxShell({
                                     <UserCheck size={14} className="flex-shrink-0 text-[#1a73e8]" />
                                   </span>
                                 )}
-                                <span className={`min-w-0 truncate text-[12px] leading-[16px] ${isUnread ? "font-semibold text-[#202124]" : "font-medium text-[#3c4043]"}`}>
+                                <span data-testid="row-sender" className={`min-w-0 truncate text-[13px] leading-[18px] ${isUnread ? "font-semibold text-[#202124]" : "font-medium text-[#3c4043]"}`}>
                                   {mail.from?.split("<")[0].trim() || mail.from}
                                 </span>
                               </div>
@@ -7454,18 +7454,18 @@ export default function InboxShell({
                                     {isExpanded ? "▼" : "▶"} ×{groupCount}
                                   </button>
                                 )}
-                                <span className={`min-w-0 truncate ${isUnread ? "font-semibold" : "font-medium"}`}>{mail.subject ?? "(no subject)"}</span>
+                                <span data-testid="row-subject" className={`min-w-0 truncate ${isUnread ? "font-semibold" : "font-medium"}`}>{mail.subject ?? "(no subject)"}</span>
                                 {isCompactList && mail.snippet && (
                                   <>
                                     <span className="flex-shrink-0 text-[#5f6368]"> - </span>
-                                    <span className="min-w-0 truncate text-[#5f6368] font-normal">{shortSnippet(mail.snippet, 96)}</span>
+                                    <span data-testid="row-snippet" className="min-w-0 truncate text-[#5f6368] font-normal">{shortSnippet(mail.snippet, 96)}</span>
                                   </>
                                 )}
                               </div>
 
                               {!isCompactList && (
                                 <div className="mt-0.5 flex min-w-0 items-center gap-1.5 text-[12px] leading-[16px] text-[#5f6368]">
-                                  <span className="min-w-0 truncate font-normal">{shortSnippet(mail.snippet, 150)}</span>
+                                  <span data-testid="row-snippet" className="min-w-0 truncate font-normal">{shortSnippet(mail.snippet, 150)}</span>
                                   {workTags.slice(0, 2).map((tag) => (
                                     <span
                                       key={tag}
@@ -7532,7 +7532,7 @@ export default function InboxShell({
                             </div>
 
                             {/* 日時 + 経過 */}
-                            <div className="flex min-w-[58px] flex-shrink-0 flex-col items-end gap-1">
+                            <div className="flex min-w-[44px] max-w-[44px] flex-shrink-0 flex-col items-end gap-1">
                               <div className="flex items-center gap-1.5">
                                 {mail.attachmentCount ? (
                                   <span
@@ -7544,8 +7544,8 @@ export default function InboxShell({
                                     {mail.attachmentCount > 1 && <span>{mail.attachmentCount}</span>}
                                   </span>
                                 ) : null}
-                                <span className={`text-[12px] font-normal ${isActive ? 'text-[#3c4043]' : 'text-[#5f6368]'}`}>
-                                  {mail.receivedAt.split(' ')[1]}
+                                <span className={`text-[12px] font-normal ${isActive ? 'text-[#3c4043]' : 'text-[#5f6368]'}`} title={mail.receivedAt}>
+                                  {mail.receivedAt.split(' ')[1]?.slice(0, 5)}
                                 </span>
                               </div>
                             {(() => {

@@ -33,13 +33,33 @@
         "height": 645
       },
       "rowSubject": {
-        "x": 260,
-        "y": 195,
-        "right": 655,
-        "bottom": 267,
-        "width": 395,
-        "height": 72
+        "x": 328,
+        "y": 223,
+        "right": 564,
+        "bottom": 241,
+        "width": 236,
+        "height": 18
       },
+      "rowSender": {
+        "x": 340,
+        "y": 203,
+        "right": 392,
+        "bottom": 221,
+        "width": 52,
+        "height": 18
+      },
+      "rowSnippet": {
+        "x": 328,
+        "y": 243,
+        "right": 591,
+        "bottom": 259,
+        "width": 263,
+        "height": 16
+      },
+      "rowSubjectText": "【楽天RMS】お問い合わせが届きました",
+      "rowSenderText": "楽天市場",
+      "rowSnippetText": "お客様からお問い合わせが届きました。問い合わせ番号: 12345678",
+      "rowTimeText": "01:30",
       "detailPane": {
         "x": 652,
         "y": 195,
@@ -91,13 +111,33 @@
         "height": 755
       },
       "rowSubject": {
-        "x": 260,
-        "y": 195,
-        "right": 731,
-        "bottom": 267,
-        "width": 471,
-        "height": 72
+        "x": 328,
+        "y": 223,
+        "right": 564,
+        "bottom": 241,
+        "width": 236,
+        "height": 18
       },
+      "rowSender": {
+        "x": 340,
+        "y": 203,
+        "right": 392,
+        "bottom": 221,
+        "width": 52,
+        "height": 18
+      },
+      "rowSnippet": {
+        "x": 328,
+        "y": 243,
+        "right": 667,
+        "bottom": 259,
+        "width": 339,
+        "height": 16
+      },
+      "rowSubjectText": "【楽天RMS】お問い合わせが届きました",
+      "rowSenderText": "楽天市場",
+      "rowSnippetText": "お客様からお問い合わせが届きました。問い合わせ番号: 12345678",
+      "rowTimeText": "01:30",
       "detailPane": {
         "x": 728,
         "y": 195,
