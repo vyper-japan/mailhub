@@ -82,7 +82,7 @@ body {
 
 [data-testid="message-row"] input[type="checkbox"] {
   flex-shrink: 0;
-  margin-right: 8px;
+  margin-right: 0;
 }
 
 /* ラベルpillのオーバーフロー処理 */

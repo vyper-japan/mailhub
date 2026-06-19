@@ -22,9 +22,9 @@ export const t = {
 
   // ツールバー（作業アクション優先 + レスポンシブ）
   toolbar:
-    "h-12 border-b border-[#dadce0] flex items-center px-2 sm:px-4 bg-white overflow-x-auto",
+    "h-12 border-b border-[#dadce0] flex items-center px-2 sm:px-4 bg-white overflow-x-auto overflow-y-hidden",
   toolbarButton:
-    "relative flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 text-[#3c4043] hover:bg-[#f1f3f4] rounded-md transition-[background-color,color,box-shadow,border-color] duration-75 text-[13px] sm:text-[14px] font-normal group flex-shrink-0",
+    "relative flex h-9 items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 text-[#3c4043] hover:bg-[#f1f3f4] rounded-md transition-[background-color,color,box-shadow,border-color] duration-75 text-[13px] sm:text-[14px] font-normal group flex-shrink-0 whitespace-nowrap",
   toolbarButtonActive: "bg-[#E8F0FE] text-[#1a73e8]",
   toolbarShortcut:
     "absolute -bottom-6 left-1/2 -translate-x-1/2 hidden group-hover:block text-[10px] text-gray-500 bg-gray-800 text-white border border-gray-700 px-1.5 py-0.5 rounded whitespace-nowrap pointer-events-none z-50",
@@ -50,7 +50,7 @@ export const t = {
   listItemRead: "bg-[#F2F6FC]",
 
   // 詳細カラム（作業詳細 + レスポンシブ）
-  detailColumn: "mailhub-detail-column flex-1 flex flex-col bg-white overflow-hidden min-w-[480px]",
+  detailColumn: "mailhub-detail-column flex-1 flex flex-col bg-white overflow-hidden min-w-0 md:min-w-[420px]",
 
   // ボタン・その他
   buttonPrimary:

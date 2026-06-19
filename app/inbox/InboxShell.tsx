@@ -227,11 +227,13 @@ function OperationalStatusStrip({
   const selectedLabel = selectedMessage
     ? `${selectedAssigneeName ?? "未割当"} / ${selectedMessage.receivedAt?.split(" ")[1] ?? "時刻不明"}`
     : "未選択";
-  const writeLabel = !writeGuardReady ? "WRITE CHECKING" : readOnlyMode ? "READ ONLY" : "WRITE ENABLED";
+  const writeLabel = !writeGuardReady ? "WRITE CHECKING" : readOnlyMode ? "READ ONLY" : productionBlocked ? "WRITE LIMITED" : "WRITE ENABLED";
   const writeTitle = !writeGuardReady
     ? "書き込み安全性を確認中"
     : readOnlyMode
       ? "書き込み系アクションは停止中"
+      : productionBlocked
+        ? "書き込みは可能ですが、本番準備ブロッカーが残っています"
       : "書き込み系アクションが有効";
 
   return (
@@ -246,6 +248,8 @@ function OperationalStatusStrip({
               ? "border-[#dadce0] bg-white text-[#5f6368]"
               : readOnlyMode
               ? "border-[#f4b4ae] bg-[#fce8e6] text-[#a50e0e]"
+              : productionBlocked
+              ? "border-[#fdd663] bg-[#fef7e0] text-[#92400e]"
               : "border-[#c8e6c9] bg-[#e6f4ea] text-[#137333]"
           }`}
           title={writeTitle}
@@ -6448,7 +6452,7 @@ export default function InboxShell({
                   aria-disabled={selectedIds.length === 0}
                 >
                   <Tag size={20} className={selectedIds.length > 0 ? "text-[#1a73e8]" : "text-[#5f6368]"} />
-                  <span className="hidden lg:inline">ラベル</span>
+                  <span className="hidden xl:inline">ラベル</span>
                 </button>
               </div>
 
@@ -6920,7 +6924,7 @@ export default function InboxShell({
             </div>
 
             {/* 右側: 選択中メールのナビゲーション/クイック操作（タブ行と同じ水平線に揃える） */}
-            <div className="hidden items-center gap-1 flex-shrink-0 pr-1 sm:flex">
+            <div className="hidden items-center gap-1 flex-shrink-0 pr-1 xl:flex">
               {selectedMessage && (
                 <>
                   <button onClick={() => handleMoveSelection("up")} className={t.buttonIcon} title="上へ">
@@ -7911,7 +7915,7 @@ export default function InboxShell({
                             .filter(Boolean)
                             .join(" / ");
 	                          const actionButtonClass =
-	                            "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-transparent text-[#5f6368] transition-colors hover:border-[#dadce0] hover:bg-[#f1f3f4] hover:text-[#202124] active:bg-[#e8eaed] disabled:cursor-not-allowed disabled:opacity-40";
+	                            "inline-flex h-8 w-8 shrink-0 items-center justify-center gap-1.5 rounded-full border border-transparent px-0 text-[12px] font-medium text-[#5f6368] transition-colors hover:border-[#dadce0] hover:bg-[#f1f3f4] hover:text-[#202124] active:bg-[#e8eaed] disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto sm:px-2";
 	                          return (
 	                            <div className="mb-2 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[#e8eaed] bg-[#f8fafd] px-3 py-2" data-testid="thread-actions">
 	                              <div className="min-w-0 flex-1">
@@ -7939,7 +7943,7 @@ export default function InboxShell({
                                   }}
 	                                >
 	                                  <CheckCircle size={15} className="text-[#34a853]" />
-	                                  <span className="sr-only">完了</span>
+	                                  <span className="sr-only sm:not-sr-only">完了</span>
 	                                </button>
                                 <button
                                   type="button"
@@ -7953,7 +7957,7 @@ export default function InboxShell({
                                   }}
 	                                >
 	                                  <Clock size={15} className="text-[#ea8600]" />
-	                                  <span className="sr-only">返事待ち</span>
+	                                  <span className="sr-only sm:not-sr-only">返事待ち</span>
 	                                </button>
                                 <button
                                   type="button"
@@ -7967,7 +7971,7 @@ export default function InboxShell({
                                   }}
 	                                >
 	                                  <VolumeX size={15} className="text-[#5f6368]" />
-	                                  <span className="sr-only">処理不要</span>
+	                                  <span className="sr-only sm:not-sr-only">処理不要</span>
 	                                </button>
                                 <button
                                   type="button"
@@ -7981,7 +7985,7 @@ export default function InboxShell({
                                   }}
 	                                >
 	                                  <UserCheck size={15} className="text-[#1a73e8]" />
-	                                  <span className="sr-only">自分</span>
+	                                  <span className="sr-only sm:not-sr-only">担当</span>
 	                                </button>
                                 <button
                                   type="button"
@@ -7997,7 +8001,7 @@ export default function InboxShell({
                                   }}
 	                                >
 	                                  <Tag size={15} className="text-[#7b1fa2]" />
-	                                  <span className="sr-only">ラベル</span>
+	                                  <span className="sr-only sm:not-sr-only">ラベル</span>
 	                                </button>
                                 <button
                                   type="button"
@@ -8010,7 +8014,7 @@ export default function InboxShell({
                                   }}
 	                                >
 	                                  <Square size={15} className="text-[#5f6368]" />
-	                                  <span className="sr-only">選択</span>
+	                                  <span className="sr-only sm:not-sr-only">選択</span>
 	                                </button>
                                 {checkedIds.size > 0 && (
                                   <button

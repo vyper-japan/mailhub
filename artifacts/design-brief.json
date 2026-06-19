@@ -21,7 +21,8 @@
     "Reading pane header/body rail alignment",
     "Message list sender/subject density polish",
     "Work-mode tabs with visible queue counts",
-    "Reading pane subject/from/status context header"
+    "Reading pane subject/from/status context header",
+    "Responsive action rail without clipped toolbar or work-mode labels"
   ],
   "must_not_do": [
     "Do not send external email.",
@@ -35,6 +36,7 @@
     "Browser screenshot mobile",
     "Browser screenshot reading rail desktop/narrow",
     "Browser screenshot workbench tabs/detail context desktop/narrow",
+    "Browser screenshot action rail desktop/narrow",
     "Console error check"
   ]
 }
