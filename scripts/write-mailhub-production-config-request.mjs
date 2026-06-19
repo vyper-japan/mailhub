@@ -176,7 +176,10 @@ function blockerIds(readiness, key) {
 }
 
 function readinessProductionReady(readiness) {
-  return readiness?.productionReady === true || readiness?.gate?.productionReady === true;
+  if (typeof readiness?.gate?.productionReady === "boolean") {
+    return readiness.gate.productionReady === true;
+  }
+  return readiness?.productionReady === true;
 }
 
 function renderMarkdown(result) {

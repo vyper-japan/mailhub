@@ -87,9 +87,11 @@ jobs:
       - name: Validate send confirmation
         if: github.event.inputs.mode == 'send_verify'
         shell: bash
+        env:
+          CONFIRM_SEND: ${{ github.event.inputs.confirmSend }}
         run: |
           set -euo pipefail
-          if [ "${{ github.event.inputs.confirmSend }}" != "SEND_EXTERNAL_MAILHUB_ROUTING_PROBES" ]; then
+          if [ "$CONFIRM_SEND" != "SEND_EXTERNAL_MAILHUB_ROUTING_PROBES" ]; then
             echo "send_verify requires confirmSend=SEND_EXTERNAL_MAILHUB_ROUTING_PROBES"
             exit 1
           fi
@@ -157,11 +159,13 @@ jobs:
       - name: Send and verify external routing probes
         if: github.event.inputs.mode == 'send_verify'
         shell: bash
+        env:
+          CONFIRM_SEND: ${{ github.event.inputs.confirmSend }}
         run: |
           set -euo pipefail
           npm run probe:routing-send -- \
             --send \
-            --confirm-send "${{ github.event.inputs.confirmSend }}" \
+            --confirm-send "$CONFIRM_SEND" \
             --verify-after-send \
             --wait-seconds "${{ github.event.inputs.waitSeconds }}" \
             --poll-seconds "${{ github.event.inputs.pollSeconds }}" \

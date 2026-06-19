@@ -1088,4 +1088,34 @@ printf 'called\\n' >> "${ghLog}"
       expect(readFileSync(markdownOutPath, "utf8")).toContain("productionReady: `true`");
     });
   });
+
+  test("production config request keeps gate productionReady authoritative over contradictory top-level readiness", () => {
+    withTempDir((dir) => {
+      const runDir = join(dir, "run");
+      const outPath = join(runDir, "mailhub-production-config-request.json");
+      const markdownOutPath = join(runDir, "mailhub-production-config-intake.md");
+      mkdirSync(runDir, { recursive: true });
+      writeJson(join(runDir, "mailhub-production-readiness-audit.json"), {
+        productionReady: true,
+        p0Blockers: [],
+        p1Blockers: [],
+        gate: {
+          productionReady: false,
+          p0Blockers: ["current_shared_gmail_routing"],
+          p1Blockers: ["staff_github_config_not_ready"],
+        },
+      });
+
+      const result = runNodeScript(productionConfigRequestPath, ["--run-dir", runDir, "--out", outPath]);
+
+      expect(result.status).toBe(0);
+      const out = readJson<{
+        readiness: { productionReady: boolean; p0Blockers: string[]; p1Blockers: string[] };
+      }>(outPath);
+      expect(out.readiness.productionReady).toBe(false);
+      expect(out.readiness.p0Blockers).toEqual(["current_shared_gmail_routing"]);
+      expect(out.readiness.p1Blockers).toEqual(["staff_github_config_not_ready"]);
+      expect(readFileSync(markdownOutPath, "utf8")).toContain("productionReady: `false`");
+    });
+  });
 });

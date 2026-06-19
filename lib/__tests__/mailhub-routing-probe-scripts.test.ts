@@ -1262,7 +1262,9 @@ describe("MailHub routing probe CLI gates", () => {
 
     expect(workflow).toContain("current_shared_gmail_routing");
     expect(workflow).toContain("routingConfirmed:s.verification.allExpectedAddressesConfirmed");
-    expect(workflow).toContain('--confirm-send "${{ github.event.inputs.confirmSend }}"');
+    expect(workflow).toContain("CONFIRM_SEND: ${{ github.event.inputs.confirmSend }}");
+    expect(workflow).toContain('--confirm-send "$CONFIRM_SEND"');
+    expect(workflow).not.toContain('--confirm-send "${{ github.event.inputs.confirmSend }}"');
     expect(workflow).not.toContain("if(!s.verification.productionReady)");
   });
 
