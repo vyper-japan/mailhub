@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-06-19T04:50:20.569Z",
-  "repoHead": "66434e0ec422aeaa8b359c5c8e648a2848ced996",
+  "generatedAt": "2026-06-19T08:49:03.544Z",
+  "repoHead": "1ce420ea57fb26940e95bcf2c4489e4c6f52e9bc",
   "inputs": {
     "sourceAudit": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.ai-runs/mailhub-next-phase/gmail-source-coverage-audit.json",
     "migrationStatus": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/MAIL_MIGRATION_STATUS.md",
@@ -18,7 +18,7 @@
         "exists": true
       }
     },
-    "sourceAuditGeneratedAt": "2026-06-19T04:50:09.138Z"
+    "sourceAuditGeneratedAt": "2026-06-19T08:48:45.019Z"
   },
   "sourceCoverage": {
     "codeCoveragePass": true,
