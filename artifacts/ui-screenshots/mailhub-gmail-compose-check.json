@@ -1,0 +1,229 @@
+{
+  "capturedAt": "2026-06-19T15:59:41.075Z",
+  "baseURL": "http://127.0.0.1:3010",
+  "screenshotOptions": {
+    "caret": "initial"
+  },
+  "results": [
+    {
+      "name": "desktop",
+      "viewport": {
+        "width": 1440,
+        "height": 980
+      },
+      "screenshotPath": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/artifacts/ui-screenshots/mailhub-gmail-compose-desktop.png",
+      "metrics": {
+        "viewport": {
+          "width": 1440,
+          "height": 980
+        },
+        "panel": {
+          "x": 752,
+          "y": 276,
+          "width": 656,
+          "height": 624,
+          "right": 1408,
+          "bottom": 900
+        },
+        "safetyChecks": {
+          "x": 769,
+          "y": 477,
+          "width": 622,
+          "height": 59,
+          "right": 1391,
+          "bottom": 536
+        },
+        "from": {
+          "x": 769,
+          "y": 370,
+          "width": 308,
+          "height": 38,
+          "right": 1077,
+          "bottom": 407
+        },
+        "to": {
+          "x": 1083,
+          "y": 370,
+          "width": 308,
+          "height": 38,
+          "right": 1391,
+          "bottom": 407
+        },
+        "body": {
+          "x": 769,
+          "y": 564,
+          "width": 622,
+          "height": 220,
+          "right": 1391,
+          "bottom": 784
+        },
+        "actions": {
+          "x": 753,
+          "y": 850,
+          "width": 654,
+          "height": 49,
+          "right": 1407,
+          "bottom": 899
+        },
+        "buttons": [
+          {
+            "text": "Gmailで送信",
+            "rect": {
+              "x": 1025,
+              "y": 857,
+              "width": 118,
+              "height": 36,
+              "right": 1143,
+              "bottom": 893
+            }
+          },
+          {
+            "text": "送信してDone",
+            "rect": {
+              "x": 1149,
+              "y": 857,
+              "width": 128,
+              "height": 36,
+              "right": 1277,
+              "bottom": 893
+            }
+          },
+          {
+            "text": "キャンセル",
+            "rect": {
+              "x": 1283,
+              "y": 857,
+              "width": 108,
+              "height": 36,
+              "right": 1391,
+              "bottom": 893
+            }
+          }
+        ],
+        "safetyCheckCount": 5,
+        "panelOverflow": false,
+        "checksOverflow": false,
+        "fromWraps": true,
+        "toWraps": true,
+        "fromHorizontalOverflow": false,
+        "toHorizontalOverflow": false,
+        "actionsOverflow": false,
+        "actionsWithinViewport": true,
+        "horizontalOverflow": false,
+        "actionText": "送信後は取り消せません。Gmailで送信送信してDoneキャンセル"
+      },
+      "consoleErrors": [],
+      "failedResponses": []
+    },
+    {
+      "name": "narrow",
+      "viewport": {
+        "width": 1120,
+        "height": 840
+      },
+      "screenshotPath": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/artifacts/ui-screenshots/mailhub-gmail-compose-narrow.png",
+      "metrics": {
+        "viewport": {
+          "width": 1120,
+          "height": 840
+        },
+        "panel": {
+          "x": 676,
+          "y": 196,
+          "width": 412,
+          "height": 644,
+          "right": 1088,
+          "bottom": 840
+        },
+        "safetyChecks": {
+          "x": 693,
+          "y": 417,
+          "width": 378,
+          "height": 59,
+          "right": 1071,
+          "bottom": 476
+        },
+        "from": {
+          "x": 693,
+          "y": 290,
+          "width": 186,
+          "height": 57,
+          "right": 879,
+          "bottom": 347
+        },
+        "to": {
+          "x": 885,
+          "y": 290,
+          "width": 186,
+          "height": 57,
+          "right": 1071,
+          "bottom": 347
+        },
+        "body": {
+          "x": 693,
+          "y": 504,
+          "width": 378,
+          "height": 220,
+          "right": 1071,
+          "bottom": 724
+        },
+        "actions": {
+          "x": 677,
+          "y": 790,
+          "width": 410,
+          "height": 49,
+          "right": 1087,
+          "bottom": 839
+        },
+        "buttons": [
+          {
+            "text": "Gmailで送信",
+            "rect": {
+              "x": 705,
+              "y": 797,
+              "width": 118,
+              "height": 36,
+              "right": 823,
+              "bottom": 833
+            }
+          },
+          {
+            "text": "送信してDone",
+            "rect": {
+              "x": 829,
+              "y": 797,
+              "width": 128,
+              "height": 36,
+              "right": 957,
+              "bottom": 833
+            }
+          },
+          {
+            "text": "キャンセル",
+            "rect": {
+              "x": 963,
+              "y": 797,
+              "width": 108,
+              "height": 36,
+              "right": 1071,
+              "bottom": 833
+            }
+          }
+        ],
+        "safetyCheckCount": 5,
+        "panelOverflow": false,
+        "checksOverflow": false,
+        "fromWraps": true,
+        "toWraps": true,
+        "fromHorizontalOverflow": false,
+        "toHorizontalOverflow": false,
+        "actionsOverflow": false,
+        "actionsWithinViewport": true,
+        "horizontalOverflow": false,
+        "actionText": "送信後は取り消せません。Gmailで送信送信してDoneキャンセル"
+      },
+      "consoleErrors": [],
+      "failedResponses": []
+    }
+  ]
+}

@@ -7447,6 +7447,57 @@ async function w2T3aExpectReplySendActivity(page: Page) {
 }
 
 test.describe("W2-T3a Gmail compose send E2E", () => {
+  test("E2E #0) compose safety layout is readable before send", async ({ page }) => {
+    const panel = await w2T3aResetAndOpen(page);
+    await page.setViewportSize({ width: 1120, height: 840 });
+    await panel.scrollIntoViewIfNeeded();
+
+    const metrics = await panel.evaluate((el) => {
+      const checks = el.querySelector('[data-testid="gmail-compose-safety-checks"]');
+      const from = el.querySelector('[data-testid="gmail-compose-from"]');
+      const to = el.querySelector('[data-testid="gmail-compose-to"]');
+      const body = el.querySelector('[data-testid="reply-body"]');
+      const actions = el.querySelector('[data-testid="gmail-compose-actions"]');
+      const fromStyle = from ? getComputedStyle(from) : null;
+      const toStyle = to ? getComputedStyle(to) : null;
+      return {
+        panelOverflow: el.scrollWidth > el.clientWidth + 1,
+        safetyCheckCount: checks?.children.length ?? 0,
+        checksOverflow: checks ? checks.scrollWidth > checks.clientWidth + 1 : true,
+        fromText: from?.textContent?.trim() ?? "",
+        toText: to?.textContent?.trim() ?? "",
+        fromWraps: fromStyle ? fromStyle.whiteSpace !== "nowrap" && fromStyle.overflow !== "hidden" : false,
+        toWraps: toStyle ? toStyle.whiteSpace !== "nowrap" && toStyle.overflow !== "hidden" : false,
+        fromHorizontalOverflow: from ? from.scrollWidth > from.clientWidth + 1 : true,
+        toHorizontalOverflow: to ? to.scrollWidth > to.clientWidth + 1 : true,
+        bodyWidth: Math.round(body?.getBoundingClientRect().width ?? 0),
+        bodyMinHeight: Math.round(body?.getBoundingClientRect().height ?? 0),
+        actionsBottom: Math.round(actions?.getBoundingClientRect().bottom ?? 0),
+        actionsHeight: Math.round(actions?.getBoundingClientRect().height ?? 0),
+        actionsOverflow: actions ? actions.scrollWidth > actions.clientWidth + 1 : true,
+        actionText: actions?.textContent?.replace(/\s+/g, " ").trim() ?? "",
+        viewportHeight: window.innerHeight,
+      };
+    });
+
+    expect(metrics.panelOverflow).toBe(false);
+    expect(metrics.safetyCheckCount).toBe(5);
+    expect(metrics.checksOverflow).toBe(false);
+    expect(metrics.fromText).toContain("vyper_sc@vtj.co.jp");
+    expect(metrics.toText).toContain("buyer-support@amazon.co.jp");
+    expect(metrics.fromWraps).toBe(true);
+    expect(metrics.toWraps).toBe(true);
+    expect(metrics.fromHorizontalOverflow).toBe(false);
+    expect(metrics.toHorizontalOverflow).toBe(false);
+    expect(metrics.bodyWidth).toBeGreaterThanOrEqual(360);
+    expect(metrics.bodyMinHeight).toBeGreaterThanOrEqual(220);
+    expect(metrics.actionsOverflow).toBe(false);
+    expect(metrics.actionsHeight).toBeLessThanOrEqual(72);
+    expect(metrics.actionsBottom).toBeLessThanOrEqual(metrics.viewportHeight);
+    expect(metrics.actionText).toContain("Gmailで送信");
+    expect(metrics.actionText).toContain("送信してDone");
+  });
+
   test("E2E #1) compose→送信→capture→Done→activity", async ({ page }) => {
     const bodyText = "W2-T3a happy send body";
 
