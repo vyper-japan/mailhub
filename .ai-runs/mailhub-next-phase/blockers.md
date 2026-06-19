@@ -1,5 +1,29 @@
 # MailHub Next Phase Blockers
 
+## 2026-06-20 UI/UX Checkpoint Blockers
+
+Process blockers for the next session:
+
+- The current working directory in the interrupted turn initially pointed to a Superset/vyper-ops worktree, not MailHub. Always `cd /Users/takayukisuzuki/VYPER-Dev/Mailhub` first.
+- Subagent thread limit was reached when trying to spawn a fresh code critic for the message-list diff.
+- Attempts to close old subagents can hang or be interrupted. Do not wait on old agent IDs as part of the critical path.
+- The message-list slice is not committed yet.
+- Readiness artifacts have not yet been refreshed after the message-list slice.
+- CI has not yet been run for this slice.
+
+Product/production blockers remain unchanged:
+
+- P0 `current_shared_gmail_routing`
+- P1 `rule_config_source_not_production`
+- P1 `staff_workflow_permissions`
+- P1 `staff_github_config_not_ready`
+
+Approval gates remain unchanged:
+
+- No external email send without explicit approval.
+- No GitHub setup/apply mutation without explicit approval.
+- No Sheets mutation without explicit approval.
+
 ## 2026-06-19 SHIELD Production Config Gate
 
 Local dry-runs confirm that the production configuration gate cannot be closed from the values currently recoverable on this machine.

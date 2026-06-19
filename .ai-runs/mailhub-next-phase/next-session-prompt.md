@@ -1,5 +1,77 @@
 # Prompt For New MailHub Session
 
+## 2026-06-20 Latest Resume Note
+
+Status update after this note was first written:
+
+- UI slice committed: `94429df Polish MailHub message list density`.
+- `npm run ops:readiness-refresh` passed after the UI commit.
+- No external send occurred; routing probe send remained `mode=dry_run` with `sentCount=0`.
+- Next step: commit refreshed `.ai-runs/mailhub-next-phase` artifacts, push, and watch CI.
+
+Continue from `/Users/takayukisuzuki/VYPER-Dev/Mailhub`, not the Superset/vyper-ops worktree.
+
+The active goal is still the long UI/UX sprint: make MailHub feel like a practical, high-quality mailer while keeping the production-readiness blockers honest.
+
+First commands:
+
+```bash
+cd /Users/takayukisuzuki/VYPER-Dev/Mailhub
+git status -sb
+git diff --stat
+git diff --check
+```
+
+Expected current dirty state:
+
+```text
+## main...origin/main
+ M app/inbox/InboxShell.tsx
+ M e2e/qa-strict-unified.spec.ts
+?? artifacts/ui-screenshots/mailhub-message-list-check.json
+?? artifacts/ui-screenshots/mailhub-message-list-desktop.png
+?? artifacts/ui-screenshots/mailhub-message-list-narrow.png
+```
+
+Current slice:
+
+- Message-list row density/readability polish.
+- `InboxShell.tsx` narrows checkbox/star/time columns to make the subject/snippet block wider.
+- `qa-strict-unified.spec.ts` strengthens `Step93-3b` to require `>=280px` row text/snippet width.
+- Screenshots/metrics exist in `artifacts/ui-screenshots/mailhub-message-list-*`.
+- Visual critic Hume: `APPROVED`.
+- Earlier validation passed: `lint`, `typecheck`, `git diff --check`, and targeted Playwright `Step93-3b|Step93-6`.
+
+Next:
+
+1. Do final P0/P1 code review on the small diff.
+2. Re-run lint/typecheck/targeted Playwright/diff-check.
+3. Commit `Polish MailHub message list density`.
+4. Run `npm run ops:readiness-refresh` with no external sends/mutations.
+5. Commit readiness refresh.
+6. Push and watch `MailHub Readiness Contract` and `qa-strict`.
+
+Runtime:
+
+- Dev server currently listens on `http://127.0.0.1:3010` via PID `14590`.
+- Port `3001` is not listening.
+- Verify before killing any process because other Playwright/Next processes may belong to unrelated work.
+
+Do not:
+
+- wait on old subagent IDs
+- run external email sends
+- run GitHub setup/apply mutations
+- run Sheets mutations
+- claim production complete
+
+Known production blockers remain:
+
+- P0 `current_shared_gmail_routing`
+- P1 `rule_config_source_not_production`
+- P1 `staff_workflow_permissions`
+- P1 `staff_github_config_not_ready`
+
 MailHub next phase toward production-complete. Continue from the current repo state, not from memory.
 
 ## First Read

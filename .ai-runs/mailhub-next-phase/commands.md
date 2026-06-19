@@ -1,5 +1,95 @@
 # MailHub Next Phase Commands
 
+## 2026-06-20 UI/UX Checkpoint Commands
+
+Checkpoint skill:
+
+```bash
+cat /Users/takayukisuzuki/.agents/skills/ai-checkpoint/SKILL.md
+```
+
+Result: PASS, skill instructions loaded.
+
+Snapshot helper:
+
+```bash
+test -x scripts/ai_handoff_snapshot.sh && echo available || echo missing
+```
+
+Result: `missing`.
+
+Current state checks:
+
+```bash
+git status -sb
+```
+
+Result:
+
+```text
+## main...origin/main
+ M app/inbox/InboxShell.tsx
+ M e2e/qa-strict-unified.spec.ts
+?? artifacts/ui-screenshots/mailhub-message-list-check.json
+?? artifacts/ui-screenshots/mailhub-message-list-desktop.png
+?? artifacts/ui-screenshots/mailhub-message-list-narrow.png
+```
+
+```bash
+git diff --stat
+```
+
+Result:
+
+```text
+ app/inbox/InboxShell.tsx      | 16 ++++++++--------
+ e2e/qa-strict-unified.spec.ts |  6 +++++-
+ 2 files changed, 13 insertions(+), 9 deletions(-)
+```
+
+```bash
+git diff --check
+```
+
+Result: PASS.
+
+Runtime checks:
+
+```bash
+lsof -nP -iTCP:3010 -sTCP:LISTEN || true
+lsof -nP -iTCP:3001 -sTCP:LISTEN || true
+pgrep -fl 'next dev|npm run dev|playwright|cloudflared' || true
+```
+
+Result:
+
+- `127.0.0.1:3010` is listening (`node` PID `14590`; parent `npm run dev` PID `14395`).
+- `3001` is not listening.
+- Additional Playwright/Next processes exist; verify ownership before killing anything.
+
+Already run before this checkpoint for the current message-list slice:
+
+```bash
+npm run lint
+npm run typecheck
+git diff --check
+MAILHUB_TEST_MODE=1 MAILHUB_DATA_MODE=stub NEXTAUTH_URL=http://127.0.0.1:3010 NEXTAUTH_SECRET=test-secret PLAYWRIGHT_BASE_URL=http://127.0.0.1:3010 npx playwright test e2e/qa-strict-unified.spec.ts -g "Step93-3b|Step93-6" --workers=1
+```
+
+Prior result: PASS. Re-run in the next session if the diff changes or before committing.
+
+Commands to run first in the next session:
+
+```bash
+cd /Users/takayukisuzuki/VYPER-Dev/Mailhub
+git status -sb
+git diff --stat
+git diff --check
+npm run lint
+npm run typecheck
+MAILHUB_TEST_MODE=1 MAILHUB_DATA_MODE=stub NEXTAUTH_URL=http://127.0.0.1:3010 NEXTAUTH_SECRET=test-secret PLAYWRIGHT_BASE_URL=http://127.0.0.1:3010 npx playwright test e2e/qa-strict-unified.spec.ts -g "Step93-3b|Step93-6" --workers=1
+```
+
 ## Verification Commands Run On 2026-06-19 Production Config Intake Package
 
 ```bash
@@ -2715,3 +2805,47 @@ MAILHUB_TEST_MODE=1 NEXTAUTH_SECRET=dummy NEXTAUTH_URL=http://localhost:3000 NEX
 ```
 
 After source diff is frozen, refresh no-send artifacts and rerun contracts. Do not run external `--send` or setup `--apply` without explicit approval.
+
+## 2026-06-20 Message List Density Completion Commands
+
+Validation:
+
+```bash
+npm run lint
+npm run typecheck
+MAILHUB_TEST_MODE=1 MAILHUB_DATA_MODE=stub NEXTAUTH_URL=http://127.0.0.1:3010 NEXTAUTH_SECRET=test-secret PLAYWRIGHT_BASE_URL=http://127.0.0.1:3010 npx playwright test e2e/qa-strict-unified.spec.ts -g "Step93-3b|Step93-6" --workers=1
+git diff --check
+```
+
+Result:
+
+- lint PASS
+- typecheck PASS
+- targeted Playwright PASS, 2 tests
+- diff-check PASS
+
+UI commit:
+
+```bash
+git add app/inbox/InboxShell.tsx e2e/qa-strict-unified.spec.ts artifacts/ui-screenshots/mailhub-message-list-check.json artifacts/ui-screenshots/mailhub-message-list-desktop.png artifacts/ui-screenshots/mailhub-message-list-narrow.png
+git commit -m "Polish MailHub message list density"
+```
+
+Result:
+
+- `94429df Polish MailHub message list density`
+
+Readiness refresh:
+
+```bash
+npm run ops:readiness-refresh
+```
+
+Result:
+
+- PASS.
+- `probe:routing-send` ran in `dry_run` mode.
+- `sentCount=0`.
+- readiness contract chain passed.
+- `security:scan-artifacts` passed.
+- Production readiness remains false with the known P0/P1 blockers.

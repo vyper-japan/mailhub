@@ -1,5 +1,88 @@
 # MailHub Next Phase Next Actions
 
+## 2026-06-20 Resume Here: UI/UX Message List Slice
+
+Status update: the UI slice below has now been committed as `94429df Polish MailHub message list density`, and `npm run ops:readiness-refresh` has passed with no external sends. Next step is to commit the refreshed `.ai-runs/mailhub-next-phase` artifacts, push, and watch CI.
+
+Start from:
+
+```bash
+cd /Users/takayukisuzuki/VYPER-Dev/Mailhub
+git status -sb
+git diff --stat
+git diff --check
+```
+
+Expected dirty state:
+
+- `app/inbox/InboxShell.tsx`
+- `e2e/qa-strict-unified.spec.ts`
+- untracked `artifacts/ui-screenshots/mailhub-message-list-check.json`
+- untracked `artifacts/ui-screenshots/mailhub-message-list-desktop.png`
+- untracked `artifacts/ui-screenshots/mailhub-message-list-narrow.png`
+
+Immediate next work:
+
+1. Inspect the current diff in `InboxShell.tsx` and `qa-strict-unified.spec.ts`.
+2. Treat Hume's visual review as passed: `APPROVED`, no critical visual issues.
+3. Do a final P0/P1 code-review pass on the small diff. If subagent capacity is still blocked, do it locally with explicit lenses:
+   - row layout overflow / hit target regression
+   - accessibility / keyboard and click safety
+   - E2E assertion reliability
+   - screenshot artifact freshness
+4. Re-run:
+
+```bash
+npm run lint
+npm run typecheck
+MAILHUB_TEST_MODE=1 MAILHUB_DATA_MODE=stub NEXTAUTH_URL=http://127.0.0.1:3010 NEXTAUTH_SECRET=test-secret PLAYWRIGHT_BASE_URL=http://127.0.0.1:3010 npx playwright test e2e/qa-strict-unified.spec.ts -g "Step93-3b|Step93-6" --workers=1
+git diff --check
+```
+
+5. If still green, commit the UI slice:
+
+```bash
+git add app/inbox/InboxShell.tsx e2e/qa-strict-unified.spec.ts artifacts/ui-screenshots/mailhub-message-list-check.json artifacts/ui-screenshots/mailhub-message-list-desktop.png artifacts/ui-screenshots/mailhub-message-list-narrow.png
+git commit -m "Polish MailHub message list density"
+```
+
+6. Refresh readiness artifacts without sends/mutations:
+
+```bash
+npm run ops:readiness-refresh
+```
+
+Confirm in output/artifacts:
+
+- no external send occurred
+- routing send mode remains dry-run/no-send
+- `sentCount=0` where applicable
+- production readiness remains false with known blockers
+
+7. Commit the readiness refresh:
+
+```bash
+git add .ai-runs/mailhub-next-phase
+git commit -m "Refresh readiness artifacts after list polish"
+```
+
+8. Push and monitor CI:
+
+```bash
+git push
+gh run list --branch main --limit 8 --json databaseId,workflowName,status,conclusion,headSha,createdAt
+```
+
+Watch the latest `MailHub Readiness Contract` and `qa-strict` runs to success.
+
+After this slice, the next high-value UI/UX work should use the Re:lation research:
+
+- add a clearer right-pane customer/order/context module, or
+- make status/lock/owner affordances more explicit in list/detail, or
+- extend compose safety for attachment/domain/approval checks.
+
+Do not start external proof work unless the user provides/approves the required production values and actions.
+
 ## 2026-06-19 Production Config Intake Package
 
 Use `.ai-runs/mailhub-next-phase/mailhub-production-config-intake.md` as the operator-facing, no-secret intake checklist for the next apply-capable wave.

@@ -1,5 +1,96 @@
 # MailHub Next Phase Progress
 
+## 2026-06-20 UI/UX Polish Checkpoint For New Session
+
+The active goal remains the long MailHub UI/UX sprint: raise the inbox toward practical mailer quality while preserving the safety constraints. Do not mark production complete.
+
+Current authoritative repo:
+
+- `/Users/takayukisuzuki/VYPER-Dev/Mailhub`
+- branch `main`
+- latest local HEAD: `0e9f9e6 Refresh readiness artifacts after compose polish`
+- `main...origin/main` with uncommitted UI/test/artifact changes.
+
+Current dirty worktree:
+
+- `app/inbox/InboxShell.tsx`
+- `e2e/qa-strict-unified.spec.ts`
+- `artifacts/ui-screenshots/mailhub-message-list-check.json`
+- `artifacts/ui-screenshots/mailhub-message-list-desktop.png`
+- `artifacts/ui-screenshots/mailhub-message-list-narrow.png`
+
+Current UI slice:
+
+- Message-list row chrome was tightened to give more width to sender/subject/snippet on narrow desktop.
+- Checkbox column changed from `20px`/16px control to `16px`/14px control.
+- Star column changed from `20px`/18px icon with `p-1` to `17px`/17px icon with `p-0.5`.
+- Time/SLA column changed from `44px` to `38px`; time text is now `11px`.
+- The row grid gap was reduced to `gap-1`.
+- E2E `Step93-3b` now asserts row text/snippet readability at `>=280px`.
+
+Evidence already produced before this checkpoint:
+
+- Visual critic agent `Hume` returned `APPROVED`.
+- Message-list screenshots were captured at desktop and narrow desktop.
+- `mailhub-message-list-check.json` records:
+  - desktop first row text/snippet width: `364px`
+  - narrow first row text/snippet width: `288px`
+  - no row overflow and no horizontal overflow in the captured checks
+  - console errors and failed responses were empty in the prior capture
+- Earlier local validation for this UI slice had passed:
+  - `npm run lint`
+  - `npm run typecheck`
+  - `git diff --check`
+  - targeted Playwright: `Step93-3b|Step93-6`
+
+Important process note:
+
+- A code-critic spawn attempted during checkpoint handoff failed because the subagent thread limit was reached.
+- Attempts to close old agents can hang or be interrupted. In the next session, do not wait on old agent IDs. If SHIELD review is needed, either use a small fresh wave after capacity is available or perform local code-review lenses directly.
+- `scripts/ai_handoff_snapshot.sh` does not exist in this repo, so this checkpoint was written manually.
+
+Runtime at checkpoint:
+
+- Dev server is listening on `http://127.0.0.1:3010` via PID `14590` (`npm run dev --hostname 127.0.0.1 --port 3010` parent PID `14395`).
+- Port `3001` is not listening.
+- There are other Playwright/Next processes visible on the machine; some may belong to other work. Do not kill unrelated processes without checking command/path.
+
+Do not run:
+
+- external email sends
+- GitHub setup/apply mutations
+- Sheets mutations
+
+without explicit user approval.
+
+## 2026-06-20 Message List Density Slice Completed
+
+Committed UI slice:
+
+- `94429df Polish MailHub message list density`
+
+Verification for the slice:
+
+- `npm run lint`: PASS.
+- `npm run typecheck`: PASS.
+- `MAILHUB_TEST_MODE=1 MAILHUB_DATA_MODE=stub NEXTAUTH_URL=http://127.0.0.1:3010 NEXTAUTH_SECRET=test-secret PLAYWRIGHT_BASE_URL=http://127.0.0.1:3010 npx playwright test e2e/qa-strict-unified.spec.ts -g "Step93-3b|Step93-6" --workers=1`: PASS, 2 tests.
+- `git diff --check`: PASS.
+- Visual critic Hume: APPROVED.
+- Code critic Popper: no UI P0/P1; only staging warning to keep `.ai-runs` out of the UI commit, which was followed.
+
+No-send readiness refresh completed after the UI commit:
+
+- `npm run ops:readiness-refresh`: PASS.
+- Routing probe send artifact remained `mode=dry_run`; no external mail was sent.
+- `mailhub-routing-proof-contract`: PASS with `sentCount=0`.
+- `security:scan-artifacts`: PASS.
+- Readiness artifacts now reference repo head `94429dfe09f4e96b07e07d4f4767eb7106a4b93c`.
+- Production readiness remains intentionally false:
+  - P0 `current_shared_gmail_routing`
+  - P1 `rule_config_source_not_production`
+  - P1 `staff_workflow_permissions`
+  - P1 `staff_github_config_not_ready`
+
 ## 2026-06-18 SHIELD Full-Diff Final Review Completed
 
 This session resumed from `next-session-prompt.md`, ran the required first checks, and completed the full-diff SHIELD review before further edits.

@@ -1,5 +1,14 @@
 # MailHub Next Phase Decisions
 
+## 2026-06-20 UI/UX Checkpoint Decisions
+
+- Keep the current MailHub UI direction: Gmail/Spark/Re:lation-inspired operational density, not a decorative redesign.
+- For the message list, prefer small measurable width gains over a large layout rewrite. The current slice improves subject/snippet space by tightening control/time columns.
+- Treat visual screenshots and row-width metrics as required evidence for UI polish, not optional decoration.
+- Hume's visual-design review is accepted as the visual gate for this slice.
+- Because subagent capacity/close behavior is currently unreliable, the next session may complete the final P0/P1 code review locally if a fresh critic cannot be spawned promptly.
+- Do not let the UI polish sprint blur production readiness. Production remains blocked until the external routing, Sheets config, staff workflow, and GitHub config gates have real evidence.
+
 ## Product Decisions
 
 - Preserve the latest Gmail-like direction. The original UI is not sacred.
@@ -53,4 +62,3 @@ These rules are mandatory for the next session:
    - whether any required command sessions are still running
 9. Prefer local implementation and verification on the critical path. Agents are sidecars, not the place where the main run can freeze.
 10. For large-team review, simulate additional human/design/UX/nitpick lenses locally if agent capacity is constrained.
-
