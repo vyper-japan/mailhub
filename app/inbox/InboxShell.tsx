@@ -7628,12 +7628,12 @@ export default function InboxShell({
                   </div>
                   <div className="flex-1 overflow-y-auto custom-scrollbar bg-white text-[#202124]">
                     <div className="sticky top-0 z-10 border-b border-[#e8eaed] bg-white/95 backdrop-blur">
-                      <div className="mx-auto w-full max-w-[1040px] px-4 py-1 sm:px-6 lg:px-8">
-                        <div className="flex items-start gap-2 min-w-0">
+                      <div className="mx-auto w-full max-w-[820px] px-4 py-1 sm:px-5 lg:px-6" data-testid="detail-header-inner">
+                        <div className="flex min-w-0 flex-wrap items-start gap-x-2 gap-y-1 xl:flex-nowrap">
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2 min-w-0">
                               <span
-                                className="truncate text-[15px] font-semibold leading-5 text-[#202124]"
+                                className="min-w-0 flex-1 truncate text-[15px] font-semibold leading-5 text-[#202124]"
                                 data-testid="detail-subject"
                                 title={`${selectedMessage.subject ?? "(no subject)"} / ${selectedMessage.from ?? ""}`}
                               >
@@ -7660,6 +7660,7 @@ export default function InboxShell({
                             </div>
                           </div>
 
+                          <div className="flex basis-full shrink-0 items-center justify-end gap-1 xl:basis-auto" data-testid="detail-header-actions">
                           {selectedAssigneeSlug ? (
                             <button
                               data-testid="assignee-pill"
@@ -7735,7 +7736,7 @@ export default function InboxShell({
                               href={selectedMessage.gmailLink}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="shrink-0 p-1.5 text-[#1a73e8] hover:text-[#1557b0] hover:bg-[#e8f0fe] rounded-full transition-colors"
+                              className="hidden shrink-0 p-1.5 text-[#1a73e8] hover:text-[#1557b0] hover:bg-[#e8f0fe] rounded-full transition-colors xl:inline-flex"
                               title="Gmailで開く"
                               data-testid="jump-to-gmail"
                             >
@@ -7745,18 +7746,19 @@ export default function InboxShell({
                           <button
                             type="button"
                             onClick={() => setBodyCollapsed(!bodyCollapsed)}
-                            className="shrink-0 p-1.5 text-[#5f6368] hover:text-[#202124] hover:bg-[#f1f3f4] rounded-full transition-colors"
+                            className="hidden shrink-0 p-1.5 text-[#5f6368] hover:text-[#202124] hover:bg-[#f1f3f4] rounded-full transition-colors xl:inline-flex"
                             title={bodyCollapsed ? "本文を展開" : "本文を折りたたむ"}
                             data-testid="toggle-body-collapse"
                           >
-                            {bodyCollapsed ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
-                          </button>
+                              {bodyCollapsed ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </div>
                     
                     {/* スクロール可能なコンテンツエリア */}
-                    <div className="mx-auto w-full max-w-[1040px] px-4 pt-2 pb-8 sm:px-6 lg:px-8">
+                    <div className="mx-auto w-full max-w-[820px] px-4 pt-2 pb-8 sm:px-5 lg:px-6" data-testid="detail-content-inner">
                       {/* 本文セクション（折りたたみ可能） */}
                       {bodyCollapsed ? (
                         <div 

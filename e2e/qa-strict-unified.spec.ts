@@ -6021,10 +6021,14 @@ test("Step93-3b) Narrow desktop action rail: ツールバーと作業タブが�
           const listPane = document.querySelector(".mailhub-list-column");
           const detailPane = document.querySelector(".mailhub-detail-column");
           const rowTextBlock = document.querySelector('[data-testid="message-row"] [data-testid="row-text-block"]');
+          const detailSubject = document.querySelector('[data-testid="detail-subject"]');
+          const detailContextLine = document.querySelector('[data-testid="detail-context-line"]');
           const rowCheckbox = document.querySelector('[data-testid="message-row"] input[type="checkbox"]');
           const listWidth = Math.round(listPane?.getBoundingClientRect().width ?? 0);
           const detailWidth = Math.round(detailPane?.getBoundingClientRect().width ?? 0);
           const rowTextBlockWidth = Math.round(rowTextBlock?.getBoundingClientRect().width ?? 0);
+          const detailSubjectWidth = Math.round(detailSubject?.getBoundingClientRect().width ?? 0);
+          const detailContextHeight = Math.round(detailContextLine?.getBoundingClientRect().height ?? 999);
           return {
             toolbarHeight: Math.round(toolbar?.getBoundingClientRect().height ?? 0),
             toolbarHorizontalOverflow: toolbar ? toolbar.scrollWidth > toolbar.clientWidth + 1 : true,
@@ -6037,6 +6041,8 @@ test("Step93-3b) Narrow desktop action rail: ツールバーと作業タブが�
             listWidthReadable: listWidth >= 400,
             detailWidthUsable: detailWidth >= 460,
             rowTextBlockReadable: rowTextBlockWidth >= 250,
+            detailSubjectReadable: detailSubjectWidth >= 320,
+            detailContextSingleLine: detailContextHeight <= 24,
             detailOverflowsViewport: detailPane ? detailPane.getBoundingClientRect().right > window.innerWidth + 1 : true,
             rowCheckboxMarginRight: rowCheckbox ? getComputedStyle(rowCheckbox).marginRight : "",
           };
@@ -6053,9 +6059,51 @@ test("Step93-3b) Narrow desktop action rail: ツールバーと作業タブが�
       listWidthReadable: true,
       detailWidthUsable: true,
       rowTextBlockReadable: true,
+      detailSubjectReadable: true,
+      detailContextSingleLine: true,
       detailOverflowsViewport: false,
       rowCheckboxMarginRight: "0px",
     });
+});
+
+test("Step93-3c) Wide desktop reading pane: 詳細ヘッダーと本文の読み幅が揃う", async ({ page }) => {
+  await page.request.post("/api/mailhub/test/reset").catch(() => {});
+  await page.addInitScript(() => {
+    localStorage.setItem("mailhub-onboarding-shown", "true");
+  });
+  await page.setViewportSize({ width: 1680, height: 900 });
+  await page.goto("/?label=all&id=msg-021&max=20");
+  await expect(page.getByTestId("detail-subject")).toBeVisible({ timeout: 10000 });
+  await expect(page.locator('[data-testid="email-body-html"], [data-testid="email-body-text"]')).toBeVisible({
+    timeout: 10000,
+  });
+
+  const metrics = await page.evaluate(() => {
+    const detailPane = document.querySelector('[data-testid="detail-pane"]');
+    const header = document.querySelector('[data-testid="detail-header-inner"]');
+    const content = document.querySelector('[data-testid="detail-content-inner"]');
+    const body = document.querySelector('[data-testid="email-body-html"], [data-testid="email-body-text"]');
+    const headerRect = header?.getBoundingClientRect();
+    const contentRect = content?.getBoundingClientRect();
+    const bodyRect = body?.getBoundingClientRect();
+    return {
+      detailWidth: Math.round(detailPane?.getBoundingClientRect().width ?? 0),
+      headerWidth: Math.round(headerRect?.width ?? 0),
+      contentWidth: Math.round(contentRect?.width ?? 0),
+      bodyTextWidth: Math.round(bodyRect?.width ?? 0),
+      leftDelta: Math.abs((headerRect?.left ?? 0) - (contentRect?.left ?? 999)),
+      rightDelta: Math.abs((headerRect?.right ?? 0) - (contentRect?.right ?? 999)),
+      horizontalOverflow: document.documentElement.scrollWidth > window.innerWidth + 1,
+    };
+  });
+
+  expect(metrics.detailWidth).toBeGreaterThanOrEqual(800);
+  expect(metrics.headerWidth).toBeLessThanOrEqual(820);
+  expect(metrics.contentWidth).toBeLessThanOrEqual(820);
+  expect(metrics.bodyTextWidth).toBeLessThanOrEqual(780);
+  expect(metrics.leftDelta).toBeLessThanOrEqual(1);
+  expect(metrics.rightDelta).toBeLessThanOrEqual(1);
+  expect(metrics.horizontalOverflow).toBe(false);
 });
 
 test("Step93-4) Channel scope bar: 専用宛先と関連候補検索を分けて表示する", async ({ page }) => {

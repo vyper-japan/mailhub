@@ -1,0 +1,144 @@
+[
+  {
+    "name": "mailhub-reading-pane-wide",
+    "width": 1680,
+    "height": 900,
+    "screenshot": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/artifacts/ui-screenshots/mailhub-reading-pane-wide.png",
+    "metrics": {
+      "viewportWidth": 1680,
+      "viewportHeight": 900,
+      "detailPane": {
+        "x": 728,
+        "y": 195,
+        "right": 1680,
+        "bottom": 900,
+        "width": 952,
+        "height": 705
+      },
+      "detailHeaderInner": {
+        "x": 790,
+        "y": 195,
+        "right": 1610,
+        "bottom": 239,
+        "width": 820,
+        "height": 44
+      },
+      "detailContentInner": {
+        "x": 790,
+        "y": 240,
+        "right": 1610,
+        "bottom": 2705,
+        "width": 820,
+        "height": 2465
+      },
+      "emailBody": {
+        "x": 814,
+        "y": 248,
+        "right": 1586,
+        "bottom": 608,
+        "width": 772,
+        "height": 360
+      },
+      "detailSubject": {
+        "x": 814,
+        "y": 199,
+        "right": 1385,
+        "bottom": 219,
+        "width": 571,
+        "height": 20
+      },
+      "detailContextLine": {
+        "x": 814,
+        "y": 219,
+        "right": 1385,
+        "bottom": 235,
+        "width": 571,
+        "height": 16
+      },
+      "detailHeaderActions": {
+        "x": 1393,
+        "y": 199,
+        "right": 1586,
+        "bottom": 227,
+        "width": 193,
+        "height": 28
+      },
+      "headerContentLeftDelta": 0,
+      "headerContentRightDelta": 0,
+      "horizontalOverflow": false
+    },
+    "consoleErrors": [],
+    "failedResponses": []
+  },
+  {
+    "name": "mailhub-reading-pane-narrow",
+    "width": 1120,
+    "height": 840,
+    "screenshot": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/artifacts/ui-screenshots/mailhub-reading-pane-narrow.png",
+    "metrics": {
+      "viewportWidth": 1120,
+      "viewportHeight": 840,
+      "detailPane": {
+        "x": 652,
+        "y": 195,
+        "right": 1120,
+        "bottom": 840,
+        "width": 468,
+        "height": 645
+      },
+      "detailHeaderInner": {
+        "x": 652,
+        "y": 195,
+        "right": 1112,
+        "bottom": 271,
+        "width": 460,
+        "height": 76
+      },
+      "detailContentInner": {
+        "x": 652,
+        "y": 272,
+        "right": 1112,
+        "bottom": 2855,
+        "width": 460,
+        "height": 2583
+      },
+      "emailBody": {
+        "x": 676,
+        "y": 280,
+        "right": 1088,
+        "bottom": 640,
+        "width": 412,
+        "height": 360
+      },
+      "detailSubject": {
+        "x": 676,
+        "y": 199,
+        "right": 1088,
+        "bottom": 219,
+        "width": 412,
+        "height": 20
+      },
+      "detailContextLine": {
+        "x": 676,
+        "y": 219,
+        "right": 1088,
+        "bottom": 235,
+        "width": 412,
+        "height": 16
+      },
+      "detailHeaderActions": {
+        "x": 676,
+        "y": 239,
+        "right": 1088,
+        "bottom": 267,
+        "width": 412,
+        "height": 28
+      },
+      "headerContentLeftDelta": 0,
+      "headerContentRightDelta": 0,
+      "horizontalOverflow": false
+    },
+    "consoleErrors": [],
+    "failedResponses": []
+  }
+]
