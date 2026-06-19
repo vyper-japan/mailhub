@@ -6046,9 +6046,11 @@ test("Step93-3b) Narrow desktop action rail: ツールバーと作業タブが�
           const detailSubject = document.querySelector('[data-testid="detail-subject"]');
           const detailContextLine = document.querySelector('[data-testid="detail-context-line"]');
           const rowCheckbox = document.querySelector('[data-testid="message-row"] input[type="checkbox"]');
+          const rowSnippet = document.querySelector('[data-testid="message-row"] [data-testid="row-snippet"]');
           const listWidth = Math.round(listPane?.getBoundingClientRect().width ?? 0);
           const detailWidth = Math.round(detailPane?.getBoundingClientRect().width ?? 0);
           const rowTextBlockWidth = Math.round(rowTextBlock?.getBoundingClientRect().width ?? 0);
+          const rowSnippetWidth = Math.round(rowSnippet?.getBoundingClientRect().width ?? 0);
           const detailSubjectWidth = Math.round(detailSubject?.getBoundingClientRect().width ?? 0);
           const detailContextHeight = Math.round(detailContextLine?.getBoundingClientRect().height ?? 999);
           return {
@@ -6062,7 +6064,8 @@ test("Step93-3b) Narrow desktop action rail: ツールバーと作業タブが�
             labelTextDisplay: labelText ? getComputedStyle(labelText).display : "",
             listWidthReadable: listWidth >= 400,
             detailWidthUsable: detailWidth >= 460,
-            rowTextBlockReadable: rowTextBlockWidth >= 250,
+            rowTextBlockReadable: rowTextBlockWidth >= 280,
+            rowSnippetReadable: rowSnippetWidth >= 280,
             detailSubjectReadable: detailSubjectWidth >= 320,
             detailContextSingleLine: detailContextHeight <= 24,
             detailOverflowsViewport: detailPane ? detailPane.getBoundingClientRect().right > window.innerWidth + 1 : true,
@@ -6081,6 +6084,7 @@ test("Step93-3b) Narrow desktop action rail: ツールバーと作業タブが�
       listWidthReadable: true,
       detailWidthUsable: true,
       rowTextBlockReadable: true,
+      rowSnippetReadable: true,
       detailSubjectReadable: true,
       detailContextSingleLine: true,
       detailOverflowsViewport: false,

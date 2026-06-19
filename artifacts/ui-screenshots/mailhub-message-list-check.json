@@ -1,0 +1,948 @@
+{
+  "capturedAt": "2026-06-19T20:04:32.921Z",
+  "baseURL": "http://127.0.0.1:3010",
+  "results": [
+    {
+      "name": "desktop",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "screenshotPath": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/artifacts/ui-screenshots/mailhub-message-list-desktop.png",
+      "metrics": {
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "listPane": {
+          "x": 260,
+          "y": 195,
+          "width": 480,
+          "height": 705,
+          "right": 740,
+          "bottom": 900
+        },
+        "detailPane": {
+          "x": 728,
+          "y": 195,
+          "width": 712,
+          "height": 705,
+          "right": 1440,
+          "bottom": 900
+        },
+        "rowCount": 34,
+        "firstRowTextBlockWidth": 364,
+        "firstRowSnippetWidth": 364,
+        "minVisibleTextBlockWidth": 267,
+        "rows": [
+          {
+            "i": 0,
+            "row": {
+              "x": 260,
+              "y": 195,
+              "width": 471,
+              "height": 74,
+              "right": 731,
+              "bottom": 269
+            },
+            "textBlock": {
+              "x": 313,
+              "y": 203,
+              "width": 364,
+              "height": 56,
+              "right": 677,
+              "bottom": 259
+            },
+            "sender": {
+              "x": 325,
+              "y": 203,
+              "width": 52,
+              "height": 18,
+              "right": 377,
+              "bottom": 221
+            },
+            "subject": {
+              "x": 313,
+              "y": 223,
+              "width": 236,
+              "height": 18,
+              "right": 549,
+              "bottom": 241
+            },
+            "snippet": {
+              "x": 313,
+              "y": 243,
+              "width": 364,
+              "height": 16,
+              "right": 677,
+              "bottom": 259
+            },
+            "timeCol": {
+              "x": 681,
+              "y": 203,
+              "width": 38,
+              "height": 40,
+              "right": 719,
+              "bottom": 243
+            },
+            "rowOverflow": false,
+            "subjectOverflow": false,
+            "snippetOverflow": false
+          },
+          {
+            "i": 1,
+            "row": {
+              "x": 260,
+              "y": 269,
+              "width": 471,
+              "height": 74,
+              "right": 731,
+              "bottom": 343
+            },
+            "textBlock": {
+              "x": 313,
+              "y": 277,
+              "width": 356,
+              "height": 56,
+              "right": 669,
+              "bottom": 333
+            },
+            "sender": {
+              "x": 335,
+              "y": 277,
+              "width": 86,
+              "height": 18,
+              "right": 421,
+              "bottom": 295
+            },
+            "subject": {
+              "x": 313,
+              "y": 297,
+              "width": 169,
+              "height": 18,
+              "right": 482,
+              "bottom": 315
+            },
+            "snippet": {
+              "x": 313,
+              "y": 317,
+              "width": 356,
+              "height": 16,
+              "right": 669,
+              "bottom": 333
+            },
+            "timeCol": {
+              "x": 673,
+              "y": 277,
+              "width": 38,
+              "height": 40,
+              "right": 711,
+              "bottom": 317
+            },
+            "rowOverflow": false,
+            "subjectOverflow": false,
+            "snippetOverflow": false
+          },
+          {
+            "i": 2,
+            "row": {
+              "x": 260,
+              "y": 343,
+              "width": 471,
+              "height": 74,
+              "right": 731,
+              "bottom": 417
+            },
+            "textBlock": {
+              "x": 313,
+              "y": 351,
+              "width": 364,
+              "height": 56,
+              "right": 677,
+              "bottom": 407
+            },
+            "sender": {
+              "x": 335,
+              "y": 351,
+              "width": 121,
+              "height": 18,
+              "right": 456,
+              "bottom": 369
+            },
+            "subject": {
+              "x": 313,
+              "y": 371,
+              "width": 280,
+              "height": 18,
+              "right": 593,
+              "bottom": 389
+            },
+            "snippet": {
+              "x": 313,
+              "y": 391,
+              "width": 364,
+              "height": 16,
+              "right": 677,
+              "bottom": 407
+            },
+            "timeCol": {
+              "x": 681,
+              "y": 351,
+              "width": 38,
+              "height": 40,
+              "right": 719,
+              "bottom": 391
+            },
+            "rowOverflow": false,
+            "subjectOverflow": false,
+            "snippetOverflow": true
+          },
+          {
+            "i": 3,
+            "row": {
+              "x": 260,
+              "y": 417,
+              "width": 471,
+              "height": 74,
+              "right": 731,
+              "bottom": 491
+            },
+            "textBlock": {
+              "x": 313,
+              "y": 425,
+              "width": 364,
+              "height": 56,
+              "right": 677,
+              "bottom": 481
+            },
+            "sender": {
+              "x": 325,
+              "y": 425,
+              "width": 206,
+              "height": 18,
+              "right": 531,
+              "bottom": 443
+            },
+            "subject": {
+              "x": 313,
+              "y": 445,
+              "width": 156,
+              "height": 18,
+              "right": 469,
+              "bottom": 463
+            },
+            "snippet": {
+              "x": 313,
+              "y": 465,
+              "width": 364,
+              "height": 16,
+              "right": 677,
+              "bottom": 481
+            },
+            "timeCol": {
+              "x": 681,
+              "y": 425,
+              "width": 38,
+              "height": 40,
+              "right": 719,
+              "bottom": 465
+            },
+            "rowOverflow": false,
+            "subjectOverflow": false,
+            "snippetOverflow": true
+          },
+          {
+            "i": 4,
+            "row": {
+              "x": 260,
+              "y": 491,
+              "width": 471,
+              "height": 74,
+              "right": 731,
+              "bottom": 565
+            },
+            "textBlock": {
+              "x": 313,
+              "y": 499,
+              "width": 267,
+              "height": 56,
+              "right": 580,
+              "bottom": 555
+            },
+            "sender": {
+              "x": 335,
+              "y": 499,
+              "width": 78,
+              "height": 18,
+              "right": 413,
+              "bottom": 517
+            },
+            "subject": {
+              "x": 313,
+              "y": 519,
+              "width": 191,
+              "height": 18,
+              "right": 504,
+              "bottom": 537
+            },
+            "snippet": {
+              "x": 313,
+              "y": 539,
+              "width": 267,
+              "height": 16,
+              "right": 580,
+              "bottom": 555
+            },
+            "timeCol": {
+              "x": 584,
+              "y": 499,
+              "width": 38,
+              "height": 40,
+              "right": 622,
+              "bottom": 539
+            },
+            "rowOverflow": false,
+            "subjectOverflow": false,
+            "snippetOverflow": false
+          },
+          {
+            "i": 5,
+            "row": {
+              "x": 260,
+              "y": 565,
+              "width": 471,
+              "height": 74,
+              "right": 731,
+              "bottom": 639
+            },
+            "textBlock": {
+              "x": 313,
+              "y": 573,
+              "width": 269,
+              "height": 56,
+              "right": 582,
+              "bottom": 629
+            },
+            "sender": {
+              "x": 325,
+              "y": 573,
+              "width": 76,
+              "height": 18,
+              "right": 401,
+              "bottom": 591
+            },
+            "subject": {
+              "x": 313,
+              "y": 593,
+              "width": 193,
+              "height": 18,
+              "right": 506,
+              "bottom": 611
+            },
+            "snippet": {
+              "x": 313,
+              "y": 613,
+              "width": 269,
+              "height": 16,
+              "right": 582,
+              "bottom": 629
+            },
+            "timeCol": {
+              "x": 586,
+              "y": 573,
+              "width": 38,
+              "height": 40,
+              "right": 624,
+              "bottom": 613
+            },
+            "rowOverflow": false,
+            "subjectOverflow": false,
+            "snippetOverflow": false
+          },
+          {
+            "i": 6,
+            "row": {
+              "x": 260,
+              "y": 639,
+              "width": 471,
+              "height": 74,
+              "right": 731,
+              "bottom": 713
+            },
+            "textBlock": {
+              "x": 313,
+              "y": 647,
+              "width": 364,
+              "height": 56,
+              "right": 677,
+              "bottom": 703
+            },
+            "sender": {
+              "x": 325,
+              "y": 647,
+              "width": 85,
+              "height": 18,
+              "right": 410,
+              "bottom": 665
+            },
+            "subject": {
+              "x": 313,
+              "y": 667,
+              "width": 364,
+              "height": 18,
+              "right": 677,
+              "bottom": 685
+            },
+            "snippet": {
+              "x": 313,
+              "y": 687,
+              "width": 364,
+              "height": 16,
+              "right": 677,
+              "bottom": 703
+            },
+            "timeCol": {
+              "x": 681,
+              "y": 647,
+              "width": 38,
+              "height": 40,
+              "right": 719,
+              "bottom": 687
+            },
+            "rowOverflow": false,
+            "subjectOverflow": true,
+            "snippetOverflow": true
+          },
+          {
+            "i": 7,
+            "row": {
+              "x": 260,
+              "y": 713,
+              "width": 471,
+              "height": 74,
+              "right": 731,
+              "bottom": 787
+            },
+            "textBlock": {
+              "x": 313,
+              "y": 721,
+              "width": 364,
+              "height": 56,
+              "right": 677,
+              "bottom": 777
+            },
+            "sender": {
+              "x": 325,
+              "y": 721,
+              "width": 77,
+              "height": 18,
+              "right": 402,
+              "bottom": 739
+            },
+            "subject": {
+              "x": 313,
+              "y": 741,
+              "width": 195,
+              "height": 18,
+              "right": 508,
+              "bottom": 759
+            },
+            "snippet": {
+              "x": 313,
+              "y": 761,
+              "width": 364,
+              "height": 16,
+              "right": 677,
+              "bottom": 777
+            },
+            "timeCol": {
+              "x": 681,
+              "y": 721,
+              "width": 38,
+              "height": 40,
+              "right": 719,
+              "bottom": 761
+            },
+            "rowOverflow": false,
+            "subjectOverflow": false,
+            "snippetOverflow": true
+          }
+        ],
+        "horizontalOverflow": false
+      },
+      "consoleErrors": [],
+      "failedResponses": []
+    },
+    {
+      "name": "narrow",
+      "viewport": {
+        "width": 1120,
+        "height": 840
+      },
+      "screenshotPath": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/artifacts/ui-screenshots/mailhub-message-list-narrow.png",
+      "metrics": {
+        "viewport": {
+          "width": 1120,
+          "height": 840
+        },
+        "listPane": {
+          "x": 260,
+          "y": 195,
+          "width": 404,
+          "height": 645,
+          "right": 664,
+          "bottom": 840
+        },
+        "detailPane": {
+          "x": 652,
+          "y": 195,
+          "width": 468,
+          "height": 645,
+          "right": 1120,
+          "bottom": 840
+        },
+        "rowCount": 34,
+        "firstRowTextBlockWidth": 288,
+        "firstRowSnippetWidth": 288,
+        "minVisibleTextBlockWidth": 267,
+        "rows": [
+          {
+            "i": 0,
+            "row": {
+              "x": 260,
+              "y": 195,
+              "width": 395,
+              "height": 74,
+              "right": 655,
+              "bottom": 269
+            },
+            "textBlock": {
+              "x": 313,
+              "y": 203,
+              "width": 288,
+              "height": 56,
+              "right": 601,
+              "bottom": 259
+            },
+            "sender": {
+              "x": 325,
+              "y": 203,
+              "width": 52,
+              "height": 18,
+              "right": 377,
+              "bottom": 221
+            },
+            "subject": {
+              "x": 313,
+              "y": 223,
+              "width": 236,
+              "height": 18,
+              "right": 549,
+              "bottom": 241
+            },
+            "snippet": {
+              "x": 313,
+              "y": 243,
+              "width": 288,
+              "height": 16,
+              "right": 601,
+              "bottom": 259
+            },
+            "timeCol": {
+              "x": 605,
+              "y": 203,
+              "width": 38,
+              "height": 40,
+              "right": 643,
+              "bottom": 243
+            },
+            "rowOverflow": false,
+            "subjectOverflow": false,
+            "snippetOverflow": true
+          },
+          {
+            "i": 1,
+            "row": {
+              "x": 260,
+              "y": 269,
+              "width": 395,
+              "height": 74,
+              "right": 655,
+              "bottom": 343
+            },
+            "textBlock": {
+              "x": 313,
+              "y": 277,
+              "width": 288,
+              "height": 56,
+              "right": 601,
+              "bottom": 333
+            },
+            "sender": {
+              "x": 335,
+              "y": 277,
+              "width": 86,
+              "height": 18,
+              "right": 421,
+              "bottom": 295
+            },
+            "subject": {
+              "x": 313,
+              "y": 297,
+              "width": 169,
+              "height": 18,
+              "right": 482,
+              "bottom": 315
+            },
+            "snippet": {
+              "x": 313,
+              "y": 317,
+              "width": 288,
+              "height": 16,
+              "right": 601,
+              "bottom": 333
+            },
+            "timeCol": {
+              "x": 605,
+              "y": 277,
+              "width": 38,
+              "height": 40,
+              "right": 643,
+              "bottom": 317
+            },
+            "rowOverflow": false,
+            "subjectOverflow": false,
+            "snippetOverflow": true
+          },
+          {
+            "i": 2,
+            "row": {
+              "x": 260,
+              "y": 343,
+              "width": 395,
+              "height": 74,
+              "right": 655,
+              "bottom": 417
+            },
+            "textBlock": {
+              "x": 313,
+              "y": 351,
+              "width": 288,
+              "height": 56,
+              "right": 601,
+              "bottom": 407
+            },
+            "sender": {
+              "x": 335,
+              "y": 351,
+              "width": 121,
+              "height": 18,
+              "right": 456,
+              "bottom": 369
+            },
+            "subject": {
+              "x": 313,
+              "y": 371,
+              "width": 280,
+              "height": 18,
+              "right": 593,
+              "bottom": 389
+            },
+            "snippet": {
+              "x": 313,
+              "y": 391,
+              "width": 288,
+              "height": 16,
+              "right": 601,
+              "bottom": 407
+            },
+            "timeCol": {
+              "x": 605,
+              "y": 351,
+              "width": 38,
+              "height": 40,
+              "right": 643,
+              "bottom": 391
+            },
+            "rowOverflow": false,
+            "subjectOverflow": false,
+            "snippetOverflow": true
+          },
+          {
+            "i": 3,
+            "row": {
+              "x": 260,
+              "y": 417,
+              "width": 395,
+              "height": 74,
+              "right": 655,
+              "bottom": 491
+            },
+            "textBlock": {
+              "x": 313,
+              "y": 425,
+              "width": 288,
+              "height": 56,
+              "right": 601,
+              "bottom": 481
+            },
+            "sender": {
+              "x": 325,
+              "y": 425,
+              "width": 206,
+              "height": 18,
+              "right": 531,
+              "bottom": 443
+            },
+            "subject": {
+              "x": 313,
+              "y": 445,
+              "width": 156,
+              "height": 18,
+              "right": 469,
+              "bottom": 463
+            },
+            "snippet": {
+              "x": 313,
+              "y": 465,
+              "width": 288,
+              "height": 16,
+              "right": 601,
+              "bottom": 481
+            },
+            "timeCol": {
+              "x": 605,
+              "y": 425,
+              "width": 38,
+              "height": 40,
+              "right": 643,
+              "bottom": 465
+            },
+            "rowOverflow": false,
+            "subjectOverflow": false,
+            "snippetOverflow": true
+          },
+          {
+            "i": 4,
+            "row": {
+              "x": 260,
+              "y": 491,
+              "width": 395,
+              "height": 74,
+              "right": 655,
+              "bottom": 565
+            },
+            "textBlock": {
+              "x": 313,
+              "y": 499,
+              "width": 267,
+              "height": 56,
+              "right": 580,
+              "bottom": 555
+            },
+            "sender": {
+              "x": 335,
+              "y": 499,
+              "width": 78,
+              "height": 18,
+              "right": 413,
+              "bottom": 517
+            },
+            "subject": {
+              "x": 313,
+              "y": 519,
+              "width": 191,
+              "height": 18,
+              "right": 504,
+              "bottom": 537
+            },
+            "snippet": {
+              "x": 313,
+              "y": 539,
+              "width": 267,
+              "height": 16,
+              "right": 580,
+              "bottom": 555
+            },
+            "timeCol": {
+              "x": 584,
+              "y": 499,
+              "width": 38,
+              "height": 40,
+              "right": 622,
+              "bottom": 539
+            },
+            "rowOverflow": false,
+            "subjectOverflow": false,
+            "snippetOverflow": false
+          },
+          {
+            "i": 5,
+            "row": {
+              "x": 260,
+              "y": 565,
+              "width": 395,
+              "height": 74,
+              "right": 655,
+              "bottom": 639
+            },
+            "textBlock": {
+              "x": 313,
+              "y": 573,
+              "width": 269,
+              "height": 56,
+              "right": 582,
+              "bottom": 629
+            },
+            "sender": {
+              "x": 325,
+              "y": 573,
+              "width": 76,
+              "height": 18,
+              "right": 401,
+              "bottom": 591
+            },
+            "subject": {
+              "x": 313,
+              "y": 593,
+              "width": 193,
+              "height": 18,
+              "right": 506,
+              "bottom": 611
+            },
+            "snippet": {
+              "x": 313,
+              "y": 613,
+              "width": 269,
+              "height": 16,
+              "right": 582,
+              "bottom": 629
+            },
+            "timeCol": {
+              "x": 586,
+              "y": 573,
+              "width": 38,
+              "height": 40,
+              "right": 624,
+              "bottom": 613
+            },
+            "rowOverflow": false,
+            "subjectOverflow": false,
+            "snippetOverflow": false
+          },
+          {
+            "i": 6,
+            "row": {
+              "x": 260,
+              "y": 639,
+              "width": 395,
+              "height": 74,
+              "right": 655,
+              "bottom": 713
+            },
+            "textBlock": {
+              "x": 313,
+              "y": 647,
+              "width": 288,
+              "height": 56,
+              "right": 601,
+              "bottom": 703
+            },
+            "sender": {
+              "x": 325,
+              "y": 647,
+              "width": 85,
+              "height": 18,
+              "right": 410,
+              "bottom": 665
+            },
+            "subject": {
+              "x": 313,
+              "y": 667,
+              "width": 288,
+              "height": 18,
+              "right": 601,
+              "bottom": 685
+            },
+            "snippet": {
+              "x": 313,
+              "y": 687,
+              "width": 288,
+              "height": 16,
+              "right": 601,
+              "bottom": 703
+            },
+            "timeCol": {
+              "x": 605,
+              "y": 647,
+              "width": 38,
+              "height": 40,
+              "right": 643,
+              "bottom": 687
+            },
+            "rowOverflow": false,
+            "subjectOverflow": true,
+            "snippetOverflow": true
+          },
+          {
+            "i": 7,
+            "row": {
+              "x": 260,
+              "y": 713,
+              "width": 395,
+              "height": 74,
+              "right": 655,
+              "bottom": 787
+            },
+            "textBlock": {
+              "x": 313,
+              "y": 721,
+              "width": 288,
+              "height": 56,
+              "right": 601,
+              "bottom": 777
+            },
+            "sender": {
+              "x": 325,
+              "y": 721,
+              "width": 77,
+              "height": 18,
+              "right": 402,
+              "bottom": 739
+            },
+            "subject": {
+              "x": 313,
+              "y": 741,
+              "width": 195,
+              "height": 18,
+              "right": 508,
+              "bottom": 759
+            },
+            "snippet": {
+              "x": 313,
+              "y": 761,
+              "width": 288,
+              "height": 16,
+              "right": 601,
+              "bottom": 777
+            },
+            "timeCol": {
+              "x": 605,
+              "y": 721,
+              "width": 38,
+              "height": 40,
+              "right": 643,
+              "bottom": 761
+            },
+            "rowOverflow": false,
+            "subjectOverflow": false,
+            "snippetOverflow": true
+          }
+        ],
+        "horizontalOverflow": false
+      },
+      "consoleErrors": [],
+      "failedResponses": []
+    }
+  ]
+}

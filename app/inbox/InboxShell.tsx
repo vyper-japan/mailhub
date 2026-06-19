@@ -7356,7 +7356,7 @@ export default function InboxShell({
                               />
                             )}
                             {/* checkbox / star / sender+subject / date */}
-                            <div className="grid w-full min-w-0 grid-cols-[20px_20px_minmax(0,1fr)_44px] items-start gap-1.5 sm:gap-2">
+                            <div className="grid w-full min-w-0 grid-cols-[16px_17px_minmax(0,1fr)_38px] items-start gap-1">
                             {/* チェックボックス */}
                             <div className="flex items-center justify-center">
                               <input
@@ -7399,7 +7399,7 @@ export default function InboxShell({
                                     });
                                   }
                                 }}
-                                className="w-4 h-4 rounded border-[#dadce0] bg-white text-[#1a73e8] focus:ring-2 focus:ring-[#1a73e8]/20 cursor-pointer hover:border-[#1a73e8] transition-colors"
+                                className="h-[14px] w-[14px] cursor-pointer rounded border-[#dadce0] bg-white text-[#1a73e8] transition-colors hover:border-[#1a73e8] focus:ring-2 focus:ring-[#1a73e8]/20"
                                 data-testid={`checkbox-${mail.id}`}
                               />
                             </div>
@@ -7414,11 +7414,11 @@ export default function InboxShell({
                                 e.stopPropagation();
                                 toggleStarLocal(mail.id);
                               }}
-                              className="p-1 rounded hover:bg-[#f1f3f4] text-[#5f6368] hover:text-[#202124] transition-colors"
+                              className="rounded p-0.5 text-[#5f6368] transition-colors hover:bg-[#f1f3f4] hover:text-[#202124]"
                               title={mail.isStarred ? "スターを外す" : "スターを付ける"}
                             >
                               <Star
-                                size={18}
+                                size={17}
                                 className={mail.isStarred ? "text-[#fbbc04] fill-[#fbbc04]" : "text-[#5f6368]"}
                                 fill={mail.isStarred ? "currentColor" : "none"}
                               />
@@ -7532,8 +7532,8 @@ export default function InboxShell({
                             </div>
 
                             {/* 日時 + 経過 */}
-                            <div className="flex min-w-[44px] max-w-[44px] flex-shrink-0 flex-col items-end gap-1">
-                              <div className="flex items-center gap-1.5">
+                            <div className="flex min-w-[38px] max-w-[38px] flex-shrink-0 flex-col items-end gap-1">
+                              <div className="flex items-center gap-1">
                                 {mail.attachmentCount ? (
                                   <span
                                     className="inline-flex items-center gap-0.5 text-[11px] text-[#5f6368]"
@@ -7544,7 +7544,7 @@ export default function InboxShell({
                                     {mail.attachmentCount > 1 && <span>{mail.attachmentCount}</span>}
                                   </span>
                                 ) : null}
-                                <span className={`text-[12px] font-normal ${isActive ? 'text-[#3c4043]' : 'text-[#5f6368]'}`} title={mail.receivedAt}>
+                                <span className={`text-[11px] font-normal ${isActive ? 'text-[#3c4043]' : 'text-[#5f6368]'}`} title={mail.receivedAt}>
                                   {mail.receivedAt.split(' ')[1]?.slice(0, 5)}
                                 </span>
                               </div>
@@ -7564,7 +7564,7 @@ export default function InboxShell({
                                 : "bg-gray-100 text-gray-600 border-gray-300";
                               
                               return (
-                                <span className={`px-1 py-0.5 text-[9px] font-bold rounded border ${colorClass}`}>
+                                <span className={`rounded border px-1 py-0.5 text-[9px] font-bold ${colorClass}`}>
                                   {elapsedText}
                                 </span>
                               );
