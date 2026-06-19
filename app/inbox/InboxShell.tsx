@@ -6305,18 +6305,18 @@ export default function InboxShell({
                 onClick={() => {
                   void handleTakeNext();
                 }}
-                className={`${t.toolbarButton} min-w-[112px] justify-center bg-[#1a73e8] text-white hover:bg-[#1557b0] hover:text-white ${(isActionInProgress || bulkProgress) ? "opacity-60" : ""}`}
+                className={`${t.toolbarButton} min-w-[44px] xl:min-w-[112px] justify-center bg-[#1a73e8] text-white hover:bg-[#1557b0] hover:text-white ${(isActionInProgress || bulkProgress) ? "opacity-60" : ""}`}
                 title={readOnlyMode ? (getWriteBlockedTitle() ?? "実行できません") : "誰かが取るメールを自分の対応にして開く"}
                 disabled={readOnlyMode || isActionInProgress || bulkProgress !== null}
               >
                 <Zap size={18} className="text-white" />
-                <span className="hidden sm:inline">未割当を取る</span>
+                <span className="hidden xl:inline">未割当を取る</span>
               </button>
 
               <div className="w-px h-5 bg-[#dadce0] mx-1"></div>
 
               {/* 選択状態表示（常にスペースを確保してボタンが動かないようにする） */}
-              <span className="text-[13px] text-[#3c4043] mr-2 font-normal flex-shrink-0 min-w-[80px] text-right" data-testid="bulk-selection-count">
+              <span className="text-[13px] text-[#3c4043] mr-1 font-normal flex-shrink-0 min-w-[48px] text-right" data-testid="bulk-selection-count">
                 {checkedIds.size > 0 ? `${checkedIds.size}件選択中` : '\u00A0'}
               </span>
 
@@ -6330,7 +6330,7 @@ export default function InboxShell({
                     handleArchive(selectedId);
                   }
                 }}
-                className={`${t.toolbarButton} min-w-[76px] justify-center ${(isActionInProgress || bulkProgress) ? "opacity-60" : ""}`}
+                className={`${t.toolbarButton} min-w-[44px] xl:min-w-[76px] justify-center ${(isActionInProgress || bulkProgress) ? "opacity-60" : ""}`}
                 title={readOnlyMode ? (getWriteBlockedTitle() ?? "実行できません") : "対応済みにする"}
                 disabled={readOnlyMode || (!selectedId && checkedIds.size === 0) || isActionInProgress || bulkProgress !== null}
               >
@@ -6339,7 +6339,7 @@ export default function InboxShell({
                 ) : (
                   <CheckCircle size={20} className={checkedIds.size > 0 || selectedId ? "text-[#34a853]" : "text-[#5f6368]"} />
                 )}
-                <span className="hidden sm:inline">{(isActionInProgress || bulkProgress) ? "処理中" : "対応済み"}</span>
+                <span className="hidden xl:inline">{(isActionInProgress || bulkProgress) ? "処理中" : "対応済み"}</span>
                 {!(isActionInProgress || bulkProgress) && <span className={t.toolbarShortcut} title="ショートカット: E">E</span>}
               </button>
               
@@ -6352,12 +6352,12 @@ export default function InboxShell({
                     handleSetWaiting(selectedId);
                   }
                 }}
-                className={`${t.toolbarButton} min-w-[76px] justify-center ${(isActionInProgress || bulkProgress) ? "opacity-60" : ""}`}
+                className={`${t.toolbarButton} min-w-[44px] xl:min-w-[76px] justify-center ${(isActionInProgress || bulkProgress) ? "opacity-60" : ""}`}
                 title={readOnlyMode ? (getWriteBlockedTitle() ?? "実行できません") : "返事待ちにする"}
                 disabled={readOnlyMode || (!selectedId && checkedIds.size === 0) || isActionInProgress || bulkProgress !== null}
               >
                 <Clock size={20} className={checkedIds.size > 0 || selectedId ? "text-[#ea8600]" : "text-[#5f6368]"} />
-                <span className="hidden sm:inline">返事待ち</span>
+                <span className="hidden xl:inline">返事待ち</span>
                 <span className={t.toolbarShortcut} title="ショートカット: W">W</span>
               </button>
 
@@ -6369,7 +6369,7 @@ export default function InboxShell({
                     ? (someSelectedOtherAssigned ? "action-takeover" : allSelectedMine ? "action-unassign" : "action-assign")
                     : (isSelectedOtherAssigned ? "action-takeover" : isSelectedMine ? "action-unassign" : "action-assign")
                 }
-                className={`${t.toolbarButton} min-w-[76px] justify-center ${(checkedIds.size > 0 ? someSelectedMine : isSelectedMine) ? t.toolbarButtonActive : ""} ${(isActionInProgress || bulkProgress) ? "opacity-60" : ""}`}
+                className={`${t.toolbarButton} min-w-[44px] xl:min-w-[76px] justify-center ${(checkedIds.size > 0 ? someSelectedMine : isSelectedMine) ? t.toolbarButtonActive : ""} ${(isActionInProgress || bulkProgress) ? "opacity-60" : ""}`}
                 onClick={async () => {
                   // Step 114: 状態によって挙動を分岐
                   if (checkedIds.size > 0) {
@@ -6408,7 +6408,7 @@ export default function InboxShell({
                 disabled={readOnlyMode || selectedIds.length === 0 || bulkProgress !== null || isActionInProgress}
               >
                 <UserCheck size={20} className={(checkedIds.size > 0 ? someSelectedMine : isSelectedMine) ? "text-[#1a73e8]" : "text-[#5f6368]"} />
-                <span className="hidden sm:inline">
+                <span className="hidden xl:inline">
                   {checkedIds.size > 0
                     ? (someSelectedOtherAssigned ? "引き継ぎ" : allSelectedMine ? "担当解除" : "担当")
                     : (isSelectedOtherAssigned ? "引き継ぎ" : isSelectedMine ? "担当解除" : "担当")}
@@ -6426,12 +6426,12 @@ export default function InboxShell({
                     handleMute(selectedId);
                   }
                 }}
-                className={`${t.toolbarButton} min-w-[82px] justify-center ${(isActionInProgress || bulkProgress) ? "opacity-60" : ""}`}
+                className={`${t.toolbarButton} min-w-[44px] xl:min-w-[82px] justify-center ${(isActionInProgress || bulkProgress) ? "opacity-60" : ""}`}
                 title={readOnlyMode ? (getWriteBlockedTitle() ?? "実行できません") : (checkedIds.size > 0 ? "選択分を処理不要にする" : "処理不要にする")}
                 disabled={readOnlyMode || (!selectedId && checkedIds.size === 0) || isActionInProgress || bulkProgress !== null}
               >
                 <VolumeX size={20} className={checkedIds.size > 0 || selectedId ? "text-[#ea8600]" : "text-[#5f6368]"} />
-                <span className="hidden sm:inline">処理不要</span>
+                <span className="hidden xl:inline">処理不要</span>
               </button>
 
               {/* Step 23: Gmail-like Labels */}
@@ -6470,7 +6470,7 @@ export default function InboxShell({
                       disabled={readOnlyMode || bulkProgress !== null || isActionInProgress}
                     >
                       <UserCheck size={20} className="text-[#1a73e8]" />
-                      <span className="hidden lg:inline">自分へ</span>
+                      <span className="hidden 2xl:inline">自分へ</span>
                     </button>
                   )}
                   <button 
@@ -6481,7 +6481,7 @@ export default function InboxShell({
                     disabled={readOnlyMode || bulkProgress !== null}
                   >
                     <UserCheck size={20} className="text-[#1a73e8]" />
-                    <span className="hidden lg:inline">担当…</span>
+                    <span className="hidden 2xl:inline">担当…</span>
                   </button>
                   <button 
                     data-testid="bulk-action-clear"
@@ -6494,7 +6494,7 @@ export default function InboxShell({
                     disabled={bulkProgress !== null}
                   >
                     <Square size={20} className="text-[#5f6368]" />
-                    <span className="hidden lg:inline">解除</span>
+                    <span className="hidden 2xl:inline">解除</span>
                   </button>
                 </>
               )}
@@ -6525,7 +6525,7 @@ export default function InboxShell({
                     disabled={readOnlyMode || bulkProgress !== null}
                   >
                     <Users size={20} className="text-[#1a73e8]" />
-                    <span className="hidden lg:inline">配分</span>
+                    <span className="hidden 2xl:inline">配分</span>
                   </button>
                 </>
               )}
@@ -6569,7 +6569,7 @@ export default function InboxShell({
                 title={slaFocus ? (slaCriticalOnly ? "特に長く残っているメールだけ表示中" : "長く残っているメールを表示中") : "長く残っているメールを表示"}
               >
                 <AlertTriangle size={20} className={slaFocus ? "text-[#f9ab00]" : "text-[#5f6368]"} />
-                <span className="hidden lg:inline">長く残っている</span>
+                <span className="hidden 2xl:inline">長く残っている</span>
               </button>
 
               <div className="w-px h-5 bg-[#dadce0] mx-2"></div>
@@ -6583,7 +6583,7 @@ export default function InboxShell({
                 aria-pressed={listDensity === "compact"}
               >
                 <Rows3 size={20} className={listDensity === "compact" ? "text-[#1a73e8]" : "text-[#5f6368]"} />
-                <span className="hidden lg:inline">{listDensity === "compact" ? "Compact" : "Comfortable"}</span>
+                <span className="hidden 2xl:inline">{listDensity === "compact" ? "Compact" : "Comfortable"}</span>
               </button>
             </div>
           </div>
@@ -6924,7 +6924,7 @@ export default function InboxShell({
             </div>
 
             {/* 右側: 選択中メールのナビゲーション/クイック操作（タブ行と同じ水平線に揃える） */}
-            <div className="hidden items-center gap-1 flex-shrink-0 pr-1 xl:flex">
+            <div className="hidden items-center gap-1 flex-shrink-0 pr-1 2xl:flex">
               {selectedMessage && (
                 <>
                   <button onClick={() => handleMoveSelection("up")} className={t.buttonIcon} title="上へ">

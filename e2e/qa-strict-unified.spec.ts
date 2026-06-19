@@ -6018,16 +6018,22 @@ test("Step93-3b) Narrow desktop action rail: ツールバーと作業タブが�
           const toolbar = document.querySelector('[data-testid="toolbar"]');
           const quickActions = document.querySelector('[data-testid="tabs"] > div:last-child');
           const labelText = document.querySelector('[data-testid="action-label"] span');
+          const listPane = document.querySelector(".mailhub-list-column");
           const detailPane = document.querySelector(".mailhub-detail-column");
           const rowCheckbox = document.querySelector('[data-testid="message-row"] input[type="checkbox"]');
+          const listWidth = Math.round(listPane?.getBoundingClientRect().width ?? 0);
+          const detailWidth = Math.round(detailPane?.getBoundingClientRect().width ?? 0);
           return {
             toolbarHeight: Math.round(toolbar?.getBoundingClientRect().height ?? 0),
+            toolbarHorizontalOverflow: toolbar ? toolbar.scrollWidth > toolbar.clientWidth + 1 : true,
             toolbarVerticalOverflow: toolbar ? toolbar.scrollHeight > toolbar.clientHeight + 1 : true,
             toolbarFirstButtonWhitespace: toolbar?.querySelector("button")
               ? getComputedStyle(toolbar.querySelector("button") as Element).whiteSpace
               : "",
             quickActionsDisplay: quickActions ? getComputedStyle(quickActions).display : "",
             labelTextDisplay: labelText ? getComputedStyle(labelText).display : "",
+            listWidthReadable: listWidth >= 400,
+            detailWidthUsable: detailWidth >= 460,
             detailOverflowsViewport: detailPane ? detailPane.getBoundingClientRect().right > window.innerWidth + 1 : true,
             rowCheckboxMarginRight: rowCheckbox ? getComputedStyle(rowCheckbox).marginRight : "",
           };
@@ -6036,10 +6042,13 @@ test("Step93-3b) Narrow desktop action rail: ツールバーと作業タブが�
     )
     .toEqual({
       toolbarHeight: 48,
+      toolbarHorizontalOverflow: false,
       toolbarVerticalOverflow: false,
       toolbarFirstButtonWhitespace: "nowrap",
       quickActionsDisplay: "none",
       labelTextDisplay: "none",
+      listWidthReadable: true,
+      detailWidthUsable: true,
       detailOverflowsViewport: false,
       rowCheckboxMarginRight: "0px",
     });

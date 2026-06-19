@@ -15,6 +15,9 @@
         "width": 860,
         "height": 48
       },
+      "toolbarScrollWidth": 860,
+      "toolbarClientWidth": 860,
+      "horizontalToolbarOverflow": false,
       "toolbarScrollHeight": 47,
       "toolbarClientHeight": 47,
       "verticalToolbarOverflow": false,
@@ -29,12 +32,12 @@
         "height": 645
       },
       "rowSubject": {
-        "x": 328,
-        "y": 221,
-        "right": 564,
-        "bottom": 239,
-        "width": 236,
-        "height": 18
+        "x": 260,
+        "y": 195,
+        "right": 655,
+        "bottom": 267,
+        "width": 395,
+        "height": 72
       },
       "detailPane": {
         "x": 652,
@@ -69,10 +72,13 @@
         "width": 1180,
         "height": 48
       },
+      "toolbarScrollWidth": 1180,
+      "toolbarClientWidth": 1180,
+      "horizontalToolbarOverflow": false,
       "toolbarScrollHeight": 47,
       "toolbarClientHeight": 47,
       "verticalToolbarOverflow": false,
-      "selectedQuickDisplay": "flex",
+      "selectedQuickDisplay": "none",
       "labelSpanDisplay": "block",
       "listColumn": {
         "x": 260,
@@ -83,12 +89,12 @@
         "height": 755
       },
       "rowSubject": {
-        "x": 328,
-        "y": 221,
-        "right": 564,
-        "bottom": 239,
-        "width": 236,
-        "height": 18
+        "x": 260,
+        "y": 195,
+        "right": 731,
+        "bottom": 267,
+        "width": 471,
+        "height": 72
       },
       "detailPane": {
         "x": 728,
