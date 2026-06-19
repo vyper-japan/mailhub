@@ -1,0 +1,125 @@
+[
+  {
+    "name": "mailhub-density-comfortable-desktop",
+    "width": 1440,
+    "height": 950,
+    "density": "comfortable",
+    "screenshot": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/artifacts/ui-screenshots/mailhub-density-comfortable-desktop.png",
+    "metrics": {
+      "viewportWidth": 1440,
+      "listColumn": {
+        "x": 260,
+        "y": 195,
+        "right": 740,
+        "width": 480,
+        "height": 755
+      },
+      "detailPane": {
+        "x": 728,
+        "y": 195,
+        "right": 1440,
+        "width": 712,
+        "height": 755
+      },
+      "firstRow": {
+        "x": 260,
+        "y": 255,
+        "right": 731,
+        "width": 471,
+        "height": 71
+      },
+      "rows": [
+        71
+      ],
+      "densityButton": "Comfortable",
+      "detailLeftDelta": 0,
+      "bodyWidth": 640,
+      "detailOverflowsViewport": false,
+      "onboardingVisible": false,
+      "consoleErrors": [],
+      "failedResponses": []
+    }
+  },
+  {
+    "name": "mailhub-density-comfortable-narrow",
+    "width": 1120,
+    "height": 820,
+    "density": "comfortable",
+    "screenshot": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/artifacts/ui-screenshots/mailhub-density-comfortable-narrow.png",
+    "metrics": {
+      "viewportWidth": 1120,
+      "listColumn": {
+        "x": 260,
+        "y": 229,
+        "right": 624,
+        "width": 364,
+        "height": 591
+      },
+      "detailPane": {
+        "x": 612,
+        "y": 229,
+        "right": 1120,
+        "width": 508,
+        "height": 591
+      },
+      "firstRow": {
+        "x": 260,
+        "y": 289,
+        "right": 615,
+        "width": 355,
+        "height": 71
+      },
+      "rows": [
+        71
+      ],
+      "densityButton": "Comfortable",
+      "detailLeftDelta": 0,
+      "bodyWidth": 436,
+      "detailOverflowsViewport": false,
+      "onboardingVisible": false,
+      "consoleErrors": [],
+      "failedResponses": []
+    }
+  },
+  {
+    "name": "mailhub-density-compact-desktop",
+    "width": 1440,
+    "height": 950,
+    "density": "compact",
+    "screenshot": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/artifacts/ui-screenshots/mailhub-density-compact-desktop.png",
+    "metrics": {
+      "viewportWidth": 1440,
+      "listColumn": {
+        "x": 260,
+        "y": 195,
+        "right": 740,
+        "width": 480,
+        "height": 755
+      },
+      "detailPane": {
+        "x": 728,
+        "y": 195,
+        "right": 1440,
+        "width": 712,
+        "height": 755
+      },
+      "firstRow": {
+        "x": 260,
+        "y": 255,
+        "right": 731,
+        "width": 471,
+        "height": 55
+      },
+      "rows": [
+        55
+      ],
+      "densityButton": "Compact",
+      "detailLeftDelta": 0,
+      "bodyWidth": 640,
+      "detailOverflowsViewport": false,
+      "onboardingVisible": false,
+      "consoleErrors": [],
+      "failedResponses": []
+    }
+  }
+]

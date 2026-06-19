@@ -50,7 +50,7 @@ export const t = {
   listItemRead: "bg-[#F2F6FC]",
 
   // 詳細カラム（作業詳細 + レスポンシブ）
-  detailColumn: "mailhub-detail-column flex-1 flex flex-col bg-white overflow-hidden min-w-[520px]",
+  detailColumn: "mailhub-detail-column flex-1 flex flex-col bg-white overflow-hidden min-w-[480px]",
 
   // ボタン・その他
   buttonPrimary:

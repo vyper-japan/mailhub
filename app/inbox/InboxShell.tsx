@@ -35,7 +35,7 @@ import {
   ExternalLink, 
   ArrowUp, ArrowDown, CornerUpLeft,
   LogOut, Mail, Copy, Send, VolumeX, UserCheck, Square, Star, Tag, HelpCircle, Search, MessageSquare, Paperclip,
-  ChevronUp, ChevronDown, Users, X, AlertTriangle, RefreshCw, Activity, Settings, Zap, Download
+  ChevronUp, ChevronDown, Users, X, AlertTriangle, RefreshCw, Activity, Settings, Zap, Download, Rows3
 } from 'lucide-react';
 import { formatElapsedTime, getElapsedMs, getElapsedColorTodo, getElapsedColorWaiting, getSlaLevel } from "@/lib/time-utils";
 import { isBroadDomain } from "@/lib/ruleSafety";
@@ -53,6 +53,7 @@ type DetailBodyState = {
 };
 type GmailSentStatus = "idle" | "sent" | "sent_and_done" | "sent_but_not_done" | "maybe_sent";
 type PostSendAction = "none" | "done";
+type ListDensity = "comfortable" | "compact";
 type MailhubSendSuccessResponse = {
   ok: true;
   status: Exclude<GmailSentStatus, "idle" | "maybe_sent">;
@@ -839,8 +840,32 @@ export default function InboxShell({
 
   // リサイズ機能の状態（レスポンシブ対応）
   const [sidebarWidth, setSidebarWidth] = useState(256); // w-64 = 256px
-  const [listWidth, setListWidth] = useState(440);
+  const [listWidth, setListWidth] = useState(480);
+  const [listDensity, setListDensity] = useState<ListDensity>("comfortable");
   const [resizing, setResizing] = useState<"sidebar" | "list" | null>(null);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("mailhub-list-density");
+      if (stored === "comfortable" || stored === "compact") {
+        setListDensity(stored);
+      }
+    } catch {
+      // localStorage is a convenience only; keep the default density if unavailable.
+    }
+  }, []);
+
+  const toggleListDensity = useCallback(() => {
+    setListDensity((prev) => {
+      const next: ListDensity = prev === "comfortable" ? "compact" : "comfortable";
+      try {
+        localStorage.setItem("mailhub-list-density", next);
+      } catch {
+        // Ignore storage failures; the visual toggle still applies for this session.
+      }
+      return next;
+    });
+  }, []);
 
   const [toast, setToast] = useState<{
     message: string;
@@ -6061,9 +6086,9 @@ export default function InboxShell({
       const newWidth = Math.min(Math.max(e.clientX, 200), 320);
       setSidebarWidth(newWidth);
     } else if (resizing === "list") {
-      // リストリサイズ: 最小280px、最大720px（レスポンシブ対応）
+      // リストリサイズ: 件名/本文抜粋が読める幅を優先し、表示上限とロジック上限を一致させる
       const sidebarAndPadding = sidebarWidth + 16; // sidebar + main area padding
-      const newWidth = Math.min(Math.max(e.clientX - sidebarAndPadding, 280), 720);
+      const newWidth = Math.min(Math.max(e.clientX - sidebarAndPadding, 320), 620);
       setListWidth(newWidth);
     }
   }, [resizing, sidebarWidth]);
@@ -6541,6 +6566,20 @@ export default function InboxShell({
               >
                 <AlertTriangle size={20} className={slaFocus ? "text-[#f9ab00]" : "text-[#5f6368]"} />
                 <span className="hidden lg:inline">長く残っている</span>
+              </button>
+
+              <div className="w-px h-5 bg-[#dadce0] mx-2"></div>
+
+              <button
+                data-testid="list-density-toggle"
+                type="button"
+                onClick={toggleListDensity}
+                className={`${t.toolbarButton} ${listDensity === "compact" ? t.toolbarButtonActive : ""}`}
+                title={listDensity === "compact" ? "一覧密度: Compact。クリックでComfortableへ" : "一覧密度: Comfortable。クリックでCompactへ"}
+                aria-pressed={listDensity === "compact"}
+              >
+                <Rows3 size={20} className={listDensity === "compact" ? "text-[#1a73e8]" : "text-[#5f6368]"} />
+                <span className="hidden lg:inline">{listDensity === "compact" ? "Compact" : "Comfortable"}</span>
               </button>
             </div>
           </div>
@@ -7045,7 +7084,11 @@ export default function InboxShell({
             {/* メール一覧 */}
             <div 
               className={`${t.listColumn} ${selectedMessage ? "mailhub-list-selected" : ""}`}
-              style={{ width: `${listWidth}px`, minWidth: '280px', maxWidth: '560px' }}
+              style={{
+                width: `min(${listWidth}px, max(320px, calc(100vw - ${sidebarWidth + 500}px)))`,
+                minWidth: '320px',
+                maxWidth: '620px',
+              }}
             >
               <div className="flex-1 overflow-y-auto custom-scrollbar">
                 {activeChannelScope && (
@@ -7205,6 +7248,7 @@ export default function InboxShell({
                       const isGroupChild = mail.isGroupChild;
                       const hasNote = noteIndexIds?.has(mail.id) ?? false;
                       const workTags = workTagsById[mail.id] ?? [];
+                      const isCompactList = listDensity === "compact";
                       
                       return (
                         <div
@@ -7273,7 +7317,7 @@ export default function InboxShell({
                         >
                           <div
                             data-testid={isActive ? "message-row-selected" : undefined}
-                            className={`${t.listItem} ${rowTone} ${isActive ? t.listItemActive : ""} ${isChecked ? t.listItemChecked : ""} ${isTriageCandidate(mail.id) ? "bg-yellow-50" : ""} ${flashingIds.has(mail.id) ? "bg-blue-200 scale-[1.01] transition-all duration-200 shadow-md" : ""} ${removingIds.has(mail.id) ? "opacity-0 scale-95 -translate-x-8 transition-all duration-500 ease-out" : "transition-[background-color,box-shadow,border-color] duration-75"} relative`}
+                            className={`${t.listItem} ${isCompactList ? "!min-h-[48px] !py-1.5" : "!min-h-[62px] !py-2"} ${rowTone} ${isActive ? t.listItemActive : ""} ${isChecked ? t.listItemChecked : ""} ${isTriageCandidate(mail.id) ? "bg-yellow-50" : ""} ${flashingIds.has(mail.id) ? "bg-blue-200 scale-[1.01] transition-all duration-200 shadow-md" : ""} ${removingIds.has(mail.id) ? "opacity-0 scale-95 -translate-x-8 transition-all duration-500 ease-out" : "transition-[background-color,box-shadow,border-color] duration-75"} relative`}
                           >
                             {/* Assignee カラーバー（左端） */}
                             {mail.assigneeSlug && (
@@ -7357,10 +7401,8 @@ export default function InboxShell({
                             </button>
 
                             <div className="min-w-0">
-                              {/* 送信者 */}
                               <div className="flex min-w-0 items-center gap-1.5">
                                 {isUnread && <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#1a73e8]" title="未読" />}
-                                {/* Step 105: 未確認（unseen）バッジ */}
                                 {!seenIds.has(mail.id) && <span data-testid="badge-unseen" className="h-2 w-2 flex-shrink-0 rounded-full bg-orange-400" title="未確認" />}
                                 {mail.assigneeSlug === myAssigneeSlug && (
                                   <span title="自分が担当">
@@ -7368,113 +7410,101 @@ export default function InboxShell({
                                   </span>
                                 )}
                                 <span className={`min-w-0 truncate text-[12px] leading-[16px] ${isUnread ? "font-semibold text-[#202124]" : "font-medium text-[#3c4043]"}`}>
-                                  {mail.from?.split('<')[0].trim() || mail.from}
+                                  {mail.from?.split("<")[0].trim() || mail.from}
                                 </span>
                               </div>
 
-                              {/* 件名 - 本文抜粋 */}
-                              <div className={`mt-0.5 min-w-0 truncate text-[13px] leading-[18px] ${isUnread ? "font-medium text-[#202124]" : "font-normal text-[#202124]"} ${isGroupChild ? "pl-4 border-l-2 border-blue-200" : ""}`}>
-                              {/* Step 89: グループ展開/折りたたみボタン */}
-                              {isGroupHeader && groupCount > 1 && (
-                                <button
-                                  type="button"
-                                  data-testid={`group-toggle-${groupKey}`}
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    if (groupKey) toggleGroupExpand(groupKey);
-                                  }}
-                                  className="inline-flex items-center mr-2 px-1.5 py-0.5 text-[10px] font-bold bg-blue-100 text-blue-700 border border-blue-300 rounded hover:bg-blue-200 transition-colors"
-                                  title={isExpanded ? "折りたたむ" : "展開する"}
-                                >
-                                  {isExpanded ? "▼" : "▶"} ×{groupCount}
-                                </button>
-                              )}
-                              <span className={isUnread ? "font-medium" : "font-normal"}>{mail.subject ?? "(no subject)"}</span>
-                              {workTags.length > 0 && (
-                                <>
-                                  {workTags.slice(0, 2).map((t) => (
+                              <div className={`mt-0.5 flex min-w-0 items-center gap-1 text-[13px] leading-[18px] ${isUnread ? "font-medium text-[#202124]" : "font-normal text-[#202124]"} ${isGroupChild ? "pl-4 border-l-2 border-blue-200" : ""}`}>
+                                {isGroupHeader && groupCount > 1 && (
+                                  <button
+                                    type="button"
+                                    data-testid={`group-toggle-${groupKey}`}
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      if (groupKey) toggleGroupExpand(groupKey);
+                                    }}
+                                    className="mr-1 inline-flex flex-shrink-0 items-center rounded border border-blue-300 bg-blue-100 px-1.5 py-0.5 text-[10px] font-bold text-blue-700 transition-colors hover:bg-blue-200"
+                                    title={isExpanded ? "折りたたむ" : "展開する"}
+                                  >
+                                    {isExpanded ? "▼" : "▶"} ×{groupCount}
+                                  </button>
+                                )}
+                                <span className={`min-w-0 truncate ${isUnread ? "font-semibold" : "font-medium"}`}>{mail.subject ?? "(no subject)"}</span>
+                                {isCompactList && mail.snippet && (
+                                  <>
+                                    <span className="flex-shrink-0 text-[#5f6368]"> - </span>
+                                    <span className="min-w-0 truncate text-[#5f6368] font-normal">{shortSnippet(mail.snippet, 96)}</span>
+                                  </>
+                                )}
+                              </div>
+
+                              {!isCompactList && (
+                                <div className="mt-0.5 flex min-w-0 items-center gap-1.5 text-[12px] leading-[16px] text-[#5f6368]">
+                                  <span className="min-w-0 truncate font-normal">{shortSnippet(mail.snippet, 150)}</span>
+                                  {workTags.slice(0, 2).map((tag) => (
                                     <span
-                                      key={t}
+                                      key={tag}
                                       data-testid="work-tag-pill"
-                                      className="ml-2 px-1 py-0.5 rounded text-[9px] font-bold bg-purple-50 text-purple-700 border border-purple-200"
-                                      title={`状況タグ: ${t}`}
+                                      className="hidden max-w-[82px] truncate rounded border border-purple-200 bg-purple-50 px-1 py-0.5 text-[9px] font-bold text-purple-700 sm:inline-flex"
+                                      title={`状況タグ: ${tag}`}
                                     >
-                                      {t}
+                                      {tag}
                                     </span>
                                   ))}
                                   {workTags.length > 2 && (
                                     <span
                                       data-testid="work-tag-more"
-                                      className="ml-2 px-1 py-0.5 rounded text-[9px] font-bold bg-purple-50 text-purple-700 border border-purple-200"
+                                      className="hidden rounded border border-purple-200 bg-purple-50 px-1 py-0.5 text-[9px] font-bold text-purple-700 sm:inline-flex"
                                       title={workTags.join(", ")}
                                     >
                                       +{workTags.length - 2}
                                     </span>
                                   )}
-                                </>
+                                  {hasNote && (
+                                    <span data-testid="note-badge" className="hidden rounded border border-[#dadce0] bg-[#f1f3f4] px-1 py-0.5 text-[10px] text-[#5f6368] sm:inline-flex" title="社内メモあり">
+                                      📝
+                                    </span>
+                                  )}
+                                  {mail.snoozeUntil && (
+                                    <span data-testid="snooze-pill" className="hidden rounded border border-blue-200 bg-blue-50 px-1 py-0.5 text-[9px] font-bold text-blue-700 sm:inline-flex" title={`指定日に戻す: ${mail.snoozeUntil}`}>
+                                      Snooze: {mail.snoozeUntil.split("-").slice(1).join("/")}
+                                    </span>
+                                  )}
+                                  {(mail.userLabels ?? []).slice(0, 2).map((labelName) => (
+                                    <span
+                                      key={labelName}
+                                      data-testid="user-label-pill"
+                                      className="hidden max-w-[82px] truncate rounded border border-purple-200 bg-purple-50 px-1 py-0.5 text-[9px] font-bold text-purple-700 sm:inline-flex"
+                                      title={labelName}
+                                    >
+                                      {displayUserLabel(labelName)}
+                                    </span>
+                                  ))}
+                                  {(mail.userLabels ?? []).length > 2 && (
+                                    <span
+                                      data-testid="user-label-pill"
+                                      className="hidden rounded border border-purple-200 bg-purple-50 px-1 py-0.5 text-[9px] font-bold text-purple-700 sm:inline-flex"
+                                      title={(mail.userLabels ?? []).join(", ")}
+                                    >
+                                      +{(mail.userLabels ?? []).length - 2}
+                                    </span>
+                                  )}
+                                  {isTriageCandidate(mail.id) && (
+                                    <span data-testid="triage-badge-muted" className="hidden rounded border border-yellow-300 bg-yellow-100 px-1 py-0.5 text-[9px] font-bold uppercase tracking-wider text-yellow-700 sm:inline-flex" title="処理不要候補">
+                                      処理不要
+                                    </span>
+                                  )}
+                                </div>
                               )}
-                              {hasNote && (
-                                <span
-                                  data-testid="note-badge"
-                                  className="ml-2 px-1 py-0.5 text-[10px] rounded border border-[#dadce0] bg-[#f1f3f4] text-[#5f6368]"
-                                  title="社内メモあり"
-                                >
-                                  📝
-                                </span>
-                              )}
-                              <span className="text-[#5f6368]"> - </span>
-                              <span className="text-[#5f6368] font-normal">{shortSnippet(mail.snippet, 140)}</span>
-                              {isTriageCandidate(mail.id) && (
-                                <span 
-                                  data-testid="triage-badge-muted"
-                                  className="ml-2 px-1 py-0.5 text-[9px] font-bold bg-yellow-100 text-yellow-700 border border-yellow-300 rounded uppercase tracking-wider"
-                                  title="処理不要候補"
-                                >
-                                  処理不要
-                                </span>
-                              )}
-                              {/* E2E互換用 hidden pill */}
-                              <span 
+
+                              <span
                                 data-testid="assignee-pill"
                                 className="sr-only"
                                 title={mail.assigneeSlug ? (mail.assigneeSlug === myAssigneeSlug ? "自分が担当" : `担当: ${getAssigneeDisplayName(mail.assigneeSlug)}`) : "未割当"}
                               >
                                 {mail.assigneeSlug ? "担当" : "未割当"}
                               </span>
-                              {mail.snoozeUntil && (
-                                <span
-                                  data-testid="snooze-pill"
-                                  className="ml-2 px-1 py-0.5 rounded text-[9px] font-bold bg-blue-50 text-blue-700 border border-blue-200"
-                                  title={`指定日に戻す: ${mail.snoozeUntil}`}
-                                >
-                                  Snooze: {mail.snoozeUntil.split('-').slice(1).join('/')}
-                                </span>
-                              )}
-                              {(mail.userLabels ?? []).length > 0 && (
-                                <>
-                                  {(mail.userLabels ?? []).slice(0, 2).map((ln) => (
-                                    <span
-                                      key={ln}
-                                      data-testid="user-label-pill"
-                                      className="ml-2 px-1 py-0.5 rounded text-[9px] font-bold bg-purple-50 text-purple-700 border border-purple-200"
-                                      title={ln}
-                                    >
-                                      {displayUserLabel(ln)}
-                                    </span>
-                                  ))}
-                                  {(mail.userLabels ?? []).length > 2 && (
-                                    <span
-                                      data-testid="user-label-pill"
-                                      className="ml-2 px-1 py-0.5 rounded text-[9px] font-bold bg-purple-50 text-purple-700 border border-purple-200"
-                                      title={(mail.userLabels ?? []).join(", ")}
-                                    >
-                                      +{(mail.userLabels ?? []).length - 2}
-                                    </span>
-                                  )}
-                                </>
-                              )}
-                              </div>
                             </div>
 
                             {/* 日時 + 経過 */}
