@@ -19,7 +19,9 @@
     "Sidebar channel/store queue polish",
     "Gmail compose safety checklist",
     "Reading pane header/body rail alignment",
-    "Message list sender/subject density polish"
+    "Message list sender/subject density polish",
+    "Work-mode tabs with visible queue counts",
+    "Reading pane subject/from/status context header"
   ],
   "must_not_do": [
     "Do not send external email.",
@@ -32,6 +34,7 @@
     "Browser screenshot desktop",
     "Browser screenshot mobile",
     "Browser screenshot reading rail desktop/narrow",
+    "Browser screenshot workbench tabs/detail context desktop/narrow",
     "Console error check"
   ]
 }

@@ -31,10 +31,10 @@ export const t = {
 
   // タブナビゲーション（状態切替 + レスポンシブ）
   tabs:
-    "h-auto min-h-12 flex flex-col items-stretch justify-between border-b border-[#dadce0] bg-white px-1 sm:h-12 sm:flex-row sm:items-center sm:px-2 gap-1 sm:gap-2 overflow-x-auto",
+    "h-auto min-h-12 flex flex-col items-stretch justify-between border-b border-[#dadce0] bg-white px-1 py-1 sm:h-12 sm:flex-row sm:items-center sm:px-2 gap-1 sm:gap-2 overflow-x-auto",
   tab:
-    "h-12 px-2 sm:px-4 text-[12px] sm:text-[13px] font-medium text-[#5f6368] border-b-2 border-transparent hover:text-[#202124] hover:border-[#dadce0] transition-colors cursor-pointer flex items-center flex-shrink-0",
-  tabActive: "text-[#1a73e8] border-[#1a73e8] font-medium",
+    "h-9 px-2 sm:px-3 text-[12px] sm:text-[13px] font-medium text-[#5f6368] border border-transparent rounded-md hover:text-[#202124] hover:bg-[#f1f3f4] transition-colors cursor-pointer flex items-center gap-1.5 flex-shrink-0",
+  tabActive: "text-[#1a73e8] border-[#d2e3fc] bg-[#E8F0FE] font-semibold",
 
   // メインエリア（レスポンシブ）
   mainArea: "mailhub-main-area flex-1 flex bg-[#f6f8fc] overflow-hidden min-w-0",

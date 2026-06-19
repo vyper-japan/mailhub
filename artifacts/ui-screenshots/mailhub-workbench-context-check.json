@@ -1,0 +1,287 @@
+[
+  {
+    "name": "mailhub-workbench-context-desktop",
+    "width": 1440,
+    "height": 950,
+    "density": "comfortable",
+    "screenshot": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/artifacts/ui-screenshots/mailhub-workbench-context-desktop.png",
+    "metrics": {
+      "viewportWidth": 1440,
+      "tabs": [
+        {
+          "text": "今返す36",
+          "box": {
+            "x": 296,
+            "y": 153,
+            "right": 394,
+            "width": 98,
+            "height": 36
+          }
+        },
+        {
+          "text": "自分が対応0",
+          "box": {
+            "x": 394,
+            "y": 153,
+            "right": 510,
+            "width": 116,
+            "height": 36
+          }
+        },
+        {
+          "text": "返事待ち0",
+          "box": {
+            "x": 510,
+            "y": 153,
+            "right": 613,
+            "width": 103,
+            "height": 36
+          }
+        },
+        {
+          "text": "処理不要0",
+          "box": {
+            "x": 613,
+            "y": 153,
+            "right": 716,
+            "width": 103,
+            "height": 36
+          }
+        }
+      ],
+      "listColumn": {
+        "x": 260,
+        "y": 195,
+        "right": 740,
+        "width": 480,
+        "height": 755
+      },
+      "detailPane": {
+        "x": 728,
+        "y": 195,
+        "right": 1440,
+        "width": 712,
+        "height": 755
+      },
+      "detailSubject": {
+        "x": 760,
+        "y": 199,
+        "right": 1033,
+        "width": 273,
+        "height": 20
+      },
+      "detailContext": {
+        "x": 760,
+        "y": 219,
+        "right": 1183,
+        "width": 423,
+        "height": 16
+      },
+      "detailBody": {
+        "x": 760,
+        "y": 248,
+        "right": 1400,
+        "width": 640,
+        "height": 360
+      },
+      "detailContextText": "楽天市場|ストア全部|2025/12/31 01:30:00",
+      "loadingTextVisible": false,
+      "detailLeftDelta": 0,
+      "contextLeftDelta": 0,
+      "detailOverflowsViewport": false,
+      "onboardingVisible": false,
+      "consoleErrors": [],
+      "failedResponses": []
+    }
+  },
+  {
+    "name": "mailhub-workbench-context-narrow",
+    "width": 1120,
+    "height": 840,
+    "density": "comfortable",
+    "screenshot": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/artifacts/ui-screenshots/mailhub-workbench-context-narrow.png",
+    "metrics": {
+      "viewportWidth": 1120,
+      "tabs": [
+        {
+          "text": "今返す36",
+          "box": {
+            "x": 296,
+            "y": 187,
+            "right": 394,
+            "width": 98,
+            "height": 36
+          }
+        },
+        {
+          "text": "自分が対応0",
+          "box": {
+            "x": 394,
+            "y": 187,
+            "right": 510,
+            "width": 116,
+            "height": 36
+          }
+        },
+        {
+          "text": "返事待ち0",
+          "box": {
+            "x": 510,
+            "y": 187,
+            "right": 613,
+            "width": 103,
+            "height": 36
+          }
+        },
+        {
+          "text": "処理不要0",
+          "box": {
+            "x": 613,
+            "y": 187,
+            "right": 716,
+            "width": 103,
+            "height": 36
+          }
+        }
+      ],
+      "listColumn": {
+        "x": 260,
+        "y": 229,
+        "right": 624,
+        "width": 364,
+        "height": 611
+      },
+      "detailPane": {
+        "x": 612,
+        "y": 229,
+        "right": 1120,
+        "width": 508,
+        "height": 611
+      },
+      "detailSubject": {
+        "x": 644,
+        "y": 233,
+        "right": 863,
+        "width": 219,
+        "height": 20
+      },
+      "detailContext": {
+        "x": 644,
+        "y": 253,
+        "right": 863,
+        "width": 219,
+        "height": 34
+      },
+      "detailBody": {
+        "x": 644,
+        "y": 300,
+        "right": 1080,
+        "width": 436,
+        "height": 360
+      },
+      "detailContextText": "楽天市場|ストア全部|2025/12/31 01:30:00",
+      "loadingTextVisible": false,
+      "detailLeftDelta": 0,
+      "contextLeftDelta": 0,
+      "detailOverflowsViewport": false,
+      "onboardingVisible": false,
+      "consoleErrors": [],
+      "failedResponses": []
+    }
+  },
+  {
+    "name": "mailhub-workbench-context-compact",
+    "width": 1440,
+    "height": 950,
+    "density": "compact",
+    "screenshot": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/artifacts/ui-screenshots/mailhub-workbench-context-compact.png",
+    "metrics": {
+      "viewportWidth": 1440,
+      "tabs": [
+        {
+          "text": "今返す36",
+          "box": {
+            "x": 296,
+            "y": 153,
+            "right": 394,
+            "width": 98,
+            "height": 36
+          }
+        },
+        {
+          "text": "自分が対応0",
+          "box": {
+            "x": 394,
+            "y": 153,
+            "right": 510,
+            "width": 116,
+            "height": 36
+          }
+        },
+        {
+          "text": "返事待ち0",
+          "box": {
+            "x": 510,
+            "y": 153,
+            "right": 613,
+            "width": 103,
+            "height": 36
+          }
+        },
+        {
+          "text": "処理不要0",
+          "box": {
+            "x": 613,
+            "y": 153,
+            "right": 716,
+            "width": 103,
+            "height": 36
+          }
+        }
+      ],
+      "listColumn": {
+        "x": 260,
+        "y": 195,
+        "right": 740,
+        "width": 480,
+        "height": 755
+      },
+      "detailPane": {
+        "x": 728,
+        "y": 195,
+        "right": 1440,
+        "width": 712,
+        "height": 755
+      },
+      "detailSubject": {
+        "x": 760,
+        "y": 199,
+        "right": 1033,
+        "width": 273,
+        "height": 20
+      },
+      "detailContext": {
+        "x": 760,
+        "y": 219,
+        "right": 1183,
+        "width": 423,
+        "height": 16
+      },
+      "detailBody": {
+        "x": 760,
+        "y": 248,
+        "right": 1400,
+        "width": 640,
+        "height": 360
+      },
+      "detailContextText": "楽天市場|ストア全部|2025/12/31 01:30:00",
+      "loadingTextVisible": false,
+      "detailLeftDelta": 0,
+      "contextLeftDelta": 0,
+      "detailOverflowsViewport": false,
+      "onboardingVisible": false,
+      "consoleErrors": [],
+      "failedResponses": []
+    }
+  }
+]

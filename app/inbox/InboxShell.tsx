@@ -6826,7 +6826,12 @@ export default function InboxShell({
                 className={`${t.tab} ${viewTab === "inbox" ? t.tabActive : ""}`}
                 data-testid="tab-inbox"
               >
-                今返す
+                <span>今返す</span>
+                {statusCounts && (
+                  <span className={`rounded-full px-1.5 py-0.5 text-[11px] leading-3 ${viewTab === "inbox" ? "bg-white text-[#1a73e8]" : "bg-[#f1f3f4] text-[#5f6368]"}`}>
+                    {statusCounts.todo}
+                  </span>
+                )}
               </button>
               {/* 自分が対応タブ */}
               <button
@@ -6863,7 +6868,12 @@ export default function InboxShell({
                 className={`${t.tab} ${viewTab === "assigned" ? t.tabActive : ""}`}
                 data-testid="tab-assigned"
               >
-                自分が対応
+                <span>自分が対応</span>
+                {statusCounts && (
+                  <span className={`rounded-full px-1.5 py-0.5 text-[11px] leading-3 ${viewTab === "assigned" ? "bg-white text-[#1a73e8]" : "bg-[#f1f3f4] text-[#5f6368]"}`}>
+                    {statusCounts.assignedMine ?? 0}
+                  </span>
+                )}
               </button>
               {/* 返事待ちタブ */}
               <button
@@ -6879,7 +6889,12 @@ export default function InboxShell({
                 className={`${t.tab} ${viewTab === "waiting" ? t.tabActive : ""}`}
                 data-testid="tab-waiting"
               >
-                返事待ち
+                <span>返事待ち</span>
+                {statusCounts && (
+                  <span className={`rounded-full px-1.5 py-0.5 text-[11px] leading-3 ${viewTab === "waiting" ? "bg-white text-[#1a73e8]" : "bg-[#f1f3f4] text-[#5f6368]"}`}>
+                    {statusCounts.waiting}
+                  </span>
+                )}
               </button>
               {/* 処理不要タブ */}
               <button
@@ -6895,7 +6910,12 @@ export default function InboxShell({
                 className={`${t.tab} ${viewTab === "muted" ? t.tabActive : ""}`}
                 data-testid="tab-muted"
               >
-                処理不要
+                <span>処理不要</span>
+                {statusCounts && (
+                  <span className={`rounded-full px-1.5 py-0.5 text-[11px] leading-3 ${viewTab === "muted" ? "bg-white text-[#1a73e8]" : "bg-[#f1f3f4] text-[#5f6368]"}`}>
+                    {statusCounts.muted}
+                  </span>
+                )}
               </button>
             </div>
 
@@ -7605,17 +7625,34 @@ export default function InboxShell({
                   <div className="flex-1 overflow-y-auto custom-scrollbar bg-white text-[#202124]">
                     <div className="sticky top-0 z-10 border-b border-[#e8eaed] bg-white/95 backdrop-blur">
                       <div className="mx-auto w-full max-w-[1040px] px-4 py-1 sm:px-6 lg:px-8">
-                        <div className="flex items-center gap-2 min-w-0">
+                        <div className="flex items-start gap-2 min-w-0">
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2 min-w-0">
                               <span
-                                className="truncate text-[15px] font-semibold leading-6 text-[#202124]"
+                                className="truncate text-[15px] font-semibold leading-5 text-[#202124]"
                                 data-testid="detail-subject"
                                 title={`${selectedMessage.subject ?? "(no subject)"} / ${selectedMessage.from ?? ""}`}
                               >
                                 {selectedMessage.subject ?? "(no subject)"}
                               </span>
-                              <span className="hidden sm:inline shrink-0 text-[11px] text-[#5f6368]">{selectedMessage.receivedAt}</span>
+                            </div>
+                            <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] leading-4 text-[#5f6368]" data-testid="detail-context-line">
+                              <span className="min-w-0 max-w-[280px] truncate text-[#3c4043]" title={selectedMessage.from ?? ""}>
+                                {selectedMessage.from?.split("<")[0].trim() || selectedMessage.from || "送信者不明"}
+                              </span>
+                              <span className="hidden sm:inline text-[#dadce0]">|</span>
+                              <span className="shrink-0">{activeLabel?.label ?? "現在の一覧"}</span>
+                              <span className="hidden sm:inline text-[#dadce0]">|</span>
+                              <span className="shrink-0">{selectedMessage.receivedAt}</span>
+                              {selectedMessage.attachmentCount ? (
+                                <>
+                                  <span className="hidden sm:inline text-[#dadce0]">|</span>
+                                  <span className="inline-flex shrink-0 items-center gap-1">
+                                    <Paperclip size={12} />
+                                    添付 {selectedMessage.attachmentCount}
+                                  </span>
+                                </>
+                              ) : null}
                             </div>
                           </div>
 
