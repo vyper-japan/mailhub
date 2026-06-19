@@ -1,5 +1,37 @@
 # MailHub Next Phase Commands
 
+## Verification Commands Run On 2026-06-19 Production Config Gate
+
+```bash
+git status -sb
+git diff --stat
+git diff --check
+npm run setup:mailhub-staff-github-config -- --out .ai-runs/mailhub-next-phase/mailhub-staff-github-config-plan.json
+npm run setup:mailhub-staff-env -- --strict --out .ai-runs/mailhub-next-phase/mailhub-staff-env-readiness.json
+npm run setup:mailhub-routing-secrets
+npm run audit:mailhub-readiness-contract -- --audit .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json
+npm run audit:github-routing-secrets-contract -- --artifact .ai-runs/mailhub-next-phase/github-routing-secrets-readiness.json
+npm run audit:github-staff-secrets-contract
+npm run audit:mailhub-staff-workflow-contract
+npm run audit:mailhub-staff-next-contract
+npm run audit:mailhub-rule-config-next-contract
+npm run audit:mailhub-routing-next-contract
+npm run audit:mailhub-routing-proof-contract
+npm run test -- lib/__tests__/ops-artifact-secret-scan.test.ts
+npm run security:scan-artifacts
+npm run typecheck
+npm run lint
+```
+
+## 2026-06-19 Production Config Gate Results
+
+- SHIELD read-only review confirmed local state cannot close the production config gate.
+- `mailhub-staff-github-config-plan.json`: `readyToApply=false`.
+- `mailhub-staff-env-readiness.json`: `readyForReadOnlyRolloutPreflight=false`.
+- Missing production config includes production HTTPS `NEXTAUTH_URL`, production mode, staff team members, Sheets config/activity env, Sheets credentials, and `MAILHUB_READ_ONLY=1`.
+- Missing routing proof config remains the external SMTP proof env.
+- No external email send, GitHub setup `--apply`, GitHub mutation, or Sheets mutation was run.
+
 ## Verification Commands Run On 2026-06-18 SHIELD Full-Diff Final Review
 
 ```bash

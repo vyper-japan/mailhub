@@ -1,5 +1,58 @@
 # MailHub Next Phase Next Actions
 
+## 2026-06-19 Current Goal
+
+Goal: close the production configuration gate as far as locally and safely possible, without external sends, GitHub setup `--apply`, or Sheets mutation unless explicitly approved.
+
+Current result: the gate is not closable from local state. Continue with evidence preservation and exact operator inputs.
+
+### Operator Inputs Needed
+
+Provide or confirm these before the next apply-capable SHIELD wave:
+
+- production HTTPS `NEXTAUTH_URL`
+- `MAILHUB_ENV=production`
+- `MAILHUB_TEAM_MEMBERS`
+- `MAILHUB_CONFIG_STORE=sheets`
+- `MAILHUB_ACTIVITY_STORE=sheets`
+- `MAILHUB_SHEETS_ID` or `MAILHUB_SHEETS_SPREADSHEET_ID`
+- `MAILHUB_SHEETS_CLIENT_EMAIL`
+- `MAILHUB_SHEETS_PRIVATE_KEY`
+- `MAILHUB_READ_ONLY=1`
+- external SMTP proof settings: `MAILHUB_PROBE_SMTP_HOST`, `MAILHUB_PROBE_SMTP_USER`, `MAILHUB_PROBE_SMTP_PASS`, `MAILHUB_PROBE_FROM`
+
+### Safe Next Sequence
+
+1. Re-run local no-apply dry-runs:
+
+```bash
+npm run setup:mailhub-staff-github-config -- --out .ai-runs/mailhub-next-phase/mailhub-staff-github-config-plan.json
+npm run setup:mailhub-staff-env -- --strict --out .ai-runs/mailhub-next-phase/mailhub-staff-env-readiness.json
+npm run setup:mailhub-routing-secrets
+```
+
+2. When `readyToApply=true`, request explicit approval before:
+
+```bash
+npm run setup:mailhub-staff-github-config -- --apply --out .ai-runs/mailhub-next-phase/mailhub-staff-github-config-plan.json
+```
+
+3. After GitHub config is applied, refresh read-only artifacts:
+
+```bash
+npm run audit:github-staff-secrets -- --no-fail --out .ai-runs/mailhub-next-phase/github-staff-secrets-readiness.json
+npm run audit:mailhub-staff-workflow -- --out .ai-runs/mailhub-next-phase/mailhub-staff-workflow-audit.json
+npm run audit:mailhub-readiness -- --out .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json
+npm run audit:mailhub-staff-workflow-contract
+npm run audit:github-staff-secrets-contract
+npm run audit:mailhub-readiness-contract
+npm run security:scan-artifacts
+```
+
+4. For routing proof, request explicit approval before any `--send` command.
+
+5. For Sheets, run read-only verification first. Do not run Sheets mutation/apply paths without explicit approval.
+
 ## 2026-06-18 Current State After SHIELD Full-Diff Review
 
 The previous "Resume Here" checklist below has been completed.

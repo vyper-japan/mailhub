@@ -1,5 +1,73 @@
 # MailHub Next Phase Blockers
 
+## 2026-06-19 SHIELD Production Config Gate
+
+Local dry-runs confirm that the production configuration gate cannot be closed from the values currently recoverable on this machine.
+
+No external email send, GitHub setup `--apply`, or Sheets mutation was run.
+
+New no-value evidence:
+
+- `mailhub-staff-github-config-plan.json`
+- `mailhub-staff-env-readiness.json`
+
+Current staff GitHub setup dry-run:
+
+- `readyToApply=false`
+- secrets recoverable from local env for planning: `NEXTAUTH_SECRET`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_SHARED_INBOX_REFRESH_TOKEN`
+- variables recoverable from local env for planning: `NEXTAUTH_URL`, `GOOGLE_CLIENT_ID`, `GOOGLE_SHARED_INBOX_EMAIL`, `MAILHUB_ADMINS`
+- missing required env:
+  - `MAILHUB_SHEETS_PRIVATE_KEY`
+  - `MAILHUB_ENV`
+  - `MAILHUB_TEAM_MEMBERS`
+  - `MAILHUB_CONFIG_STORE`
+  - `MAILHUB_ACTIVITY_STORE`
+  - `MAILHUB_SHEETS_CLIENT_EMAIL`
+  - `MAILHUB_READ_ONLY`
+  - `MAILHUB_SHEETS_ID or MAILHUB_SHEETS_SPREADSHEET_ID`
+- semantic issues:
+  - `NEXTAUTH_URL_must_be_https`
+  - `NEXTAUTH_URL_must_not_be_localhost`
+
+Current strict staff env dry-run:
+
+- `readyForReadOnlyRolloutPreflight=false`
+- `productionEnvModeReady=false`
+- `testModeDisabled=true`
+- `productionRequiredEnvReady=true`
+- `adminsReady=true`
+- `staffAccessAllowlistReady=false`
+- `durableConfigReady=false`
+- `durableActivityReady=false`
+- `readOnlyEnabled=false`
+- present counts: `adminCount=2`, `teamMemberCount=0`
+
+Required before a GitHub setup `--apply` can be safe:
+
+- production HTTPS `NEXTAUTH_URL`
+- `MAILHUB_ENV=production`
+- `MAILHUB_TEAM_MEMBERS`
+- `MAILHUB_CONFIG_STORE=sheets`
+- `MAILHUB_ACTIVITY_STORE=sheets`
+- `MAILHUB_SHEETS_ID` or `MAILHUB_SHEETS_SPREADSHEET_ID`
+- `MAILHUB_SHEETS_CLIENT_EMAIL`
+- `MAILHUB_SHEETS_PRIVATE_KEY`
+- `MAILHUB_READ_ONLY=1`
+
+Required before routing P0 can close:
+
+- `MAILHUB_PROBE_SMTP_HOST`
+- `MAILHUB_PROBE_SMTP_USER`
+- `MAILHUB_PROBE_SMTP_PASS`
+- `MAILHUB_PROBE_FROM`
+- explicit approval for an external send verify command
+
+Required before Sheets-backed rule/config P1 can close:
+
+- Sheets-backed production config env above
+- read-only Sheets verification of required tabs `ConfigRules` and `ConfigAssigneeRules`
+- no Sheets mutation unless explicitly approved
+
 ## P0
 
 ### current_shared_gmail_routing

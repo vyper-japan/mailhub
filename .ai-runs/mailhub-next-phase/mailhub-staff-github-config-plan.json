@@ -1,0 +1,35 @@
+{
+  "repo": "vyper-japan/mailhub",
+  "mode": "dry_run",
+  "includeOptional": true,
+  "envFileLoaded": true,
+  "secretNamesToSet": [
+    "NEXTAUTH_SECRET",
+    "GOOGLE_CLIENT_SECRET",
+    "GOOGLE_SHARED_INBOX_REFRESH_TOKEN"
+  ],
+  "variableNamesToSet": [
+    "NEXTAUTH_URL",
+    "GOOGLE_CLIENT_ID",
+    "GOOGLE_SHARED_INBOX_EMAIL",
+    "MAILHUB_ADMINS"
+  ],
+  "missingRequiredEnv": [
+    "MAILHUB_SHEETS_PRIVATE_KEY",
+    "MAILHUB_ENV",
+    "MAILHUB_TEAM_MEMBERS",
+    "MAILHUB_CONFIG_STORE",
+    "MAILHUB_ACTIVITY_STORE",
+    "MAILHUB_SHEETS_CLIENT_EMAIL",
+    "MAILHUB_READ_ONLY",
+    "MAILHUB_SHEETS_ID or MAILHUB_SHEETS_SPREADSHEET_ID"
+  ],
+  "semanticIssues": [
+    "NEXTAUTH_URL_must_be_https",
+    "NEXTAUTH_URL_must_not_be_localhost"
+  ],
+  "readyToApply": false,
+  "appliedSecretNames": [],
+  "appliedVariableNames": [],
+  "note": "Values are never printed; --apply passes secrets to gh via stdin and variables via gh variable set --body."
+}
