@@ -43,7 +43,7 @@ export const t = {
   listColumn:
     "mailhub-list-column min-w-[280px] w-96 max-w-[480px] flex flex-col bg-white border-r border-[#dadce0] overflow-hidden flex-shrink-0",
   listItem:
-    "min-h-[48px] px-2 sm:px-3 py-1.5 border-b border-[#e8eaed] hover:bg-[#f5f8ff] cursor-pointer group select-none flex items-center gap-2",
+    "min-h-[58px] px-2 sm:px-3 py-2 border-b border-[#e8eaed] hover:bg-[#f5f8ff] cursor-pointer group select-none flex items-center gap-2",
   listItemActive: "bg-[#d3e3fd] shadow-[inset_3px_0_0_#1a73e8,inset_0_-1px_0_#c6dafc]",
   listItemChecked: "bg-[#e8f0fe]",
   listItemUnread: "bg-white",

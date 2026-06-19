@@ -7287,8 +7287,8 @@ export default function InboxShell({
                                 title={mail.assigneeSlug === myAssigneeSlug ? "自分が担当" : `担当: ${getAssigneeDisplayName(mail.assigneeSlug)}`}
                               />
                             )}
-                            {/* 1行表示: checkbox / star / from / subject - snippet / date (レスポンシブ) */}
-                            <div className="grid grid-cols-[20px_20px_minmax(112px,140px)_1fr_auto] items-center gap-1 sm:gap-2 w-full min-w-0 whitespace-nowrap">
+                            {/* checkbox / star / sender+subject / date */}
+                            <div className="grid w-full min-w-0 grid-cols-[20px_20px_minmax(0,1fr)_auto] items-start gap-1.5 sm:gap-2">
                             {/* チェックボックス */}
                             <div className="flex items-center justify-center">
                               <input
@@ -7356,23 +7356,24 @@ export default function InboxShell({
                               />
                             </button>
 
-                            {/* 送信者 */}
-                            <div className="min-w-0 flex items-center gap-1.5">
-                              {isUnread && <span className="w-1.5 h-1.5 rounded-full bg-[#1a73e8] flex-shrink-0" title="未読" />}
-                              {/* Step 105: 未確認（unseen）バッジ */}
-                              {!seenIds.has(mail.id) && <span data-testid="badge-unseen" className="w-2 h-2 rounded-full bg-orange-400 flex-shrink-0" title="未確認" />}
-                              {mail.assigneeSlug === myAssigneeSlug && (
-                                <span title="自分が担当">
-                                  <UserCheck size={14} className="text-[#1a73e8] flex-shrink-0" />
+                            <div className="min-w-0">
+                              {/* 送信者 */}
+                              <div className="flex min-w-0 items-center gap-1.5">
+                                {isUnread && <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#1a73e8]" title="未読" />}
+                                {/* Step 105: 未確認（unseen）バッジ */}
+                                {!seenIds.has(mail.id) && <span data-testid="badge-unseen" className="h-2 w-2 flex-shrink-0 rounded-full bg-orange-400" title="未確認" />}
+                                {mail.assigneeSlug === myAssigneeSlug && (
+                                  <span title="自分が担当">
+                                    <UserCheck size={14} className="flex-shrink-0 text-[#1a73e8]" />
+                                  </span>
+                                )}
+                                <span className={`min-w-0 truncate text-[12px] leading-[16px] ${isUnread ? "font-semibold text-[#202124]" : "font-medium text-[#3c4043]"}`}>
+                                  {mail.from?.split('<')[0].trim() || mail.from}
                                 </span>
-                              )}
-                              <span className={`truncate min-w-0 text-[13px] leading-[18px] ${isUnread ? "font-medium text-[#202124]" : "font-normal text-[#3c4043]"}`}>
-                                {mail.from?.split('<')[0].trim() || mail.from}
-                              </span>
-                            </div>
+                              </div>
 
-                            {/* 件名 - 本文抜粋 */}
-                            <div className={`min-w-0 truncate text-[13px] leading-[18px] ${isUnread ? "font-medium text-[#202124]" : "font-normal text-[#202124]"} ${isGroupChild ? "pl-4 border-l-2 border-blue-200" : ""}`}>
+                              {/* 件名 - 本文抜粋 */}
+                              <div className={`mt-0.5 min-w-0 truncate text-[13px] leading-[18px] ${isUnread ? "font-medium text-[#202124]" : "font-normal text-[#202124]"} ${isGroupChild ? "pl-4 border-l-2 border-blue-200" : ""}`}>
                               {/* Step 89: グループ展開/折りたたみボタン */}
                               {isGroupHeader && groupCount > 1 && (
                                 <button
@@ -7473,23 +7474,26 @@ export default function InboxShell({
                                   )}
                                 </>
                               )}
+                              </div>
                             </div>
 
                             {/* 日時 + 経過 */}
-                            <div className="flex items-center gap-1.5 flex-shrink-0">
-                              {mail.attachmentCount ? (
-                                <span
-                                  className="inline-flex items-center gap-0.5 text-[11px] text-[#5f6368]"
-                                  title={`添付 ${mail.attachmentCount}件`}
-                                  data-testid="message-attachment-indicator"
-                                >
-                                  <Paperclip size={13} />
-                                  {mail.attachmentCount > 1 && <span>{mail.attachmentCount}</span>}
+                            <div className="flex min-w-[58px] flex-shrink-0 flex-col items-end gap-1">
+                              <div className="flex items-center gap-1.5">
+                                {mail.attachmentCount ? (
+                                  <span
+                                    className="inline-flex items-center gap-0.5 text-[11px] text-[#5f6368]"
+                                    title={`添付 ${mail.attachmentCount}件`}
+                                    data-testid="message-attachment-indicator"
+                                  >
+                                    <Paperclip size={13} />
+                                    {mail.attachmentCount > 1 && <span>{mail.attachmentCount}</span>}
+                                  </span>
+                                ) : null}
+                                <span className={`text-[12px] font-normal ${isActive ? 'text-[#3c4043]' : 'text-[#5f6368]'}`}>
+                                  {mail.receivedAt.split(' ')[1]}
                                 </span>
-                              ) : null}
-                              <span className={`text-[12px] font-normal ${isActive ? 'text-[#3c4043]' : 'text-[#5f6368]'}`}>
-                                {mail.receivedAt.split(' ')[1]}
-                              </span>
+                              </div>
                             {(() => {
                               const elapsedMs = getElapsedMs(mail.receivedAt);
                               const elapsedText = formatElapsedTime(elapsedMs);
@@ -7570,7 +7574,7 @@ export default function InboxShell({
                   </div>
                   <div className="flex-1 overflow-y-auto custom-scrollbar bg-white text-[#202124]">
                     <div className="sticky top-0 z-10 border-b border-[#e8eaed] bg-white/95 backdrop-blur">
-                      <div className="px-3 py-1 sm:px-4">
+                      <div className="mx-auto w-full max-w-[1040px] px-4 py-1 sm:px-6 lg:px-8">
                         <div className="flex items-center gap-2 min-w-0">
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2 min-w-0">
@@ -7681,7 +7685,7 @@ export default function InboxShell({
                     </div>
                     
                     {/* スクロール可能なコンテンツエリア */}
-                    <div className="max-w-3xl mx-auto px-4 pt-2 pb-8 sm:px-6">
+                    <div className="mx-auto w-full max-w-[1040px] px-4 pt-2 pb-8 sm:px-6 lg:px-8">
                       {/* 本文セクション（折りたたみ可能） */}
                       {bodyCollapsed ? (
                         <div 

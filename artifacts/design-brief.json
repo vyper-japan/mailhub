@@ -17,7 +17,9 @@
   "scope": [
     "Top operational status strip",
     "Sidebar channel/store queue polish",
-    "Gmail compose safety checklist"
+    "Gmail compose safety checklist",
+    "Reading pane header/body rail alignment",
+    "Message list sender/subject density polish"
   ],
   "must_not_do": [
     "Do not send external email.",
@@ -29,6 +31,7 @@
     "Lint",
     "Browser screenshot desktop",
     "Browser screenshot mobile",
+    "Browser screenshot reading rail desktop/narrow",
     "Console error check"
   ]
 }
