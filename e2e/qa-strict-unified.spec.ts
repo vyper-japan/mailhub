@@ -6020,11 +6020,11 @@ test("Step93-3b) Narrow desktop action rail: ツールバーと作業タブが�
           const labelText = document.querySelector('[data-testid="action-label"] span');
           const listPane = document.querySelector(".mailhub-list-column");
           const detailPane = document.querySelector(".mailhub-detail-column");
-          const rowSubject = document.querySelector('[data-testid="message-row"] [data-testid="row-subject"]');
+          const rowTextBlock = document.querySelector('[data-testid="message-row"] [data-testid="row-text-block"]');
           const rowCheckbox = document.querySelector('[data-testid="message-row"] input[type="checkbox"]');
           const listWidth = Math.round(listPane?.getBoundingClientRect().width ?? 0);
           const detailWidth = Math.round(detailPane?.getBoundingClientRect().width ?? 0);
-          const rowSubjectWidth = Math.round(rowSubject?.getBoundingClientRect().width ?? 0);
+          const rowTextBlockWidth = Math.round(rowTextBlock?.getBoundingClientRect().width ?? 0);
           return {
             toolbarHeight: Math.round(toolbar?.getBoundingClientRect().height ?? 0),
             toolbarHorizontalOverflow: toolbar ? toolbar.scrollWidth > toolbar.clientWidth + 1 : true,
@@ -6036,7 +6036,7 @@ test("Step93-3b) Narrow desktop action rail: ツールバーと作業タブが�
             labelTextDisplay: labelText ? getComputedStyle(labelText).display : "",
             listWidthReadable: listWidth >= 400,
             detailWidthUsable: detailWidth >= 460,
-            rowSubjectReadable: rowSubjectWidth >= 220,
+            rowTextBlockReadable: rowTextBlockWidth >= 250,
             detailOverflowsViewport: detailPane ? detailPane.getBoundingClientRect().right > window.innerWidth + 1 : true,
             rowCheckboxMarginRight: rowCheckbox ? getComputedStyle(rowCheckbox).marginRight : "",
           };
@@ -6052,7 +6052,7 @@ test("Step93-3b) Narrow desktop action rail: ツールバーと作業タブが�
       labelTextDisplay: "none",
       listWidthReadable: true,
       detailWidthUsable: true,
-      rowSubjectReadable: true,
+      rowTextBlockReadable: true,
       detailOverflowsViewport: false,
       rowCheckboxMarginRight: "0px",
     });

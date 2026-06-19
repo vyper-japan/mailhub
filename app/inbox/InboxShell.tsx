@@ -7424,7 +7424,7 @@ export default function InboxShell({
                               />
                             </button>
 
-                            <div className="min-w-0">
+                            <div className="min-w-0" data-testid="row-text-block">
                               <div className="flex min-w-0 items-center gap-1">
                                 {isUnread && <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#1a73e8]" title="未読" />}
                                 {!seenIds.has(mail.id) && <span data-testid="badge-unseen" className="h-2 w-2 flex-shrink-0 rounded-full bg-orange-400" title="未確認" />}
