@@ -350,7 +350,7 @@ export function Sidebar({
           .filter((g) => g.id === "channels")
           .map((group) => (
               <div key={group.id} className="mb-1" data-testid="label-channels">
-                <div className="mx-1 mb-1 mt-2 flex items-center justify-between px-3">
+                <div className="mx-1 mb-0.5 mt-1 flex items-center justify-between px-3">
                   <div className="text-[10px] font-medium uppercase tracking-wider text-[#5f6368]">
                     ストア別
                   </div>
@@ -374,7 +374,7 @@ export function Sidebar({
                         key={item.id}
                         data-testid={`label-item-${item.id}`}
                         onClick={() => onSelectLabel(item)}
-                        className={`${t.sidebarItem} min-h-[30px] ${isActive ? t.sidebarItemActive : ""}`}
+                        className={`${t.sidebarItem} ${isActive ? t.sidebarItemActive : ""}`}
                         title={`${item.label}${count !== null ? `: ${count}件` : ""}`}
                       >
                         <span className="flex min-w-0 items-center gap-2">
@@ -399,9 +399,6 @@ export function Sidebar({
                       </div>
                     );
                   })}
-                </div>
-                <div className="mx-4 mt-1 truncate text-[11px] leading-4 text-[#5f6368]">
-                  店舗別の入口です。選択中でも一覧は残ります。
                 </div>
               </div>
             ))}
