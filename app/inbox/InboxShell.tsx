@@ -7109,7 +7109,7 @@ export default function InboxShell({
             <div 
               className={`${t.listColumn} ${selectedMessage ? "mailhub-list-selected" : ""}`}
               style={{
-                width: `min(${listWidth}px, max(320px, calc(100vw - ${sidebarWidth + 500}px)))`,
+                width: `min(${listWidth}px, max(320px, calc(100vw - ${sidebarWidth + 460}px)))`,
                 minWidth: '320px',
                 maxWidth: '620px',
               }}

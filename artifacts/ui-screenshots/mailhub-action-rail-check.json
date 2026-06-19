@@ -15,184 +15,42 @@
         "width": 860,
         "height": 48
       },
-      "toolbarScrollWidth": 1100,
-      "toolbarClientWidth": 860,
       "toolbarScrollHeight": 47,
       "toolbarClientHeight": 47,
       "verticalToolbarOverflow": false,
-      "tabs": {
-        "x": 260,
-        "y": 147,
-        "right": 1120,
-        "bottom": 195,
-        "width": 860,
-        "height": 48
-      },
-      "tabsText": "今返す36自分が対応0返事待ち0処理不要0返信転送担当処理不要同送信元指定日に戻すCopy",
       "selectedQuickDisplay": "none",
-      "labelButtonText": "ラベル",
       "labelSpanDisplay": "none",
-      "toolbarButtons": [
-        {
-          "testid": "toolbar-take-next",
-          "text": "未割当を取る",
-          "box": {
-            "x": 276,
-            "y": 105,
-            "right": 410,
-            "bottom": 141,
-            "width": 134,
-            "height": 36
-          },
-          "whiteSpace": "nowrap"
-        },
-        {
-          "testid": "action-done",
-          "text": "対応済みE",
-          "box": {
-            "x": 518,
-            "y": 105,
-            "right": 626,
-            "bottom": 141,
-            "width": 108,
-            "height": 36
-          },
-          "whiteSpace": "nowrap"
-        },
-        {
-          "testid": "action-waiting",
-          "text": "返事待ちW",
-          "box": {
-            "x": 630,
-            "y": 105,
-            "right": 738,
-            "bottom": 141,
-            "width": 108,
-            "height": 36
-          },
-          "whiteSpace": "nowrap"
-        },
-        {
-          "testid": "action-assign",
-          "text": "担当C",
-          "box": {
-            "x": 742,
-            "y": 105,
-            "right": 822,
-            "bottom": 141,
-            "width": 80,
-            "height": 36
-          },
-          "whiteSpace": "nowrap"
-        },
-        {
-          "testid": "action-mute",
-          "text": "処理不要",
-          "box": {
-            "x": 826,
-            "y": 105,
-            "right": 934,
-            "bottom": 141,
-            "width": 108,
-            "height": 36
-          },
-          "whiteSpace": "nowrap"
-        },
-        {
-          "testid": "action-label",
-          "text": "ラベル",
-          "box": {
-            "x": 938,
-            "y": 105,
-            "right": 982,
-            "bottom": 141,
-            "width": 44,
-            "height": 36
-          },
-          "whiteSpace": "nowrap"
-        },
-        {
-          "testid": "action-undo",
-          "text": "U",
-          "box": {
-            "x": 1006,
-            "y": 105,
-            "right": 1050,
-            "bottom": 141,
-            "width": 44,
-            "height": 36
-          },
-          "whiteSpace": "nowrap"
-        },
-        {
-          "testid": "action-sla-focus",
-          "text": "長く残っている",
-          "box": {
-            "x": 1054,
-            "y": 105,
-            "right": 1204,
-            "bottom": 141,
-            "width": 150,
-            "height": 36
-          },
-          "whiteSpace": "nowrap"
-        },
-        {
-          "testid": "list-density-toggle",
-          "text": "Comfortable",
-          "box": {
-            "x": 1228,
-            "y": 105,
-            "right": 1360,
-            "bottom": 141,
-            "width": 132,
-            "height": 36
-          },
-          "whiteSpace": "nowrap"
-        }
-      ],
       "listColumn": {
         "x": 260,
         "y": 195,
-        "right": 624,
+        "right": 664,
         "bottom": 840,
-        "width": 364,
+        "width": 404,
         "height": 645
       },
+      "rowSubject": {
+        "x": 328,
+        "y": 221,
+        "right": 564,
+        "bottom": 239,
+        "width": 236,
+        "height": 18
+      },
       "detailPane": {
-        "x": 612,
+        "x": 652,
         "y": 195,
         "right": 1120,
         "bottom": 840,
-        "width": 508,
+        "width": 468,
         "height": 645
       },
-      "body": {
-        "x": 644,
-        "y": 266,
-        "right": 1080,
-        "bottom": 626,
-        "width": 436,
-        "height": 360
-      },
-      "subject": {
-        "x": 644,
-        "y": 199,
-        "right": 863,
-        "bottom": 219,
-        "width": 219,
-        "height": 20
-      },
       "subjectBodyDelta": 0,
-      "threadActions": null,
-      "threadButtons": [],
-      "opsText": "WRITE CHECKINGTEST運用確認未取得QueueすべてNow未割当 / 01:30:00未割当 36自分 0⌘K",
-      "rowCheckboxMarginRight": "0px",
       "detailOverflowsViewport": false,
-      "loadingTextVisible": true,
+      "loadingTextVisible": false,
       "consoleErrors": [],
       "ignoredConsoleErrors": [],
-      "failedResponses": []
+      "failedResponses": [],
+      "ignoredFailedResponses": []
     }
   },
   {
@@ -211,142 +69,11 @@
         "width": 1180,
         "height": 48
       },
-      "toolbarScrollWidth": 1180,
-      "toolbarClientWidth": 1180,
       "toolbarScrollHeight": 47,
       "toolbarClientHeight": 47,
       "verticalToolbarOverflow": false,
-      "tabs": {
-        "x": 260,
-        "y": 147,
-        "right": 1440,
-        "bottom": 195,
-        "width": 1180,
-        "height": 48
-      },
-      "tabsText": "今返す36自分が対応0返事待ち0処理不要0返信転送担当処理不要同送信元指定日に戻すCopy",
       "selectedQuickDisplay": "flex",
-      "labelButtonText": "ラベル",
       "labelSpanDisplay": "block",
-      "toolbarButtons": [
-        {
-          "testid": "toolbar-take-next",
-          "text": "未割当を取る",
-          "box": {
-            "x": 276,
-            "y": 105,
-            "right": 410,
-            "bottom": 141,
-            "width": 134,
-            "height": 36
-          },
-          "whiteSpace": "nowrap"
-        },
-        {
-          "testid": "action-done",
-          "text": "対応済みE",
-          "box": {
-            "x": 519,
-            "y": 105,
-            "right": 627,
-            "bottom": 141,
-            "width": 108,
-            "height": 36
-          },
-          "whiteSpace": "nowrap"
-        },
-        {
-          "testid": "action-waiting",
-          "text": "返事待ちW",
-          "box": {
-            "x": 631,
-            "y": 105,
-            "right": 739,
-            "bottom": 141,
-            "width": 108,
-            "height": 36
-          },
-          "whiteSpace": "nowrap"
-        },
-        {
-          "testid": "action-assign",
-          "text": "担当C",
-          "box": {
-            "x": 743,
-            "y": 105,
-            "right": 823,
-            "bottom": 141,
-            "width": 80,
-            "height": 36
-          },
-          "whiteSpace": "nowrap"
-        },
-        {
-          "testid": "action-mute",
-          "text": "処理不要",
-          "box": {
-            "x": 827,
-            "y": 105,
-            "right": 935,
-            "bottom": 141,
-            "width": 108,
-            "height": 36
-          },
-          "whiteSpace": "nowrap"
-        },
-        {
-          "testid": "action-label",
-          "text": "ラベル",
-          "box": {
-            "x": 939,
-            "y": 105,
-            "right": 1033,
-            "bottom": 141,
-            "width": 94,
-            "height": 36
-          },
-          "whiteSpace": "nowrap"
-        },
-        {
-          "testid": "action-undo",
-          "text": "U",
-          "box": {
-            "x": 1058,
-            "y": 105,
-            "right": 1102,
-            "bottom": 141,
-            "width": 44,
-            "height": 36
-          },
-          "whiteSpace": "nowrap"
-        },
-        {
-          "testid": "action-sla-focus",
-          "text": "長く残っている",
-          "box": {
-            "x": 1106,
-            "y": 105,
-            "right": 1256,
-            "bottom": 141,
-            "width": 150,
-            "height": 36
-          },
-          "whiteSpace": "nowrap"
-        },
-        {
-          "testid": "list-density-toggle",
-          "text": "Comfortable",
-          "box": {
-            "x": 1281,
-            "y": 105,
-            "right": 1413,
-            "bottom": 141,
-            "width": 132,
-            "height": 36
-          },
-          "whiteSpace": "nowrap"
-        }
-      ],
       "listColumn": {
         "x": 260,
         "y": 195,
@@ -354,6 +81,14 @@
         "bottom": 950,
         "width": 480,
         "height": 755
+      },
+      "rowSubject": {
+        "x": 328,
+        "y": 221,
+        "right": 564,
+        "bottom": 239,
+        "width": 236,
+        "height": 18
       },
       "detailPane": {
         "x": 728,
@@ -363,32 +98,13 @@
         "width": 712,
         "height": 755
       },
-      "body": {
-        "x": 760,
-        "y": 248,
-        "right": 1400,
-        "bottom": 608,
-        "width": 640,
-        "height": 360
-      },
-      "subject": {
-        "x": 760,
-        "y": 199,
-        "right": 1033,
-        "bottom": 219,
-        "width": 273,
-        "height": 20
-      },
       "subjectBodyDelta": 0,
-      "threadActions": null,
-      "threadButtons": [],
-      "opsText": "WRITE LIMITEDTEST本番準備ブロック(4)QueueすべてNow未割当 / 01:30:00未割当 36自分 0⌘K",
-      "rowCheckboxMarginRight": "0px",
       "detailOverflowsViewport": false,
-      "loadingTextVisible": true,
+      "loadingTextVisible": false,
       "consoleErrors": [],
       "ignoredConsoleErrors": [],
-      "failedResponses": []
+      "failedResponses": [],
+      "ignoredFailedResponses": []
     }
   }
 ]
