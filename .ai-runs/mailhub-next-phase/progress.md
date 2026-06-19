@@ -1,5 +1,54 @@
 # MailHub Next Phase Progress
 
+## 2026-06-20 New Session Handoff Snapshot
+
+This is the latest resume point. Continue from `/Users/takayukisuzuki/VYPER-Dev/Mailhub`.
+
+Current git state:
+
+- branch: `main`
+- local HEAD: `ae14f0e95b51925260a18faa2278e3eb3cb3adca` (`Stabilize message list width assertion`)
+- remote HEAD at checkpoint: `86d8369` (`Refresh readiness artifacts after snippet width fix`)
+- local branch is ahead of `origin/main` by 1 commit.
+- uncommitted changes are the no-send `.ai-runs/mailhub-next-phase` readiness refresh artifacts only.
+
+Latest completed work:
+
+- CI failure at `86d8369` was isolated to `qa-strict` `Step93-3b`.
+- The UI itself was readable in CI (`rowTextBlockReadable=true`); the fragile assertion measured the rendered short snippet span width.
+- `e2e/qa-strict-unified.spec.ts` was fixed so `rowSnippetReadable` verifies snippet presence plus readable available text block width (`rowTextBlockWidth >= 280`).
+- Local validation after the fix passed:
+  - `npm run lint`
+  - `npm run typecheck`
+  - `git diff --check`
+  - CI-equivalent `Step93-3b`
+  - targeted `Step93-3b|Step93-6`
+- `npm run ops:readiness-refresh` passed after `ae14f0e`.
+- The refresh stayed safe:
+  - no external send
+  - routing send `mode=dry_run`
+  - `sentCount=0`
+  - artifact contracts passed
+  - `security:scan-artifacts` passed inside the refresh
+
+Current readiness remains intentionally false:
+
+- P0 `current_shared_gmail_routing`
+- P1 `rule_config_source_not_production`
+- P1 `staff_workflow_permissions`
+- P1 `staff_github_config_not_ready`
+
+Do not claim production complete. Do not run external email sends, GitHub setup/apply mutations, or Sheets mutations without explicit approval.
+
+Immediate next session work:
+
+1. Run `git status -sb`, `git diff --stat`, `git diff --check`.
+2. Update/verify handoff docs if needed.
+3. Run `npm run security:scan-artifacts`.
+4. Commit refreshed `.ai-runs/mailhub-next-phase` artifacts, for example `Refresh readiness artifacts after width assertion fix`.
+5. Push.
+6. Watch latest `MailHub Readiness Contract` and `qa-strict` for the new HEAD.
+
 ## 2026-06-20 UI/UX Polish Checkpoint For New Session
 
 The active goal remains the long MailHub UI/UX sprint: raise the inbox toward practical mailer quality while preserving the safety constraints. Do not mark production complete.

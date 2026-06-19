@@ -1,5 +1,13 @@
 # MailHub Next Phase Decisions
 
+## 2026-06-20 New Session Handoff Decisions
+
+- Keep `ae14f0e` as the current code fix for the `Step93-3b` CI failure. The UI did not need another layout change; the unstable part was the test measuring a rendered short text span instead of available readable row width.
+- Treat the latest readiness refresh as a no-send evidence update for `ae14f0e`; it should be committed separately from the test assertion fix.
+- The next session should prioritize finishing the current slice: commit refreshed `.ai-runs` artifacts, push, and verify CI before starting another UI/UX feature.
+- Do not retry old subagent waits as part of the critical path. Use local review or a small fresh wave only if needed.
+- Production readiness remains deliberately blocked until external routing proof, Sheets-backed rule config, staff workflow evidence, and GitHub config are real.
+
 ## 2026-06-20 UI/UX Checkpoint Decisions
 
 - Keep the current MailHub UI direction: Gmail/Spark/Re:lation-inspired operational density, not a decorative redesign.

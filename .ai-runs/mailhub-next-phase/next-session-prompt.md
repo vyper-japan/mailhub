@@ -1,5 +1,68 @@
 # Prompt For New MailHub Session
 
+## 2026-06-20 Latest Handoff For New Session
+
+Continue from `/Users/takayukisuzuki/VYPER-Dev/Mailhub`.
+
+First commands:
+
+```bash
+cd /Users/takayukisuzuki/VYPER-Dev/Mailhub
+git status -sb
+git diff --stat
+git diff --check
+```
+
+Expected state:
+
+- branch `main`
+- `main...origin/main [ahead 1]`
+- local HEAD `ae14f0e Stabilize message list width assertion`
+- `origin/main` at `86d8369 Refresh readiness artifacts after snippet width fix`
+- modified files are only `.ai-runs/mailhub-next-phase` readiness refresh artifacts
+
+What just happened:
+
+- Earlier pushed HEAD `86d8369` had `MailHub Readiness Contract` PASS but `qa-strict` FAIL.
+- The only failing test was `Step93-3b`, because `rowSnippetReadable` measured the rendered snippet text span width.
+- CI evidence already showed the row text block itself was readable.
+- Commit `ae14f0e` fixes the assertion to require snippet presence plus available text block width `>=280`.
+- Local validation passed:
+  - `npm run lint`
+  - `npm run typecheck`
+  - `git diff --check`
+  - CI-equivalent `Step93-3b`
+  - targeted `Step93-3b|Step93-6`
+- `npm run ops:readiness-refresh` passed after `ae14f0e` and regenerated readiness artifacts.
+- No external send occurred; routing probe send remained `mode=dry_run`, `sentCount=0`.
+
+Next actions:
+
+```bash
+npm run security:scan-artifacts
+git add .ai-runs/mailhub-next-phase
+git commit -m "Refresh readiness artifacts after width assertion fix"
+git push
+gh run list --branch main --limit 8 --json databaseId,workflowName,status,conclusion,headSha,createdAt
+```
+
+Watch `MailHub Readiness Contract` and `qa-strict` for the pushed HEAD.
+
+Hard rules:
+
+- Do not run external email sends without explicit approval.
+- Do not run GitHub setup/apply mutations without explicit approval.
+- Do not run Sheets mutations without explicit approval.
+- Do not print secret values.
+- Do not claim production complete.
+
+Current production blockers remain:
+
+- P0 `current_shared_gmail_routing`
+- P1 `rule_config_source_not_production`
+- P1 `staff_workflow_permissions`
+- P1 `staff_github_config_not_ready`
+
 ## 2026-06-20 Latest Resume Note
 
 Status update after this note was first written:

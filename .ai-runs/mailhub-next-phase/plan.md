@@ -1,5 +1,25 @@
 # MailHub Next Phase Plan
 
+## 2026-06-20 New Session Immediate Plan
+
+The active UI/UX sprint is mid-closeout, not ready for a new feature yet.
+
+1. Start in `/Users/takayukisuzuki/VYPER-Dev/Mailhub`.
+2. Confirm `main...origin/main [ahead 1]` at `ae14f0e`.
+3. Confirm only `.ai-runs/mailhub-next-phase` readiness artifacts are dirty.
+4. Run `git diff --check` and `npm run security:scan-artifacts`.
+5. Commit the refreshed readiness artifacts.
+6. Push.
+7. Watch `MailHub Readiness Contract` and `qa-strict` for the pushed HEAD.
+8. Only after CI is green, choose the next UI/UX slice.
+
+Constraints stay in force:
+
+- no external email send
+- no GitHub setup/apply mutation
+- no Sheets mutation
+- no production-complete claim
+
 ## Objective
 
 MailHubを production-complete に近づける。ゴールは、ソース/ルーティング/ルール/スタッフ運用/証跡が実データと本番相当設定で検証され、本番readyを機械的に偽陽性で通せない状態にすること。

@@ -1,5 +1,64 @@
 # MailHub Next Phase Next Actions
 
+## 2026-06-20 Resume Here: Commit Refreshed Readiness Artifacts And Watch CI
+
+Start here in the next session:
+
+```bash
+cd /Users/takayukisuzuki/VYPER-Dev/Mailhub
+git status -sb
+git diff --stat
+git diff --check
+```
+
+Expected state:
+
+- `main...origin/main [ahead 1]`
+- local HEAD `ae14f0e Stabilize message list width assertion`
+- only `.ai-runs/mailhub-next-phase` readiness refresh artifacts are modified
+
+Immediate sequence:
+
+1. Run `npm run security:scan-artifacts`.
+2. If green, commit the refreshed artifacts:
+
+```bash
+git add .ai-runs/mailhub-next-phase
+git commit -m "Refresh readiness artifacts after width assertion fix"
+```
+
+3. Push:
+
+```bash
+git push
+```
+
+4. Watch CI for the pushed HEAD:
+
+```bash
+gh run list --branch main --limit 8 --json databaseId,workflowName,status,conclusion,headSha,createdAt
+```
+
+The two key workflows to watch are:
+
+- `MailHub Readiness Contract`
+- `qa-strict`
+
+If `qa-strict` fails again, inspect the log first. The previous failure was only `Step93-3b` and the local fix now checks available readable row text width rather than rendered short snippet span width.
+
+After CI is green, continue the UI/UX sprint. The next highest-value product slice is likely:
+
+- Re:lation-inspired right-pane customer/order/context module, or
+- clearer status/lock/owner affordances in list/detail, or
+- compose safety improvements for attachment/domain/approval checks.
+
+Keep these hard gates:
+
+- no external email send without explicit approval
+- no GitHub setup/apply mutation without explicit approval
+- no Sheets mutation without explicit approval
+- do not claim production complete
+
 ## 2026-06-20 Resume Here: UI/UX Message List Slice
 
 Status update: the UI slice below was committed as `94429df Polish MailHub message list density`. First pushed CI found a `Step93-3b` snippet-width assertion issue, fixed by `4ebea26 Stabilize MailHub message snippet width`. `npm run ops:readiness-refresh` has passed again after the fix with no external sends. Next step is to commit the refreshed `.ai-runs/mailhub-next-phase` artifacts, push, and watch CI again.

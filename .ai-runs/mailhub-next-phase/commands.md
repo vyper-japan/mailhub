@@ -1,5 +1,90 @@
 # MailHub Next Phase Commands
 
+## 2026-06-20 New Session Handoff Commands
+
+Checkpoint skill:
+
+```bash
+sed -n '1,240p' /Users/takayukisuzuki/.agents/skills/ai-checkpoint/SKILL.md
+```
+
+Result: PASS, skill instructions loaded.
+
+Snapshot helper:
+
+```bash
+bash scripts/ai_handoff_snapshot.sh .ai-runs/mailhub-next-phase
+```
+
+Result: failed because `scripts/ai_handoff_snapshot.sh` does not exist in this repo. Handoff was updated manually.
+
+Current state checks at handoff:
+
+```bash
+git status -sb
+```
+
+Result:
+
+```text
+## main...origin/main [ahead 1]
+ M .ai-runs/mailhub-next-phase/github-routing-secrets-readiness.json
+ M .ai-runs/mailhub-next-phase/github-staff-secrets-readiness.json
+ M .ai-runs/mailhub-next-phase/gmail-default-views-audit.json
+ M .ai-runs/mailhub-next-phase/gmail-rule-safety-audit.json
+ M .ai-runs/mailhub-next-phase/gmail-source-coverage-audit.json
+ M .ai-runs/mailhub-next-phase/mailhub-gws-routing-audit.json
+ M .ai-runs/mailhub-next-phase/mailhub-operational-confirmations.json
+ M .ai-runs/mailhub-next-phase/mailhub-production-config-intake.md
+ M .ai-runs/mailhub-next-phase/mailhub-production-config-request.json
+ M .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json
+ M .ai-runs/mailhub-next-phase/mailhub-routing-next-steps.json
+ M .ai-runs/mailhub-next-phase/mailhub-routing-probe-audit.json
+ M .ai-runs/mailhub-next-phase/mailhub-routing-probe-preflight.json
+ M .ai-runs/mailhub-next-phase/mailhub-routing-probe-send.json
+ M .ai-runs/mailhub-next-phase/mailhub-rule-config-next-steps.json
+ M .ai-runs/mailhub-next-phase/mailhub-staff-workflow-audit.json
+ M .ai-runs/mailhub-next-phase/mailhub-staff-workflow-next-steps.json
+```
+
+```bash
+git diff --stat
+```
+
+Result: 17 `.ai-runs/mailhub-next-phase` files changed, `124 insertions(+), 124 deletions(-)`.
+
+Latest committed validation before handoff:
+
+```bash
+npm run lint
+npm run typecheck
+git diff --check
+MAILHUB_TEST_MODE=1 NEXTAUTH_SECRET=dummy NEXTAUTH_URL=http://localhost:3000 NEXTAUTH_TRUST_HOST=true GOOGLE_CLIENT_ID=dummy GOOGLE_CLIENT_SECRET=dummy GOOGLE_SHARED_INBOX_EMAIL=inbox@vtj.co.jp GOOGLE_SHARED_INBOX_REFRESH_TOKEN=dummy npx playwright test e2e/qa-strict-unified.spec.ts -g "Step93-3b" --workers=1
+MAILHUB_TEST_MODE=1 MAILHUB_DATA_MODE=stub NEXTAUTH_URL=http://127.0.0.1:3010 NEXTAUTH_SECRET=test-secret PLAYWRIGHT_BASE_URL=http://127.0.0.1:3010 npx playwright test e2e/qa-strict-unified.spec.ts -g "Step93-3b|Step93-6" --workers=1
+npm run ops:readiness-refresh
+```
+
+Result: PASS. `ops:readiness-refresh` kept routing send dry-run/no-send and regenerated artifacts for repo head `ae14f0e95b51925260a18faa2278e3eb3cb3adca`.
+
+Commands to run first in the next session:
+
+```bash
+cd /Users/takayukisuzuki/VYPER-Dev/Mailhub
+git status -sb
+git diff --stat
+git diff --check
+npm run security:scan-artifacts
+```
+
+Handoff validation after updating these docs:
+
+```bash
+git diff --check
+npm run security:scan-artifacts
+```
+
+Result: PASS. Artifact scan reported `PASS CR-F9-R007 ops artifact secret scan`, `scanned_files=18`.
+
 ## 2026-06-20 UI/UX Checkpoint Commands
 
 Checkpoint skill:
