@@ -22,6 +22,7 @@
       "toolbarClientHeight": 47,
       "verticalToolbarOverflow": false,
       "selectedQuickDisplay": "none",
+      "quickActionLabelDisplay": "none",
       "labelSpanDisplay": "none",
       "listColumn": {
         "x": 260,
@@ -78,7 +79,8 @@
       "toolbarScrollHeight": 47,
       "toolbarClientHeight": 47,
       "verticalToolbarOverflow": false,
-      "selectedQuickDisplay": "none",
+      "selectedQuickDisplay": "flex",
+      "quickActionLabelDisplay": "none",
       "labelSpanDisplay": "block",
       "listColumn": {
         "x": 260,

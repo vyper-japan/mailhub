@@ -6924,7 +6924,7 @@ export default function InboxShell({
             </div>
 
             {/* 右側: 選択中メールのナビゲーション/クイック操作（タブ行と同じ水平線に揃える） */}
-            <div className="hidden items-center gap-1 flex-shrink-0 pr-1 2xl:flex">
+            <div className="hidden items-center gap-1 flex-shrink-0 pr-1 xl:flex">
               {selectedMessage && (
                 <>
                   <button onClick={() => handleMoveSelection("up")} className={t.buttonIcon} title="上へ">
@@ -6945,7 +6945,7 @@ export default function InboxShell({
                         title="返信（Gmail）"
                       >
                         <CornerUpLeft size={14} className="text-[#5f6368]" />
-                        <span className="hidden sm:inline">返信</span>
+                        <span className="hidden 2xl:inline">返信</span>
                       </a>
                       <a
                         href={buildGmailForwardLink(selectedMessage.gmailLink, selectedMessage.threadId)}
@@ -6954,7 +6954,7 @@ export default function InboxShell({
                         className="px-2 py-1 rounded-md text-xs text-[#3c4043] hover:bg-[#f1f3f4] transition-colors font-medium"
                         title="転送（Gmail）"
                       >
-                        <span className="hidden sm:inline">転送</span>
+                        <span className="hidden 2xl:inline">転送</span>
                       </a>
                     </>
                   )}
@@ -6976,7 +6976,7 @@ export default function InboxShell({
                         title={isSelectedMine ? "担当変更" : selectedAssigneeSlug ? "引き継ぐ" : "担当を設定"}
                       >
                         <UserCheck size={14} className={isSelectedMine ? "text-[#1a73e8]" : selectedAssigneeSlug ? "text-[#ea8600]" : "text-[#5f6368]"} />
-                        <span className="hidden sm:inline">{isSelectedMine ? "担当変更" : selectedAssigneeSlug ? "引き継ぐ" : "担当"}</span>
+                        <span className="hidden 2xl:inline">{isSelectedMine ? "担当変更" : selectedAssigneeSlug ? "引き継ぐ" : "担当"}</span>
                       </button>
 
                       {activeLabel?.statusType !== "muted" ? (
@@ -6988,7 +6988,7 @@ export default function InboxShell({
                             title="処理不要にする"
                           >
                             <VolumeX size={14} className="text-[#5f6368]" />
-                            <span className="hidden sm:inline">処理不要</span>
+                            <span className="hidden 2xl:inline">処理不要</span>
                           </button>
                           <button
                             data-testid="action-mute-sender"
@@ -6998,7 +6998,7 @@ export default function InboxShell({
                             title={readOnlyMode ? (getWriteBlockedTitle() ?? "実行できません") : "同じ送信元の未処理メールをまとめて処理不要にする"}
                           >
                             <VolumeX size={14} className="text-[#5f6368]" />
-                            <span className="hidden sm:inline">同送信元</span>
+                            <span className="hidden 2xl:inline">同送信元</span>
                           </button>
                         </>
                       ) : (
@@ -7009,7 +7009,7 @@ export default function InboxShell({
                           title="Inboxへ戻す"
                         >
                           <VolumeX size={14} className="text-[#5f6368]" />
-                          <span className="hidden sm:inline">復帰</span>
+                          <span className="hidden 2xl:inline">復帰</span>
                         </button>
                       )}
 
@@ -7024,7 +7024,7 @@ export default function InboxShell({
                             title={readOnlyMode ? (getWriteBlockedTitle() ?? "実行できません") : "指定日に戻す"}
                           >
                             <Clock size={14} className="text-[#5f6368]" />
-                            <span className="hidden sm:inline">指定日に戻す</span>
+                            <span className="hidden 2xl:inline">指定日に戻す</span>
                           </button>
                           {snoozePopoverOpen && snoozePopoverPos && (
                             <div
@@ -7081,7 +7081,7 @@ export default function InboxShell({
                             title={readOnlyMode ? (getWriteBlockedTitle() ?? "実行できません") : "指定日戻しを解除"}
                         >
                           <Clock size={14} className="text-[#5f6368]" />
-                          <span className="hidden sm:inline">解除</span>
+                          <span className="hidden 2xl:inline">解除</span>
                         </button>
                       )}
 
@@ -7093,7 +7093,7 @@ export default function InboxShell({
                         title="コンテキストをコピー"
                       >
                         <Copy size={14} className="text-[#5f6368]" />
-                        <span className="hidden sm:inline">Copy</span>
+                        <span className="hidden 2xl:inline">Copy</span>
                       </button>
                     </>
                   )}
