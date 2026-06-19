@@ -79,7 +79,7 @@ const REQUIRED_SEMANTIC_VARIABLE_VALUES = {
 const SEMANTIC_VARIABLE_NAMES = Object.keys(REQUIRED_SEMANTIC_VARIABLE_VALUES);
 const STAFF_EMAIL_LIST_VARIABLE_NAMES = REQUIRED_STAFF_ACCESS;
 const STAFF_GITHUB_SETUP_DRY_RUN_COMMAND = "npm run setup:mailhub-staff-github-config";
-const STAFF_GITHUB_SETUP_APPLY_COMMAND = "npm run setup:mailhub-staff-github-config -- --apply";
+const STAFF_GITHUB_SETUP_APPLY_COMMAND = "npm run setup:mailhub-staff-github-config -- --apply --confirm-apply APPLY_MAILHUB_STAFF_GITHUB_CONFIG";
 
 function parseArgs(argv) {
   const args = {

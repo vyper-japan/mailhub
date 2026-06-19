@@ -7,6 +7,7 @@ import { dirname, join } from "node:path";
 const repoRoot = process.cwd();
 const envPath = join(repoRoot, ".env.local");
 const DEFAULT_REPO = "vyper-japan/mailhub";
+const APPLY_CONFIRM_TOKEN = "APPLY_MAILHUB_STAFF_GITHUB_CONFIG";
 
 const REQUIRED_SECRET_NAMES = [
   "NEXTAUTH_SECRET",
@@ -38,6 +39,7 @@ function parseArgs(argv) {
     includeOptional: true,
     envFile: envPath,
     out: "",
+    confirmApply: "",
   };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
@@ -45,12 +47,14 @@ function parseArgs(argv) {
     else if (arg === "--staff-env-file") args.envFile = argv[++i] || "";
     else if (arg === "--out") args.out = argv[++i] || "";
     else if (arg === "--apply") args.apply = true;
+    else if (arg === "--confirm-apply") args.confirmApply = argv[++i] || "";
     else if (arg === "--no-optional") args.includeOptional = false;
     else if (arg === "--help" || arg === "-h") {
-      console.log(`Usage: node scripts/setup-mailhub-staff-github-config.mjs [--repo owner/name] [--staff-env-file path] [--out path] [--apply] [--no-optional]
+      console.log(`Usage: node scripts/setup-mailhub-staff-github-config.mjs [--repo owner/name] [--staff-env-file path] [--out path] [--apply] [--confirm-apply ${APPLY_CONFIRM_TOKEN}] [--no-optional]
 
 Reads MailHub production staff config from environment/.env.local and, only with --apply, writes it to GitHub Actions secrets and variables.
 Values are never printed. Secret values are passed to gh via stdin; variables are passed to gh via --body.
+--apply requires the exact confirmation token: ${APPLY_CONFIRM_TOKEN}
 
 Required GitHub Actions secrets:
   ${REQUIRED_SECRET_NAMES.join("\n  ")}
@@ -215,6 +219,8 @@ function main() {
   const missing = missingRequiredEnv(variableNames);
   const issues = semanticIssues();
   const ghBin = process.env.MAILHUB_GH_BIN || "gh";
+  const applyConfirmed = args.confirmApply === APPLY_CONFIRM_TOKEN;
+  const confirmationErrors = args.apply && !applyConfirmed ? ["missing_or_invalid_confirm_apply_token"] : [];
   const secretNamesToSet = REQUIRED_SECRET_NAMES.filter((name) => valueFor(name));
   const variableNamesToSet = variableNames.filter((name) => valueFor(name));
   const result = {
@@ -226,14 +232,22 @@ function main() {
     variableNamesToSet,
     missingRequiredEnv: missing,
     semanticIssues: issues,
+    errors: confirmationErrors,
     readyToApply: missing.length === 0 && issues.length === 0,
+    approval: {
+      sideEffect: "github_mutation",
+      requiresApproval: true,
+      confirmApplyToken: APPLY_CONFIRM_TOKEN,
+      confirmed: applyConfirmed,
+    },
     appliedSecretNames: [],
     appliedVariableNames: [],
-    note: "Values are never printed; --apply passes secrets to gh via stdin and variables via gh variable set --body.",
+    note: "Values are never printed; --apply passes secrets to gh via stdin and variables via gh variable set --body, and requires an explicit confirmation token.",
   };
 
   if (args.apply) {
-    if (!result.readyToApply) {
+    if (!result.readyToApply || confirmationErrors.length > 0) {
+      writeOut(args.out, result);
       console.log(JSON.stringify(result, null, 2));
       process.exit(2);
     }

@@ -20,6 +20,13 @@ const EXTERNAL_SMTP_OPTIONAL_SECRETS = [
   "MAILHUB_PROBE_SMTP_SECURE",
 ];
 
+const ROUTING_GMAIL_PROOF_SECRETS = [
+  "GOOGLE_CLIENT_ID",
+  "GOOGLE_CLIENT_SECRET",
+  "GOOGLE_SHARED_INBOX_EMAIL",
+  "GOOGLE_SHARED_INBOX_REFRESH_TOKEN",
+];
+
 const STAFF_REQUIRED_SECRETS = [
   "NEXTAUTH_SECRET",
   "GOOGLE_CLIENT_SECRET",
@@ -59,15 +66,25 @@ const READONLY_EVIDENCE_FILES = [
 function parseArgs(argv) {
   const args = {
     runDir: DEFAULT_RUN_DIR,
-    out: DEFAULT_OUT,
-    markdownOut: DEFAULT_MARKDOWN_OUT,
+    out: "",
+    markdownOut: "",
+    outExplicit: false,
+    markdownOutExplicit: false,
+    markdownDisabled: false,
   };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     if (arg === "--run-dir") args.runDir = argv[++i] || "";
-    else if (arg === "--out") args.out = argv[++i] || "";
-    else if (arg === "--markdown-out") args.markdownOut = argv[++i] || "";
-    else if (arg === "--no-markdown") args.markdownOut = "";
+    else if (arg === "--out") {
+      args.out = argv[++i] || "";
+      args.outExplicit = true;
+    } else if (arg === "--markdown-out") {
+      args.markdownOut = argv[++i] || "";
+      args.markdownOutExplicit = true;
+    } else if (arg === "--no-markdown") {
+      args.markdownOut = "";
+      args.markdownDisabled = true;
+    }
     else if (arg === "--help" || arg === "-h") {
       console.log(`Usage: node scripts/write-mailhub-production-config-request.mjs [--run-dir path] [--out path] [--markdown-out path] [--no-markdown]
 
@@ -79,6 +96,15 @@ Secret values are never read from GitHub and never printed.`);
       throw new Error(`unknown_arg:${arg}`);
     }
   }
+  if (!args.outExplicit) {
+    args.out = join(args.runDir || DEFAULT_RUN_DIR, "mailhub-production-config-request.json");
+  }
+  if (!args.markdownDisabled && !args.markdownOutExplicit) {
+    args.markdownOut = join(dirname(args.out || DEFAULT_OUT), "mailhub-production-config-intake.md");
+  }
+  delete args.outExplicit;
+  delete args.markdownOutExplicit;
+  delete args.markdownDisabled;
   return args;
 }
 
@@ -120,6 +146,21 @@ function mdCommandList(values) {
   return values.map((value) => `- \`${value}\``).join("\n");
 }
 
+function mdApprovalActionList(actions) {
+  if (!actions?.length) return "_none_";
+  return actions
+    .map((action) => [
+      `- ${action.id}: ${action.status}`,
+      `  - sideEffect: \`${action.sideEffect}\``,
+      `  - requiresApproval: \`${action.requiresApproval}\``,
+      `  - confirmationToken: \`${action.confirmationToken}\``,
+      `  - commandAfterApproval: \`${action.commandAfterApproval}\``,
+      `  - preconditions: ${action.preconditions.map((item) => `\`${item}\``).join(", ")}`,
+      action.blockedReason ? `  - blockedReason: \`${action.blockedReason}\`` : "",
+    ].filter(Boolean).join("\n"))
+    .join("\n");
+}
+
 function statusMark(missing, name) {
   return missing.includes(name) ? "missing" : "not currently missing";
 }
@@ -134,9 +175,14 @@ function blockerIds(readiness, key) {
   return array(readiness?.gate?.[key]);
 }
 
+function readinessProductionReady(readiness) {
+  return readiness?.productionReady === true || readiness?.gate?.productionReady === true;
+}
+
 function renderMarkdown(result) {
   const staffMissing = result.currentMissing.staffProductionConfig;
   const smtpMissing = result.currentMissing.externalSmtpSecrets;
+  const gmailProofMissing = result.currentMissing.routingGmailProofSecrets;
   const staffRows = [
     intakeRow({
       name: "MAILHUB_ENV",
@@ -253,6 +299,15 @@ function renderMarkdown(result) {
       missing: smtpMissing,
     }),
   );
+  const gmailProofRows = ROUTING_GMAIL_PROOF_SECRETS.map((name) =>
+    intakeRow({
+      name,
+      destination: "GitHub Actions secret for routing proof workflow",
+      source: "existing local/env or operator supplied",
+      constraint: "required for routing send verification; staff runtime public keys still use GitHub variables where applicable",
+      missing: gmailProofMissing,
+    }),
+  );
   return `# MailHub Production Config Intake
 
 Generated: ${result.generatedAt}
@@ -287,6 +342,14 @@ ${smtpRows.join("\n")}
 
 Optional SMTP keys: \`${EXTERNAL_SMTP_OPTIONAL_SECRETS.join("`, `")}\`
 
+## Routing Gmail Proof Intake
+
+These values let the routing proof workflow verify the probe marker in the shared Gmail inbox after external SMTP sends. They are tracked separately from external SMTP proof settings because staff runtime uses variables for public Google values, while the routing proof workflow receives these as Actions secrets.
+
+| Key | Destination | Source | Constraint | Current status |
+| --- | --- | --- | --- | --- |
+${gmailProofRows.join("\n")}
+
 ## Sheets Rule Source Intake
 
 Required before \`rule_config_source_not_production\` can close:
@@ -312,13 +375,9 @@ Dry-run commands:
 
 ${mdCommandList(result.safeCommands.dryRun)}
 
-Apply commands, only after values are present and explicit approval is given:
+Approval-gated commands, only after values are present and explicit approval is given:
 
-${mdCommandList(result.safeCommands.applyAfterValuesArePresentAndApproved)}
-
-Routing proof commands, only after external SMTP values are present and explicit approval is given:
-
-${mdCommandList(result.safeCommands.proofAfterSmtpSecretsArePresentAndApproved)}
+${mdApprovalActionList(result.approvalGatedActions)}
 
 ## Post-Apply Verification
 
@@ -338,6 +397,10 @@ After approved apply/send/read-only Sheets verification, refresh evidence:
 External SMTP proof:
 
 ${mdList(result.currentMissing.externalSmtpSecrets)}
+
+Routing Gmail proof:
+
+${mdList(result.currentMissing.routingGmailProofSecrets)}
 
 Staff production config:
 
@@ -360,27 +423,111 @@ function main() {
 
   const p0Blockers = blockerIds(readiness, "p0Blockers");
   const p1Blockers = blockerIds(readiness, "p1Blockers");
+  const groupedExternalSmtpMissing = array(routingSecrets?.secretGroups?.externalSmtpProof?.missing);
+  const groupedGmailProofMissing = array(routingSecrets?.secretGroups?.gmailProof?.missing);
+  const missingSendVerifySecrets = array(routingSecrets?.missingSendVerifySecrets);
   const missingExternalSmtpSecrets = unique([
-    ...array(routingSecrets?.missingPreflightSecrets),
-    ...array(routingSecrets?.missingSendVerifySecrets),
+    ...(groupedExternalSmtpMissing.length > 0
+      ? groupedExternalSmtpMissing
+      : [
+          ...array(routingSecrets?.missingPreflightSecrets),
+          ...missingSendVerifySecrets.filter((name) => EXTERNAL_SMTP_REQUIRED_SECRETS.includes(name)),
+        ]),
     ...array(routingNext?.missingExternalSmtpSecrets),
   ]);
+  const missingRoutingGmailProofSecrets = unique(
+    groupedGmailProofMissing.length > 0
+      ? groupedGmailProofMissing
+      : missingSendVerifySecrets.filter((name) => ROUTING_GMAIL_PROOF_SECRETS.includes(name)),
+  );
   const missingStaffConfig = unique(array(staffConfig?.missingProductionStaffConfig));
   const missingStaffSecrets = unique(array(staffConfig?.missingSecretConfig));
   const ruleRequiredActions = array(ruleNext?.requiredActions);
   const staffRequiredActions = array(staffNext?.requiredActions);
+  const routingApplyIncludeGmail = missingRoutingGmailProofSecrets.length > 0 ? " --include-gmail" : "";
+  const routingProofMissingValues = [
+    ...missingExternalSmtpSecrets,
+    ...missingRoutingGmailProofSecrets,
+  ];
+  const approvalGatedActions = [
+    {
+      id: "apply_routing_probe_github_secrets",
+      sideEffect: "github_mutation",
+      requiresApproval: true,
+      confirmationToken: "APPLY_MAILHUB_ROUTING_SECRETS",
+      commandAfterApproval: `npm run setup:mailhub-routing-secrets --${routingApplyIncludeGmail} --apply --confirm-apply APPLY_MAILHUB_ROUTING_SECRETS --out .ai-runs/mailhub-next-phase/mailhub-routing-secrets-plan.json`,
+      preconditions: [
+        "external_smtp_values_present",
+        "routing_gmail_proof_values_present_if_missing",
+        "explicit_user_approval",
+        "no_secret_values_in_artifacts",
+      ],
+      status: routingProofMissingValues.length === 0 ? "ready_after_approval" : "blocked_missing_values",
+      blockedReason: routingProofMissingValues.length === 0 ? "" : "missing_routing_proof_secret_values",
+    },
+    {
+      id: "apply_staff_github_config",
+      sideEffect: "github_mutation",
+      requiresApproval: true,
+      confirmationToken: "APPLY_MAILHUB_STAFF_GITHUB_CONFIG",
+      commandAfterApproval: "npm run setup:mailhub-staff-github-config -- --apply --confirm-apply APPLY_MAILHUB_STAFF_GITHUB_CONFIG --out .ai-runs/mailhub-next-phase/mailhub-staff-github-config-plan.json",
+      preconditions: [
+        "staff_production_config_values_present",
+        "nextauth_url_https_non_localhost",
+        "team_allowlist_confirmed",
+        "explicit_user_approval",
+        "no_secret_values_in_artifacts",
+      ],
+      status: missingStaffConfig.length === 0 && missingStaffSecrets.length === 0 ? "ready_after_approval" : "blocked_missing_values",
+      blockedReason: missingStaffConfig.length === 0 && missingStaffSecrets.length === 0 ? "" : "missing_staff_config_values",
+    },
+    {
+      id: "send_external_routing_probes",
+      sideEffect: "external_mail",
+      requiresApproval: true,
+      confirmationToken: "SEND_EXTERNAL_MAILHUB_ROUTING_PROBES",
+      commandAfterApproval: "npm run probe:routing-send -- --send --confirm-send SEND_EXTERNAL_MAILHUB_ROUTING_PROBES --verify-after-send --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-send.json",
+      preconditions: [
+        "external_smtp_values_present",
+        "routing_gmail_proof_values_present",
+        "MAILHUB_PROBE_FROM_is_non_vtj_external_sender",
+        "explicit_user_approval",
+      ],
+      status: missingExternalSmtpSecrets.length === 0 && missingRoutingGmailProofSecrets.length === 0
+        ? "ready_after_approval"
+        : "blocked_missing_values",
+      blockedReason: missingExternalSmtpSecrets.length === 0 && missingRoutingGmailProofSecrets.length === 0
+        ? ""
+        : "missing_routing_proof_values",
+    },
+    {
+      id: "run_sheets_mutation_paths",
+      sideEffect: "sheets_mutation",
+      requiresApproval: true,
+      confirmationToken: "EXPLICIT_OPERATOR_APPROVAL_REQUIRED",
+      commandAfterApproval: "not emitted by this no-secret intake package",
+      preconditions: [
+        "sheets_rule_source_configured",
+        "read_only_verification_passed",
+        "explicit_user_approval",
+      ],
+      status: "blocked_requires_separate_approval",
+      blockedReason: "sheets_mutation_out_of_scope_for_this_package",
+    },
+  ];
 
   const result = {
     generatedAt: new Date().toISOString(),
     repoHead: repoHead(),
     valuePolicy: "Secret values are never printed; this artifact contains only key names, blocker ids, readiness booleans, and commands.",
     readiness: {
-      productionReady: readiness?.productionReady === true,
+      productionReady: readinessProductionReady(readiness),
       p0Blockers,
       p1Blockers,
     },
     currentMissing: {
       externalSmtpSecrets: missingExternalSmtpSecrets,
+      routingGmailProofSecrets: missingRoutingGmailProofSecrets,
       staffProductionConfig: missingStaffConfig,
       staffSecretConfig: missingStaffSecrets,
       staffRequiredActions,
@@ -394,6 +541,14 @@ function main() {
         constraints: [
           "MAILHUB_PROBE_FROM must be a non-@vtj.co.jp external sender.",
           "Values may be supplied via .env.local for local setup dry-run/apply, but must not be committed.",
+        ],
+      },
+      routingGmailProof: {
+        purpose: "Allow send verification to poll shared Gmail for the routing proof marker.",
+        requiredGitHubSecrets: ROUTING_GMAIL_PROOF_SECRETS,
+        constraints: [
+          "Values are used by the routing proof workflow for verification.",
+          "Staff runtime public Google values must still be supplied as GitHub variables where required.",
         ],
       },
       staffGitHubConfig: {
@@ -427,21 +582,14 @@ function main() {
     },
     safeCommands: {
       dryRun: [
-        "npm run setup:mailhub-routing-secrets",
+        "npm run setup:mailhub-routing-secrets -- --out .ai-runs/mailhub-next-phase/mailhub-routing-secrets-plan.json",
         "npm run setup:mailhub-staff-github-config -- --out .ai-runs/mailhub-next-phase/mailhub-staff-github-config-plan.json",
         "npm run setup:mailhub-staff-env -- --strict --out .ai-runs/mailhub-next-phase/mailhub-staff-env-readiness.json",
+        "npm run probe:routing-preflight -- --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-preflight.json",
         "npm run ops:readiness-refresh -- --plan-only",
       ],
-      applyAfterValuesArePresentAndApproved: [
-        "npm run setup:mailhub-routing-secrets -- --apply",
-        "npm run setup:mailhub-staff-github-config -- --apply",
-      ],
-      proofAfterSmtpSecretsArePresentAndApproved: [
-        "npm run probe:routing-preflight -- --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-preflight.json",
-        "npm run probe:routing-send -- --send --verify-after-send --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-send.json",
-        "npm run ops:readiness-refresh -- --rules-source sheets",
-      ],
     },
+    approvalGatedActions,
   };
 
   mkdirSync(dirname(args.out), { recursive: true });
@@ -457,6 +605,7 @@ function main() {
     p0Blockers: result.readiness.p0Blockers,
     p1Blockers: result.readiness.p1Blockers,
     missingExternalSmtpSecrets,
+    missingRoutingGmailProofSecrets,
     missingStaffConfig,
     missingStaffSecrets,
   }, null, 2));

@@ -9,7 +9,7 @@ const repoRoot = process.cwd();
 const defaultAuditPath = join(repoRoot, ".ai-runs", "mailhub-next-phase", "mailhub-production-readiness-audit.json");
 const STAFF_GITHUB_SETUP_COMMANDS = [
   "npm run setup:mailhub-staff-github-config",
-  "npm run setup:mailhub-staff-github-config -- --apply",
+  "npm run setup:mailhub-staff-github-config -- --apply --confirm-apply APPLY_MAILHUB_STAFF_GITHUB_CONFIG",
 ];
 const REQUIRED_SEMANTIC_VARIABLE_NAMES = [
   "MAILHUB_ENV",

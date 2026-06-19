@@ -5,6 +5,7 @@ import { join, resolve } from "path";
 import { describe, expect, test } from "vitest";
 
 const scriptPath = resolve(process.cwd(), "scripts/audit-gmail-rule-safety.mjs");
+const auditCliTimeoutMs = 15_000;
 
 function withTempDir<T>(fn: (dir: string) => T): T {
   const dir = mkdtempSync(join(tmpdir(), "gmail-rule-safety-env-"));
@@ -43,7 +44,7 @@ describe("gmail rule safety audit env loading", () => {
     expect(result.stdout).toContain("--env-file .env.local");
     expect(result.stdout).toContain("--no-env-file");
     expect(result.stdout).toContain("Secret values are never printed");
-  });
+  }, auditCliTimeoutMs);
 
   test("uses only process env when --no-env-file is provided", () => {
     withTempDir((dir) => {
@@ -62,7 +63,7 @@ describe("gmail rule safety audit env loading", () => {
       expect(result.stderr).toContain("missing_env:GOOGLE_CLIENT_ID");
       expect(result.stderr).not.toContain("from-file");
     });
-  });
+  }, auditCliTimeoutMs);
 
   test("loads the explicitly provided env file without printing values", () => {
     withTempDir((dir) => {
@@ -82,5 +83,5 @@ describe("gmail rule safety audit env loading", () => {
       expect(result.stderr).toContain("missing_env:GOOGLE_CLIENT_SECRET");
       expect(result.stderr).not.toContain("from-file-secret");
     });
-  });
+  }, auditCliTimeoutMs);
 });

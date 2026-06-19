@@ -1,8 +1,8 @@
 # MailHub Production Config Intake
 
-Generated: 2026-06-19T02:22:48.485Z
+Generated: 2026-06-19T03:16:43.164Z
 
-Repo head: `13d3dc3b70d95fd6f720dc0b46f7a435e8158677`
+Repo head: `6ce8200e65e01abba47ebf011783b152d55ed795`
 
 This artifact is intentionally value-free. Do not paste production secrets, tokens, private keys, SMTP passwords, or OAuth values into this file.
 
@@ -51,6 +51,17 @@ These values are required before the external routing P0 can close. `MAILHUB_PRO
 
 Optional SMTP keys: `MAILHUB_PROBE_SMTP_PORT`, `MAILHUB_PROBE_SMTP_SECURE`
 
+## Routing Gmail Proof Intake
+
+These values let the routing proof workflow verify the probe marker in the shared Gmail inbox after external SMTP sends. They are tracked separately from external SMTP proof settings because staff runtime uses variables for public Google values, while the routing proof workflow receives these as Actions secrets.
+
+| Key | Destination | Source | Constraint | Current status |
+| --- | --- | --- | --- | --- |
+| `GOOGLE_CLIENT_ID` | GitHub Actions secret for routing proof workflow | existing local/env or operator supplied | required for routing send verification; staff runtime public keys still use GitHub variables where applicable | not currently missing |
+| `GOOGLE_CLIENT_SECRET` | GitHub Actions secret for routing proof workflow | existing local/env or operator supplied | required for routing send verification; staff runtime public keys still use GitHub variables where applicable | not currently missing |
+| `GOOGLE_SHARED_INBOX_EMAIL` | GitHub Actions secret for routing proof workflow | existing local/env or operator supplied | required for routing send verification; staff runtime public keys still use GitHub variables where applicable | not currently missing |
+| `GOOGLE_SHARED_INBOX_REFRESH_TOKEN` | GitHub Actions secret for routing proof workflow | existing local/env or operator supplied | required for routing send verification; staff runtime public keys still use GitHub variables where applicable | not currently missing |
+
 ## Sheets Rule Source Intake
 
 Required before `rule_config_source_not_production` can close:
@@ -79,21 +90,42 @@ The following remain approval-gated:
 
 Dry-run commands:
 
-- `npm run setup:mailhub-routing-secrets`
+- `npm run setup:mailhub-routing-secrets -- --out .ai-runs/mailhub-next-phase/mailhub-routing-secrets-plan.json`
 - `npm run setup:mailhub-staff-github-config -- --out .ai-runs/mailhub-next-phase/mailhub-staff-github-config-plan.json`
 - `npm run setup:mailhub-staff-env -- --strict --out .ai-runs/mailhub-next-phase/mailhub-staff-env-readiness.json`
+- `npm run probe:routing-preflight -- --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-preflight.json`
 - `npm run ops:readiness-refresh -- --plan-only`
 
-Apply commands, only after values are present and explicit approval is given:
+Approval-gated commands, only after values are present and explicit approval is given:
 
-- `npm run setup:mailhub-routing-secrets -- --apply`
-- `npm run setup:mailhub-staff-github-config -- --apply`
-
-Routing proof commands, only after external SMTP values are present and explicit approval is given:
-
-- `npm run probe:routing-preflight -- --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-preflight.json`
-- `npm run probe:routing-send -- --send --verify-after-send --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-send.json`
-- `npm run ops:readiness-refresh -- --rules-source sheets`
+- apply_routing_probe_github_secrets: blocked_missing_values
+  - sideEffect: `github_mutation`
+  - requiresApproval: `true`
+  - confirmationToken: `APPLY_MAILHUB_ROUTING_SECRETS`
+  - commandAfterApproval: `npm run setup:mailhub-routing-secrets -- --apply --confirm-apply APPLY_MAILHUB_ROUTING_SECRETS --out .ai-runs/mailhub-next-phase/mailhub-routing-secrets-plan.json`
+  - preconditions: `external_smtp_values_present`, `routing_gmail_proof_values_present_if_missing`, `explicit_user_approval`, `no_secret_values_in_artifacts`
+  - blockedReason: `missing_routing_proof_secret_values`
+- apply_staff_github_config: blocked_missing_values
+  - sideEffect: `github_mutation`
+  - requiresApproval: `true`
+  - confirmationToken: `APPLY_MAILHUB_STAFF_GITHUB_CONFIG`
+  - commandAfterApproval: `npm run setup:mailhub-staff-github-config -- --apply --confirm-apply APPLY_MAILHUB_STAFF_GITHUB_CONFIG --out .ai-runs/mailhub-next-phase/mailhub-staff-github-config-plan.json`
+  - preconditions: `staff_production_config_values_present`, `nextauth_url_https_non_localhost`, `team_allowlist_confirmed`, `explicit_user_approval`, `no_secret_values_in_artifacts`
+  - blockedReason: `missing_staff_config_values`
+- send_external_routing_probes: blocked_missing_values
+  - sideEffect: `external_mail`
+  - requiresApproval: `true`
+  - confirmationToken: `SEND_EXTERNAL_MAILHUB_ROUTING_PROBES`
+  - commandAfterApproval: `npm run probe:routing-send -- --send --confirm-send SEND_EXTERNAL_MAILHUB_ROUTING_PROBES --verify-after-send --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-send.json`
+  - preconditions: `external_smtp_values_present`, `routing_gmail_proof_values_present`, `MAILHUB_PROBE_FROM_is_non_vtj_external_sender`, `explicit_user_approval`
+  - blockedReason: `missing_routing_proof_values`
+- run_sheets_mutation_paths: blocked_requires_separate_approval
+  - sideEffect: `sheets_mutation`
+  - requiresApproval: `true`
+  - confirmationToken: `EXPLICIT_OPERATOR_APPROVAL_REQUIRED`
+  - commandAfterApproval: `not emitted by this no-secret intake package`
+  - preconditions: `sheets_rule_source_configured`, `read_only_verification_passed`, `explicit_user_approval`
+  - blockedReason: `sheets_mutation_out_of_scope_for_this_package`
 
 ## Post-Apply Verification
 
@@ -116,6 +148,10 @@ External SMTP proof:
 - `MAILHUB_PROBE_SMTP_USER`
 - `MAILHUB_PROBE_SMTP_PASS`
 - `MAILHUB_PROBE_FROM`
+
+Routing Gmail proof:
+
+_none_
 
 Staff production config:
 

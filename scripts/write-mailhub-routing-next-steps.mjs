@@ -26,8 +26,10 @@ const REQUIRED_LOCAL_GMAIL_ENV = [
   "GOOGLE_SHARED_INBOX_EMAIL",
   "GOOGLE_SHARED_INBOX_REFRESH_TOKEN",
 ];
-const ROUTING_SECRET_SETUP_DRY_RUN_COMMAND = "npm run setup:mailhub-routing-secrets";
-const ROUTING_SECRET_SETUP_APPLY_COMMAND = "npm run setup:mailhub-routing-secrets -- --apply";
+const ROUTING_SECRET_SETUP_OUT = ".ai-runs/mailhub-next-phase/mailhub-routing-secrets-plan.json";
+const ROUTING_SECRET_SETUP_DRY_RUN_COMMAND = `npm run setup:mailhub-routing-secrets -- --out ${ROUTING_SECRET_SETUP_OUT}`;
+const ROUTING_SECRET_SETUP_APPLY_COMMAND = `npm run setup:mailhub-routing-secrets -- --apply --confirm-apply APPLY_MAILHUB_ROUTING_SECRETS --out ${ROUTING_SECRET_SETUP_OUT}`;
+const LOCAL_SEND_VERIFY_COMMAND = "npm run probe:routing-send -- --send --confirm-send SEND_EXTERNAL_MAILHUB_ROUTING_PROBES --verify-after-send --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-send.json";
 
 function parseArgs(argv) {
   const out = { ...defaults, localEnvFile: join(repoRoot, ".env.local"), strict: false, repoHead: "", repoParentHead: "" };
@@ -220,7 +222,7 @@ function main() {
       {
         id: "run_local_send_verify",
         status: canRunLocalSendVerify ? "ready" : "blocked",
-        command: "npm run probe:routing-send -- --send --verify-after-send --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-send.json",
+        command: LOCAL_SEND_VERIFY_COMMAND,
         expected: "local SMTP preflight and local Gmail verification env are ready, then sends 8 external probes and verifies all expected addresses",
       },
     ],

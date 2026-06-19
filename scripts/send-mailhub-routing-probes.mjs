@@ -12,6 +12,7 @@ const defaultOpsAuditPath = join(runDir, "mailhub-operational-confirmations.json
 const defaultOutPath = join(runDir, "mailhub-routing-probe-send.json");
 const defaultRoutingAuditOutPath = join(runDir, "mailhub-routing-probe-audit.json");
 const defaultReadinessOutPath = join(runDir, "mailhub-production-readiness-audit.json");
+const SEND_CONFIRM_TOKEN = "SEND_EXTERNAL_MAILHUB_ROUTING_PROBES";
 const CANONICAL_ROUTING_PROBE_ADDRESSES = [
   "gopro_y@vtj.co.jp",
   "gopro_order_yahoo@vtj.co.jp",
@@ -57,6 +58,7 @@ function parseArgs(argv) {
     readinessOut: defaultReadinessOutPath,
     maxResults: 10,
     envFile: envPath,
+    confirmSend: "",
   };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
@@ -64,6 +66,7 @@ function parseArgs(argv) {
     else if (arg === "--out") out.out = argv[++i];
     else if (arg === "--marker") out.marker = argv[++i];
     else if (arg === "--send") out.send = true;
+    else if (arg === "--confirm-send") out.confirmSend = argv[++i] || "";
     else if (arg === "--preflight") out.preflight = true;
     else if (arg === "--allow-vtj-from") out.allowVtjFrom = true;
     else if (arg === "--verify-after-send") out.verifyAfterSend = true;
@@ -74,7 +77,7 @@ function parseArgs(argv) {
     else if (arg === "--max-results") out.maxResults = Math.max(1, Math.min(50, Number(argv[++i]) || 10));
     else if (arg === "--probe-env-file") out.envFile = argv[++i] || "";
     else if (arg === "--help" || arg === "-h") {
-      console.log(`Usage: node scripts/send-mailhub-routing-probes.mjs [--ops-audit path] [--out path] [--marker MAILHUB-ROUTING-PROBE-...] [--preflight] [--send] [--allow-vtj-from] [--verify-after-send] [--wait-seconds 300] [--poll-seconds 15] [--probe-env-file .env.local]
+      console.log(`Usage: node scripts/send-mailhub-routing-probes.mjs [--ops-audit path] [--out path] [--marker MAILHUB-ROUTING-PROBE-...] [--preflight] [--send] [--confirm-send ${SEND_CONFIRM_TOKEN}] [--allow-vtj-from] [--verify-after-send] [--wait-seconds 300] [--poll-seconds 15] [--probe-env-file .env.local]
 
 Environment for --send:
   MAILHUB_PROBE_SMTP_HOST
@@ -86,7 +89,8 @@ Environment for --send:
 
 Dry-run is the default and writes the exact address-level probe plan without sending mail.
 Use --preflight to also report external SMTP readiness without exposing secrets.
-Use --verify-after-send with --send to poll shared Gmail for the marker and regenerate readiness.`);
+Use --verify-after-send with --send to poll shared Gmail for the marker and regenerate readiness.
+--send requires the exact confirmation token: ${SEND_CONFIRM_TOKEN}`);
       process.exit(0);
     }
   }
@@ -368,6 +372,12 @@ function buildResult({ args, opsAudit, marker, generatedAt, from, smtpPreflight,
       preflight: args.preflight,
       verifyAfterSend: args.verifyAfterSend,
     },
+    approval: {
+      sideEffect: "external_mail",
+      requiresApproval: true,
+      confirmSendToken: SEND_CONFIRM_TOKEN,
+      confirmed: args.confirmSend === SEND_CONFIRM_TOKEN,
+    },
     smtpPreflight,
     probeCount: addressProbes.length,
     addressProbes,
@@ -420,6 +430,9 @@ async function main() {
     const canonicalIssues = canonicalRecipientPlanIssues(addressProbes);
     if (canonicalIssues.length > 0) {
       throw new Error(`non_canonical_routing_probe_recipients:${canonicalIssues.join(",")}`);
+    }
+    if (args.confirmSend !== SEND_CONFIRM_TOKEN) {
+      throw new Error("missing_or_invalid_confirm_send_token");
     }
   }
 

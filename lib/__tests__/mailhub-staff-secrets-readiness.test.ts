@@ -163,7 +163,7 @@ describe("MailHub staff GitHub config readiness", () => {
       ]);
       expect(out.setupCommands).toEqual([
         "npm run setup:mailhub-staff-github-config",
-        "npm run setup:mailhub-staff-github-config -- --apply",
+        "npm run setup:mailhub-staff-github-config -- --apply --confirm-apply APPLY_MAILHUB_STAFF_GITHUB_CONFIG",
       ]);
       expect(out.secretGroups.sheetsConfig).toMatchObject({
         ready: false,
@@ -301,7 +301,7 @@ describe("MailHub staff GitHub config readiness", () => {
       ]);
       expect(out.setupCommands).toEqual([
         "npm run setup:mailhub-staff-github-config",
-        "npm run setup:mailhub-staff-github-config -- --apply",
+        "npm run setup:mailhub-staff-github-config -- --apply --confirm-apply APPLY_MAILHUB_STAFF_GITHUB_CONFIG",
       ]);
       expect(result.stdout).not.toContain("admin@example.com");
       expect(result.stdout).not.toContain("bad-team-member");
@@ -460,7 +460,7 @@ describe("MailHub staff GitHub config readiness", () => {
       ]);
       expect(out.setupCommands).toEqual([
         "npm run setup:mailhub-staff-github-config",
-        "npm run setup:mailhub-staff-github-config -- --apply",
+        "npm run setup:mailhub-staff-github-config -- --apply --confirm-apply APPLY_MAILHUB_STAFF_GITHUB_CONFIG",
       ]);
       expect(out.presentRequiredConfigSources.MAILHUB_ENV).toBe("variable");
 
@@ -567,7 +567,7 @@ describe("MailHub staff GitHub config readiness", () => {
       ]);
       expect(out.setupCommands).toEqual([
         "npm run setup:mailhub-staff-github-config",
-        "npm run setup:mailhub-staff-github-config -- --apply",
+        "npm run setup:mailhub-staff-github-config -- --apply --confirm-apply APPLY_MAILHUB_STAFF_GITHUB_CONFIG",
       ]);
       expect(out.presentRequiredConfigSources.NEXTAUTH_SECRET).toBe("secret");
       for (const variable of duplicatedSensitiveVariables) {
@@ -628,7 +628,7 @@ describe("MailHub staff GitHub config readiness", () => {
       ]);
       expect(out.setupCommands).toEqual([
         "npm run setup:mailhub-staff-github-config",
-        "npm run setup:mailhub-staff-github-config -- --apply",
+        "npm run setup:mailhub-staff-github-config -- --apply --confirm-apply APPLY_MAILHUB_STAFF_GITHUB_CONFIG",
       ]);
 
       const contract = runNodeScript(staffSecretContractPath, ["--artifact", outPath, "--allow-non-github-source"]);
@@ -836,7 +836,7 @@ cat >/dev/null
 
       const result = runNodeScript(
         staffGithubSetupPath,
-        ["--staff-env-file", envPath, "--apply"],
+        ["--staff-env-file", envPath, "--apply", "--confirm-apply", "APPLY_MAILHUB_STAFF_GITHUB_CONFIG"],
         {
           ...completeStaffEnv,
           MAILHUB_GH_BIN: fakeGh,
@@ -869,6 +869,42 @@ cat >/dev/null
     });
   });
 
+  test("staff GitHub setup requires confirmation token before apply", () => {
+    withTempDir((dir) => {
+      const envPath = join(dir, "staff.env");
+      const ghLog = join(dir, "gh.log");
+      const fakeGh = join(dir, "gh");
+      writeFileSync(envPath, "", "utf8");
+      writeFileSync(ghLog, "", "utf8");
+      writeFileSync(fakeGh, `#!/bin/sh
+printf 'called\\n' >> "${ghLog}"
+`, "utf8");
+      chmodSync(fakeGh, 0o755);
+
+      const result = runNodeScript(
+        staffGithubSetupPath,
+        ["--staff-env-file", envPath, "--apply"],
+        {
+          ...completeStaffEnv,
+          MAILHUB_GH_BIN: fakeGh,
+        },
+      );
+
+      expect(result.status).toBe(2);
+      const out = JSON.parse(result.stdout) as {
+        readyToApply: boolean;
+        errors: string[];
+        appliedSecretNames: string[];
+        appliedVariableNames: string[];
+      };
+      expect(out.readyToApply).toBe(true);
+      expect(out.errors).toEqual(["missing_or_invalid_confirm_apply_token"]);
+      expect(out.appliedSecretNames).toEqual([]);
+      expect(out.appliedVariableNames).toEqual([]);
+      expect(readFileSync(ghLog, "utf8")).toBe("");
+    });
+  });
+
   test("production config request writes a secret-free P0/P1 input plan", () => {
     withTempDir((dir) => {
       const runDir = join(dir, "run");
@@ -876,21 +912,30 @@ cat >/dev/null
       const markdownOutPath = join(runDir, "mailhub-production-config-intake.md");
       mkdirSync(runDir, { recursive: true });
       writeJson(join(runDir, "mailhub-production-readiness-audit.json"), {
-        productionReady: false,
-        p0Blockers: ["current_shared_gmail_routing"],
-        p1Blockers: [
-          "rule_config_source_not_production",
-          "staff_workflow_permissions",
-          "staff_github_config_not_ready",
-        ],
+        gate: {
+          productionReady: false,
+          p0Blockers: ["current_shared_gmail_routing"],
+          p1Blockers: [
+            "rule_config_source_not_production",
+            "staff_workflow_permissions",
+            "staff_github_config_not_ready",
+          ],
+        },
       });
       writeJson(join(runDir, "github-routing-secrets-readiness.json"), {
-        missingPreflightSecrets: [
-          "MAILHUB_PROBE_SMTP_HOST",
-          "MAILHUB_PROBE_SMTP_USER",
-          "MAILHUB_PROBE_SMTP_PASS",
-          "MAILHUB_PROBE_FROM",
-        ],
+        secretGroups: {
+          externalSmtpProof: {
+            missing: [
+              "MAILHUB_PROBE_SMTP_HOST",
+              "MAILHUB_PROBE_SMTP_USER",
+              "MAILHUB_PROBE_SMTP_PASS",
+              "MAILHUB_PROBE_FROM",
+            ],
+          },
+          gmailProof: {
+            missing: ["GOOGLE_CLIENT_SECRET", "GOOGLE_SHARED_INBOX_REFRESH_TOKEN"],
+          },
+        },
       });
       writeJson(join(runDir, "github-staff-secrets-readiness.json"), {
         missingProductionStaffConfig: ["MAILHUB_TEAM_MEMBERS", "MAILHUB_SHEETS_ID or MAILHUB_SHEETS_SPREADSHEET_ID"],
@@ -910,17 +955,27 @@ cat >/dev/null
         readiness: { productionReady: boolean; p0Blockers: string[]; p1Blockers: string[] };
         currentMissing: {
           externalSmtpSecrets: string[];
+          routingGmailProofSecrets: string[];
           staffProductionConfig: string[];
           staffSecretConfig: string[];
           ruleRequiredActions: string[];
         };
         requiredInputs: {
           externalSmtpProof: { requiredGitHubSecrets: string[]; constraints: string[] };
+          routingGmailProof: { requiredGitHubSecrets: string[]; constraints: string[] };
           staffGitHubConfig: { requiredGitHubVariables: string[]; requiredGitHubSecrets: string[] };
           sheetsRuleSource: { defaultRuleTabs: Record<string, string> };
           readOnlyRolloutEvidence: { requiredFiles: string[] };
         };
-        safeCommands: { applyAfterValuesArePresentAndApproved: string[]; proofAfterSmtpSecretsArePresentAndApproved: string[] };
+        safeCommands: { dryRun: string[] };
+        approvalGatedActions: {
+          id: string;
+          sideEffect: string;
+          requiresApproval: boolean;
+          confirmationToken: string;
+          commandAfterApproval: string;
+          status: string;
+        }[];
         valuePolicy: string;
       }>(outPath);
       expect(out.readiness.productionReady).toBe(false);
@@ -931,17 +986,61 @@ cat >/dev/null
         "MAILHUB_PROBE_SMTP_PASS",
         "MAILHUB_PROBE_FROM",
       ]);
+      expect(out.currentMissing.routingGmailProofSecrets).toEqual([
+        "GOOGLE_CLIENT_SECRET",
+        "GOOGLE_SHARED_INBOX_REFRESH_TOKEN",
+      ]);
       expect(out.currentMissing.staffProductionConfig).toContain("MAILHUB_TEAM_MEMBERS");
       expect(out.currentMissing.staffSecretConfig).toEqual(["MAILHUB_SHEETS_PRIVATE_KEY"]);
       expect(out.requiredInputs.externalSmtpProof.constraints.join("\n")).toContain("non-@vtj.co.jp");
+      expect(out.requiredInputs.routingGmailProof.requiredGitHubSecrets).toContain("GOOGLE_CLIENT_SECRET");
       expect(out.requiredInputs.staffGitHubConfig.requiredGitHubVariables).toContain("MAILHUB_READ_ONLY");
       expect(out.requiredInputs.staffGitHubConfig.requiredGitHubSecrets).toContain("MAILHUB_SHEETS_PRIVATE_KEY");
       expect(out.requiredInputs.sheetsRuleSource.defaultRuleTabs.MAILHUB_SHEETS_TAB_RULES).toBe("ConfigRules");
       expect(out.requiredInputs.readOnlyRolloutEvidence.requiredFiles).toContain("staff-workflow-evidence-manifest.json");
-      expect(out.safeCommands.applyAfterValuesArePresentAndApproved).toContain("npm run setup:mailhub-staff-github-config -- --apply");
-      expect(out.safeCommands.proofAfterSmtpSecretsArePresentAndApproved).toContain(
-        "npm run probe:routing-send -- --send --verify-after-send --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-send.json",
+      expect(out.safeCommands.dryRun).toContain(
+        "npm run setup:mailhub-routing-secrets -- --out .ai-runs/mailhub-next-phase/mailhub-routing-secrets-plan.json",
       );
+      expect(JSON.stringify(out.safeCommands)).not.toContain("--apply");
+      expect(JSON.stringify(out.safeCommands)).not.toContain("--send");
+      expect(out.approvalGatedActions.map((action) => action.id)).toEqual([
+        "apply_routing_probe_github_secrets",
+        "apply_staff_github_config",
+        "send_external_routing_probes",
+        "run_sheets_mutation_paths",
+      ]);
+      expect(out.approvalGatedActions.every((action) => action.requiresApproval === true)).toBe(true);
+      expect(out.approvalGatedActions.every((action) => action.confirmationToken.length > 0)).toBe(true);
+      expect(out.approvalGatedActions).toEqual([
+        expect.objectContaining({
+          id: "apply_routing_probe_github_secrets",
+          sideEffect: "github_mutation",
+          requiresApproval: true,
+          confirmationToken: "APPLY_MAILHUB_ROUTING_SECRETS",
+          commandAfterApproval: "npm run setup:mailhub-routing-secrets -- --include-gmail --apply --confirm-apply APPLY_MAILHUB_ROUTING_SECRETS --out .ai-runs/mailhub-next-phase/mailhub-routing-secrets-plan.json",
+        }),
+        expect.objectContaining({
+          id: "apply_staff_github_config",
+          sideEffect: "github_mutation",
+          requiresApproval: true,
+          confirmationToken: "APPLY_MAILHUB_STAFF_GITHUB_CONFIG",
+          commandAfterApproval: "npm run setup:mailhub-staff-github-config -- --apply --confirm-apply APPLY_MAILHUB_STAFF_GITHUB_CONFIG --out .ai-runs/mailhub-next-phase/mailhub-staff-github-config-plan.json",
+        }),
+        expect.objectContaining({
+          id: "send_external_routing_probes",
+          sideEffect: "external_mail",
+          requiresApproval: true,
+          confirmationToken: "SEND_EXTERNAL_MAILHUB_ROUTING_PROBES",
+          commandAfterApproval: "npm run probe:routing-send -- --send --confirm-send SEND_EXTERNAL_MAILHUB_ROUTING_PROBES --verify-after-send --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-send.json",
+        }),
+        expect.objectContaining({
+          id: "run_sheets_mutation_paths",
+          sideEffect: "sheets_mutation",
+          requiresApproval: true,
+          confirmationToken: "EXPLICIT_OPERATOR_APPROVAL_REQUIRED",
+          commandAfterApproval: "not emitted by this no-secret intake package",
+        }),
+      ]);
       expect(out.valuePolicy).toContain("Secret values are never printed");
       const serialized = JSON.stringify(out);
       expect(serialized).not.toContain("nextauth-secret-value");
@@ -952,12 +1051,41 @@ cat >/dev/null
       expect(markdown).toContain("This artifact is intentionally value-free");
       expect(markdown).toContain("MAILHUB_TEAM_MEMBERS");
       expect(markdown).toContain("non-@vtj.co.jp external sender");
+      expect(markdown).toContain("Routing Gmail Proof Intake");
       expect(markdown).toContain("only after values are present and explicit approval is given");
-      expect(markdown).toContain("npm run setup:mailhub-staff-github-config -- --apply");
-      expect(markdown).toContain("npm run probe:routing-send -- --send --verify-after-send");
+      expect(markdown).toContain("npm run setup:mailhub-routing-secrets -- --include-gmail --apply --confirm-apply APPLY_MAILHUB_ROUTING_SECRETS");
+      expect(markdown).toContain("npm run setup:mailhub-staff-github-config -- --apply --confirm-apply APPLY_MAILHUB_STAFF_GITHUB_CONFIG");
+      expect(markdown).toContain("npm run probe:routing-send -- --send --confirm-send SEND_EXTERNAL_MAILHUB_ROUTING_PROBES --verify-after-send");
       expect(markdown).not.toContain("nextauth-secret-value");
       expect(markdown).not.toContain("BEGIN PRIVATE KEY");
       expect(markdown).not.toContain("probe-pass");
+    });
+  });
+
+  test("production config request honors gate-only productionReady true artifacts", () => {
+    withTempDir((dir) => {
+      const runDir = join(dir, "run");
+      const outPath = join(runDir, "mailhub-production-config-request.json");
+      const markdownOutPath = join(runDir, "mailhub-production-config-intake.md");
+      mkdirSync(runDir, { recursive: true });
+      writeJson(join(runDir, "mailhub-production-readiness-audit.json"), {
+        gate: {
+          productionReady: true,
+          p0Blockers: [],
+          p1Blockers: [],
+        },
+      });
+
+      const result = runNodeScript(productionConfigRequestPath, ["--run-dir", runDir, "--out", outPath]);
+
+      expect(result.status).toBe(0);
+      const out = readJson<{
+        readiness: { productionReady: boolean; p0Blockers: string[]; p1Blockers: string[] };
+      }>(outPath);
+      expect(out.readiness.productionReady).toBe(true);
+      expect(out.readiness.p0Blockers).toEqual([]);
+      expect(out.readiness.p1Blockers).toEqual([]);
+      expect(readFileSync(markdownOutPath, "utf8")).toContain("productionReady: `true`");
     });
   });
 });

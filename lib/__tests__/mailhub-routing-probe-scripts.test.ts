@@ -533,7 +533,7 @@ function writeReadinessFixtures(
     readyForProductionStaffPreflight: staffWorkflowReady,
     setupCommands: staffWorkflowReady ? [] : [
       "npm run setup:mailhub-staff-github-config",
-      "npm run setup:mailhub-staff-github-config -- --apply",
+      "npm run setup:mailhub-staff-github-config -- --apply --confirm-apply APPLY_MAILHUB_STAFF_GITHUB_CONFIG",
     ],
     presentRequiredConfigNames: staffWorkflowReady
       ? [
@@ -1004,49 +1004,60 @@ describe("MailHub routing probe CLI gates", () => {
   });
 
   test("routing secret setup dry-run never prints secret values", () => {
-    const result = runNodeScript(
-      routingSecretSetupPath,
-      ["--include-gmail", "--probe-env-file", "/tmp/missing-mailhub-env"],
-      {
-        GOOGLE_CLIENT_ID: "client-id",
-        GOOGLE_CLIENT_SECRET: "client-secret",
-        GOOGLE_SHARED_INBOX_EMAIL: "mailhub@vtj.co.jp",
-        GOOGLE_SHARED_INBOX_REFRESH_TOKEN: "refresh-token",
-        MAILHUB_PROBE_SMTP_HOST: "smtp.example.com",
-        MAILHUB_PROBE_SMTP_USER: "probe-user",
-        MAILHUB_PROBE_SMTP_PASS: "probe-pass",
-        MAILHUB_PROBE_FROM: "External Probe <external-probe@example.com>",
-        MAILHUB_PROBE_SMTP_PORT: "587",
-        MAILHUB_PROBE_SMTP_SECURE: "false",
-      },
-    );
+    withTempDir((dir) => {
+      const outPath = join(dir, "routing-secrets-plan.json");
+      const result = runNodeScript(
+        routingSecretSetupPath,
+        ["--include-gmail", "--probe-env-file", "/tmp/missing-mailhub-env", "--out", outPath],
+        {
+          GOOGLE_CLIENT_ID: "client-id",
+          GOOGLE_CLIENT_SECRET: "client-secret",
+          GOOGLE_SHARED_INBOX_EMAIL: "mailhub@vtj.co.jp",
+          GOOGLE_SHARED_INBOX_REFRESH_TOKEN: "refresh-token",
+          MAILHUB_PROBE_SMTP_HOST: "smtp.example.com",
+          MAILHUB_PROBE_SMTP_USER: "probe-user",
+          MAILHUB_PROBE_SMTP_PASS: "probe-pass",
+          MAILHUB_PROBE_FROM: "External Probe <external-probe@example.com>",
+          MAILHUB_PROBE_SMTP_PORT: "587",
+          MAILHUB_PROBE_SMTP_SECURE: "false",
+        },
+      );
 
-    expect(result.status).toBe(0);
-    expect(result.stdout).not.toContain("client-secret");
-    expect(result.stdout).not.toContain("refresh-token");
-    expect(result.stdout).not.toContain("probe-pass");
-    expect(result.stdout).not.toContain("probe-user");
-    const out = JSON.parse(result.stdout) as {
-      mode: string;
-      readyToApply: boolean;
-      secretNamesToSet: string[];
-      missingRequiredEnv: string[];
-    };
-    expect(out.mode).toBe("dry_run");
-    expect(out.readyToApply).toBe(true);
-    expect(out.missingRequiredEnv).toEqual([]);
-    expect(out.secretNamesToSet).toEqual([
-      "MAILHUB_PROBE_SMTP_HOST",
-      "MAILHUB_PROBE_SMTP_USER",
-      "MAILHUB_PROBE_SMTP_PASS",
-      "MAILHUB_PROBE_FROM",
-      "MAILHUB_PROBE_SMTP_PORT",
-      "MAILHUB_PROBE_SMTP_SECURE",
-      "GOOGLE_CLIENT_ID",
-      "GOOGLE_CLIENT_SECRET",
-      "GOOGLE_SHARED_INBOX_EMAIL",
-      "GOOGLE_SHARED_INBOX_REFRESH_TOKEN",
-    ]);
+      expect(result.status).toBe(0);
+      expect(result.stdout).not.toContain("client-secret");
+      expect(result.stdout).not.toContain("refresh-token");
+      expect(result.stdout).not.toContain("probe-pass");
+      expect(result.stdout).not.toContain("probe-user");
+      expect(readFileSync(outPath, "utf8")).not.toContain("client-secret");
+      expect(readFileSync(outPath, "utf8")).not.toContain("refresh-token");
+      expect(readFileSync(outPath, "utf8")).not.toContain("probe-pass");
+      const out = readJson<{
+        mode: string;
+        readyToApply: boolean;
+        secretNamesToSet: string[];
+        missingRequiredEnv: string[];
+        approval: { confirmApplyToken: string; confirmed: boolean };
+      }>(outPath);
+      expect(out.mode).toBe("dry_run");
+      expect(out.readyToApply).toBe(true);
+      expect(out.approval).toMatchObject({
+        confirmApplyToken: "APPLY_MAILHUB_ROUTING_SECRETS",
+        confirmed: false,
+      });
+      expect(out.missingRequiredEnv).toEqual([]);
+      expect(out.secretNamesToSet).toEqual([
+        "MAILHUB_PROBE_SMTP_HOST",
+        "MAILHUB_PROBE_SMTP_USER",
+        "MAILHUB_PROBE_SMTP_PASS",
+        "MAILHUB_PROBE_FROM",
+        "MAILHUB_PROBE_SMTP_PORT",
+        "MAILHUB_PROBE_SMTP_SECURE",
+        "GOOGLE_CLIENT_ID",
+        "GOOGLE_CLIENT_SECRET",
+        "GOOGLE_SHARED_INBOX_EMAIL",
+        "GOOGLE_SHARED_INBOX_REFRESH_TOKEN",
+      ]);
+    });
   });
 
   test("routing secret setup refuses vtj sender for production proof", () => {
@@ -1092,7 +1103,7 @@ describe("MailHub routing probe CLI gates", () => {
 
       const result = runNodeScript(
         routingSecretSetupPath,
-        ["--apply", "--probe-env-file", "/tmp/missing-mailhub-env"],
+        ["--apply", "--confirm-apply", "APPLY_MAILHUB_ROUTING_SECRETS", "--probe-env-file", "/tmp/missing-mailhub-env"],
         {
           MAILHUB_GH_BIN: fakeGhPath,
           MAILHUB_GH_CALLS: callsPath,
@@ -1134,6 +1145,47 @@ describe("MailHub routing probe CLI gates", () => {
         ["secret", "set", "MAILHUB_PROBE_FROM"],
       ]);
       expect(calls.every((call) => call.stdinLength > 0)).toBe(true);
+    });
+  });
+
+  test("routing secret setup requires confirmation token before apply", () => {
+    withTempDir((dir) => {
+      const fakeGhPath = join(dir, "fake-gh.sh");
+      const callsPath = join(dir, "gh-calls.jsonl");
+      writeFileSync(callsPath, "", "utf8");
+      writeFileSync(
+        fakeGhPath,
+        [
+          "#!/usr/bin/env bash",
+          "printf 'called\\n' >> \"$MAILHUB_GH_CALLS\"",
+        ].join("\n"),
+        { mode: 0o700 },
+      );
+
+      const result = runNodeScript(
+        routingSecretSetupPath,
+        ["--apply", "--probe-env-file", "/tmp/missing-mailhub-env"],
+        {
+          MAILHUB_GH_BIN: fakeGhPath,
+          MAILHUB_GH_CALLS: callsPath,
+          MAILHUB_PROBE_SMTP_HOST: "smtp.example.com",
+          MAILHUB_PROBE_SMTP_USER: "probe-user",
+          MAILHUB_PROBE_SMTP_PASS: "probe-pass",
+          MAILHUB_PROBE_FROM: "external-probe@example.com",
+        },
+      );
+
+      expect(result.status).toBe(2);
+      expect(result.stdout).not.toContain("probe-pass");
+      const out = JSON.parse(result.stdout) as {
+        readyToApply: boolean;
+        errors: string[];
+        appliedSecretNames: string[];
+      };
+      expect(out.readyToApply).toBe(true);
+      expect(out.errors).toEqual(["missing_or_invalid_confirm_apply_token"]);
+      expect(out.appliedSecretNames).toEqual([]);
+      expect(readFileSync(callsPath, "utf8")).toBe("");
     });
   });
 
@@ -1210,6 +1262,7 @@ describe("MailHub routing probe CLI gates", () => {
 
     expect(workflow).toContain("current_shared_gmail_routing");
     expect(workflow).toContain("routingConfirmed:s.verification.allExpectedAddressesConfirmed");
+    expect(workflow).toContain('--confirm-send "${{ github.event.inputs.confirmSend }}"');
     expect(workflow).not.toContain("if(!s.verification.productionReady)");
   });
 
@@ -1283,8 +1336,8 @@ describe("MailHub routing probe CLI gates", () => {
         status: "required",
         requiredSecrets: ["MAILHUB_PROBE_SMTP_HOST", "MAILHUB_PROBE_SMTP_PASS", "MAILHUB_PROBE_FROM"],
         commands: [
-          "npm run setup:mailhub-routing-secrets",
-          "npm run setup:mailhub-routing-secrets -- --apply",
+          "npm run setup:mailhub-routing-secrets -- --out .ai-runs/mailhub-next-phase/mailhub-routing-secrets-plan.json",
+          "npm run setup:mailhub-routing-secrets -- --apply --confirm-apply APPLY_MAILHUB_ROUTING_SECRETS --out .ai-runs/mailhub-next-phase/mailhub-routing-secrets-plan.json",
         ],
       });
       expect(out.nextActions.find((item) => item.id === "run_github_send_verify")).toMatchObject({
@@ -1368,8 +1421,8 @@ describe("MailHub routing probe CLI gates", () => {
       expect(out.nextActions.find((item) => item.id === "set_external_smtp_secrets")).toMatchObject({
         status: "required",
         commands: [
-          "npm run setup:mailhub-routing-secrets",
-          "npm run setup:mailhub-routing-secrets -- --apply",
+          "npm run setup:mailhub-routing-secrets -- --out .ai-runs/mailhub-next-phase/mailhub-routing-secrets-plan.json",
+          "npm run setup:mailhub-routing-secrets -- --apply --confirm-apply APPLY_MAILHUB_ROUTING_SECRETS --out .ai-runs/mailhub-next-phase/mailhub-routing-secrets-plan.json",
         ],
       });
       expect(out.nextActions.find((item) => item.id === "run_github_send_verify")).toMatchObject({
@@ -1801,8 +1854,8 @@ describe("MailHub routing probe CLI gates", () => {
             id: "set_external_smtp_secrets",
             status: "required",
             commands: [
-              "npm run setup:mailhub-routing-secrets",
-              "npm run setup:mailhub-routing-secrets -- --apply",
+              "npm run setup:mailhub-routing-secrets -- --out .ai-runs/mailhub-next-phase/mailhub-routing-secrets-plan.json",
+              "npm run setup:mailhub-routing-secrets -- --apply --confirm-apply APPLY_MAILHUB_ROUTING_SECRETS --out .ai-runs/mailhub-next-phase/mailhub-routing-secrets-plan.json",
             ],
           },
           { id: "verify_secret_readiness", status: "required" },
@@ -3276,6 +3329,40 @@ describe("MailHub routing probe CLI gates", () => {
     });
   });
 
+  test("routing probe sender requires confirmation token before SMTP send", () => {
+    withTempDir((dir) => {
+      const opsPath = join(dir, "ops.json");
+      const outPath = join(dir, "send-plan.json");
+      writeJson(opsPath, opsAuditFixtureFromProbePlan(canonicalRoutingProbePlan));
+
+      const result = runNodeScript(
+        routingProbeSenderPath,
+        [
+          "--ops-audit",
+          opsPath,
+          "--out",
+          outPath,
+          "--send",
+          "--probe-env-file",
+          join(dir, "missing.env"),
+        ],
+        {
+          MAILHUB_PROBE_SMTP_HOST: "127.0.0.1",
+          MAILHUB_PROBE_SMTP_PORT: "9",
+          MAILHUB_PROBE_SMTP_SECURE: "false",
+          MAILHUB_PROBE_SMTP_USER: "probe-user",
+          MAILHUB_PROBE_SMTP_PASS: "probe-pass",
+          MAILHUB_PROBE_FROM: "external-probe@example.com",
+        },
+      );
+
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain("missing_or_invalid_confirm_send_token");
+      expect(result.stderr).not.toContain("ECONNREFUSED");
+      expect(result.stderr).not.toContain("probe-pass");
+    });
+  });
+
   test("routing probe sender writes sent artifact before verify-after-send readiness regeneration", async () => {
     await withTempDirAsync(async (dir) => {
       await withLocalSmtpServer(dir, async ({ port }) => {
@@ -3356,6 +3443,8 @@ describe("MailHub routing probe CLI gates", () => {
             "--marker",
             marker,
             "--send",
+            "--confirm-send",
+            "SEND_EXTERNAL_MAILHUB_ROUTING_PROBES",
             "--verify-after-send",
             "--routing-audit-out",
             routingAuditOut,

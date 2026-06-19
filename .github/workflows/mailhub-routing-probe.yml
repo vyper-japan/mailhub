@@ -161,6 +161,7 @@ jobs:
           set -euo pipefail
           npm run probe:routing-send -- \
             --send \
+            --confirm-send "${{ github.event.inputs.confirmSend }}" \
             --verify-after-send \
             --wait-seconds "${{ github.event.inputs.waitSeconds }}" \
             --poll-seconds "${{ github.event.inputs.pollSeconds }}" \

@@ -28,8 +28,15 @@
     "NEXTAUTH_URL_must_be_https",
     "NEXTAUTH_URL_must_not_be_localhost"
   ],
+  "errors": [],
   "readyToApply": false,
+  "approval": {
+    "sideEffect": "github_mutation",
+    "requiresApproval": true,
+    "confirmApplyToken": "APPLY_MAILHUB_STAFF_GITHUB_CONFIG",
+    "confirmed": false
+  },
   "appliedSecretNames": [],
   "appliedVariableNames": [],
-  "note": "Values are never printed; --apply passes secrets to gh via stdin and variables via gh variable set --body."
+  "note": "Values are never printed; --apply passes secrets to gh via stdin and variables via gh variable set --body, and requires an explicit confirmation token."
 }

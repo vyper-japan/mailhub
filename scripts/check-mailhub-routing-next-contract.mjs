@@ -171,10 +171,10 @@ function main() {
   const smtpSetupAction = actions.get("set_external_smtp_secrets");
   const smtpSetupCommands = actionCommands(smtpSetupAction);
   if (externalMissing.length > 0) {
-    if (!smtpSetupCommands.some((command) => command === "npm run setup:mailhub-routing-secrets")) {
+    if (!smtpSetupCommands.some((command) => command === "npm run setup:mailhub-routing-secrets -- --out .ai-runs/mailhub-next-phase/mailhub-routing-secrets-plan.json")) {
       errors.push("missing_routing_secret_setup_dry_run_command");
     }
-    if (!smtpSetupCommands.some((command) => command === "npm run setup:mailhub-routing-secrets -- --apply")) {
+    if (!smtpSetupCommands.some((command) => command === "npm run setup:mailhub-routing-secrets -- --apply --confirm-apply APPLY_MAILHUB_ROUTING_SECRETS --out .ai-runs/mailhub-next-phase/mailhub-routing-secrets-plan.json")) {
       errors.push("missing_routing_secret_setup_apply_command");
     }
     if (smtpSetupCommands.some((command) => command.startsWith("gh secret set "))) {

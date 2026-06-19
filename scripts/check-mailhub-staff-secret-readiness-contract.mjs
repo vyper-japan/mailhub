@@ -66,7 +66,7 @@ const STAFF_EMAIL_LIST_VARIABLE_NAMES = REQUIRED_STAFF_ACCESS;
 const VALID_SOURCES = new Set(["github_actions_config", "env", "json"]);
 const STAFF_GITHUB_SETUP_COMMANDS = [
   "npm run setup:mailhub-staff-github-config",
-  "npm run setup:mailhub-staff-github-config -- --apply",
+  "npm run setup:mailhub-staff-github-config -- --apply --confirm-apply APPLY_MAILHUB_STAFF_GITHUB_CONFIG",
 ];
 
 function parseArgs(argv) {

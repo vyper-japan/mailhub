@@ -289,7 +289,7 @@ function baseReadinessAudit(
             presentRequiredConfigSources: {},
             setupCommands: [
               "npm run setup:mailhub-staff-github-config",
-              "npm run setup:mailhub-staff-github-config -- --apply",
+              "npm run setup:mailhub-staff-github-config -- --apply --confirm-apply APPLY_MAILHUB_STAFF_GITHUB_CONFIG",
             ],
           },
           escalatesToP0AfterRoutingProof: true,
