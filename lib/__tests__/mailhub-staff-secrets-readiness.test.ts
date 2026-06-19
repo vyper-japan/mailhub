@@ -873,6 +873,7 @@ cat >/dev/null
     withTempDir((dir) => {
       const runDir = join(dir, "run");
       const outPath = join(runDir, "mailhub-production-config-request.json");
+      const markdownOutPath = join(runDir, "mailhub-production-config-intake.md");
       mkdirSync(runDir, { recursive: true });
       writeJson(join(runDir, "mailhub-production-readiness-audit.json"), {
         productionReady: false,
@@ -902,7 +903,7 @@ cat >/dev/null
         requiredActions: ["configure_staff_access_allowlist"],
       });
 
-      const result = runNodeScript(productionConfigRequestPath, ["--run-dir", runDir, "--out", outPath]);
+      const result = runNodeScript(productionConfigRequestPath, ["--run-dir", runDir, "--out", outPath, "--markdown-out", markdownOutPath]);
 
       expect(result.status).toBe(0);
       const out = readJson<{
@@ -946,6 +947,17 @@ cat >/dev/null
       expect(serialized).not.toContain("nextauth-secret-value");
       expect(serialized).not.toContain("BEGIN PRIVATE KEY");
       expect(serialized).not.toContain("probe-pass");
+      const markdown = readFileSync(markdownOutPath, "utf8");
+      expect(markdown).toContain("# MailHub Production Config Intake");
+      expect(markdown).toContain("This artifact is intentionally value-free");
+      expect(markdown).toContain("MAILHUB_TEAM_MEMBERS");
+      expect(markdown).toContain("non-@vtj.co.jp external sender");
+      expect(markdown).toContain("only after values are present and explicit approval is given");
+      expect(markdown).toContain("npm run setup:mailhub-staff-github-config -- --apply");
+      expect(markdown).toContain("npm run probe:routing-send -- --send --verify-after-send");
+      expect(markdown).not.toContain("nextauth-secret-value");
+      expect(markdown).not.toContain("BEGIN PRIVATE KEY");
+      expect(markdown).not.toContain("probe-pass");
     });
   });
 });

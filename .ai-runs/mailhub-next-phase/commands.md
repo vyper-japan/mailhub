@@ -1,5 +1,36 @@
 # MailHub Next Phase Commands
 
+## Verification Commands Run On 2026-06-19 Production Config Intake Package
+
+```bash
+git status -sb
+git diff --stat
+git diff --check
+node --check scripts/write-mailhub-production-config-request.mjs
+node --check scripts/scan-ops-artifacts.mjs
+npm run audit:mailhub-config-request -- --run-dir .ai-runs/mailhub-next-phase --out .ai-runs/mailhub-next-phase/mailhub-production-config-request.json
+npm run test -- lib/__tests__/mailhub-staff-secrets-readiness.test.ts lib/__tests__/ops-artifact-secret-scan.test.ts
+npm run security:scan-artifacts
+npm run setup:mailhub-staff-github-config -- --out .ai-runs/mailhub-next-phase/mailhub-staff-github-config-plan.json
+npm run setup:mailhub-staff-env -- --strict --out .ai-runs/mailhub-next-phase/mailhub-staff-env-readiness.json
+npm run setup:mailhub-routing-secrets
+npm run typecheck
+npm run lint
+npm run ops:readiness-refresh
+npm run test
+```
+
+## 2026-06-19 Production Config Intake Results
+
+- Added `.ai-runs/mailhub-next-phase/mailhub-production-config-intake.md` as the no-secret operator intake checklist generated from `mailhub-production-config-request.json`.
+- Added the intake artifact to the default ops artifact secret scan.
+- Focused tests passed: `mailhub-staff-secrets-readiness.test.ts`, `ops-artifact-secret-scan.test.ts`.
+- Full tests passed: 74 files / 702 tests.
+- `setup:mailhub-staff-github-config` dry-run remains `readyToApply=false`; missing production Sheets/team/env/read-only values and production HTTPS URL constraints remain.
+- `setup:mailhub-staff-env --strict` intentionally exits non-zero while recording `readyForReadOnlyRolloutPreflight=false`.
+- `setup:mailhub-routing-secrets` dry-run remains `readyToApply=false`; external SMTP proof env is still missing.
+- No external email send, GitHub setup `--apply`, GitHub mutation, or Sheets mutation was run.
+
 ## Verification Commands Run On 2026-06-19 Production Config Gate
 
 ```bash
