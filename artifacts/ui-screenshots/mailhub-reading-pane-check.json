@@ -27,15 +27,15 @@
         "x": 790,
         "y": 240,
         "right": 1610,
-        "bottom": 2705,
+        "bottom": 2747,
         "width": 820,
-        "height": 2465
+        "height": 2507
       },
       "emailBody": {
         "x": 814,
-        "y": 248,
+        "y": 298,
         "right": 1586,
-        "bottom": 608,
+        "bottom": 658,
         "width": 772,
         "height": 360
       },
@@ -63,8 +63,18 @@
         "width": 193,
         "height": 28
       },
+      "workContext": {
+        "x": 814,
+        "y": 248,
+        "right": 1586,
+        "bottom": 290,
+        "width": 772,
+        "height": 42
+      },
+      "workContextText": "今返すすべて未割当楽天RMS171d経過",
       "headerContentLeftDelta": 0,
       "headerContentRightDelta": 0,
+      "workContextBeforeBody": true,
       "horizontalOverflow": false
     },
     "consoleErrors": [],
@@ -98,15 +108,15 @@
         "x": 652,
         "y": 272,
         "right": 1112,
-        "bottom": 2855,
+        "bottom": 2925,
         "width": 460,
-        "height": 2583
+        "height": 2653
       },
       "emailBody": {
         "x": 676,
-        "y": 280,
+        "y": 330,
         "right": 1088,
-        "bottom": 640,
+        "bottom": 690,
         "width": 412,
         "height": 360
       },
@@ -134,8 +144,18 @@
         "width": 412,
         "height": 28
       },
+      "workContext": {
+        "x": 676,
+        "y": 280,
+        "right": 1088,
+        "bottom": 322,
+        "width": 412,
+        "height": 42
+      },
+      "workContextText": "今返すすべて未割当楽天RMS171d経過",
       "headerContentLeftDelta": 0,
       "headerContentRightDelta": 0,
+      "workContextBeforeBody": true,
       "horizontalOverflow": false
     },
     "consoleErrors": [],

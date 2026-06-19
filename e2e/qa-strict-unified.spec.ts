@@ -6045,6 +6045,7 @@ test("Step93-3b) Narrow desktop action rail: ツールバーと作業タブが�
           const rowTextBlock = document.querySelector('[data-testid="message-row"] [data-testid="row-text-block"]');
           const detailSubject = document.querySelector('[data-testid="detail-subject"]');
           const detailContextLine = document.querySelector('[data-testid="detail-context-line"]');
+          const detailWorkContext = document.querySelector('[data-testid="detail-work-context"]');
           const rowCheckbox = document.querySelector('[data-testid="message-row"] input[type="checkbox"]');
           const rowSnippet = document.querySelector('[data-testid="message-row"] [data-testid="row-snippet"]');
           const listWidth = Math.round(listPane?.getBoundingClientRect().width ?? 0);
@@ -6052,6 +6053,7 @@ test("Step93-3b) Narrow desktop action rail: ツールバーと作業タブが�
           const rowTextBlockWidth = Math.round(rowTextBlock?.getBoundingClientRect().width ?? 0);
           const detailSubjectWidth = Math.round(detailSubject?.getBoundingClientRect().width ?? 0);
           const detailContextHeight = Math.round(detailContextLine?.getBoundingClientRect().height ?? 999);
+          const detailWorkContextHeight = Math.round(detailWorkContext?.getBoundingClientRect().height ?? 999);
           return {
             toolbarHeight: Math.round(toolbar?.getBoundingClientRect().height ?? 0),
             toolbarHorizontalOverflow: toolbar ? toolbar.scrollWidth > toolbar.clientWidth + 1 : true,
@@ -6067,6 +6069,11 @@ test("Step93-3b) Narrow desktop action rail: ツールバーと作業タブが�
             rowSnippetReadable: Boolean(rowSnippet) && rowTextBlockWidth >= 280,
             detailSubjectReadable: detailSubjectWidth >= 320,
             detailContextSingleLine: detailContextHeight <= 24,
+            detailWorkContextVisible: Boolean(detailWorkContext),
+            detailWorkContextCompact: detailWorkContextHeight <= 64,
+            detailWorkContextOverflow: detailWorkContext
+              ? detailWorkContext.scrollWidth > detailWorkContext.clientWidth + 1
+              : true,
             detailOverflowsViewport: detailPane ? detailPane.getBoundingClientRect().right > window.innerWidth + 1 : true,
             rowCheckboxMarginRight: rowCheckbox ? getComputedStyle(rowCheckbox).marginRight : "",
           };
@@ -6086,6 +6093,9 @@ test("Step93-3b) Narrow desktop action rail: ツールバーと作業タブが�
       rowSnippetReadable: true,
       detailSubjectReadable: true,
       detailContextSingleLine: true,
+      detailWorkContextVisible: true,
+      detailWorkContextCompact: true,
+      detailWorkContextOverflow: false,
       detailOverflowsViewport: false,
       rowCheckboxMarginRight: "0px",
     });
@@ -6215,10 +6225,14 @@ test("Step93-6) Gmail-like density: 詳細本文を上寄せし、hover行が明
     const hovered = [...document.querySelectorAll(".mailhub-message-row-shell")].find((el) => el.matches(":hover"));
     const hoveredInner = hovered?.firstElementChild;
     const body = document.querySelector('[data-testid="email-body-html"], [data-testid="email-body-text"], [data-testid="detail-skeleton"]');
+    const workContext = document.querySelector('[data-testid="detail-work-context"]');
     const rowTop = firstRow?.getBoundingClientRect().top ?? 0;
     const bodyTop = body?.getBoundingClientRect().top ?? 999;
+    const workContextRect = workContext?.getBoundingClientRect();
     return {
       bodyOffset: bodyTop - rowTop,
+      workContextOffset: (workContextRect?.top ?? 999) - rowTop,
+      contextBeforeBody: workContextRect ? workContextRect.bottom <= bodyTop : false,
       hoverBg: hoveredInner ? getComputedStyle(hoveredInner).backgroundColor : "",
       detailText: document.querySelector('[data-testid="detail-pane"]')?.textContent ?? "",
       sidebarItemHeight:
@@ -6232,7 +6246,9 @@ test("Step93-6) Gmail-like density: 詳細本文を上寄せし、hover行が明
     };
   });
 
-  expect(metrics.bodyOffset).toBeLessThanOrEqual(60);
+  expect(metrics.workContextOffset).toBeLessThanOrEqual(60);
+  expect(metrics.contextBeforeBody).toBe(true);
+  expect(metrics.bodyOffset).toBeLessThanOrEqual(132);
   expect(metrics.hoverBg).not.toBe("rgb(255, 255, 255)");
   expect(metrics.detailText).not.toContain("共用受信箱 宛");
   expect(metrics.detailText).not.toContain("labelIds:");

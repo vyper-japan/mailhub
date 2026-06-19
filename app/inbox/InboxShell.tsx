@@ -6116,6 +6116,93 @@ export default function InboxShell({
     };
   }, [resizing, resize, stopResizing]);
 
+  const selectedWorkContext = useMemo(() => {
+    if (!selectedMessage) return null;
+
+    const statusType = (() => {
+      if (activeLabel?.statusType) return activeLabel.statusType;
+      if (viewTab === "waiting") return "waiting";
+      if (viewTab === "muted") return "muted";
+      if (viewTab === "snoozed") return "snoozed";
+      return "todo";
+    })();
+    const statusLabel =
+      statusType === "waiting"
+        ? "返事待ち"
+        : statusType === "muted"
+          ? "処理不要"
+          : statusType === "done"
+            ? "対応済み"
+            : statusType === "snoozed"
+              ? "スヌーズ"
+              : viewTab === "assigned"
+                ? "自分が対応"
+                : "今返す";
+    const elapsedMs = getElapsedMs(selectedMessage.receivedAt);
+    const slaLevel = getSlaLevel({ statusType, receivedAtIso: selectedMessage.receivedAt });
+    const ownerLabel = selectedAssigneeName ?? "未割当";
+    const ownerState = selectedAssigneeSlug
+      ? isSelectedMine
+        ? "自分"
+        : "他担当"
+      : "未割当";
+    const ownerTone = selectedAssigneeSlug
+      ? isSelectedMine
+        ? "border-[#d2e3fc] bg-[#e8f0fe] text-[#1a73e8]"
+        : "border-[#fdd663] bg-[#fef7e0] text-[#92400e]"
+      : "border-[#dadce0] bg-white text-[#5f6368]";
+    const routeLabel =
+      !selectedDetail || selectedDetail.id !== selectedMessage.id
+        ? "返信経路を判定中"
+        : replyRoute?.kind === "rakuten_rms"
+          ? "楽天RMS"
+          : replyRoute?.kind === "gmail"
+            ? "Gmail返信"
+            : "返信先確認";
+    const routeTitle = replyRoute?.kind === "rakuten_rms" && replyRoute.inquiryId
+      ? `楽天RMS #${replyRoute.inquiryId}`
+      : routeLabel;
+    const routeTone =
+      replyRoute?.kind === "rakuten_rms"
+        ? "border-[#fdd663] bg-[#fef7e0] text-[#92400e]"
+        : replyRoute?.kind === "gmail"
+          ? "border-[#c8e6c9] bg-[#e6f4ea] text-[#137333]"
+          : "border-[#dadce0] bg-white text-[#5f6368]";
+    const slaTone =
+      slaLevel === "critical"
+        ? "border-[#f4b4ae] bg-[#fce8e6] text-[#a50e0e]"
+        : slaLevel === "warn"
+          ? "border-[#fdd663] bg-[#fef7e0] text-[#92400e]"
+          : "border-[#dadce0] bg-white text-[#5f6368]";
+    const scopeLabel = activeChannelScope?.channel.label ?? activeLabel?.label ?? "現在の一覧";
+
+    return {
+      statusLabel,
+      scopeLabel,
+      ownerLabel,
+      ownerState,
+      ownerTone,
+      routeLabel,
+      routeTitle,
+      routeTone,
+      slaLabel: `${formatElapsedTime(elapsedMs)}経過`,
+      slaTone,
+      receivedAt: selectedMessage.receivedAt,
+    };
+  }, [
+    activeChannelScope?.channel.label,
+    activeLabel?.label,
+    activeLabel?.statusType,
+    isSelectedMine,
+    replyRoute?.inquiryId,
+    replyRoute?.kind,
+    selectedAssigneeName,
+    selectedAssigneeSlug,
+    selectedDetail,
+    selectedMessage,
+    viewTab,
+  ]);
+
   return (
     <div className={`w-full h-screen ${t.bg} flex flex-col font-sans`}>
       <div className="flex-1 flex overflow-hidden">
@@ -7759,6 +7846,49 @@ export default function InboxShell({
                     
                     {/* スクロール可能なコンテンツエリア */}
                     <div className="mx-auto w-full max-w-[820px] px-4 pt-2 pb-8 sm:px-5 lg:px-6" data-testid="detail-content-inner">
+                      {selectedWorkContext && (
+                        <div
+                          className="mb-2 flex flex-wrap items-center gap-1.5 border-y border-[#e8eaed] bg-[#f8fbff] px-0 py-1.5 text-[11px] leading-4 text-[#3c4043]"
+                          data-testid="detail-work-context"
+                        >
+                          <div
+                            className="inline-flex h-7 max-w-full min-w-0 items-center gap-1 rounded-full border border-[#dadce0] bg-white px-2 font-medium"
+                            title={`${selectedWorkContext.statusLabel} / ${selectedWorkContext.scopeLabel}`}
+                          >
+                            <CheckCircle size={12} className="shrink-0 text-[#5f6368]" />
+                            <span className="font-semibold text-[#202124]">{selectedWorkContext.statusLabel}</span>
+                            <span className="hidden max-w-[120px] truncate text-[#5f6368] sm:inline">
+                              {selectedWorkContext.scopeLabel}
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleAssignClick(selectedMessage?.id ?? selectedId)}
+                            className={`inline-flex h-7 max-w-full min-w-0 items-center gap-1 rounded-full border px-2 font-medium ${selectedWorkContext.ownerTone} hover:opacity-80`}
+                            data-testid="detail-owner-context"
+                            title={`担当者を変更: ${selectedWorkContext.ownerState}`}
+                          >
+                            <UserCheck size={12} />
+                            <span className="truncate">{selectedWorkContext.ownerLabel}</span>
+                          </button>
+                          <div
+                            className={`inline-flex h-7 max-w-full min-w-0 items-center gap-1 rounded-full border px-2 font-medium ${selectedWorkContext.routeTone}`}
+                            data-testid="detail-route-context"
+                            title={selectedWorkContext.routeTitle}
+                          >
+                            <CornerUpLeft size={12} />
+                            <span className="truncate">{selectedWorkContext.routeLabel}</span>
+                          </div>
+                          <div
+                            className={`inline-flex h-7 max-w-full min-w-0 items-center gap-1 rounded-full border px-2 font-medium ${selectedWorkContext.slaTone}`}
+                            data-testid="detail-sla-context"
+                            title={selectedWorkContext.receivedAt}
+                          >
+                            <Clock size={12} />
+                            <span className="truncate">{selectedWorkContext.slaLabel}</span>
+                          </div>
+                        </div>
+                      )}
                       {/* 本文セクション（折りたたみ可能） */}
                       {bodyCollapsed ? (
                         <div 
