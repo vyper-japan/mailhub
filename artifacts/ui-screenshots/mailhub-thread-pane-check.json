@@ -1,0 +1,98 @@
+[
+  {
+    "name": "mailhub-thread-pane-desktop",
+    "width": 1440,
+    "height": 950,
+    "screenshot": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/artifacts/ui-screenshots/mailhub-thread-pane-desktop.png",
+    "metrics": {
+      "viewportWidth": 1440,
+      "threadPane": {
+        "x": 752,
+        "y": 624,
+        "right": 1408,
+        "bottom": 826,
+        "width": 656,
+        "height": 202
+      },
+      "threadActions": {
+        "x": 752,
+        "y": 641,
+        "right": 1408,
+        "bottom": 697,
+        "width": 656,
+        "height": 56
+      },
+      "threadList": {
+        "x": 752,
+        "y": 705,
+        "right": 1408,
+        "bottom": 826,
+        "width": 656,
+        "height": 121
+      },
+      "threadSelectAction": {
+        "x": 1349,
+        "y": 655,
+        "right": 1408,
+        "bottom": 683,
+        "width": 59,
+        "height": 28
+      },
+      "threadActionText": "2件のやりとりThread: 2 messages今返す 2 / 未担当 2完了返事待ち処理不要担当ラベル選択",
+      "threadItemCount": 2,
+      "actionsOverflow": false,
+      "listOverflow": false,
+      "horizontalOverflow": false
+    },
+    "consoleErrors": [],
+    "failedResponses": []
+  },
+  {
+    "name": "mailhub-thread-pane-narrow",
+    "width": 1120,
+    "height": 840,
+    "screenshot": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/artifacts/ui-screenshots/mailhub-thread-pane-narrow.png",
+    "metrics": {
+      "viewportWidth": 1120,
+      "threadPane": {
+        "x": 676,
+        "y": 656,
+        "right": 1088,
+        "bottom": 926,
+        "width": 412,
+        "height": 270
+      },
+      "threadActions": {
+        "x": 676,
+        "y": 673,
+        "right": 1088,
+        "bottom": 797,
+        "width": 412,
+        "height": 124
+      },
+      "threadList": {
+        "x": 676,
+        "y": 805,
+        "right": 1088,
+        "bottom": 926,
+        "width": 412,
+        "height": 121
+      },
+      "threadSelectAction": {
+        "x": 1029,
+        "y": 760,
+        "right": 1088,
+        "bottom": 788,
+        "width": 59,
+        "height": 28
+      },
+      "threadActionText": "2件のやりとりThread: 2 messages今返す 2 / 未担当 2完了返事待ち処理不要担当ラベル選択",
+      "threadItemCount": 2,
+      "actionsOverflow": false,
+      "listOverflow": false,
+      "horizontalOverflow": false
+    },
+    "consoleErrors": [],
+    "failedResponses": []
+  }
+]

@@ -276,6 +276,28 @@ test.describe("QA-Strict Unified E2E Tests", () => {
     // Thread Actionsバーが表示される
     const threadActions = pane.getByTestId("thread-actions");
     await expect(threadActions).toBeVisible({ timeout: 5000 });
+    await expect(pane.getByTestId("thread-list")).toBeVisible({ timeout: 5000 });
+    const threadMetrics = await pane.evaluate((el) => {
+      const actions = el.querySelector('[data-testid="thread-actions"]');
+      const list = el.querySelector('[data-testid="thread-list"]');
+      const paneRect = el.getBoundingClientRect();
+      const actionsRect = actions?.getBoundingClientRect();
+      const listRect = list?.getBoundingClientRect();
+      return {
+        actionsOverflow: actions ? actions.scrollWidth > actions.clientWidth + 1 : true,
+        listOverflow: list ? list.scrollWidth > list.clientWidth + 1 : true,
+        actionsAligned: actionsRect ? Math.abs(actionsRect.left - paneRect.left) <= 1 : false,
+        listAligned: listRect ? Math.abs(listRect.left - paneRect.left) <= 1 : false,
+        actionBarHeight: Math.round(actionsRect?.height ?? 0),
+      };
+    });
+    expect(threadMetrics).toMatchObject({
+      actionsOverflow: false,
+      listOverflow: false,
+      actionsAligned: true,
+      listAligned: true,
+    });
+    expect(threadMetrics.actionBarHeight).toBeLessThanOrEqual(60);
     
     // 会話一括選択 → 対象はthread-021の2件
     await threadActions.getByTestId("thread-action-select").click();

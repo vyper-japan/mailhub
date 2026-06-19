@@ -7917,9 +7917,9 @@ export default function InboxShell({
                             .filter(Boolean)
                             .join(" / ");
 	                          const actionButtonClass =
-	                            "inline-flex h-8 w-8 shrink-0 items-center justify-center gap-1.5 rounded-full border border-transparent px-0 text-[12px] font-medium text-[#5f6368] transition-colors hover:border-[#dadce0] hover:bg-[#f1f3f4] hover:text-[#202124] active:bg-[#e8eaed] disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto sm:px-2";
+	                            "inline-flex h-7 w-7 shrink-0 items-center justify-center gap-1.5 rounded-md border border-transparent px-0 text-[12px] font-medium text-[#5f6368] transition-colors hover:border-[#dadce0] hover:bg-[#f1f3f4] hover:text-[#202124] active:bg-[#e8eaed] disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto sm:px-1.5";
 	                          return (
-	                            <div className="mb-2 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[#e8eaed] bg-[#f8fafd] px-3 py-2" data-testid="thread-actions">
+	                            <div className="mb-2 flex flex-wrap items-center justify-between gap-2 border-y border-[#e8eaed] bg-white py-2" data-testid="thread-actions">
 	                              <div className="min-w-0 flex-1">
 	                                <div className="flex items-center gap-2 text-[13px] font-medium text-[#202124]">
 	                                  <MessageSquare size={15} className="shrink-0 text-[#5f6368]" />
@@ -7932,7 +7932,7 @@ export default function InboxShell({
                                   </div>
                                 )}
                               </div>
-	                              <div className="flex items-center gap-0.5 overflow-x-auto whitespace-nowrap">
+	                              <div className="flex flex-wrap items-center justify-end gap-1 overflow-visible whitespace-normal">
 	                                <button
 	                                  type="button"
 	                                  data-testid="thread-action-done"
@@ -8044,7 +8044,7 @@ export default function InboxShell({
                         ) : !threadSummary || threadSummary.messages.length <= 1 ? (
                           null
                         ) : (
-                          <div className="overflow-hidden rounded-lg border border-[#dadce0] bg-white shadow-[0_1px_2px_rgba(60,64,67,0.08)]">
+                          <div className="overflow-hidden border-y border-[#e8eaed] bg-white" data-testid="thread-list">
                             {threadSummary.messages.map((m, index) => {
                               const isSelected = m.id === selectedMessage.id;
 	                              const expanded = threadExpandedIds.has(m.id);
@@ -8064,11 +8064,11 @@ export default function InboxShell({
                                 <div
                                   key={m.id}
                                   data-testid="thread-item"
-                                  className={`group border-t border-[#e8eaed] transition-colors first:border-t-0 ${
+	                                  className={`group border-t border-[#e8eaed] transition-colors first:border-t-0 ${
                                     isSelected ? "bg-[#f8fbff]" : "bg-white hover:bg-[#f8fafd]"
                                   }`}
                                 >
-                                  <div className={`flex min-h-[48px] items-start gap-3 px-3 py-2.5 ${isSelected ? "border-l-4 border-[#1a73e8] pl-2" : "border-l-4 border-transparent pl-2"}`}>
+                                  <div className={`flex min-h-[46px] items-start gap-3 py-2 ${isSelected ? "border-l-4 border-[#1a73e8] pl-2 pr-3" : "border-l-4 border-transparent pl-2 pr-3"}`}>
 	                                    {isSelected ? (
 	                                      <div className="mt-0.5 h-7 w-7 shrink-0" aria-hidden="true" />
 	                                    ) : (
