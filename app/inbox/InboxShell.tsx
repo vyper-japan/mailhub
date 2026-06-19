@@ -7458,14 +7458,14 @@ export default function InboxShell({
                                 {isCompactList && mail.snippet && (
                                   <>
                                     <span className="flex-shrink-0 text-[#5f6368]"> - </span>
-                                    <span data-testid="row-snippet" className="min-w-0 truncate text-[#5f6368] font-normal">{shortSnippet(mail.snippet, 96)}</span>
+                                    <span data-testid="row-snippet" className="min-w-0 flex-1 truncate font-normal text-[#5f6368]">{shortSnippet(mail.snippet, 96)}</span>
                                   </>
                                 )}
                               </div>
 
                               {!isCompactList && (
                                 <div className="mt-0.5 flex min-w-0 items-center gap-1.5 text-[12px] leading-[16px] text-[#5f6368]">
-                                  <span data-testid="row-snippet" className="min-w-0 truncate font-normal">{shortSnippet(mail.snippet, 150)}</span>
+                                  <span data-testid="row-snippet" className="block min-w-0 w-full truncate font-normal">{shortSnippet(mail.snippet, 150)}</span>
                                   {workTags.slice(0, 2).map((tag) => (
                                     <span
                                       key={tag}
