@@ -5,7 +5,8 @@
 Status update after this note was first written:
 
 - UI slice committed: `94429df Polish MailHub message list density`.
-- `npm run ops:readiness-refresh` passed after the UI commit.
+- CI follow-up committed: `4ebea26 Stabilize MailHub message snippet width`.
+- `npm run ops:readiness-refresh` passed after the UI commit and again after the CI follow-up.
 - No external send occurred; routing probe send remained `mode=dry_run` with `sentCount=0`.
 - Next step: commit refreshed `.ai-runs/mailhub-next-phase` artifacts, push, and watch CI.
 

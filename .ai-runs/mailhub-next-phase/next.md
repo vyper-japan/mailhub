@@ -2,7 +2,7 @@
 
 ## 2026-06-20 Resume Here: UI/UX Message List Slice
 
-Status update: the UI slice below has now been committed as `94429df Polish MailHub message list density`, and `npm run ops:readiness-refresh` has passed with no external sends. Next step is to commit the refreshed `.ai-runs/mailhub-next-phase` artifacts, push, and watch CI.
+Status update: the UI slice below was committed as `94429df Polish MailHub message list density`. First pushed CI found a `Step93-3b` snippet-width assertion issue, fixed by `4ebea26 Stabilize MailHub message snippet width`. `npm run ops:readiness-refresh` has passed again after the fix with no external sends. Next step is to commit the refreshed `.ai-runs/mailhub-next-phase` artifacts, push, and watch CI again.
 
 Start from:
 

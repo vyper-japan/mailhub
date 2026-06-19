@@ -2849,3 +2849,59 @@ Result:
 - readiness contract chain passed.
 - `security:scan-artifacts` passed.
 - Production readiness remains false with the known P0/P1 blockers.
+
+## 2026-06-20 CI Follow-Up Commands
+
+First pushed CI:
+
+```bash
+gh run watch 27851474690 --exit-status
+gh run watch 27851474681 --exit-status
+```
+
+Result:
+
+- `MailHub Readiness Contract` `27851474690`: PASS.
+- `qa-strict` `27851474681`: FAIL in `Step93-3b`, `rowSnippetReadable=false`.
+
+Fix validation:
+
+```bash
+npm run lint
+npm run typecheck
+git diff --check
+MAILHUB_TEST_MODE=1 MAILHUB_DATA_MODE=stub NEXTAUTH_URL=http://127.0.0.1:3010 NEXTAUTH_SECRET=test-secret PLAYWRIGHT_BASE_URL=http://127.0.0.1:3010 npx playwright test e2e/qa-strict-unified.spec.ts -g "Step93-3b|Step93-6" --workers=1
+MAILHUB_TEST_MODE=1 NEXTAUTH_SECRET=dummy NEXTAUTH_URL=http://localhost:3000 NEXTAUTH_TRUST_HOST=true GOOGLE_CLIENT_ID=dummy GOOGLE_CLIENT_SECRET=dummy GOOGLE_SHARED_INBOX_EMAIL=inbox@vtj.co.jp GOOGLE_SHARED_INBOX_REFRESH_TOKEN=dummy npx playwright test e2e/qa-strict-unified.spec.ts -g "Step93-3b" --workers=1
+```
+
+Result:
+
+- lint PASS
+- typecheck PASS
+- diff-check PASS
+- targeted two-test Playwright PASS
+- CI-equivalent single-test Playwright PASS
+
+Fix commit:
+
+```bash
+git commit -m "Stabilize MailHub message snippet width"
+```
+
+Result:
+
+- `4ebea26 Stabilize MailHub message snippet width`
+
+Second readiness refresh after the fix:
+
+```bash
+npm run ops:readiness-refresh
+```
+
+Result:
+
+- PASS.
+- `probe:routing-send` stayed `dry_run`.
+- `sentCount=0`.
+- readiness contract chain passed.
+- `security:scan-artifacts` passed.

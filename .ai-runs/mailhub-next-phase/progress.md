@@ -91,6 +91,49 @@ No-send readiness refresh completed after the UI commit:
   - P1 `staff_workflow_permissions`
   - P1 `staff_github_config_not_ready`
 
+## 2026-06-20 CI Follow-Up For Message Snippet Width
+
+After pushing `78ba7f5`, GitHub Actions result:
+
+- `MailHub Readiness Contract` run `27851474690`: PASS.
+- `qa-strict` run `27851474681`: FAIL.
+
+Failure:
+
+- `Step93-3b` failed only on `rowSnippetReadable`.
+- The new assertion measured the rendered text span width, not the available snippet area, so CI could fail when the first visible row had shorter text even though the row text block remained readable.
+
+Fix completed:
+
+- `app/inbox/InboxShell.tsx` now gives compact row snippets `flex-1` and regular row snippets `block w-full`, so the snippet truncation element occupies the available readable width.
+- Re-captured `mailhub-message-list-*` screenshots and metrics.
+- New metrics:
+  - narrow first row text/snippet width: `288px`
+  - desktop first row text/snippet width: `364px`
+  - horizontal overflow: false
+  - console errors: 0
+  - failed responses: 0
+
+Verification after fix:
+
+- `npm run lint`: PASS.
+- `npm run typecheck`: PASS.
+- `git diff --check`: PASS.
+- targeted Playwright `Step93-3b|Step93-6`: PASS, 2 tests.
+- CI-equivalent single `Step93-3b` with only `MAILHUB_TEST_MODE=1` plus dummy CI env: PASS.
+
+Fix commit:
+
+- `4ebea26 Stabilize MailHub message snippet width`
+
+No-send readiness refresh completed again after `4ebea26`:
+
+- `npm run ops:readiness-refresh`: PASS.
+- Routing probe send remained `mode=dry_run`.
+- `mailhub-routing-proof-contract`: PASS with `sentCount=0`.
+- `security:scan-artifacts`: PASS.
+- Readiness artifacts now reference repo head `4ebea26c74d8d90dd60aef291ee0d3e42a69087a`.
+
 ## 2026-06-18 SHIELD Full-Diff Final Review Completed
 
 This session resumed from `next-session-prompt.md`, ran the required first checks, and completed the full-diff SHIELD review before further edits.
