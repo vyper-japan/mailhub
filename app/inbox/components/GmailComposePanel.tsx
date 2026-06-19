@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle, Send, X } from "lucide-react";
+import { AlertTriangle, CheckCircle, Send, X } from "lucide-react";
 
 export type GmailComposePanelProps = {
   messageId: string;
@@ -121,37 +121,79 @@ export function GmailComposePanel({
   const actionDisabled = isSendingGmailReply || effectiveDisabledReason !== null || sentStatus !== "idle";
   const bodyDisabled = readOnly || isSendingGmailReply || sentStatus !== "idle";
   const fromText = fromAlias ? (fromLabel ? `${fromLabel} <${fromAlias}>` : fromAlias) : "-";
+  const readinessChecks = [
+    { label: "From", ok: Boolean(fromAlias), detail: fromAlias ?? "未解決" },
+    { label: "To", ok: Boolean(to), detail: to ?? "未解決" },
+    { label: "本文", ok: Boolean(bodyText.trim()), detail: bodyText.trim() ? `${bodyText.trim().length}字` : "未入力" },
+    { label: "変数", ok: unresolvedVars.length === 0, detail: unresolvedVars.length === 0 ? "OK" : `${unresolvedVars.length}件` },
+    {
+      label: "送信",
+      ok: !effectiveDisabledReason && sentStatus === "idle",
+      detail: effectiveDisabledReason ? disabledReasonMessage(effectiveDisabledReason, errorMessage) : "可能",
+    },
+  ];
 
   return (
     <div
-      className="mt-6 bg-blue-50 rounded-xl p-6 border border-blue-200"
+      className="mt-6 rounded-lg border border-[#d2e3fc] bg-[#f8fbff] p-5"
       data-message-id={messageId}
       data-testid="gmail-compose-panel"
     >
       <div className="flex items-center justify-between gap-3 mb-4">
         <div className="flex items-center gap-2">
           <Send size={16} className="text-blue-600" />
-          <div className="text-[13px] font-semibold text-[#202124]">Gmail返信</div>
+          <div>
+            <div className="text-[13px] font-semibold text-[#202124]">Gmail返信</div>
+            <div className="text-[11px] text-[#5f6368]">送信は取り消せません。宛先とFromを確認してから実行します。</div>
+          </div>
         </div>
-        {readOnly && <span className="text-[12px] text-red-700">READ ONLY</span>}
+        {readOnly && (
+          <span className="rounded-full border border-[#f4b4ae] bg-[#fce8e6] px-2 py-0.5 text-[12px] font-medium text-red-700">
+            READ ONLY
+          </span>
+        )}
+      </div>
+
+      <div
+        className="mb-4 grid gap-2 rounded-md border border-[#d2e3fc] bg-white p-3 sm:grid-cols-5"
+        data-testid="gmail-compose-safety-checks"
+      >
+        {readinessChecks.map((check) => (
+          <div key={check.label} className="min-w-0">
+            <div className="flex items-center gap-1 text-[11px] font-medium text-[#5f6368]">
+              {check.ok ? (
+                <CheckCircle size={13} className="shrink-0 text-[#137333]" />
+              ) : (
+                <AlertTriangle size={13} className="shrink-0 text-[#ea8600]" />
+              )}
+              {check.label}
+            </div>
+            <div
+              className={`mt-1 truncate text-[12px] font-medium ${check.ok ? "text-[#202124]" : "text-[#92400e]"}`}
+              title={check.detail}
+            >
+              {check.detail}
+            </div>
+          </div>
+        ))}
       </div>
 
       <div className="grid gap-3 mb-4">
         <div>
           <div className="text-xs font-medium text-gray-500 mb-1">From</div>
-          <div className="text-sm text-gray-900 bg-white border border-blue-100 rounded-md px-3 py-2" data-testid="gmail-compose-from">
+          <div className="text-sm text-gray-900 bg-white border border-[#d2e3fc] rounded-md px-3 py-2" data-testid="gmail-compose-from">
             {fromText}
           </div>
         </div>
         <div>
           <div className="text-xs font-medium text-gray-500 mb-1">To</div>
-          <div className="text-sm text-gray-900 bg-white border border-blue-100 rounded-md px-3 py-2" data-testid="gmail-compose-to">
+          <div className="text-sm text-gray-900 bg-white border border-[#d2e3fc] rounded-md px-3 py-2" data-testid="gmail-compose-to">
             {to ?? "-"}
           </div>
         </div>
         <div>
           <div className="text-xs font-medium text-gray-500 mb-1">Subject</div>
-          <div className="text-sm text-gray-900 bg-white border border-blue-100 rounded-md px-3 py-2" data-testid="gmail-compose-subject">
+          <div className="text-sm text-gray-900 bg-white border border-[#d2e3fc] rounded-md px-3 py-2" data-testid="gmail-compose-subject">
             {subject || "(no subject)"}
           </div>
         </div>
@@ -203,7 +245,7 @@ export function GmailComposePanel({
           className="px-4 py-2 bg-blue-600 text-white hover:bg-blue-500 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed rounded-md text-sm font-medium transition-colors flex items-center gap-2"
         >
           <Send size={14} />
-          {isSendingGmailReply ? "送信中..." : "送信"}
+          {isSendingGmailReply ? "送信中..." : "Gmailで送信"}
         </button>
         <button
           type="button"

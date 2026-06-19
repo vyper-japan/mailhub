@@ -181,6 +181,125 @@ type OpsSummaryView = {
   productionReadiness?: OpsReadinessView;
 };
 
+type OperationalStatusStripProps = {
+  readOnlyMode: boolean;
+  writeGuardReady: boolean;
+  mailhubEnv: string;
+  testMode: boolean;
+  statusCounts: StatusCounts | null;
+  activeLabel: LabelItem | null;
+  activeChannelScope: ChannelSourceScope | null;
+  selectedMessage: InboxListMessage | null;
+  selectedAssigneeName: string | null;
+  productionReadiness: OpsReadinessView | null;
+  onOpenOps: () => void;
+  onOpenCommandPalette: () => void;
+};
+
+function OperationalStatusStrip({
+  readOnlyMode,
+  writeGuardReady,
+  mailhubEnv,
+  testMode,
+  statusCounts,
+  activeLabel,
+  activeChannelScope,
+  selectedMessage,
+  selectedAssigneeName,
+  productionReadiness,
+  onOpenOps,
+  onOpenCommandPalette,
+}: OperationalStatusStripProps) {
+  const repoMismatch = productionReadiness?.repoHeadMatches === false;
+  const productionBlocked = Boolean(productionReadiness && (!productionReadiness.productionReady || repoMismatch));
+  const productionLabel = productionReadiness
+    ? repoMismatch
+      ? "監査HEAD不一致"
+      : productionReadiness.productionReady
+        ? "本番準備OK"
+        : "本番準備ブロック"
+    : "運用確認未取得";
+  const blockerCount = (productionReadiness?.p0Blockers.length ?? 0) + (productionReadiness?.p1Blockers.length ?? 0);
+  const queueLabel = activeChannelScope
+    ? `${activeChannelScope.channel.label} / ${activeChannelScope.isAggregate ? `${activeChannelScope.sourceChannels.length}店舗` : `${activeChannelScope.sourceAddresses.length}宛先`}`
+    : activeLabel?.label ?? "Inbox";
+  const selectedLabel = selectedMessage
+    ? `${selectedAssigneeName ?? "未割当"} / ${selectedMessage.receivedAt?.split(" ")[1] ?? "時刻不明"}`
+    : "未選択";
+  const writeLabel = !writeGuardReady ? "WRITE CHECKING" : readOnlyMode ? "READ ONLY" : "WRITE ENABLED";
+  const writeTitle = !writeGuardReady
+    ? "書き込み安全性を確認中"
+    : readOnlyMode
+      ? "書き込み系アクションは停止中"
+      : "書き込み系アクションが有効";
+
+  return (
+    <div
+      data-testid="ops-status-strip"
+      className="border-b border-[#dadce0] bg-[#f8fbff] px-3 py-2"
+    >
+      <div className="flex flex-wrap items-center gap-2 text-[12px] leading-5 text-[#3c4043]">
+        <span
+          className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 font-medium ${
+            !writeGuardReady
+              ? "border-[#dadce0] bg-white text-[#5f6368]"
+              : readOnlyMode
+              ? "border-[#f4b4ae] bg-[#fce8e6] text-[#a50e0e]"
+              : "border-[#c8e6c9] bg-[#e6f4ea] text-[#137333]"
+          }`}
+          title={writeTitle}
+        >
+          {writeLabel}
+        </span>
+        <span className="inline-flex items-center rounded-full border border-[#dadce0] bg-white px-2 py-0.5 font-medium text-[#3c4043]">
+          {testMode ? "TEST" : mailhubEnv.toUpperCase()}
+        </span>
+        <button
+          type="button"
+          onClick={onOpenOps}
+          className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 font-medium transition-colors ${
+            productionBlocked
+              ? "border-[#fdd663] bg-[#fef7e0] text-[#92400e] hover:bg-[#fde68a]/40"
+              : productionReadiness?.productionReady
+                ? "border-[#c8e6c9] bg-white text-[#137333] hover:bg-[#e6f4ea]"
+                : "border-[#dadce0] bg-white text-[#5f6368] hover:bg-[#f1f3f4]"
+          }`}
+          data-testid="ops-status-production"
+          title="Ops Boardを開く"
+        >
+          {productionBlocked ? <AlertTriangle size={13} /> : <CheckCircle size={13} />}
+          {productionLabel}
+          {blockerCount > 0 && <span>({blockerCount})</span>}
+        </button>
+        <span className="inline-flex min-w-0 max-w-[280px] items-center gap-1 rounded-full border border-[#d2e3fc] bg-white px-2 py-0.5 text-[#1a73e8]">
+          <span className="font-medium">Queue</span>
+          <span className="truncate">{queueLabel}</span>
+        </span>
+        <span className="inline-flex items-center gap-1 rounded-full border border-[#dadce0] bg-white px-2 py-0.5">
+          <span className="font-medium">Now</span>
+          <span>{selectedLabel}</span>
+        </span>
+        <span className="inline-flex items-center gap-1 rounded-full border border-[#dadce0] bg-white px-2 py-0.5">
+          未割当 {statusCounts?.unassignedLoad ?? 0}
+        </span>
+        <span className="inline-flex items-center gap-1 rounded-full border border-[#dadce0] bg-white px-2 py-0.5">
+          自分 {statusCounts?.assignedMine ?? 0}
+        </span>
+        <button
+          type="button"
+          onClick={onOpenCommandPalette}
+          className="ml-auto inline-flex items-center gap-1 rounded-md border border-[#dadce0] bg-white px-2 py-0.5 font-medium text-[#3c4043] hover:bg-[#f1f3f4]"
+          data-testid="ops-status-command"
+          title="コマンドパレット"
+        >
+          <Zap size={13} className="text-[#5f6368]" />
+          <span className="hidden sm:inline">⌘K</span>
+        </button>
+      </div>
+    </div>
+  );
+}
+
 const DETAIL_CACHE_TTL_MS = 60_000;
 const DETAIL_CACHE_REFRESH_DELAY_MS = 180;
 const HOVER_PREFETCH_DELAY_MS = 180;
@@ -963,6 +1082,7 @@ export default function InboxShell({
   
   // Ops Board Drawerの状態
   const [opsSummary, setOpsSummary] = useState<OpsSummaryView | null>(null);
+  const [opsReadiness, setOpsReadiness] = useState<OpsReadinessView | null>(null);
 
   const listRef = useRef<HTMLDivElement | null>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -1145,6 +1265,10 @@ export default function InboxShell({
     if (!selectedId) return null;
     return messages.find((m) => m.id === selectedId)?.assigneeSlug ?? selectedMessage?.assigneeSlug ?? null;
   }, [messages, selectedId, selectedMessage]);
+  const selectedAssigneeName = useMemo(
+    () => getAssigneeDisplayName(selectedAssigneeSlug),
+    [getAssigneeDisplayName, selectedAssigneeSlug],
+  );
   const isSelectedMine = selectedAssigneeSlug === myAssigneeSlug;
   // Step 114: 他人担当かどうか（担当者がいて、自分ではない）
   const isSelectedOtherAssigned = Boolean(selectedAssigneeSlug && !isSelectedMine);
@@ -1729,8 +1853,23 @@ export default function InboxShell({
         return;
       }
       setOpsSummary(data.summary ?? null);
+      setOpsReadiness(data.summary?.productionReadiness ?? null);
     } catch (e) {
       console.error("Failed to fetch ops summary:", e);
+    }
+  }, []);
+
+  const fetchOpsReadiness = useCallback(async () => {
+    try {
+      const res = await fetch("/api/mailhub/ops/readiness", { cache: "no-store" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        console.error("Failed to fetch ops readiness:", data);
+        return;
+      }
+      setOpsReadiness(data.productionReadiness ?? null);
+    } catch (e) {
+      console.error("Failed to fetch ops readiness:", e);
     }
   }, []);
 
@@ -1741,6 +1880,13 @@ export default function InboxShell({
     }, 200);
     return () => window.clearTimeout(timerId);
   }, [showOpsDrawer, fetchOpsSummary]);
+
+  useEffect(() => {
+    const timerId = window.setTimeout(() => {
+      void fetchOpsReadiness();
+    }, 500);
+    return () => window.clearTimeout(timerId);
+  }, [fetchOpsReadiness]);
 
   // バージョン情報を取得
   useEffect(() => {
@@ -6043,6 +6189,21 @@ export default function InboxShell({
             queuesButtonRef={queuesButtonRef}
             macroDisabled={readOnlyMode || (checkedIds.size === 0 && !selectedId)}
             onRunMacro={runMacro}
+            onOpenCommandPalette={() => setShowCommandPalette(true)}
+          />
+
+          <OperationalStatusStrip
+            readOnlyMode={readOnlyMode}
+            writeGuardReady={writeGuardReady}
+            mailhubEnv={mailhubEnv}
+            testMode={testMode}
+            statusCounts={statusCounts}
+            activeLabel={activeLabel}
+            activeChannelScope={activeChannelScope}
+            selectedMessage={selectedMessage}
+            selectedAssigneeName={selectedAssigneeName}
+            productionReadiness={opsReadiness}
+            onOpenOps={() => setShowOpsDrawer(true)}
             onOpenCommandPalette={() => setShowCommandPalette(true)}
           />
 

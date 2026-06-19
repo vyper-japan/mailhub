@@ -1,0 +1,34 @@
+{
+  "task": "mailhub-ui-ux-polish",
+  "audience": "VTJ staff handling repeated shared-inbox triage and customer replies",
+  "product_feel": "Gmail-speed workbench with Front/Help Scout style shared-inbox ownership and Superhuman-style action clarity",
+  "design_principles": [
+    "Expose operational state before action: environment, read-only/write, production readiness, and selected queue must be visible without opening drawers.",
+    "Make queues scannable: store/channel, assignee, and status counts should read like stable work lists, not hidden filters.",
+    "Protect irreversible actions: reply send surfaces must show identity, recipient, body readiness, and blockers near the send buttons.",
+    "Keep density high and decoration low: compact rows, restrained color, stable controls, and no marketing-style panels."
+  ],
+  "borrowed_patterns": [
+    "Gmail: persistent search, keyboard-first toolbar, preview-pane list/detail rhythm.",
+    "Front: shared inbox ownership, assignment load, channel queues.",
+    "Help Scout: saved views and tags as operational filters.",
+    "Superhuman: quick action confidence, command palette affordance, and explicit shortcut hints."
+  ],
+  "scope": [
+    "Top operational status strip",
+    "Sidebar channel/store queue polish",
+    "Gmail compose safety checklist"
+  ],
+  "must_not_do": [
+    "Do not send external email.",
+    "Do not mutate GitHub or Google Sheets.",
+    "Do not add decorative gradients, hero layouts, or card-heavy marketing UI."
+  ],
+  "verification": [
+    "Typecheck",
+    "Lint",
+    "Browser screenshot desktop",
+    "Browser screenshot mobile",
+    "Console error check"
+  ]
+}

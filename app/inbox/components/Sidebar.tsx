@@ -60,6 +60,11 @@ export function Sidebar({
   const pinnedViews = views.filter((v) => v.pinned).sort((a, b) => a.order - b.order);
   const otherViews = views.filter((v) => !v.pinned).sort((a, b) => a.order - b.order);
   const activeView = activeViewId ? views.find((v) => v.id === activeViewId) : null;
+  const channelGroup = labelGroups.find((g) => g.id === "channels");
+  const channelTotal = channelGroup?.items.reduce((sum, item) => {
+    const count = item.type === "channel" && typeof channelCounts[item.id] === "number" ? channelCounts[item.id] : 0;
+    return sum + count;
+  }, 0) ?? 0;
   return (
     <aside
       className={t.sidebar}
@@ -345,7 +350,14 @@ export function Sidebar({
           .filter((g) => g.id === "channels")
           .map((group) => (
               <div key={group.id} className="mb-1" data-testid="label-channels">
-                <div className={t.sidebarHeader}>ストアラベル</div>
+                <div className="mx-1 mb-1 mt-2 flex items-center justify-between px-3">
+                  <div className="text-[10px] font-medium uppercase tracking-wider text-[#5f6368]">
+                    ストア別
+                  </div>
+                  <div className="rounded-full border border-[#dadce0] bg-white px-1.5 py-0.5 text-[10px] font-medium leading-3 text-[#5f6368]">
+                    {channelTotal}件
+                  </div>
+                </div>
                 <div className="space-y-0.5">
                   {group.items.map((item) => {
                     const isActive = item.id === labelId;
@@ -362,18 +374,34 @@ export function Sidebar({
                         key={item.id}
                         data-testid={`label-item-${item.id}`}
                         onClick={() => onSelectLabel(item)}
-                        className={`${t.sidebarItem} ${isActive ? t.sidebarItemActive : ""}`}
+                        className={`${t.sidebarItem} min-h-[30px] ${isActive ? t.sidebarItemActive : ""}`}
+                        title={`${item.label}${count !== null ? `: ${count}件` : ""}`}
                       >
-                        <span className="flex items-center gap-2 min-w-0">
+                        <span className="flex min-w-0 items-center gap-2">
                           <span
-                            className={`w-1.5 h-1.5 rounded-full ${isActive ? "bg-[#1a73e8]" : "bg-[#dadce0]"}`}
+                            className={`h-2 w-2 shrink-0 rounded-full ${isActive ? "bg-[#1a73e8]" : count && count > 0 ? "bg-[#34a853]" : "bg-[#dadce0]"}`}
                           ></span>
-                          <span className="truncate">{item.label}</span>
+                          <span className="truncate">
+                            {item.label}
+                          </span>
                         </span>
-                        {count !== null && count > 0 && <span className={t.badge}>{count}</span>}
+                        <span
+                          className={`${t.badge} shrink-0 ${
+                            count === null
+                              ? "bg-white text-[#9aa0a6] border border-[#e8eaed]"
+                              : count > 0
+                                ? "bg-[#e8f0fe] text-[#1a73e8]"
+                                : "bg-[#f1f3f4] text-[#80868b]"
+                          }`}
+                        >
+                          {count ?? "..."}
+                        </span>
                       </div>
                     );
                   })}
+                </div>
+                <div className="mx-4 mt-1 truncate text-[11px] leading-4 text-[#5f6368]">
+                  店舗別の入口です。選択中でも一覧は残ります。
                 </div>
               </div>
             ))}

@@ -1,0 +1,38 @@
+[
+  {
+    "name": "desktop",
+    "width": 1440,
+    "height": 1000,
+    "url": "http://localhost:3000/?label=all&id=msg-001",
+    "statusStrip": 1,
+    "channelNav": 1,
+    "composePanel": 1,
+    "safetyChecks": 1,
+    "consoleErrors": [],
+    "screenshot": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/artifacts/ui-screenshots/mailhub-ui-polish-desktop.png"
+  },
+  {
+    "name": "mobile",
+    "width": 390,
+    "height": 844,
+    "url": "http://localhost:3000/?label=all&id=msg-001",
+    "statusStrip": 1,
+    "channelNav": 1,
+    "composePanel": 1,
+    "safetyChecks": 1,
+    "consoleErrors": [],
+    "screenshot": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/artifacts/ui-screenshots/mailhub-ui-polish-mobile.png"
+  },
+  {
+    "name": "compose",
+    "width": 1440,
+    "height": 1400,
+    "url": "http://localhost:3000/?label=all&id=msg-001",
+    "statusStrip": 1,
+    "channelNav": 1,
+    "composePanel": 1,
+    "safetyChecks": 1,
+    "consoleErrors": [],
+    "screenshot": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/artifacts/ui-screenshots/mailhub-ui-polish-compose.png"
+  }
+]
