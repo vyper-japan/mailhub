@@ -1,6 +1,6 @@
 # Prompt For New MailHub Session
 
-## 2026-06-20 Latest Handoff For New Session
+## 2026-06-20 Latest Handoff For New Session: Detail Context Polish
 
 Continue from `/Users/takayukisuzuki/VYPER-Dev/Mailhub`.
 
@@ -17,23 +17,26 @@ Expected state:
 
 - branch `main`
 - `main...origin/main [ahead 1]`
-- local HEAD `ae14f0e Stabilize message list width assertion`
-- `origin/main` at `86d8369 Refresh readiness artifacts after snippet width fix`
-- modified files are only `.ai-runs/mailhub-next-phase` readiness refresh artifacts
+- local HEAD `2dac19d Polish MailHub detail work context`
+- modified files are only `.ai-runs/mailhub-next-phase` readiness/handoff artifacts
 
 What just happened:
 
-- Earlier pushed HEAD `86d8369` had `MailHub Readiness Contract` PASS but `qa-strict` FAIL.
-- The only failing test was `Step93-3b`, because `rowSnippetReadable` measured the rendered snippet text span width.
-- CI evidence already showed the row text block itself was readable.
-- Commit `ae14f0e` fixes the assertion to require snippet presence plus available text block width `>=280`.
+- Commit `2dac19d` added a compact right-pane work context strip inspired by Re:lation/Front-style operator context.
+- The strip is in the detail body flow above the message body, not in a fixed detail header.
+- It shows status, owner, reply route, and elapsed SLA in a one-row compact chip strip.
+- It uses these test IDs:
+  - `detail-work-context`
+  - `detail-owner-context`
+  - `detail-route-context`
+  - `detail-sla-context`
+- Screenshot evidence shows the context strip stays compact at `42px`, does not overflow, and appears before the body.
 - Local validation passed:
-  - `npm run lint`
   - `npm run typecheck`
+  - `npm run lint`
   - `git diff --check`
-  - CI-equivalent `Step93-3b`
-  - targeted `Step93-3b|Step93-6`
-- `npm run ops:readiness-refresh` passed after `ae14f0e` and regenerated readiness artifacts.
+  - targeted `Step93-3b|Step93-3c|Step93-6`
+- `npm run ops:readiness-refresh` passed after `2dac19d` and regenerated readiness artifacts.
 - No external send occurred; routing probe send remained `mode=dry_run`, `sentCount=0`.
 
 Next actions:
@@ -41,7 +44,7 @@ Next actions:
 ```bash
 npm run security:scan-artifacts
 git add .ai-runs/mailhub-next-phase
-git commit -m "Refresh readiness artifacts after width assertion fix"
+git commit -m "Refresh readiness artifacts after detail context polish"
 git push
 gh run list --branch main --limit 8 --json databaseId,workflowName,status,conclusion,headSha,createdAt
 ```

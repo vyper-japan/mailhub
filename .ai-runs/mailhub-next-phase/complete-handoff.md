@@ -1,5 +1,74 @@
 # MailHub Next Phase Complete Handoff
 
+## 2026-06-20 Latest Handoff Update
+
+This file has older historical sections below. Treat this section as authoritative for the next session.
+
+Repo:
+
+- `/Users/takayukisuzuki/VYPER-Dev/Mailhub`
+- branch `main`
+- local HEAD `2dac19d Polish MailHub detail work context`
+- local branch `main...origin/main [ahead 1]`
+
+Current uncommitted state:
+
+- `.ai-runs/mailhub-next-phase` readiness refresh artifacts
+- `.ai-runs/mailhub-next-phase` handoff files updated for this new-session handoff
+- no source/UI files are dirty after the committed `2dac19d` slice
+
+Latest completed UI work:
+
+- Added a compact right-pane work context strip above the message body.
+- Context shows status, owner, reply route, and elapsed SLA.
+- The strip stays in normal detail content flow to avoid fixed-header/body misalignment.
+- Visual metrics show `42px` height and no overflow on desktop/narrow/compact captures.
+
+Latest verified commands before this handoff:
+
+- `npm run typecheck`: PASS
+- `npm run lint`: PASS
+- targeted Playwright `Step93-3b|Step93-3c|Step93-6`: PASS
+- `git diff --check`: PASS
+- `npm run ops:readiness-refresh`: PASS, no external send, routing send dry-run, `sentCount=0`
+
+Next session must start with:
+
+```bash
+cd /Users/takayukisuzuki/VYPER-Dev/Mailhub
+git status -sb
+git diff --stat
+git diff --check
+npm run security:scan-artifacts
+```
+
+Then commit the refreshed `.ai-runs/mailhub-next-phase` artifacts and push:
+
+```bash
+git add .ai-runs/mailhub-next-phase
+git commit -m "Refresh readiness artifacts after detail context polish"
+git push
+```
+
+Watch GitHub Actions:
+
+- `MailHub Readiness Contract`
+- `qa-strict`
+
+Hard approval gates:
+
+- no external email send without explicit approval
+- no GitHub setup/apply mutation without explicit approval
+- no Sheets mutation without explicit approval
+- no production-complete claim
+
+Current production blockers remain:
+
+- P0 `current_shared_gmail_routing`
+- P1 `rule_config_source_not_production`
+- P1 `staff_workflow_permissions`
+- P1 `staff_github_config_not_ready`
+
 作成日時: 2026-06-18 JST
 リポジトリ: `/Users/takayukisuzuki/VYPER-Dev/Mailhub`
 ブランチ: `main`

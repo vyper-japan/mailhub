@@ -1,5 +1,15 @@
 # MailHub Next Phase Decisions
 
+## 2026-06-20 Detail Context Polish Handoff Decisions
+
+- Keep `2dac19d` as the completed right-pane detail context UI slice.
+- The compact work context strip is intentionally placed above the message body, not in a fixed title/header layer, so it tracks with the readable pane and avoids the earlier header/body alignment discomfort.
+- Visible labels were shortened in favor of icons and concise values because the narrow desktop target must stay one row.
+- The route chip displays compact text such as `楽天RMS`; longer inquiry details stay in the title/tooltip path instead of consuming row width.
+- Treat the latest readiness refresh as a no-send evidence update for `2dac19d`; it should be committed separately from the UI commit.
+- The next session should finish the current slice by committing the refreshed `.ai-runs` artifacts, pushing, and checking CI before starting another UI/UX feature.
+- Production readiness remains deliberately blocked until external routing proof, Sheets-backed rule config, staff workflow evidence, and GitHub config are real.
+
 ## 2026-06-20 New Session Handoff Decisions
 
 - Keep `ae14f0e` as the current code fix for the `Step93-3b` CI failure. The UI did not need another layout change; the unstable part was the test measuring a rendered short text span instead of available readable row width.

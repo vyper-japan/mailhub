@@ -1,6 +1,6 @@
 # Codex Handoff Prompt
 
-This is a handoff from Codex for the MailHub next-phase production-complete effort.
+This is a handoff from Codex for the MailHub UI/UX polish sprint and production-readiness evidence track.
 
 Do not edit files first. Start by reading the current state and summarizing your understanding.
 
@@ -30,10 +30,16 @@ Do not overwrite uncommitted changes. Respect local-only assets and never print 
 
 - repo: `/Users/takayukisuzuki/VYPER-Dev/Mailhub`
 - branch: `main`
-- latest pushed commit: `c9d980a feat: require explicit MailHub rule audit env source`
-- latest CI:
-  - `MailHub Readiness Contract`: success, run `27719348335`
-  - `qa-strict`: success, run `27719348364`
+- local HEAD: `2dac19d Polish MailHub detail work context`
+- local branch: `main...origin/main [ahead 1]`
+- uncommitted changes should be `.ai-runs/mailhub-next-phase` readiness/handoff artifacts only
+- latest local UI validation passed:
+  - `npm run typecheck`
+  - `npm run lint`
+  - `git diff --check`
+  - targeted Playwright `Step93-3b|Step93-3c|Step93-6`
+- `npm run ops:readiness-refresh` passed after `2dac19d`
+- no external send occurred; routing send remained dry-run with `sentCount=0`
 - production readiness is still intentionally false:
   - P0 `current_shared_gmail_routing`
   - P1 `rule_config_source_not_production`
@@ -44,6 +50,6 @@ Do not overwrite uncommitted changes. Respect local-only assets and never print 
 
 Continue from `.ai-runs/mailhub-next-phase/next-session-prompt.md`.
 
-Recommended first implementation slice: strengthen staff workflow evidence bundle integrity so fake `.png` / `.csv` proof files cannot make production staff workflow evidence appear ready.
+Recommended first action: commit the refreshed `.ai-runs/mailhub-next-phase` readiness/handoff artifacts, push, and watch `MailHub Readiness Contract` and `qa-strict` for the pushed HEAD.
 
-Do not send external mail, do not fake production readiness, and do not mark the active goal complete until the production readiness blockers are closed with current evidence.
+Do not send external mail, do not run GitHub apply/setup mutation, do not mutate Sheets, do not fake production readiness, and do not mark the active goal complete until the production readiness blockers are closed with current evidence.

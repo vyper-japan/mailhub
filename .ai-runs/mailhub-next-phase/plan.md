@@ -1,5 +1,48 @@
 # MailHub Next Phase Plan
 
+## 2026-06-20 Detail Context Polish Handoff Plan
+
+The active UI/UX sprint is paused for a new session handoff.
+
+Start in `/Users/takayukisuzuki/VYPER-Dev/Mailhub`.
+
+Current authoritative state:
+
+- branch: `main`
+- local HEAD: `2dac19d Polish MailHub detail work context`
+- local branch: `main...origin/main [ahead 1]`
+- uncommitted changes: `.ai-runs/mailhub-next-phase` readiness refresh artifacts plus this handoff update
+- latest committed UI slice: compact Re:lation/Front-style work context strip in the detail pane
+
+Immediate next plan for the new session:
+
+1. Run `git status -sb`, `git diff --stat`, and `git diff --check`.
+2. Run `npm run security:scan-artifacts`.
+3. Commit the refreshed `.ai-runs/mailhub-next-phase` artifacts and handoff update, for example:
+
+```bash
+git add .ai-runs/mailhub-next-phase
+git commit -m "Refresh readiness artifacts after detail context polish"
+```
+
+4. Push.
+5. Watch `MailHub Readiness Contract` and `qa-strict` for the pushed HEAD.
+6. Only after CI is green, start the next UI/UX slice.
+
+Constraints stay in force:
+
+- no external email send without explicit approval
+- no GitHub setup/apply mutation without explicit approval
+- no Sheets mutation without explicit approval
+- no production-complete claim
+
+Production readiness remains intentionally blocked:
+
+- P0 `current_shared_gmail_routing`
+- P1 `rule_config_source_not_production`
+- P1 `staff_workflow_permissions`
+- P1 `staff_github_config_not_ready`
+
 ## 2026-06-20 New Session Immediate Plan
 
 The active UI/UX sprint is mid-closeout, not ready for a new feature yet.

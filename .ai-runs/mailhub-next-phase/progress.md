@@ -1,5 +1,88 @@
 # MailHub Next Phase Progress
 
+## 2026-06-20 Detail Context Polish Handoff Snapshot
+
+This is the latest resume point. Continue from `/Users/takayukisuzuki/VYPER-Dev/Mailhub`.
+
+Current git state:
+
+- branch: `main`
+- local HEAD: `2dac19dc238285b707f88b0582f6131626b17772` (`Polish MailHub detail work context`)
+- latest pushed baseline before this local commit: `cb65ec5 Refresh readiness artifacts after width assertion fix`
+- local branch is ahead of `origin/main` by 1 commit
+- uncommitted changes are the no-send `.ai-runs/mailhub-next-phase` readiness refresh artifacts plus this handoff update
+
+Latest completed UI slice:
+
+- Added a compact right-pane work context strip in `app/inbox/InboxShell.tsx`.
+- The strip appears above the message body inside `detail-content-inner`.
+- It exposes short operator context before reading/replying:
+  - status
+  - owner / assignment
+  - reply route
+  - elapsed SLA
+- Test IDs added/covered:
+  - `detail-work-context`
+  - `detail-owner-context`
+  - `detail-route-context`
+  - `detail-sla-context`
+- The visual target is operational density, inspired by Re:lation/Front, not decorative chrome.
+
+Committed changes in `2dac19d`:
+
+- `app/inbox/InboxShell.tsx`
+- `e2e/qa-strict-unified.spec.ts`
+- `artifacts/ui-screenshots/mailhub-workbench-context-*`
+- `artifacts/ui-screenshots/mailhub-reading-pane-*`
+
+Verification already passed before this handoff:
+
+- `npm run typecheck`: PASS
+- `npm run lint`: PASS
+- `git diff --check`: PASS
+- targeted Playwright:
+
+```bash
+MAILHUB_TEST_MODE=1 MAILHUB_DATA_MODE=stub NEXTAUTH_URL=http://127.0.0.1:3010 NEXTAUTH_SECRET=test-secret PLAYWRIGHT_BASE_URL=http://127.0.0.1:3010 npx playwright test e2e/qa-strict-unified.spec.ts -g "Step93-3b|Step93-3c|Step93-6" --workers=1
+```
+
+Result: PASS, 3 tests.
+
+Screenshot evidence:
+
+- `artifacts/ui-screenshots/mailhub-workbench-context-check.json`
+- `artifacts/ui-screenshots/mailhub-reading-pane-check.json`
+- work context height: `42px`
+- compact: true
+- overflow: false
+- console errors: 0
+- failed responses: 0 after filtering Next dev HMR hot-update noise
+
+No-send readiness refresh after `2dac19d`:
+
+- `npm run ops:readiness-refresh`: PASS
+- artifacts refreshed to repo head `2dac19dc238285b707f88b0582f6131626b17772`
+- no external send occurred
+- routing send stayed `mode=dry_run`
+- `sentCount=0`
+- contract chain passed inside refresh
+- `security:scan-artifacts` passed inside refresh
+
+Current readiness remains intentionally false:
+
+- P0 `current_shared_gmail_routing`
+- P1 `rule_config_source_not_production`
+- P1 `staff_workflow_permissions`
+- P1 `staff_github_config_not_ready`
+
+Immediate next session work:
+
+1. Run `git status -sb`, `git diff --stat`, `git diff --check`.
+2. Run `npm run security:scan-artifacts`.
+3. Commit refreshed `.ai-runs/mailhub-next-phase` artifacts and handoff update.
+4. Push.
+5. Watch latest `MailHub Readiness Contract` and `qa-strict` for the new HEAD.
+
 ## 2026-06-20 New Session Handoff Snapshot
 
 This is the latest resume point. Continue from `/Users/takayukisuzuki/VYPER-Dev/Mailhub`.

@@ -1,5 +1,27 @@
 # MailHub Next Phase Blockers
 
+## 2026-06-20 Detail Context Polish Handoff Blockers
+
+Process blockers:
+
+- `scripts/ai_handoff_snapshot.sh` does not exist in this repo; checkpoint updates were written manually.
+- Local branch is ahead of `origin/main` by 1 commit (`2dac19d`) and still needs the refreshed readiness artifacts committed and pushed.
+- CI has not yet been run for `2dac19d` because it is not pushed yet.
+- Older sections in this file describe previous UI slices. Treat this section and the latest sections in `plan.md`, `progress.md`, `commands.md`, `next.md`, and `next-session-prompt.md` as authoritative.
+
+Product/production blockers remain unchanged:
+
+- P0 `current_shared_gmail_routing`
+- P1 `rule_config_source_not_production`
+- P1 `staff_workflow_permissions`
+- P1 `staff_github_config_not_ready`
+
+Approval gates remain unchanged:
+
+- No external email send without explicit approval.
+- No GitHub setup/apply mutation without explicit approval.
+- No Sheets mutation without explicit approval.
+
 ## 2026-06-20 New Session Handoff Blockers
 
 Process blockers:

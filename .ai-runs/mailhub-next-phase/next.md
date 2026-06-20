@@ -1,5 +1,67 @@
 # MailHub Next Phase Next Actions
 
+## 2026-06-20 Resume Here: Commit Detail Context Readiness Refresh And Watch CI
+
+Start here in the next session:
+
+```bash
+cd /Users/takayukisuzuki/VYPER-Dev/Mailhub
+git status -sb
+git diff --stat
+git diff --check
+```
+
+Expected state:
+
+- `main...origin/main [ahead 1]`
+- local HEAD `2dac19d Polish MailHub detail work context`
+- only `.ai-runs/mailhub-next-phase` readiness/handoff artifacts are modified
+
+Immediate sequence:
+
+1. Run:
+
+```bash
+npm run security:scan-artifacts
+```
+
+2. If green, commit the refreshed artifacts:
+
+```bash
+git add .ai-runs/mailhub-next-phase
+git commit -m "Refresh readiness artifacts after detail context polish"
+```
+
+3. Push:
+
+```bash
+git push
+```
+
+4. Watch CI for the pushed HEAD:
+
+```bash
+gh run list --branch main --limit 8 --json databaseId,workflowName,status,conclusion,headSha,createdAt
+```
+
+The two key workflows to watch are:
+
+- `MailHub Readiness Contract`
+- `qa-strict`
+
+After both are green, continue the UI/UX sprint. Recommended next UI/UX slice:
+
+- refine list/detail owner/status affordances and quick actions, or
+- add a customer/order/context module if real data hooks are already present, or
+- harden compose safety cues for route/domain/attachment risk.
+
+Keep these hard gates:
+
+- no external email send without explicit approval
+- no GitHub setup/apply mutation without explicit approval
+- no Sheets mutation without explicit approval
+- do not claim production complete
+
 ## 2026-06-20 Resume Here: Commit Refreshed Readiness Artifacts And Watch CI
 
 Start here in the next session:
