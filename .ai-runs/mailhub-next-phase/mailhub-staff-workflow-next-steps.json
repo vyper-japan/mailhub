@@ -1,9 +1,9 @@
 {
-  "generatedAt": "2026-06-19T23:58:41.838Z",
+  "generatedAt": "2026-06-20T08:49:24.727Z",
   "inputs": {
     "audit": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.ai-runs/mailhub-next-phase/mailhub-staff-workflow-audit.json",
-    "auditGeneratedAt": "2026-06-19T23:58:36.589Z",
-    "auditRepoHead": "2dac19dc238285b707f88b0582f6131626b17772",
+    "auditGeneratedAt": "2026-06-20T08:49:23.725Z",
+    "auditRepoHead": "6e8b0b1d055ef96b6be6e8b8b0b733d88e16186c",
     "errors": [],
     "warnings": []
   },
@@ -16,7 +16,7 @@
     "productionEnvReady": false,
     "adminsReady": true,
     "staffAccessAllowlistReady": false,
-    "assigneeRosterReady": true,
+    "assigneeRosterReady": false,
     "durableConfigReady": false,
     "durableActivityReady": false,
     "readOnlyEnabled": false
@@ -29,7 +29,9 @@
     "staffTeamMembers": [
       "MAILHUB_TEAM_MEMBERS"
     ],
-    "assigneeRoster": [],
+    "assigneeRoster": [
+      "MAILHUB_TEAM_MEMBERS or .mailhub/assignees.json / ConfigAssignees"
+    ],
     "durableConfig": [
       "MAILHUB_CONFIG_STORE=sheets",
       "MAILHUB_SHEETS_ID or MAILHUB_SHEETS_SPREADSHEET_ID",
@@ -64,7 +66,7 @@
   "present": {
     "adminCount": 2,
     "teamMemberCount": 0,
-    "assigneeRegistryValidCount": 2,
+    "assigneeRegistryValidCount": 0,
     "configStore": "file",
     "activityStore": "memory"
   },
@@ -93,7 +95,7 @@
     },
     {
       "id": "configure_staff_roster",
-      "status": "done",
+      "status": "required",
       "description": "Configure at least one valid @vtj.co.jp assignee through MAILHUB_TEAM_MEMBERS or the assignee registry."
     },
     {
