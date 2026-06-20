@@ -8046,26 +8046,26 @@ export default function InboxShell({
                           ]
                             .filter(Boolean)
                             .join(" / ");
-	                          const actionButtonClass =
-	                            "inline-flex h-7 w-7 shrink-0 items-center justify-center gap-1.5 rounded-md border border-transparent px-0 text-[12px] font-medium text-[#5f6368] transition-colors hover:border-[#dadce0] hover:bg-[#f1f3f4] hover:text-[#202124] active:bg-[#e8eaed] disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto sm:px-1.5";
-	                          return (
-	                            <div className="mb-2 flex flex-wrap items-center justify-between gap-2 border-y border-[#e8eaed] bg-white py-2" data-testid="thread-actions">
-	                              <div className="min-w-0 flex-1">
-	                                <div className="flex items-center gap-2 text-[13px] font-medium text-[#202124]">
-	                                  <MessageSquare size={15} className="shrink-0 text-[#5f6368]" />
-	                                  <span className="whitespace-nowrap">{threadSummary.messages.length}件のやりとり</span>
-	                                  <span className="sr-only">Thread: {threadSummary.messages.length} messages</span>
-	                                </div>
+                          const actionButtonClass =
+                            "inline-flex h-7 w-7 shrink-0 items-center justify-center gap-1.5 rounded-md border border-transparent px-0 text-[12px] font-medium text-[#5f6368] transition-colors hover:border-[#dadce0] hover:bg-[#f1f3f4] hover:text-[#202124] active:bg-[#e8eaed] disabled:cursor-not-allowed disabled:opacity-40 min-[1360px]:w-auto min-[1360px]:px-1.5";
+                          return (
+                            <div className="mb-2 flex flex-nowrap items-center justify-between gap-2 border-y border-[#e8eaed] bg-white py-2" data-testid="thread-actions">
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-2 text-[13px] font-medium text-[#202124]">
+                                  <MessageSquare size={15} className="shrink-0 text-[#5f6368]" />
+                                  <span className="whitespace-nowrap">{threadSummary.messages.length}件のやりとり</span>
+                                  <span className="sr-only">Thread: {threadSummary.messages.length} messages</span>
+                                </div>
                                 {(summaryText || assigneeText) && (
                                   <div className="mt-0.5 truncate text-[11px] text-[#5f6368]">
                                     {[summaryText, assigneeText].filter(Boolean).join(" / ")}
                                   </div>
                                 )}
                               </div>
-	                              <div className="flex flex-wrap items-center justify-end gap-1 overflow-visible whitespace-normal">
-	                                <button
-	                                  type="button"
-	                                  data-testid="thread-action-done"
+                              <div className="flex shrink-0 flex-nowrap items-center justify-end gap-1 overflow-visible whitespace-nowrap">
+                                <button
+                                  type="button"
+                                  data-testid="thread-action-done"
                                   className={actionButtonClass}
                                   disabled={readOnlyMode || bulkProgress !== null || threadMessageIds.length === 0}
                                   title={readOnlyMode ? (getWriteBlockedTitle() ?? "実行できません") : "会話を完了"}
@@ -8073,10 +8073,10 @@ export default function InboxShell({
                                     if (readOnlyMode || bulkProgress !== null) return;
                                     void handleBulkArchive(threadMessageIds);
                                   }}
-	                                >
-	                                  <CheckCircle size={15} className="text-[#34a853]" />
-	                                  <span className="sr-only sm:not-sr-only">完了</span>
-	                                </button>
+                                >
+                                  <CheckCircle size={15} className="text-[#34a853]" />
+                                  <span className="sr-only min-[1360px]:not-sr-only">完了</span>
+                                </button>
                                 <button
                                   type="button"
                                   data-testid="thread-action-waiting"
@@ -8087,10 +8087,10 @@ export default function InboxShell({
                                     if (readOnlyMode || bulkProgress !== null) return;
                                     void handleBulkWaiting(threadMessageIds);
                                   }}
-	                                >
-	                                  <Clock size={15} className="text-[#ea8600]" />
-	                                  <span className="sr-only sm:not-sr-only">返事待ち</span>
-	                                </button>
+                                >
+                                  <Clock size={15} className="text-[#ea8600]" />
+                                  <span className="sr-only min-[1360px]:not-sr-only">返事待ち</span>
+                                </button>
                                 <button
                                   type="button"
                                   data-testid="thread-action-mute"
@@ -8101,10 +8101,10 @@ export default function InboxShell({
                                     if (readOnlyMode || bulkProgress !== null) return;
                                     void handleBulkMuteSelected(threadMessageIds);
                                   }}
-	                                >
-	                                  <VolumeX size={15} className="text-[#5f6368]" />
-	                                  <span className="sr-only sm:not-sr-only">処理不要</span>
-	                                </button>
+                                >
+                                  <VolumeX size={15} className="text-[#5f6368]" />
+                                  <span className="sr-only min-[1360px]:not-sr-only">処理不要</span>
+                                </button>
                                 <button
                                   type="button"
                                   data-testid="thread-action-assign"
@@ -8115,10 +8115,10 @@ export default function InboxShell({
                                     if (readOnlyMode || bulkProgress !== null) return;
                                     void handleBulkAssign(threadMessageIds);
                                   }}
-	                                >
-	                                  <UserCheck size={15} className="text-[#1a73e8]" />
-	                                  <span className="sr-only sm:not-sr-only">担当</span>
-	                                </button>
+                                >
+                                  <UserCheck size={15} className="text-[#1a73e8]" />
+                                  <span className="sr-only min-[1360px]:not-sr-only">担当</span>
+                                </button>
                                 <button
                                   type="button"
                                   data-testid="thread-action-label"
@@ -8131,10 +8131,10 @@ export default function InboxShell({
                                     setCheckedIds(new Set(threadMessageIds));
                                     openLabelPopover();
                                   }}
-	                                >
-	                                  <Tag size={15} className="text-[#7b1fa2]" />
-	                                  <span className="sr-only sm:not-sr-only">ラベル</span>
-	                                </button>
+                                >
+                                  <Tag size={15} className="text-[#7b1fa2]" />
+                                  <span className="sr-only min-[1360px]:not-sr-only">ラベル</span>
+                                </button>
                                 <button
                                   type="button"
                                   data-testid="thread-action-select"
@@ -8144,10 +8144,10 @@ export default function InboxShell({
                                   onClick={() => {
                                     setCheckedIds(new Set(threadMessageIds));
                                   }}
-	                                >
-	                                  <Square size={15} className="text-[#5f6368]" />
-	                                  <span className="sr-only sm:not-sr-only">選択</span>
-	                                </button>
+                                >
+                                  <Square size={15} className="text-[#5f6368]" />
+                                  <span className="sr-only min-[1360px]:not-sr-only">選択</span>
+                                </button>
                                 {checkedIds.size > 0 && (
                                   <button
                                     type="button"
@@ -8155,14 +8155,14 @@ export default function InboxShell({
                                     className={actionButtonClass}
                                     onClick={() => setCheckedIds(new Set())}
                                     title="選択をクリア"
-	                                  >
-	                                    <X size={15} className="text-[#5f6368]" />
-	                                    <span className="sr-only">解除</span>
-	                                  </button>
-	                                )}
-	                              </div>
-	                            </div>
-	                          );
+                                  >
+                                    <X size={15} className="text-[#5f6368]" />
+                                    <span className="sr-only">解除</span>
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          );
 	                        })()}
 
 	                        {threadLoading ? (

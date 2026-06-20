@@ -8,41 +8,177 @@
       "viewportWidth": 1440,
       "threadPane": {
         "x": 752,
-        "y": 624,
+        "y": 674,
         "right": 1408,
-        "bottom": 826,
+        "bottom": 876,
         "width": 656,
         "height": 202
       },
       "threadActions": {
         "x": 752,
-        "y": 641,
+        "y": 691,
         "right": 1408,
-        "bottom": 697,
+        "bottom": 747,
         "width": 656,
         "height": 56
       },
       "threadList": {
         "x": 752,
-        "y": 705,
+        "y": 755,
         "right": 1408,
-        "bottom": 826,
+        "bottom": 876,
         "width": 656,
         "height": 121
       },
       "threadSelectAction": {
         "x": 1349,
-        "y": 655,
+        "y": 705,
         "right": 1408,
-        "bottom": 683,
+        "bottom": 733,
         "width": 59,
         "height": 28
       },
-      "threadActionText": "2件のやりとりThread: 2 messages今返す 2 / 未担当 2完了返事待ち処理不要担当ラベル選択",
-      "threadItemCount": 2,
+      "actionButtons": [
+        {
+          "testId": "thread-action-done",
+          "text": "完了",
+          "width": 59,
+          "height": 28,
+          "visibleSpanCount": 1
+        },
+        {
+          "testId": "thread-action-waiting",
+          "text": "返事待ち",
+          "width": 83,
+          "height": 28,
+          "visibleSpanCount": 1
+        },
+        {
+          "testId": "thread-action-mute",
+          "text": "処理不要",
+          "width": 83,
+          "height": 28,
+          "visibleSpanCount": 1
+        },
+        {
+          "testId": "thread-action-assign",
+          "text": "担当",
+          "width": 59,
+          "height": 28,
+          "visibleSpanCount": 1
+        },
+        {
+          "testId": "thread-action-label",
+          "text": "ラベル",
+          "width": 71,
+          "height": 28,
+          "visibleSpanCount": 1
+        },
+        {
+          "testId": "thread-action-select",
+          "text": "選択",
+          "width": 59,
+          "height": 28,
+          "visibleSpanCount": 1
+        }
+      ],
+      "visibleTextLabels": 6,
       "actionsOverflow": false,
-      "listOverflow": false,
-      "horizontalOverflow": false
+      "actionsVerticalOverflow": false,
+      "horizontalOverflow": false,
+      "threadActionText": "2件のやりとりThread:2messages今返す2/未担当2完了返事待ち処理不要担当ラベル選択"
+    },
+    "consoleErrors": [],
+    "failedResponses": []
+  },
+  {
+    "name": "mailhub-thread-pane-boundary",
+    "width": 1280,
+    "height": 840,
+    "screenshot": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/artifacts/ui-screenshots/mailhub-thread-pane-boundary.png",
+    "metrics": {
+      "viewportWidth": 1280,
+      "threadPane": {
+        "x": 752,
+        "y": 674,
+        "right": 1248,
+        "bottom": 876,
+        "width": 496,
+        "height": 202
+      },
+      "threadActions": {
+        "x": 752,
+        "y": 691,
+        "right": 1248,
+        "bottom": 747,
+        "width": 496,
+        "height": 56
+      },
+      "threadList": {
+        "x": 752,
+        "y": 755,
+        "right": 1248,
+        "bottom": 876,
+        "width": 496,
+        "height": 121
+      },
+      "threadSelectAction": {
+        "x": 1220,
+        "y": 705,
+        "right": 1248,
+        "bottom": 733,
+        "width": 28,
+        "height": 28
+      },
+      "actionButtons": [
+        {
+          "testId": "thread-action-done",
+          "text": "完了",
+          "width": 28,
+          "height": 28,
+          "visibleSpanCount": 0
+        },
+        {
+          "testId": "thread-action-waiting",
+          "text": "返事待ち",
+          "width": 28,
+          "height": 28,
+          "visibleSpanCount": 0
+        },
+        {
+          "testId": "thread-action-mute",
+          "text": "処理不要",
+          "width": 28,
+          "height": 28,
+          "visibleSpanCount": 0
+        },
+        {
+          "testId": "thread-action-assign",
+          "text": "担当",
+          "width": 28,
+          "height": 28,
+          "visibleSpanCount": 0
+        },
+        {
+          "testId": "thread-action-label",
+          "text": "ラベル",
+          "width": 28,
+          "height": 28,
+          "visibleSpanCount": 0
+        },
+        {
+          "testId": "thread-action-select",
+          "text": "選択",
+          "width": 28,
+          "height": 28,
+          "visibleSpanCount": 0
+        }
+      ],
+      "visibleTextLabels": 0,
+      "actionsOverflow": false,
+      "actionsVerticalOverflow": false,
+      "horizontalOverflow": false,
+      "threadActionText": "2件のやりとりThread:2messages今返す2/未担当2完了返事待ち処理不要担当ラベル選択"
     },
     "consoleErrors": [],
     "failedResponses": []
@@ -56,41 +192,85 @@
       "viewportWidth": 1120,
       "threadPane": {
         "x": 676,
-        "y": 656,
+        "y": 706,
         "right": 1088,
-        "bottom": 926,
+        "bottom": 908,
         "width": 412,
-        "height": 270
+        "height": 202
       },
       "threadActions": {
         "x": 676,
-        "y": 673,
+        "y": 723,
         "right": 1088,
-        "bottom": 797,
+        "bottom": 779,
         "width": 412,
-        "height": 124
+        "height": 56
       },
       "threadList": {
         "x": 676,
-        "y": 805,
+        "y": 787,
         "right": 1088,
-        "bottom": 926,
+        "bottom": 908,
         "width": 412,
         "height": 121
       },
       "threadSelectAction": {
-        "x": 1029,
-        "y": 760,
+        "x": 1060,
+        "y": 737,
         "right": 1088,
-        "bottom": 788,
-        "width": 59,
+        "bottom": 765,
+        "width": 28,
         "height": 28
       },
-      "threadActionText": "2件のやりとりThread: 2 messages今返す 2 / 未担当 2完了返事待ち処理不要担当ラベル選択",
-      "threadItemCount": 2,
+      "actionButtons": [
+        {
+          "testId": "thread-action-done",
+          "text": "完了",
+          "width": 28,
+          "height": 28,
+          "visibleSpanCount": 0
+        },
+        {
+          "testId": "thread-action-waiting",
+          "text": "返事待ち",
+          "width": 28,
+          "height": 28,
+          "visibleSpanCount": 0
+        },
+        {
+          "testId": "thread-action-mute",
+          "text": "処理不要",
+          "width": 28,
+          "height": 28,
+          "visibleSpanCount": 0
+        },
+        {
+          "testId": "thread-action-assign",
+          "text": "担当",
+          "width": 28,
+          "height": 28,
+          "visibleSpanCount": 0
+        },
+        {
+          "testId": "thread-action-label",
+          "text": "ラベル",
+          "width": 28,
+          "height": 28,
+          "visibleSpanCount": 0
+        },
+        {
+          "testId": "thread-action-select",
+          "text": "選択",
+          "width": 28,
+          "height": 28,
+          "visibleSpanCount": 0
+        }
+      ],
+      "visibleTextLabels": 0,
       "actionsOverflow": false,
-      "listOverflow": false,
-      "horizontalOverflow": false
+      "actionsVerticalOverflow": false,
+      "horizontalOverflow": false,
+      "threadActionText": "2件のやりとりThread:2messages今返す2/未担当2完了返事待ち処理不要担当ラベル選択"
     },
     "consoleErrors": [],
     "failedResponses": []

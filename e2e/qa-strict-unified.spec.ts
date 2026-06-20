@@ -6141,6 +6141,83 @@ test("Step93-3c) Wide desktop reading pane: 詳細ヘッダーと本文の読み
   expect(metrics.horizontalOverflow).toBe(false);
 });
 
+test("Step93-3d) Narrow desktop thread actions: 会話履歴アクションが詳細幅で縦割れしない", async ({ page }) => {
+  test.setTimeout(120_000);
+  await page.request.post("/api/mailhub/test/reset").catch(() => {});
+  await page.addInitScript(() => {
+    localStorage.setItem("mailhub-onboarding-shown", "true");
+  });
+  await page.setViewportSize({ width: 1120, height: 840 });
+  await page.goto("/?label=all&max=20", { waitUntil: "domcontentloaded", timeout: 90_000 });
+  await expect(page.getByTestId("message-row").first()).toBeVisible({ timeout: 10000 });
+
+  const msg021Row = page.locator('[data-message-id="msg-021"]');
+  await expect(msg021Row).toBeVisible({ timeout: 10000 });
+  const threadRespP = page.waitForResponse(
+    (r) => r.url().includes("/api/mailhub/thread?messageId=msg-021") && r.request().method() === "GET" && r.status() === 200,
+    { timeout: 60000 },
+  );
+  await msg021Row.getByTestId("row-text-block").click();
+  await threadRespP;
+  await expect(page.getByTestId("detail-subject")).toBeVisible({ timeout: 10000 });
+  await expect(page.getByTestId("thread-pane")).toBeVisible({ timeout: 10000 });
+  await expect(page.getByTestId("thread-actions")).toBeVisible({ timeout: 30000 });
+  await expect(page.getByTestId("thread-list")).toBeVisible({ timeout: 30000 });
+
+  const getThreadActionMetrics = async () =>
+    page.evaluate(() => {
+      const threadPane = document.querySelector('[data-testid="thread-pane"]');
+      const threadActions = document.querySelector('[data-testid="thread-actions"]');
+      const threadList = document.querySelector('[data-testid="thread-list"]');
+      const selectAction = document.querySelector('[data-testid="thread-action-select"]');
+      const actionLabels = Array.from(threadActions?.querySelectorAll("button span") ?? []).map((span) => ({
+        text: span.textContent?.trim() ?? "",
+        className: span.getAttribute("class") ?? "",
+        rect: span.getBoundingClientRect(),
+      }));
+      const paneRect = threadPane?.getBoundingClientRect();
+      const actionsRect = threadActions?.getBoundingClientRect();
+      const listRect = threadList?.getBoundingClientRect();
+      const selectRect = selectAction?.getBoundingClientRect();
+      return {
+        viewportWidth: window.innerWidth,
+        threadPaneWidth: Math.round(paneRect?.width ?? 0),
+        threadActionsHeight: Math.round(actionsRect?.height ?? 999),
+        threadActionsOverflow: threadActions ? threadActions.scrollWidth > threadActions.clientWidth + 1 : true,
+        threadActionsVerticalOverflow: threadActions ? threadActions.scrollHeight > threadActions.clientHeight + 1 : true,
+        threadListBelowActions: actionsRect && listRect ? listRect.top >= actionsRect.bottom : false,
+        selectActionWidth: Math.round(selectRect?.width ?? 0),
+        visibleTextLabels: actionLabels.filter((label) => label.text && label.rect.width > 1).length,
+        horizontalOverflow: document.documentElement.scrollWidth > window.innerWidth + 1,
+      };
+    });
+
+  const narrowMetrics = await getThreadActionMetrics();
+
+  expect(narrowMetrics.viewportWidth).toBe(1120);
+  expect(narrowMetrics.threadPaneWidth).toBeLessThanOrEqual(420);
+  expect(narrowMetrics.threadActionsHeight).toBeLessThanOrEqual(64);
+  expect(narrowMetrics.threadActionsOverflow).toBe(false);
+  expect(narrowMetrics.threadActionsVerticalOverflow).toBe(false);
+  expect(narrowMetrics.threadListBelowActions).toBe(true);
+  expect(narrowMetrics.selectActionWidth).toBeLessThanOrEqual(32);
+  expect(narrowMetrics.visibleTextLabels).toBe(0);
+  expect(narrowMetrics.horizontalOverflow).toBe(false);
+
+  await page.setViewportSize({ width: 1280, height: 840 });
+  await expect(page.getByTestId("thread-actions")).toBeVisible({ timeout: 10000 });
+  const boundaryMetrics = await getThreadActionMetrics();
+
+  expect(boundaryMetrics.viewportWidth).toBe(1280);
+  expect(boundaryMetrics.threadActionsHeight).toBeLessThanOrEqual(64);
+  expect(boundaryMetrics.threadActionsOverflow).toBe(false);
+  expect(boundaryMetrics.threadActionsVerticalOverflow).toBe(false);
+  expect(boundaryMetrics.threadListBelowActions).toBe(true);
+  expect(boundaryMetrics.selectActionWidth).toBeLessThanOrEqual(32);
+  expect(boundaryMetrics.visibleTextLabels).toBe(0);
+  expect(boundaryMetrics.horizontalOverflow).toBe(false);
+});
+
 test("Step93-4) Channel scope bar: 専用宛先と関連候補検索を分けて表示する", async ({ page }) => {
   await page.request.post("/api/mailhub/test/reset").catch(() => {});
   await page.addInitScript(() => {
