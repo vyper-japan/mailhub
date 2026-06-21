@@ -1,5 +1,43 @@
 # MailHub Next Phase Next Actions
 
+## 2026-06-21 Resume Here: Commit/Push Mail Preview Fit
+
+Current slice is ready for commit/push unless final `git diff --check` or artifact scan finds a new issue.
+
+Immediate sequence:
+
+```bash
+git status -sb
+git diff --stat
+git diff --check
+npm run security:scan-artifacts
+git add app/globals.css app/inbox/InboxShell.tsx e2e/qa-strict-unified.spec.ts fixtures/details/msg-002.json artifacts/ui-screenshots/mailhub-preview-fit-check.json artifacts/ui-screenshots/mailhub-preview-fit-html-narrow.png artifacts/ui-screenshots/mailhub-preview-fit-html-wide.png artifacts/ui-screenshots/mailhub-preview-fit-sequence-narrow.png
+git commit -m "Stabilize MailHub email preview fit"
+npm run ops:readiness-refresh
+git add .ai-runs/mailhub-next-phase
+git commit -m "Refresh readiness artifacts after preview fit fix"
+git push
+```
+
+Then watch:
+
+- `MailHub Readiness Contract`
+- `qa-strict`
+
+After CI is green, resume the active Ownership UX goal:
+
+- make list ownership visible for all rows
+- make detail owner CTA explicit (`担当する` / `引き継ぐ` / `変更`)
+- surface ownership CTA near the disabled Gmail external reply button
+- keep `/api/mailhub/send` ownership enforcement unchanged
+
+Keep these hard gates:
+
+- no external email send without explicit approval
+- no GitHub setup/apply mutation without explicit approval
+- no Sheets mutation without explicit approval
+- do not claim production complete
+
 ## 2026-06-21 Resume Here: Commit/Push Reply Ownership Shield
 
 Current slice is ready for commit/push unless final `git diff --check` or artifact scan finds a new issue.

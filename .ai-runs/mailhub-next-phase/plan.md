@@ -1,5 +1,36 @@
 # MailHub Next Phase Plan
 
+## 2026-06-21 Mail Preview Fit Plan
+
+Status: implementation and focused verification complete.
+
+Completed plan:
+
+1. Prioritized the user-reported preview clipping/jumping issue ahead of the Ownership UX polish queue.
+2. Audited the current body rendering path in `InboxShell.tsx` and confirmed sanitized HTML bodies had no strong pane-fit boundary.
+3. Added `.mailhub-email-body` CSS constraints for third-party HTML email content.
+4. Added fixed-width HTML fixture coverage in `msg-002`.
+5. Added E2E `Step93-3c2` covering fixed-width HTML fit and multi-message switching.
+6. Captured screenshots and metrics for narrow/wide fixed-width preview and message switching.
+7. Ran visual critic review and local validation.
+8. Refreshed readiness artifacts without external send.
+
+Remaining closeout plan:
+
+1. Commit the code/test/fixture/screenshot slice.
+2. Refresh readiness artifacts again at the new code commit HEAD.
+3. Commit the refreshed `.ai-runs` artifacts.
+4. Push.
+5. Watch `MailHub Readiness Contract` and `qa-strict`.
+6. Resume Ownership UX Completion after CI is green.
+
+Constraints stay in force:
+
+- no external email send without explicit approval
+- no GitHub setup/apply mutation without explicit approval
+- no Sheets mutation without explicit approval
+- no production-complete claim
+
 ## 2026-06-21 Reply Ownership Shield Plan
 
 Status: implementation and focused verification complete.

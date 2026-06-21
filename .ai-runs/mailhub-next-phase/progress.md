@@ -1,5 +1,64 @@
 # MailHub Next Phase Progress
 
+## 2026-06-21 Mail Preview Fit Slice
+
+Completed a focused visual stability fix for opened email previews. User-reported symptoms were HTML email bodies appearing clipped, shifted, or unstable inside the detail pane.
+
+Implemented:
+
+- Added a dedicated `.mailhub-email-body` boundary in `app/globals.css`.
+- Applied the boundary to both HTML and plain-text detail bodies in `app/inbox/InboxShell.tsx`.
+- Forced sanitized HTML email tables, cells, images, SVG/canvas, `pre/code`, links, and `center` blocks to stay within the detail pane width.
+- Relaxed inline `white-space` styles inside email bodies so `nowrap` email content wraps in MailHub instead of pushing the pane.
+- Added a fixed-width HTML regression fixture to `fixtures/details/msg-002.json`.
+- Added E2E coverage `Step93-3c2` for:
+  - fixed-width HTML email body fit
+  - no document/detail/content/body horizontal overflow
+  - children contained inside body bounds
+  - stable body positioning while switching `msg-001`, `msg-002`, `msg-003`, and `msg-021`
+- Captured visual evidence:
+  - `artifacts/ui-screenshots/mailhub-preview-fit-html-narrow.png`
+  - `artifacts/ui-screenshots/mailhub-preview-fit-sequence-narrow.png`
+  - `artifacts/ui-screenshots/mailhub-preview-fit-html-wide.png`
+  - `artifacts/ui-screenshots/mailhub-preview-fit-check.json`
+
+Visual result:
+
+- fixed-width HTML body stayed inside the detail pane at narrow and wide widths.
+- sequence check for 4 opened emails reported no document/detail/content/body horizontal overflow.
+- `consoleErrors=[]`.
+- `failedResponses=[]`.
+- independent visual critic result: `APPROVED`.
+
+Local validation passed:
+
+- `npm run typecheck`
+- `npm run lint`
+- `npm run smoke`
+- `npm run test`
+- `npm run verify`
+- `npm run security:scan`
+- `npm run security:scan-artifacts`
+- targeted Playwright:
+
+```bash
+node scripts/e2e-preclean.mjs && MAILHUB_TEST_MODE=1 npx playwright test e2e/qa-strict-unified.spec.ts --grep "Step93-3c2" --workers=1
+node scripts/e2e-preclean.mjs && MAILHUB_TEST_MODE=1 npx playwright test e2e/qa-strict-unified.spec.ts --grep "Step93-3b|Step93-3c\\)|Step93-3c2|Step93-3d|Step93-6" --workers=1
+```
+
+Result: PASS.
+
+Readiness refresh after the slice:
+
+- `npm run ops:readiness-refresh`: PASS.
+- Routing probe send stayed `mode=dry_run`; no external mail was sent.
+- `sentCount=0`.
+- Production readiness remains intentionally false:
+  - P0 `current_shared_gmail_routing`
+  - P1 `rule_config_source_not_production`
+  - P1 `staff_workflow_permissions`
+  - P1 `staff_github_config_not_ready`
+
 ## 2026-06-21 Reply Ownership Shield Slice
 
 Completed a focused shared-inbox safety slice: Gmail replies now require the current user to own the selected message before customer-facing send.

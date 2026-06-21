@@ -1,5 +1,54 @@
 # MailHub Next Phase Commands
 
+## 2026-06-21 Mail Preview Fit Commands
+
+Commands run for the opened-email preview stability slice:
+
+```bash
+npm run typecheck
+npm run lint
+node scripts/e2e-preclean.mjs && MAILHUB_TEST_MODE=1 npx playwright test e2e/qa-strict-unified.spec.ts --grep "Step93-3c2" --workers=1
+node scripts/e2e-preclean.mjs && MAILHUB_TEST_MODE=1 npx playwright test e2e/qa-strict-unified.spec.ts --grep "Step93-3b|Step93-3c\\)|Step93-3c2|Step93-3d|Step93-6" --workers=1
+npm run smoke
+npm run test
+npm run verify
+npm run security:scan
+npm run security:scan-artifacts
+npm run ops:readiness-refresh
+```
+
+Result: PASS.
+
+Visual evidence generation used a temporary TEST_MODE server on `127.0.0.1:3010` and saved:
+
+```text
+artifacts/ui-screenshots/mailhub-preview-fit-html-narrow.png
+artifacts/ui-screenshots/mailhub-preview-fit-sequence-narrow.png
+artifacts/ui-screenshots/mailhub-preview-fit-html-wide.png
+artifacts/ui-screenshots/mailhub-preview-fit-check.json
+```
+
+Visual check result:
+
+```text
+consoleErrors=0
+failedResponses=0
+narrowHtml.documentHorizontalOverflow=false
+narrowHtml.detailHorizontalOverflow=false
+narrowHtml.contentHorizontalOverflow=false
+narrowHtml.bodyHorizontalOverflow=false
+narrowHtml.childrenInsideBody=true
+wideHtml.documentHorizontalOverflow=false
+wideHtml.detailHorizontalOverflow=false
+wideHtml.contentHorizontalOverflow=false
+wideHtml.bodyHorizontalOverflow=false
+wideHtml.childrenInsideBody=true
+sequence ids checked: msg-001, msg-002, msg-003, msg-021
+visual-design-critic: APPROVED
+```
+
+No external email send, GitHub setup/apply mutation, or Sheets mutation was run.
+
 ## 2026-06-21 Reply Ownership Shield Commands
 
 Implementation/verification commands run in this slice:

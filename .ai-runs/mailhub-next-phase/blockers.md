@@ -1,5 +1,35 @@
 # MailHub Next Phase Blockers
 
+## 2026-06-21 Mail Preview Fit Blockers
+
+No preview-fit implementation blocker remains after the focused slice.
+
+Process notes:
+
+- The first fixed-width HTML E2E attempt correctly failed because the internal table still exceeded the body boundary.
+- CSS was tightened with fixed table layout, cell width overrides, and inline `white-space` normalization.
+- Final targeted layout suite passed:
+  - `Step93-3b`
+  - `Step93-3c`
+  - `Step93-3c2`
+  - `Step93-3d`
+  - `Step93-6`
+- Visual screenshot review was `APPROVED`.
+
+Product/production blockers remain unchanged:
+
+- P0 `current_shared_gmail_routing`
+- P1 `rule_config_source_not_production`
+- P1 `staff_workflow_permissions`
+- P1 `staff_github_config_not_ready`
+
+Approval gates remain unchanged:
+
+- No external email send without explicit approval.
+- No GitHub setup/apply mutation without explicit approval.
+- No Sheets mutation without explicit approval.
+- No production-complete claim.
+
 ## 2026-06-21 Reply Ownership Shield Blockers
 
 Process notes:

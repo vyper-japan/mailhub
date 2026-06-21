@@ -1,5 +1,14 @@
 # MailHub Next Phase Decisions
 
+## 2026-06-21 Mail Preview Fit Decisions
+
+- Treat opened-email preview stability as a prerequisite to the ownership UX goal, because operators must trust the detail pane before deciding whether to take ownership or reply.
+- Keep rendering sanitized HTML email bodies in-app, but wrap them in a dedicated `.mailhub-email-body` boundary so third-party email markup cannot push outside the MailHub detail pane.
+- Prefer containing and wrapping fixed-width email tables/images over allowing document-level horizontal overflow or clipped right edges.
+- Preserve plain-text fallback behavior; apply the same width boundary to text bodies so switching between HTML and plain-text messages does not shift the body container.
+- Add a regression fixture with fixed-width table/image/nowrap HTML instead of relying on real Gmail-only examples, so CI can catch this class of preview breakage.
+- Keep production readiness false; this visual stability slice does not close routing, Sheets config, staff workflow, or staff GitHub blockers.
+
 ## 2026-06-21 Reply Ownership Shield Decisions
 
 - Ship Reply Ownership Shield v0 as a lightweight ownership gate, not a persistent lease/lock store.
