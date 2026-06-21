@@ -167,7 +167,7 @@ export function GmailComposePanel({
 
   return (
     <div
-      className="mt-5 overflow-hidden rounded-lg border border-[#dadce0] bg-white shadow-[0_1px_2px_rgba(60,64,67,0.08)]"
+      className="mt-5 rounded-lg border border-[#dadce0] bg-white shadow-[0_1px_2px_rgba(60,64,67,0.08)]"
       data-message-id={messageId}
       data-testid="gmail-compose-panel"
     >
@@ -313,7 +313,10 @@ export function GmailComposePanel({
         {sentMessage}
       </div>
 
-      <div className="flex items-center justify-end gap-2 border-t border-[#e8eaed] bg-[#f8fafd] px-4 py-1.5 xl:justify-between" data-testid="gmail-compose-actions">
+      <div
+        className="sticky bottom-0 z-20 flex items-center justify-end gap-2 border-t border-[#e8eaed] bg-[#f8fafd] px-4 py-1.5 xl:justify-between"
+        data-testid="gmail-compose-actions"
+      >
         <div className="hidden text-[11px] leading-4 text-[#5f6368] xl:block">送信後は取り消せません。</div>
         <div className="flex w-full flex-nowrap justify-end gap-1.5 xl:w-auto">
           <button

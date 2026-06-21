@@ -6301,14 +6301,20 @@ test("Step93-3c3) Mail preview switching: HTMLメール連続クリックで前�
   const switchAndAssertSynced = async (targetId: string, subjectText: string, requiredBodyText: string, forbiddenBodyText: string) => {
     const row = page.locator(`[data-testid="message-row"][data-message-id="${targetId}"]`);
     await expect(row).toBeVisible({ timeout: 10000 });
+    await page.locator(".mailhub-detail-column .custom-scrollbar").evaluate((element) => {
+      element.scrollTop = 360;
+    });
 
-    const staleSamplesP = page.evaluate(
+    const frameReportP = page.evaluate(
       async ({ forbiddenBodyText, subjectText }) => {
         const staleSamples: Array<{ bodyId: string | null; subject: string; text: string }> = [];
+        const badScrollSamples: Array<{ subject: string; scrollTop: number }> = [];
+        const overflowSamples: Array<{ subject: string; scrollWidth: number; clientWidth: number }> = [];
         const deadline = performance.now() + 450;
         while (performance.now() < deadline) {
           const subject = document.querySelector('[data-testid="detail-subject"]')?.textContent ?? "";
           const body = document.querySelector('[data-testid="email-body-html"], [data-testid="email-body-text"]') as HTMLElement | null;
+          const scroller = document.querySelector(".mailhub-detail-column .custom-scrollbar") as HTMLElement | null;
           const text = body?.textContent ?? "";
           if (subject.includes(subjectText) && body && text.includes(forbiddenBodyText)) {
             staleSamples.push({
@@ -6317,18 +6323,33 @@ test("Step93-3c3) Mail preview switching: HTMLメール連続クリックで前�
               text: text.slice(0, 160),
             });
           }
+          if (subject.includes(subjectText) && scroller && scroller.scrollTop > 4) {
+            badScrollSamples.push({ subject, scrollTop: Math.round(scroller.scrollTop) });
+          }
+          if (subject.includes(subjectText) && body && body.scrollWidth > body.clientWidth + 1) {
+            overflowSamples.push({ subject, scrollWidth: body.scrollWidth, clientWidth: body.clientWidth });
+          }
           await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
         }
-        return staleSamples;
+        return { staleSamples, badScrollSamples, overflowSamples };
       },
       { forbiddenBodyText, subjectText },
     );
 
     await row.click();
-    const staleSamples = await staleSamplesP;
-    expect(staleSamples).toEqual([]);
+    const frameReport = await frameReportP;
+    expect(frameReport.staleSamples).toEqual([]);
+    expect(frameReport.badScrollSamples).toEqual([]);
+    expect(frameReport.overflowSamples).toEqual([]);
 
     await expect(page.getByTestId("detail-subject")).toContainText(subjectText, { timeout: 10000 });
+    await expect
+      .poll(
+        () =>
+          page.evaluate(() => Math.round((document.querySelector(".mailhub-detail-column .custom-scrollbar") as HTMLElement | null)?.scrollTop ?? -1)),
+        { timeout: 3000 },
+      )
+      .toBeLessThanOrEqual(1);
     const body = page.locator('[data-testid="email-body-html"], [data-testid="email-body-text"]').first();
     await expect(body).toHaveAttribute("data-detail-message-id", targetId, { timeout: 10000 });
     await expect(body).toContainText(requiredBodyText, { timeout: 10000 });
@@ -7548,6 +7569,9 @@ test("Step113-4) Maki担当をYukaへtakeoverすると理由モーダル後force
 
   const reasonModal = page.getByTestId("audit-reason-modal");
   await expect(reasonModal).toBeVisible({ timeout: 5000 });
+  await expect(reasonModal.getByTestId("audit-reason-current-owner")).toContainText("Maki");
+  await expect(reasonModal.getByTestId("audit-reason-next-owner")).toContainText("Yuka");
+  await expect(reasonModal).toContainText("理由はActivityに残ります");
   await page.getByTestId("audit-reason-input").fill(reason);
 
   const [takeoverResp] = await Promise.all([
@@ -7616,10 +7640,27 @@ type W2T3aActivityLog = {
   metadata?: Record<string, unknown> | null;
 };
 
-async function w2T3aResetAndOpen(page: Page, options: { takeOwnership?: boolean } = {}) {
+async function w2T3aResetAndOpen(
+  page: Page,
+  options: { takeOwnership?: boolean; seedAssignees?: boolean; initialAssigneeEmail?: string } = {},
+) {
   const takeOwnership = options.takeOwnership ?? true;
   const resetResp = await page.request.post("/api/mailhub/test/reset", { data: { readOnly: false } });
   expect(resetResp.status()).toBe(200);
+
+  if (options.seedAssignees) {
+    const seedResp = await page.request.post("/api/mailhub/assignees", {
+      data: { assignees: step113Assignees },
+    });
+    expect(seedResp.status()).toBe(200);
+  }
+
+  if (options.initialAssigneeEmail) {
+    const assignResp = await page.request.post("/api/mailhub/assign", {
+      data: { id: w2T3aMessageId, action: "assign", assigneeEmail: options.initialAssigneeEmail },
+    });
+    expect(assignResp.status()).toBe(200);
+  }
 
   await page.addInitScript(() => {
     localStorage.setItem("mailhub-onboarding-shown", "true");
@@ -7797,6 +7838,48 @@ test.describe("W2-T3a Gmail compose send E2E", () => {
     await expect(page.getByTestId("detail-owner-context")).toContainText(/test|担当/i);
     await expect(page.getByTestId("detail-owner-context")).toContainText("変更");
     await expect(panel.getByTestId("gmail-compose-ownership-banner")).toContainText("自分が担当中");
+  });
+
+  test("E2E #0c) other-owner Gmail reply requires takeover reason before enabling external reply", async ({ page }) => {
+    const takeoverReason = "Gmail返信を継続するため引き継ぎ";
+    const panel = await w2T3aResetAndOpen(page, {
+      takeOwnership: false,
+      seedAssignees: true,
+      initialAssigneeEmail: "maki@vtj.co.jp",
+    });
+
+    await expect(panel.getByTestId("gmail-compose-ownership-banner")).toContainText("他の担当者が対応中", { timeout: 10000 });
+    await expect(panel.getByTestId("gmail-compose-ownership-banner")).toContainText("Maki");
+    await expect(page.getByTestId("gmail-external-reply-disabled")).toBeVisible();
+    await expect(page.getByTestId("gmail-external-reply-ownership-action")).toContainText("引き継ぐ");
+
+    await page.getByTestId("gmail-external-reply-ownership-action").click();
+
+    const reasonModal = page.getByTestId("audit-reason-modal");
+    await expect(reasonModal).toBeVisible({ timeout: 5000 });
+    await expect(reasonModal.getByTestId("audit-reason-current-owner")).toContainText("Maki");
+    await expect(reasonModal.getByTestId("audit-reason-next-owner")).toContainText("自分");
+    await expect(reasonModal.getByTestId("audit-reason-reply-note")).toContainText("Gmail返信");
+    await reasonModal.getByTestId("audit-reason-input").fill(takeoverReason);
+
+    const [takeoverResp] = await Promise.all([
+      page.waitForResponse(
+        (r) => r.url().includes("/api/mailhub/assign") && r.request().method() === "POST" && r.status() === 200,
+        { timeout: 15000 },
+      ),
+      reasonModal.getByTestId("audit-reason-ok").click(),
+    ]);
+
+    const payload = takeoverResp.request().postDataJSON() as Step113AssignPayload;
+    expect(payload.id).toBe(w2T3aMessageId);
+    expect(payload.action).toBe("assign");
+    expect(payload.assigneeEmail).toBe("test@vtj.co.jp");
+    expect(payload.force).toBe(true);
+    expect(payload.reason).toBe(takeoverReason);
+
+    await expect(reasonModal).toBeHidden({ timeout: 5000 });
+    await expect(panel.getByTestId("gmail-compose-ownership-banner")).toContainText("自分が担当中", { timeout: 10000 });
+    await expect(page.getByTestId("gmail-external-reply-link")).toBeVisible({ timeout: 10000 });
   });
 
   test("E2E #0) compose safety layout is readable before send", async ({ page }) => {

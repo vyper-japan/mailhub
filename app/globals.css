@@ -121,6 +121,7 @@ button:disabled .action-spinner {
 .custom-scrollbar {
   scrollbar-gutter: stable;
   overscroll-behavior: contain;
+  overflow-anchor: none;
 }
 
 .mailhub-detail-shimmer {
@@ -136,6 +137,8 @@ button:disabled .action-spinner {
   min-height: 180px;
   min-width: 0;
   overflow-x: hidden;
+  overflow-anchor: none;
+  contain: inline-size;
   overflow-wrap: anywhere;
   word-break: normal;
 }
@@ -144,6 +147,8 @@ button:disabled .action-spinner {
 .mailhub-email-body * {
   box-sizing: border-box;
   max-width: 100% !important;
+  animation: none !important;
+  transition: none !important;
 }
 
 .mailhub-email-body table {

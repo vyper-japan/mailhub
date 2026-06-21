@@ -45,6 +45,7 @@ import { buildMailhubLabelName } from "@/lib/mailhub-labels";
 type DebugLabels = { labelIds: string[]; labelNames: Array<string | null> };
 type DetailWithDebug = MessageDetail & { debugLabels?: DebugLabels };
 type DetailBodyState = {
+  messageId: string | null;
   plainTextBody: string | null;
   htmlBody: string | null;
   bodyNotice: string | null;
@@ -310,9 +311,33 @@ const DETAIL_CACHE_TTL_MS = 60_000;
 const DETAIL_CACHE_REFRESH_DELAY_MS = 180;
 const HOVER_PREFETCH_DELAY_MS = 180;
 const THREAD_LOAD_DELAY_MS = 260;
+const SANITIZED_HTML_CACHE_MAX_SIZE = 30;
 const MAYBE_SENT_MESSAGE =
   "すでに同じ送信が処理されています。送信済みの可能性があるため、受信トレイ/送信済みを確認してください";
 const UNRESOLVED_TEMPLATE_VAR_RE = /{{\s*[\w.-]+\s*}}/g;
+
+function emptyDetailBodyState(messageId: string | null = null, isLoading = false): DetailBodyState {
+  return {
+    messageId,
+    plainTextBody: null,
+    htmlBody: null,
+    bodyNotice: null,
+    attachments: [],
+    isLoading,
+  };
+}
+
+function detailToBodyState(detail: MessageDetail): DetailBodyState {
+  return {
+    messageId: detail.id,
+    plainTextBody: detail.plainTextBody,
+    htmlBody: detail.htmlBody,
+    bodyNotice: detail.bodyNotice,
+    attachments: detail.attachments ?? [],
+    isLoading: false,
+    debugLabels: (detail as DetailWithDebug).debugLabels,
+  };
+}
 
 function formatAttachmentSize(size: number | null): string | null {
   if (typeof size !== "number" || !Number.isFinite(size) || size <= 0) return null;
@@ -370,6 +395,7 @@ type Props = {
   initialSelectedMessage: InboxListMessage | null;
   initialDetail: MessageDetail | null;
   initialSearchQuery?: string;
+  initialTeam?: Array<{ email: string; name: string | null }>;
   user: {
     email: string;
     name: string;
@@ -391,6 +417,7 @@ export default function InboxShell({
   initialSelectedMessage,
   initialDetail,
   initialSearchQuery = "",
+  initialTeam = [],
   user,
   logoutAction,
   testMode,
@@ -516,19 +543,28 @@ export default function InboxShell({
     setSelectedDetail((prev) => (prev && prev.id !== selectedMessage?.id ? null : prev));
   }, [selectedMessage?.id]);
 
-  const [detailBody, setDetailBody] = useState<DetailBodyState>(() => ({
-    plainTextBody: initialDetail?.plainTextBody ?? null,
-    htmlBody: initialDetail?.htmlBody ?? null,
-    bodyNotice: initialDetail?.bodyNotice ?? null,
-    attachments: initialDetail?.attachments ?? [],
-    isLoading: false,
-    debugLabels: (initialDetail as DetailWithDebug | null)?.debugLabels,
-  }));
+  const [detailBody, setDetailBody] = useState<DetailBodyState>(() =>
+    initialDetail ? detailToBodyState(initialDetail) : emptyDetailBodyState(),
+  );
+  const [isClientReady, setIsClientReady] = useState(false);
+  const htmlSanitizeCacheRef = useRef<Map<string, { rawHtml: string; sanitizedHtml: string }>>(new Map());
+  const htmlBodyRef = useRef<HTMLDivElement | null>(null);
+  const renderedHtmlRef = useRef<{ messageId: string | null; rawHtml: string | null }>({
+    messageId: null,
+    rawHtml: null,
+  });
+
+  useEffect(() => {
+    setIsClientReady(true);
+  }, []);
 
   const sanitizedHtmlBody = useMemo(() => {
-    if (!detailBody.htmlBody) return "";
+    if (!detailBody.htmlBody || !detailBody.messageId) return "";
     if (typeof window === "undefined") return "";
-    return DOMPurify.sanitize(detailBody.htmlBody, {
+    const cached = htmlSanitizeCacheRef.current.get(detailBody.messageId);
+    if (cached?.rawHtml === detailBody.htmlBody) return cached.sanitizedHtml;
+
+    const sanitizedHtml = DOMPurify.sanitize(detailBody.htmlBody, {
       ALLOWED_TAGS: [
         "p",
         "br",
@@ -586,13 +622,52 @@ export default function InboxShell({
       ADD_ATTR: ["target"],
       FORCE_BODY: true,
     });
-  }, [detailBody.htmlBody]);
-  const htmlBodyRef = useRef<HTMLDivElement | null>(null);
+
+    const cache = htmlSanitizeCacheRef.current;
+    cache.set(detailBody.messageId, { rawHtml: detailBody.htmlBody, sanitizedHtml });
+    if (cache.size > SANITIZED_HTML_CACHE_MAX_SIZE) {
+      const oldestKey = cache.keys().next().value;
+      if (typeof oldestKey === "string") cache.delete(oldestKey);
+    }
+    return sanitizedHtml;
+  }, [detailBody.htmlBody, detailBody.messageId]);
 
   useLayoutEffect(() => {
-    if (!htmlBodyRef.current) return;
-    htmlBodyRef.current.innerHTML = sanitizedHtmlBody;
-  }, [sanitizedHtmlBody, selectedMessage?.id]);
+    const element = htmlBodyRef.current;
+    if (!element) return;
+
+    const shouldRenderHtml =
+      isClientReady &&
+      !detailBody.isLoading &&
+      Boolean(detailBody.htmlBody) &&
+      detailBody.messageId !== null &&
+      detailBody.messageId === selectedMessage?.id;
+
+    if (!shouldRenderHtml || !detailBody.htmlBody) {
+      if (renderedHtmlRef.current.messageId !== null || renderedHtmlRef.current.rawHtml !== null) {
+        element.innerHTML = "";
+        renderedHtmlRef.current = { messageId: null, rawHtml: null };
+      }
+      return;
+    }
+
+    if (
+      renderedHtmlRef.current.messageId === detailBody.messageId &&
+      renderedHtmlRef.current.rawHtml === detailBody.htmlBody
+    ) {
+      return;
+    }
+
+    element.innerHTML = sanitizedHtmlBody;
+    renderedHtmlRef.current = { messageId: detailBody.messageId, rawHtml: detailBody.htmlBody };
+  }, [
+    detailBody.htmlBody,
+    detailBody.isLoading,
+    detailBody.messageId,
+    isClientReady,
+    sanitizedHtmlBody,
+    selectedMessage?.id,
+  ]);
   const [listError, setListError] = useState<string | null>(serverListError);
   const [detailError, setDetailError] = useState<string | null>(null);
 
@@ -932,6 +1007,7 @@ export default function InboxShell({
     messageId: string;
     assigneeEmail?: string;
     handoffNote?: string;
+    source?: "gmail_reply" | "assignee_picker";
     isBulk?: boolean;
     bulkIds?: string[];
   } | null>(null);
@@ -1114,8 +1190,10 @@ export default function InboxShell({
   const [opsReadiness, setOpsReadiness] = useState<OpsReadinessView | null>(null);
 
   const listRef = useRef<HTMLDivElement | null>(null);
+  const detailScrollRef = useRef<HTMLDivElement | null>(null);
   const abortRef = useRef<AbortController | null>(null);
-  const inFlightIdRef = useRef<string | null>(null);
+  const detailInFlightIdRef = useRef<string | null>(null);
+  const listInFlightRequestIdRef = useRef<string | null>(null);
   const lastFocusSyncAtRef = useRef<number>(0);
   const initialEmptyLoadAttemptedRef = useRef(false);
   
@@ -1181,7 +1259,7 @@ export default function InboxShell({
   });
 
   // Team（担当者名簿）
-  const [team, setTeam] = useState<Array<{ email: string; name: string | null }>>([]);
+  const [team, setTeam] = useState<Array<{ email: string; name: string | null }>>(() => initialTeam);
 
   useEffect(() => {
     let cancelled = false;
@@ -1978,7 +2056,7 @@ export default function InboxShell({
   }, [evictOldCacheEntries]);
 
   const loadDetailBodyOnly = useCallback(async (id: string, useCache: boolean = true) => {
-    // プリフェッチモード（useCache = false）の場合は、inFlightIdRefを変更しない
+    // プリフェッチモード（useCache = false）の場合は、detailInFlightIdRefを変更しない
     // これにより、現在選択中のメールのレスポンスが正しく処理される
     const isPrefetch = !useCache;
     let controller: AbortController;
@@ -1987,11 +2065,11 @@ export default function InboxShell({
       // プリフェッチ：独立したコントローラーを使用（メインのフェッチに干渉しない）
       controller = new AbortController();
     } else {
-      // 通常のフェッチ：前のリクエストをキャンセルしてinFlightIdRefを設定
+      // 通常のフェッチ：前のリクエストをキャンセルしてdetailInFlightIdRefを設定
       abortRef.current?.abort();
       controller = new AbortController();
       abortRef.current = controller;
-      inFlightIdRef.current = id;
+      detailInFlightIdRef.current = id;
     }
 
     // Step 50: キャッシュから取得を試みる（プリフェッチ以外）
@@ -2000,18 +2078,11 @@ export default function InboxShell({
       if (cached) {
         const now = Date.now();
         if (now - cached.fetchedAt < DETAIL_CACHE_TTL_MS) {
-          // キャッシュヒット：即座に反映（inFlightIdRefと一致する時だけ）
-          if (inFlightIdRef.current === id) {
+          // キャッシュヒット：即座に反映（detailInFlightIdRefと一致する時だけ）
+          if (detailInFlightIdRef.current === id) {
             setDetailError(null);
             setSelectedDetail(cached.detail);
-            setDetailBody({
-              plainTextBody: cached.detail.plainTextBody,
-              htmlBody: cached.detail.htmlBody,
-              bodyNotice: cached.detail.bodyNotice,
-              attachments: cached.detail.attachments ?? [],
-              isLoading: false,
-              debugLabels: (cached.detail as DetailWithDebug).debugLabels,
-            });
+            setDetailBody(detailToBodyState(cached.detail));
           }
           return;
         } else {
@@ -2024,7 +2095,9 @@ export default function InboxShell({
     // プリフェッチ以外の場合のみローディング状態を設定
     if (!isPrefetch) {
       setDetailError(null);
-      setDetailBody((b) => ({ ...b, isLoading: true }));
+      setDetailBody((b) =>
+        b.messageId === id ? { ...b, isLoading: true } : emptyDetailBodyState(id, true),
+      );
     }
 
     try {
@@ -2049,18 +2122,11 @@ export default function InboxShell({
         fetchedAt: Date.now(),
       });
 
-      // inFlightIdRef.currentと一致する時だけUIを更新（連続クリック対策）
-      // selectedIdはstate更新の遅延があるためinFlightIdRefを使用
-      if (inFlightIdRef.current === id) {
+      // detailInFlightIdRef.currentと一致する時だけUIを更新（連続クリック対策）
+      // selectedIdはstate更新の遅延があるためdetailInFlightIdRefを使用
+      if (detailInFlightIdRef.current === id) {
         setSelectedDetail(data.detail);
-        setDetailBody({
-          plainTextBody: data.detail.plainTextBody,
-          htmlBody: data.detail.htmlBody,
-          bodyNotice: data.detail.bodyNotice,
-          attachments: data.detail.attachments ?? [],
-          isLoading: false,
-          debugLabels: (data.detail as DetailWithDebug).debugLabels,
-        });
+        setDetailBody(detailToBodyState(data.detail));
         if (data.detail.isInProgress !== undefined) {
           setIsClaimedMap((prev) => ({ ...prev, [id]: data.detail.isInProgress ?? false }));
         }
@@ -2084,9 +2150,11 @@ export default function InboxShell({
         }
       }
       // Step 50: selectedIdと一致する時だけエラー表示（連続クリック対策）
-      if (selectedIdRef.current === id && inFlightIdRef.current === id) {
+      if (selectedIdRef.current === id && detailInFlightIdRef.current === id) {
         setDetailError(errorMessage);
-        setDetailBody((b) => ({ ...b, isLoading: false }));
+        setDetailBody((b) =>
+          b.messageId === id ? { ...b, isLoading: false } : emptyDetailBodyState(id, false),
+        );
       }
     }
   }, [evictOldCacheEntries]);
@@ -2350,6 +2418,10 @@ export default function InboxShell({
     // 注意: 進行中のリクエストはキャンセルしない（完了させてキャッシュに保存）
   }, []);
 
+  useLayoutEffect(() => {
+    detailScrollRef.current?.scrollTo({ top: 0, left: 0 });
+  }, [selectedMessage?.id]);
+
   const onSelectMessage = useCallback((id: string) => {
     if (id === selectedId) return;
 
@@ -2374,13 +2446,14 @@ export default function InboxShell({
       : [];
     if (hasFreshCache) {
       abortRef.current?.abort();
-      inFlightIdRef.current = id;
+      detailInFlightIdRef.current = id;
       selectedIdRef.current = id;
     }
     
     // flushSyncを使って、選択メッセージとタイトルと本文の更新を同期的に行う
     // これにより、連続クリック時にタイトルと本文がずれる問題を防ぐ
     const selectedMsg = messages.find((m) => m.id === id) ?? null;
+    detailScrollRef.current?.scrollTo({ top: 0, left: 0 });
     flushSync(() => {
       setSelectedId(id);
       setSelectedMessage(selectedMsg);
@@ -2393,18 +2466,14 @@ export default function InboxShell({
       if (hasFreshCache && cached) {
         // キャッシュヒット：即座に表示
         setSelectedDetail(cached.detail);
-        setDetailBody({
-          plainTextBody: cached.detail.plainTextBody,
-          htmlBody: cached.detail.htmlBody,
-          bodyNotice: cached.detail.bodyNotice,
-          attachments: cached.detail.attachments ?? [],
-          isLoading: false,
-          debugLabels: (cached.detail as DetailWithDebug).debugLabels,
-        });
+        setDetailBody(detailToBodyState(cached.detail));
       } else {
         // キャッシュがない場合：ローディング状態を表示
-        setDetailBody({ plainTextBody: null, htmlBody: null, bodyNotice: null, attachments: [], isLoading: true });
+        setDetailBody(emptyDetailBodyState(id, true));
       }
+    });
+    window.requestAnimationFrame(() => {
+      if (selectedIdRef.current === id) detailScrollRef.current?.scrollTo({ top: 0, left: 0 });
     });
     
     // バックグラウンドで最新データを取得。キャッシュ表示時はクリック体感を優先して少し遅らせる。
@@ -2518,7 +2587,7 @@ export default function InboxShell({
     
     // リクエストIDを更新（レースコンディション対策）
     const requestId = `${nextLabelId}-${Date.now()}`;
-    inFlightIdRef.current = requestId;
+    listInFlightRequestIdRef.current = requestId;
     
     try {
       const params = new URLSearchParams();
@@ -2533,7 +2602,7 @@ export default function InboxShell({
       const data = await fetchJson<MailhubListResponse>(url);
       
       // リクエストIDが変わっていたら無視（レースコンディション対策）
-      if (inFlightIdRef.current !== requestId) return;
+      if (listInFlightRequestIdRef.current !== requestId) return;
       
       // 状態を更新
       setMessages(data.messages);
@@ -2563,11 +2632,11 @@ export default function InboxShell({
         void loadDetailBodyOnly(nextSelected);
       } else {
         setSelectedDetail(null);
-        setDetailBody({ plainTextBody: null, htmlBody: null, bodyNotice: null, attachments: [], isLoading: false });
+        setDetailBody(emptyDetailBodyState());
       }
     } catch (e) {
       // リクエストIDが変わっていたら無視
-      if (inFlightIdRef.current !== requestId) return;
+      if (listInFlightRequestIdRef.current !== requestId) return;
       
       const errorMessage = e instanceof Error ? e.message : String(e);
       setListError(errorMessage);
@@ -3295,7 +3364,7 @@ export default function InboxShell({
       } else {
         setSelectedId(null);
         setSelectedMessage(null);
-        setDetailBody({ plainTextBody: null, htmlBody: null, bodyNotice: null, attachments: [], isLoading: false });
+        setDetailBody(emptyDetailBodyState());
         replaceUrl(labelId, null);
       }
     }
@@ -3400,7 +3469,7 @@ export default function InboxShell({
         setSelectedId(null);
         setSelectedMessage(null);
         setSelectedDetail(null);
-        setDetailBody({ plainTextBody: null, htmlBody: null, bodyNotice: null, attachments: [], isLoading: false });
+        setDetailBody(emptyDetailBodyState());
         replaceUrl(labelId, null);
       }
     }
@@ -3512,7 +3581,7 @@ export default function InboxShell({
       } else {
         setSelectedId(null);
         setSelectedMessage(null);
-        setDetailBody({ plainTextBody: null, htmlBody: null, bodyNotice: null, attachments: [], isLoading: false });
+        setDetailBody(emptyDetailBodyState());
         replaceUrl(labelId, null);
       }
     }
@@ -3650,7 +3719,7 @@ export default function InboxShell({
       } else {
         setSelectedId(null);
         setSelectedMessage(null);
-        setDetailBody({ plainTextBody: null, htmlBody: null, bodyNotice: null, attachments: [], isLoading: false });
+        setDetailBody(emptyDetailBodyState());
         replaceUrl(labelId, null);
       }
 
@@ -3918,7 +3987,7 @@ export default function InboxShell({
       } else {
         setSelectedId(null);
         setSelectedMessage(null);
-        setDetailBody({ plainTextBody: null, htmlBody: null, bodyNotice: null, attachments: [], isLoading: false });
+        setDetailBody(emptyDetailBodyState());
         replaceUrl(labelId, null);
       }
     }
@@ -4011,7 +4080,7 @@ export default function InboxShell({
       } else {
         setSelectedId(null);
         setSelectedMessage(null);
-        setDetailBody({ plainTextBody: null, htmlBody: null, bodyNotice: null, attachments: [], isLoading: false });
+        setDetailBody(emptyDetailBodyState());
         replaceUrl(labelId, null);
       }
     }
@@ -4085,6 +4154,10 @@ export default function InboxShell({
             messageId,
             assigneeEmail,
             handoffNote,
+            source:
+              selectedMessage?.id === messageId && showGmailComposePanel && replyRoute?.kind === "gmail"
+                ? "gmail_reply"
+                : "assignee_picker",
           });
           // モーダルを閉じずに戻る（handleAssigneeSelectorは閉じない）
           return;
@@ -4284,7 +4357,19 @@ export default function InboxShell({
       setAssigneeSelectorMessageId(null);
       setAssigneeSelectorBulkIds([]);
     }
-  }, [actionInProgress, assigneeSelectorBulkIds, assigneeSelectorMessageId, messages, selectedMessage, showToast, fetchCountsDebounced, addToUndoStack, user.email]);
+  }, [
+    actionInProgress,
+    assigneeSelectorBulkIds,
+    assigneeSelectorMessageId,
+    messages,
+    selectedMessage,
+    showGmailComposePanel,
+    replyRoute?.kind,
+    showToast,
+    fetchCountsDebounced,
+    addToUndoStack,
+    user.email,
+  ]);
 
   // 後方互換のため、既存のhandleAssignも残す（非推奨）
   const handleAssign = useCallback(async (id: string) => {
@@ -4673,7 +4758,7 @@ export default function InboxShell({
         } else {
           setSelectedId(null);
           setSelectedMessage(null);
-          setDetailBody({ plainTextBody: null, htmlBody: null, bodyNotice: null, attachments: [], isLoading: false });
+          setDetailBody(emptyDetailBodyState());
           replaceUrl(labelId, null);
         }
       }
@@ -4838,7 +4923,7 @@ export default function InboxShell({
             } else {
               setSelectedId(null);
               setSelectedMessage(null);
-              setDetailBody({ plainTextBody: null, htmlBody: null, bodyNotice: null, attachments: [], isLoading: false });
+              setDetailBody(emptyDetailBodyState());
               replaceUrl(labelId, null);
             }
           }
@@ -4943,7 +5028,7 @@ export default function InboxShell({
               // ここでは安全に先頭へフォールバックする（クラッシュ防止）。
               setSelectedId(null);
               setSelectedMessage(null);
-              setDetailBody({ plainTextBody: null, htmlBody: null, bodyNotice: null, attachments: [], isLoading: false });
+              setDetailBody(emptyDetailBodyState());
               replaceUrl(labelId, null);
             }
           }, 500);
@@ -5276,7 +5361,7 @@ export default function InboxShell({
       } else {
         setSelectedId(null);
         setSelectedMessage(null);
-        setDetailBody({ plainTextBody: null, htmlBody: null, bodyNotice: null, attachments: [], isLoading: false });
+        setDetailBody(emptyDetailBodyState());
         replaceUrl(labelId, null);
       }
     }, 500);
@@ -5367,7 +5452,7 @@ export default function InboxShell({
           } else {
             setSelectedId(null);
             setSelectedMessage(null);
-            setDetailBody({ plainTextBody: null, htmlBody: null, bodyNotice: null, attachments: [], isLoading: false });
+            setDetailBody(emptyDetailBodyState());
             replaceUrl(labelId, null);
           }
         }
@@ -5565,7 +5650,7 @@ export default function InboxShell({
           setLastAppliedTemplate(null);
           setBodyCollapsed(false);
           setDetailError(null);
-          setDetailBody({ plainTextBody: null, htmlBody: null, bodyNotice: null, attachments: [], isLoading: true });
+          setDetailBody(emptyDetailBodyState(id, true));
         });
         replaceUrl(labelId, id);
         void loadDetailBodyOnly(id);
@@ -6198,6 +6283,25 @@ export default function InboxShell({
       window.removeEventListener("mouseup", stopResizing);
     };
   }, [resizing, resize, stopResizing]);
+
+  const pendingReasonContext = useMemo(() => {
+    if (!pendingReasonModal) return null;
+
+    const targetMessage =
+      messages.find((m) => m.id === pendingReasonModal.messageId) ??
+      (selectedMessage?.id === pendingReasonModal.messageId ? selectedMessage : null);
+    const currentOwnerName = getAssigneeDisplayName(targetMessage?.assigneeSlug ?? null) ?? "他担当";
+    const nextOwnerSlug = pendingReasonModal.assigneeEmail ? assigneeSlug(pendingReasonModal.assigneeEmail) : null;
+    const nextOwnerName = getAssigneeDisplayName(nextOwnerSlug) ?? pendingReasonModal.assigneeEmail ?? "未指定";
+    const nextOwnerLabel = nextOwnerSlug === myAssigneeSlug ? `自分 (${nextOwnerName})` : nextOwnerName;
+
+    return {
+      currentOwnerName,
+      nextOwnerLabel,
+      subject: targetMessage?.subject ?? "選択中のメール",
+      isGmailReply: pendingReasonModal.source === "gmail_reply",
+    };
+  }, [getAssigneeDisplayName, messages, myAssigneeSlug, pendingReasonModal, selectedMessage]);
 
   const selectedWorkContext = useMemo(() => {
     if (!selectedMessage) return null;
@@ -7838,14 +7942,14 @@ export default function InboxShell({
                         selectedIdRef.current = null;
                         setSelectedMessage(null);
                         setSelectedDetail(null);
-                        setDetailBody({ plainTextBody: null, htmlBody: null, bodyNotice: null, attachments: [], isLoading: false });
+                        setDetailBody(emptyDetailBodyState());
                         replaceUrl(labelId, null, true, serverSearchQuery || undefined);
                       }}
                     >
                       ← 一覧に戻る
                     </button>
                   </div>
-                  <div className="flex-1 overflow-y-auto custom-scrollbar bg-white text-[#202124]">
+                  <div ref={detailScrollRef} className="flex-1 overflow-y-auto custom-scrollbar bg-white text-[#202124]">
                     <div className="sticky top-0 z-10 border-b border-[#e8eaed] bg-white/95 backdrop-blur">
                       <div className="mx-auto w-full max-w-[820px] px-4 py-1 sm:px-5 lg:px-6" data-testid="detail-header-inner">
                         <div className="flex min-w-0 flex-wrap items-start gap-x-2 gap-y-1 xl:flex-nowrap">
@@ -8025,7 +8129,7 @@ export default function InboxShell({
                         </div>
                       ) : (
                       <div className="relative">
-                        {detailBody.isLoading ? (
+                        {detailBody.isLoading || detailBody.messageId !== selectedMessage.id || (Boolean(detailBody.htmlBody) && !isClientReady) ? (
                           <div className="min-h-[180px] space-y-3 py-1" data-testid="detail-skeleton" aria-busy="true">
                             <div className="mailhub-detail-shimmer h-3 rounded-full w-[88%]" />
                             <div className="mailhub-detail-shimmer h-3 rounded-full w-[62%]" />
@@ -9937,17 +10041,46 @@ export default function InboxShell({
             className="w-full max-w-md bg-white rounded-xl shadow-2xl border border-gray-200 p-5"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="text-sm font-medium text-gray-900 mb-3">📝 理由の入力（必須）</div>
-            <div className="text-xs text-gray-600 mb-3">
-              {pendingReasonModal.action === "takeover" && "担当者を変更（引き継ぎ）するには、理由を入力してください。"}
+            <div className="text-sm font-semibold text-gray-900 mb-2">理由の入力（引き継ぎ）</div>
+            <div className="text-xs leading-5 text-gray-600">
+              {pendingReasonModal.action === "takeover" && "他の担当者の対応を自分側へ引き継ぎます。理由はActivityに残ります。"}
             </div>
+            {pendingReasonContext && (
+              <div
+                className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900"
+                data-testid="audit-reason-context"
+              >
+                <div className="font-semibold text-amber-950" data-testid="audit-reason-subject">
+                  {pendingReasonContext.subject}
+                </div>
+                <div className="mt-2 grid gap-1.5 sm:grid-cols-2">
+                  <div className="rounded-md border border-amber-200 bg-white px-2 py-1.5" data-testid="audit-reason-current-owner">
+                    <div className="text-[11px] text-amber-700">現在の担当</div>
+                    <div className="font-semibold">{pendingReasonContext.currentOwnerName}</div>
+                  </div>
+                  <div className="rounded-md border border-[#d2e3fc] bg-white px-2 py-1.5" data-testid="audit-reason-next-owner">
+                    <div className="text-[11px] text-[#1a73e8]">引き継ぎ先</div>
+                    <div className="font-semibold text-[#1a73e8]">{pendingReasonContext.nextOwnerLabel}</div>
+                  </div>
+                </div>
+                {pendingReasonContext.isGmailReply && (
+                  <div className="mt-2 rounded-md border border-[#d2e3fc] bg-[#e8f0fe] px-2 py-1.5 text-[#174ea6]" data-testid="audit-reason-reply-note">
+                    Gmail返信は、引き継ぎ完了後に有効になります。
+                  </div>
+                )}
+              </div>
+            )}
+            <label htmlFor="audit-reason-input" className="mt-3 block text-xs font-medium text-gray-700">
+              理由
+            </label>
             <textarea
+              id="audit-reason-input"
               data-testid="audit-reason-input"
               value={reasonText}
               onChange={(e) => setReasonText(e.target.value)}
               placeholder="例: 休暇対応のため引き継ぎ"
               rows={3}
-              className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+              className="mt-1 w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
             />
             <div className="mt-4 flex justify-end gap-2">
               <button
@@ -9966,7 +10099,7 @@ export default function InboxShell({
                 disabled={!reasonText.trim()}
                 data-testid="audit-reason-ok"
               >
-                実行
+                理由を記録して引き継ぐ
               </button>
             </div>
           </div>

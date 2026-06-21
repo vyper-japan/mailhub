@@ -1,0 +1,35 @@
+{
+  "generatedAt": "2026-06-21T07:14:20.593Z",
+  "blocked": {
+    "detailOwner": "Maki|引き継ぐ",
+    "composeBanner": "他の担当者が対応中です担当: Maki引き継ぐ",
+    "externalDisabled": "Gmailで返信",
+    "externalAction": "引き継ぐ",
+    "hasExternalLink": false
+  },
+  "modal": {
+    "currentOwner": "現在の担当Maki",
+    "nextOwner": "引き継ぎ先自分 (test)",
+    "replyNote": "Gmail返信は、引き継ぎ完了後に有効になります。"
+  },
+  "after": {
+    "detailOwner": "test|変更",
+    "composeBanner": "自分が担当中担当: Test",
+    "hasExternalLink": true,
+    "horizontalOverflow": false
+  },
+  "noConsoleErrors": true,
+  "noFailedResponses": true,
+  "consoleMessages": [],
+  "failedResponses": [],
+  "checks": {
+    "blockedShowsOtherOwner": true,
+    "blockedShowsTakeoverAction": true,
+    "modalShowsCurrentOwner": true,
+    "modalShowsNextOwner": true,
+    "modalShowsGmailReplyNote": true,
+    "afterEnablesExternalReply": true,
+    "noHorizontalOverflow": true,
+    "cleanBrowser": true
+  }
+}

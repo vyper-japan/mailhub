@@ -7,6 +7,7 @@ import { isTestMode } from "@/lib/test-mode";
 import { getMailhubEnv } from "@/lib/mailhub-env";
 import { getViewsStore } from "@/lib/viewsStore";
 import { assigneeSlug } from "@/lib/assignee";
+import { getAssigneeRegistryStore } from "@/lib/assigneeRegistryStore";
 import InboxShell from "@/app/inbox/InboxShell";
 
 type SearchParams = Record<string, string | string[] | undefined>;
@@ -149,6 +150,11 @@ export default async function HomePage({
     ? messages.find((m) => m.id === selectedId) ?? null
     : null;
 
+  const initialTeam = await getAssigneeRegistryStore()
+    .list()
+    .then((assignees) => assignees.map((a) => ({ email: a.email, name: a.displayName ?? null })))
+    .catch(() => []);
+
   return (
     <main className="h-screen flex overflow-hidden bg-white">
       {/* InboxShellにサイドバーとユーザー情報を丸ごと任せる（インタラクティブな要素が多いため） */}
@@ -162,6 +168,7 @@ export default async function HomePage({
         initialSelectedMessage={selectedMessage}
         initialDetail={detailError ? null : detail}
         initialSearchQuery={userSearchQuery}
+        initialTeam={initialTeam}
         user={{
           email: userEmail ?? "",
           name: userName ?? "",

@@ -1,0 +1,143 @@
+{
+  "generatedAt": "2026-06-21T07:04:36.083Z",
+  "switchToAmazon": {
+    "frameReport": {
+      "staleSamples": [],
+      "badScrollSamples": [],
+      "overflowSamples": [],
+      "positionSamples": [
+        {
+          "bodyId": null,
+          "bodyLeft": 0,
+          "bodyRight": 0,
+          "contentLeft": 736,
+          "contentRight": 1272,
+          "skeleton": true
+        },
+        {
+          "bodyId": null,
+          "bodyLeft": 0,
+          "bodyRight": 0,
+          "contentLeft": 736,
+          "contentRight": 1272,
+          "skeleton": true
+        },
+        {
+          "bodyId": null,
+          "bodyLeft": 0,
+          "bodyRight": 0,
+          "contentLeft": 736,
+          "contentRight": 1272,
+          "skeleton": true
+        },
+        {
+          "bodyId": null,
+          "bodyLeft": 0,
+          "bodyRight": 0,
+          "contentLeft": 736,
+          "contentRight": 1272,
+          "skeleton": true
+        },
+        {
+          "bodyId": null,
+          "bodyLeft": 0,
+          "bodyRight": 0,
+          "contentLeft": 736,
+          "contentRight": 1272,
+          "skeleton": true
+        },
+        {
+          "bodyId": null,
+          "bodyLeft": 0,
+          "bodyRight": 0,
+          "contentLeft": 736,
+          "contentRight": 1272,
+          "skeleton": true
+        },
+        {
+          "bodyId": null,
+          "bodyLeft": 0,
+          "bodyRight": 0,
+          "contentLeft": 736,
+          "contentRight": 1272,
+          "skeleton": true
+        },
+        {
+          "bodyId": null,
+          "bodyLeft": 0,
+          "bodyRight": 0,
+          "contentLeft": 736,
+          "contentRight": 1272,
+          "skeleton": true
+        },
+        {
+          "bodyId": null,
+          "bodyLeft": 0,
+          "bodyRight": 0,
+          "contentLeft": 736,
+          "contentRight": 1272,
+          "skeleton": true
+        },
+        {
+          "bodyId": null,
+          "bodyLeft": 0,
+          "bodyRight": 0,
+          "contentLeft": 736,
+          "contentRight": 1272,
+          "skeleton": true
+        },
+        {
+          "bodyId": null,
+          "bodyLeft": 0,
+          "bodyRight": 0,
+          "contentLeft": 736,
+          "contentRight": 1272,
+          "skeleton": true
+        },
+        {
+          "bodyId": null,
+          "bodyLeft": 0,
+          "bodyRight": 0,
+          "contentLeft": 736,
+          "contentRight": 1272,
+          "skeleton": true
+        }
+      ]
+    },
+    "finalMetrics": {
+      "scrollTop": 0,
+      "bodyId": "msg-001",
+      "bodyOverflow": false,
+      "contentOverflow": false,
+      "documentOverflow": false
+    },
+    "hasRequiredText": true,
+    "hasForbiddenText": false
+  },
+  "switchBackToYahoo": {
+    "frameReport": {
+      "staleSamples": [],
+      "badScrollSamples": [],
+      "overflowSamples": [],
+      "positionSamples": []
+    },
+    "finalMetrics": {
+      "scrollTop": 0,
+      "bodyId": "msg-002",
+      "bodyOverflow": false,
+      "contentOverflow": false,
+      "documentOverflow": false
+    },
+    "hasRequiredText": true,
+    "hasForbiddenText": false
+  },
+  "noConsoleErrors": true,
+  "noFailedResponses": true,
+  "consoleMessages": [],
+  "failedResponses": [],
+  "checks": {
+    "switchToAmazonStable": true,
+    "switchBackToYahooStable": true,
+    "cleanBrowser": true
+  }
+}

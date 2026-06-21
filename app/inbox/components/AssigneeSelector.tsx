@@ -31,23 +31,31 @@ export function AssigneeSelector({ open, onClose, currentUserEmail, currentAssig
     if (!open) return;
     void (async () => {
       try {
-        // Step 110: /api/mailhub/teamからrosterを取得（優先）
-        const teamData = await fetchJson<{ team: Array<{ email: string; name: string | null }>; roster?: string[] }>("/api/mailhub/team");
-        if (teamData.roster && teamData.roster.length > 0) {
-          // rosterから名簿を構築（teamのnameを取得）
-          const rosterEntries: AssigneeEntry[] = teamData.roster.map((email) => {
-            const teamMember = teamData.team.find((m) => m.email.toLowerCase() === email.toLowerCase());
-            return {
+        const [teamData, registryData] = await Promise.all([
+          fetchJson<{ team: Array<{ email: string; name: string | null }>; roster?: string[] }>("/api/mailhub/team").catch(() => null),
+          fetchJson<{ assignees: AssigneeEntry[] }>("/api/mailhub/assignees").catch(() => null),
+        ]);
+
+        const byEmail = new Map<string, AssigneeEntry>();
+        if (teamData?.roster && teamData.roster.length > 0) {
+          for (const email of teamData.roster) {
+            const normalizedEmail = email.toLowerCase();
+            const teamMember = teamData.team.find((m) => m.email.toLowerCase() === normalizedEmail);
+            byEmail.set(normalizedEmail, {
               email,
               displayName: teamMember?.name ?? undefined,
-            };
-          });
-          setAssignees(rosterEntries);
-        } else {
-          // フォールバック: /api/mailhub/assigneesから担当者名簿を取得
-          const data = await fetchJson<{ assignees: AssigneeEntry[] }>("/api/mailhub/assignees");
-          setAssignees(data.assignees ?? []);
+            });
+          }
         }
+        for (const entry of registryData?.assignees ?? []) {
+          const normalizedEmail = entry.email.toLowerCase();
+          const existing = byEmail.get(normalizedEmail);
+          byEmail.set(normalizedEmail, {
+            email: existing?.email ?? entry.email,
+            displayName: existing?.displayName ?? entry.displayName,
+          });
+        }
+        setAssignees([...byEmail.values()]);
       } catch (e) {
         console.error("Failed to load assignees:", e);
         setAssignees([]);
