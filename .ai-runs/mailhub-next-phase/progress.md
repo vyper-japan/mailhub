@@ -1,5 +1,75 @@
 # MailHub Next Phase Progress
 
+## 2026-06-21 Ownership CTA Clarity
+
+Completed the next Ownership UX slice after the rapid preview switching closeout. The goal was to make the next ownership action obvious in the detail pane and beside the blocked Gmail external reply action, without changing `/api/mailhub/send` enforcement.
+
+Implemented:
+
+- Replaced the detail header assignee chip with an explicit state/action chip:
+  - `未割当 | 担当する`
+  - `自分担当: <name> | 変更`
+  - `担当: <name> | 引き継ぐ`
+- Updated the detail work-context owner chip to show the same action label beside the owner state.
+- Added a near-button CTA beside the disabled external `Gmailで返信` button while Reply Ownership Shield blocks the action.
+- The new near-button CTA reuses the existing ownership handler:
+  - unassigned messages call the existing assign-to-me path.
+  - other-assignee messages still enter the existing takeover reason flow.
+- Kept `/api/mailhub/send` ownership enforcement unchanged.
+- Updated E2E coverage so the blocked Gmail external reply path proves the new near-button CTA can take ownership and then enables the external Gmail reply link.
+- Updated `artifacts/design-brief.json` and captured visual evidence.
+
+Visual evidence:
+
+- `artifacts/ui-screenshots/mailhub-ownership-cta-before.png`
+- `artifacts/ui-screenshots/mailhub-ownership-cta-after.png`
+- `artifacts/ui-screenshots/mailhub-ownership-cta-check.json`
+
+Visual/DOM result:
+
+- before detail owner: `未割当|担当する`.
+- before external blocked CTA: `担当する`.
+- after detail owner: `test|変更`.
+- after external reply link: `Gmailで返信`.
+- `documentHorizontalOverflow=false`.
+- `consoleErrors=[]`.
+- `failedResponses=[]`.
+
+Validation:
+
+- `npm run typecheck`: PASS.
+- `npm run lint`: PASS.
+- `npm run smoke`: PASS.
+- `npm run security:scan`: PASS.
+- `npm run test`: PASS, 75 files / 712 tests.
+- `npm run verify`: PASS.
+- `git diff --check`: PASS.
+- `npm run security:scan-artifacts`: PASS.
+- Targeted Playwright:
+
+```bash
+node scripts/e2e-preclean.mjs && MAILHUB_TEST_MODE=1 npx playwright test e2e/qa-strict-unified.spec.ts --grep "E2E #0a|E2E #0b" --workers=1
+node scripts/e2e-preclean.mjs && MAILHUB_TEST_MODE=1 npx playwright test e2e/qa-strict-unified.spec.ts --grep "E2E #0a|E2E #0b|compose safety layout|Step93-3\\)" --workers=1
+```
+
+Result:
+
+- PASS, 2 tests.
+- PASS, 4 tests.
+
+Code/test/visual artifact commit:
+
+- `c05477d Clarify MailHub ownership CTA surfaces`
+
+Readiness refresh after the commit:
+
+- `npm run ops:readiness-refresh`: PASS.
+- `probe:routing-send` stayed `mode=dry_run`.
+- `sentCount=0`.
+- artifact contracts passed.
+- `security:scan-artifacts` passed.
+- refreshed artifacts now reference repo head `c05477d0604ef3e1381bfe799d6b23b372b678aa`.
+
 ## 2026-06-21 Rapid Preview Switching Stability
 
 Completed the user-reported repeated-email preview stability fix. The reported symptom was that similar daily notification emails could show a delayed or briefly broken preview while clicking through many messages. The main UI risk was stale HTML body DOM being visible for a frame before the next sanitized body was applied.

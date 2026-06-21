@@ -1,5 +1,43 @@
 # MailHub Next Phase Plan
 
+## 2026-06-21 Ownership CTA Clarity Plan
+
+Status: implementation and focused/full local verification complete; artifact commit/push closeout in progress.
+
+Completed plan:
+
+1. Resumed the active Ownership UX goal after preview switching CI was green.
+2. Confirmed the remaining weak surfaces were:
+   - the detail owner chip showing state without a clear action label.
+   - the disabled external `Gmailで返信` button lacking an adjacent recovery CTA.
+3. Implemented explicit owner action labels in the detail header and detail work context.
+4. Added a near-button ownership CTA beside the disabled external Gmail reply action.
+5. Reused the existing assignment/takeover handler and kept send-route enforcement unchanged.
+6. Added E2E assertions for the new near-button CTA and detail action labels.
+7. Captured screenshots and DOM metrics for before/after ownership.
+8. Ran targeted E2E, full unit tests, build verification, and readiness refresh.
+
+Remaining closeout plan:
+
+1. Run final `git diff --check` and `npm run security:scan-artifacts`.
+2. Commit refreshed `.ai-runs` artifacts.
+3. Push.
+4. Watch `MailHub Readiness Contract` and `qa-strict`.
+5. Continue the next Ownership UX slice only after CI is green.
+
+Recommended next UX slice after CI:
+
+- tighten takeover reason clarity for other-assignee messages, or
+- check thread-level owner action clarity for bulk assign/takeover, or
+- do another real-message human-eye pass across list/detail/compose ownership state.
+
+Constraints stay in force:
+
+- no external email send without explicit approval
+- no GitHub setup/apply mutation without explicit approval
+- no Sheets mutation without explicit approval
+- no production-complete claim
+
 ## 2026-06-21 Ownership Visibility Plan
 
 Status: implementation and focused verification complete; full closeout still in progress.

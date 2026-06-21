@@ -1,5 +1,81 @@
 # MailHub Next Phase Commands
 
+## 2026-06-21 Ownership CTA Clarity Commands
+
+Commands run for the detail/Gmail ownership CTA slice:
+
+```bash
+npm run typecheck
+npm run lint
+npm run smoke
+npm run security:scan
+npm run test
+npm run verify
+git diff --check
+npm run security:scan-artifacts
+```
+
+Result: PASS.
+
+Targeted Playwright validation:
+
+```bash
+node scripts/e2e-preclean.mjs && MAILHUB_TEST_MODE=1 npx playwright test e2e/qa-strict-unified.spec.ts --grep "E2E #0a|E2E #0b" --workers=1
+node scripts/e2e-preclean.mjs && MAILHUB_TEST_MODE=1 npx playwright test e2e/qa-strict-unified.spec.ts --grep "E2E #0a|E2E #0b|compose safety layout|Step93-3\\)" --workers=1
+```
+
+Result:
+
+- PASS, 2 tests.
+- PASS, 4 tests.
+
+Visual evidence was generated against a temporary TEST_MODE server on `localhost:3012`. Screenshots were written to `/tmp` during browser interaction and copied into the repository after browser close to avoid Next dev Fast Refresh reload during capture.
+
+```text
+artifacts/ui-screenshots/mailhub-ownership-cta-before.png
+artifacts/ui-screenshots/mailhub-ownership-cta-after.png
+artifacts/ui-screenshots/mailhub-ownership-cta-check.json
+```
+
+Visual/DOM result:
+
+```text
+beforeDetailShowsAction=true
+beforeExternalShowsAction=true
+afterDetailShowsChange=true
+afterExternalReplyEnabled=true
+noHorizontalOverflow=true
+noConsoleErrors=true
+noFailedResponses=true
+```
+
+No external email send, GitHub setup/apply mutation, or Sheets mutation was run.
+
+Code/test/visual artifact commit:
+
+```bash
+git commit -m "Clarify MailHub ownership CTA surfaces"
+```
+
+Result:
+
+- `c05477d Clarify MailHub ownership CTA surfaces`
+
+Readiness refresh after code commit:
+
+```bash
+npm run ops:readiness-refresh
+```
+
+Result:
+
+- PASS.
+- `probe:routing-send` stayed `mode=dry_run`.
+- `sentCount=0`.
+- artifact contracts passed.
+- `security:scan-artifacts` passed.
+- refreshed artifacts reference repo head `c05477d0604ef3e1381bfe799d6b23b372b678aa`.
+
 ## 2026-06-21 Rapid Preview Switching Commands
 
 Commands run for the repeated-email preview switching fix:
