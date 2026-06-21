@@ -48,7 +48,13 @@ body {
   contain: layout paint style;
   contain-intrinsic-size: 42px;
   position: relative;
+  width: 100%;
   transition: background-color 75ms ease, box-shadow 75ms ease;
+}
+
+.mailhub-message-row-shell > div {
+  min-width: 0;
+  width: 100%;
 }
 
 .mailhub-message-row-shell[data-active="true"] {
@@ -211,6 +217,7 @@ button:disabled .action-spinner {
 
   .mailhub-list-column {
     width: 100vw !important;
+    flex: 0 0 100vw !important;
     min-width: 0 !important;
     max-width: none !important;
     border-right: 0;
@@ -226,7 +233,8 @@ button:disabled .action-spinner {
 
   .mailhub-detail-column {
     display: none;
-    width: 100vw;
+    width: 100vw !important;
+    flex: 0 0 100vw !important;
     min-width: 0 !important;
   }
 

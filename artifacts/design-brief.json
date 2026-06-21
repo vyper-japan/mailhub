@@ -22,7 +22,8 @@
     "Message list sender/subject density polish",
     "Work-mode tabs with visible queue counts",
     "Reading pane subject/from/status context header",
-    "Responsive action rail without clipped toolbar or work-mode labels"
+    "Responsive action rail without clipped toolbar or work-mode labels",
+    "Wide desktop split-pane behavior where the list expands and the reading pane stays stable"
   ],
   "must_not_do": [
     "Do not send external email.",
@@ -37,6 +38,7 @@
     "Browser screenshot reading rail desktop/narrow",
     "Browser screenshot workbench tabs/detail context desktop/narrow",
     "Browser screenshot action rail desktop/narrow",
+    "Browser screenshot responsive width narrow/desktop/wide",
     "Console error check"
   ]
 }

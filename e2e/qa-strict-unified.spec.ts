@@ -6142,6 +6142,54 @@ test("Step93-3c) Wide desktop reading pane: 詳細ヘッダーと本文の読み
   expect(metrics.horizontalOverflow).toBe(false);
 });
 
+test("Step93-3c1) Wide desktop resize: 横幅が増えたら一覧が広がり詳細は安定する", async ({ page }) => {
+  await page.request.post("/api/mailhub/test/reset").catch(() => {});
+  await page.addInitScript(() => {
+    localStorage.setItem("mailhub-onboarding-shown", "true");
+  });
+
+  const collectMetrics = async (width: number) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/?label=all&id=msg-021&max=20");
+    await expect(page.getByTestId("detail-subject")).toBeVisible({ timeout: 10000 });
+
+    return page.evaluate(() => {
+      const rect = (selector: string) => document.querySelector(selector)?.getBoundingClientRect();
+      const listRect = rect(".mailhub-list-column");
+      const rowRect = rect('[data-testid="message-row-selected"]');
+      const rowTextBlockRect = rect('[data-testid="message-row"] [data-testid="row-text-block"]');
+      const detailRect = rect(".mailhub-detail-column");
+      const contentRect = rect('[data-testid="detail-content-inner"]');
+      return {
+        listWidth: Math.round(listRect?.width ?? 0),
+        rowWidth: Math.round(rowRect?.width ?? 0),
+        rowTextBlockWidth: Math.round(rowTextBlockRect?.width ?? 0),
+        detailWidth: Math.round(detailRect?.width ?? 0),
+        contentWidth: Math.round(contentRect?.width ?? 0),
+        contentLeftGapInsideDetail: Math.round((contentRect?.left ?? 0) - (detailRect?.left ?? 0)),
+        contentRightGapInsideDetail: Math.round((detailRect?.right ?? 0) - (contentRect?.right ?? 0)),
+        horizontalOverflow: document.documentElement.scrollWidth > window.innerWidth + 1,
+      };
+    });
+  };
+
+  const desktop = await collectMetrics(1600);
+  const wide = await collectMetrics(1920);
+
+  expect(desktop.detailWidth).toBeGreaterThanOrEqual(840);
+  expect(desktop.detailWidth).toBeLessThanOrEqual(880);
+  expect(wide.detailWidth).toBeGreaterThanOrEqual(840);
+  expect(wide.detailWidth).toBeLessThanOrEqual(880);
+  expect(wide.listWidth - desktop.listWidth).toBeGreaterThanOrEqual(240);
+  expect(wide.rowWidth).toBeGreaterThanOrEqual(wide.listWidth - 12);
+  expect(wide.rowTextBlockWidth - desktop.rowTextBlockWidth).toBeGreaterThanOrEqual(240);
+  expect(wide.contentWidth).toBeLessThanOrEqual(820);
+  expect(wide.contentLeftGapInsideDetail).toBeLessThanOrEqual(40);
+  expect(wide.contentRightGapInsideDetail).toBeLessThanOrEqual(40);
+  expect(desktop.horizontalOverflow).toBe(false);
+  expect(wide.horizontalOverflow).toBe(false);
+});
+
 test("Step93-3c2) Mail preview body: 固定幅HTMLメールも詳細ペイン内に収まる", async ({ page }) => {
   await page.request.post("/api/mailhub/test/reset").catch(() => {});
   await page.addInitScript(() => {

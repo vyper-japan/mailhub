@@ -6126,9 +6126,9 @@ export default function InboxShell({
       const newWidth = Math.min(Math.max(e.clientX, 200), 320);
       setSidebarWidth(newWidth);
     } else if (resizing === "list") {
-      // リストリサイズ: 件名/本文抜粋が読める幅を優先し、表示上限とロジック上限を一致させる
+      // リストリサイズ: 広幅では一覧を主に伸ばし、詳細本文の作業幅は安定させる
       const sidebarAndPadding = sidebarWidth + 16; // sidebar + main area padding
-      const newWidth = Math.min(Math.max(e.clientX - sidebarAndPadding, 320), 620);
+      const newWidth = Math.min(Math.max(e.clientX - sidebarAndPadding, 320), 900);
       setListWidth(newWidth);
     }
   }, [resizing, sidebarWidth]);
@@ -6238,6 +6238,9 @@ export default function InboxShell({
     selectedMessage,
     viewTab,
   ]);
+
+  const selectedListBasisPx = Math.max(listWidth, 480);
+  const selectedDetailBasis = `min(872px, max(460px, calc(100vw - ${sidebarWidth + selectedListBasisPx}px)))`;
 
   return (
     <div className={`w-full h-screen ${t.bg} flex flex-col font-sans`}>
@@ -7232,9 +7235,10 @@ export default function InboxShell({
             <div 
               className={`${t.listColumn} ${selectedMessage ? "mailhub-list-selected" : ""}`}
               style={{
-                width: `min(${listWidth}px, max(320px, calc(100vw - ${sidebarWidth + 460}px)))`,
+                flex: selectedMessage ? `1 1 ${listWidth}px` : undefined,
+                width: selectedMessage ? undefined : `min(${listWidth}px, max(320px, calc(100vw - ${sidebarWidth + 460}px)))`,
                 minWidth: '320px',
-                maxWidth: '620px',
+                maxWidth: selectedMessage ? 'none' : '620px',
               }}
             >
               <div className="flex-1 overflow-y-auto custom-scrollbar">
@@ -7761,7 +7765,16 @@ export default function InboxShell({
             />
 
             {/* 詳細表示 */}
-            <div className={`${t.detailColumn} ${selectedMessage ? "mailhub-detail-selected" : ""}`} data-testid="detail-pane">
+            <div
+              className={`${t.detailColumn} ${selectedMessage ? "mailhub-detail-selected" : ""}`}
+              data-testid="detail-pane"
+              style={selectedMessage ? {
+                flexBasis: selectedDetailBasis,
+                flexGrow: 0,
+                flexShrink: 0,
+                width: selectedDetailBasis,
+              } : undefined}
+            >
               {!selectedMessage ? (
                 <div className="flex-1 flex flex-col items-center justify-center text-[#5f6368] space-y-4">
                   <Mail className="w-12 h-12 opacity-10" />
