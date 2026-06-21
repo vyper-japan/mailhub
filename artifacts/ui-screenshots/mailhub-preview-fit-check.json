@@ -1,0 +1,151 @@
+{
+  "generatedAt": "2026-06-21T03:19:36.062Z",
+  "baseURL": "http://127.0.0.1:3010",
+  "checks": {
+    "narrowHtml": {
+      "id": "msg-002",
+      "subject": "Yahoo!ショッピング-朝レポ：店舗Aの売上状況",
+      "bodyKind": "email-body-html",
+      "detailWidth": 468,
+      "contentWidth": 460,
+      "bodyWidth": 412,
+      "bodyLeft": 676,
+      "bodyRight": 1088,
+      "documentHorizontalOverflow": false,
+      "detailHorizontalOverflow": false,
+      "contentHorizontalOverflow": false,
+      "bodyHorizontalOverflow": false,
+      "childrenInsideBody": true,
+      "tables": [
+        364,
+        316
+      ],
+      "images": [
+        316
+      ],
+      "consoleViewport": {
+        "width": 1120,
+        "height": 840
+      }
+    },
+    "sequence": [
+      {
+        "id": "msg-001",
+        "subject": "【重要】注文確認のお知らせ",
+        "bodyKind": "email-body-text",
+        "detailWidth": 468,
+        "contentWidth": 460,
+        "bodyWidth": 412,
+        "bodyLeft": 676,
+        "bodyRight": 1088,
+        "documentHorizontalOverflow": false,
+        "detailHorizontalOverflow": false,
+        "contentHorizontalOverflow": false,
+        "bodyHorizontalOverflow": false,
+        "childrenInsideBody": true,
+        "tables": [],
+        "images": [],
+        "consoleViewport": {
+          "width": 1120,
+          "height": 840
+        }
+      },
+      {
+        "id": "msg-002",
+        "subject": "Yahoo!ショッピング-朝レポ：店舗Aの売上状況",
+        "bodyKind": "email-body-html",
+        "detailWidth": 468,
+        "contentWidth": 460,
+        "bodyWidth": 412,
+        "bodyLeft": 676,
+        "bodyRight": 1088,
+        "documentHorizontalOverflow": false,
+        "detailHorizontalOverflow": false,
+        "contentHorizontalOverflow": false,
+        "bodyHorizontalOverflow": false,
+        "childrenInsideBody": true,
+        "tables": [
+          364,
+          316
+        ],
+        "images": [
+          316
+        ],
+        "consoleViewport": {
+          "width": 1120,
+          "height": 840
+        }
+      },
+      {
+        "id": "msg-003",
+        "subject": "お客様への再連絡のお願い",
+        "bodyKind": "email-body-text",
+        "detailWidth": 468,
+        "contentWidth": 460,
+        "bodyWidth": 412,
+        "bodyLeft": 676,
+        "bodyRight": 1088,
+        "documentHorizontalOverflow": false,
+        "detailHorizontalOverflow": false,
+        "contentHorizontalOverflow": false,
+        "bodyHorizontalOverflow": false,
+        "childrenInsideBody": true,
+        "tables": [],
+        "images": [],
+        "consoleViewport": {
+          "width": 1120,
+          "height": 840
+        }
+      },
+      {
+        "id": "msg-021",
+        "subject": "【楽天RMS】お問い合わせが届きました",
+        "bodyKind": "email-body-text",
+        "detailWidth": 468,
+        "contentWidth": 460,
+        "bodyWidth": 412,
+        "bodyLeft": 676,
+        "bodyRight": 1088,
+        "documentHorizontalOverflow": false,
+        "detailHorizontalOverflow": false,
+        "contentHorizontalOverflow": false,
+        "bodyHorizontalOverflow": false,
+        "childrenInsideBody": true,
+        "tables": [],
+        "images": [],
+        "consoleViewport": {
+          "width": 1120,
+          "height": 840
+        }
+      }
+    ],
+    "wideHtml": {
+      "id": "msg-002",
+      "subject": "Yahoo!ショッピング-朝レポ：店舗Aの売上状況",
+      "bodyKind": "email-body-html",
+      "detailWidth": 952,
+      "contentWidth": 820,
+      "bodyWidth": 772,
+      "bodyLeft": 814,
+      "bodyRight": 1586,
+      "documentHorizontalOverflow": false,
+      "detailHorizontalOverflow": false,
+      "contentHorizontalOverflow": false,
+      "bodyHorizontalOverflow": false,
+      "childrenInsideBody": true,
+      "tables": [
+        724,
+        676
+      ],
+      "images": [
+        676
+      ],
+      "consoleViewport": {
+        "width": 1680,
+        "height": 900
+      }
+    }
+  },
+  "consoleErrors": [],
+  "failedResponses": []
+}

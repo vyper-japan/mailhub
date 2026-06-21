@@ -6141,6 +6141,100 @@ test("Step93-3c) Wide desktop reading pane: 詳細ヘッダーと本文の読み
   expect(metrics.horizontalOverflow).toBe(false);
 });
 
+test("Step93-3c2) Mail preview body: 固定幅HTMLメールも詳細ペイン内に収まる", async ({ page }) => {
+  await page.request.post("/api/mailhub/test/reset").catch(() => {});
+  await page.addInitScript(() => {
+    localStorage.setItem("mailhub-onboarding-shown", "true");
+  });
+  await page.setViewportSize({ width: 1120, height: 840 });
+  await page.goto("/?label=all&id=msg-002&max=20");
+  const htmlBody = page.getByTestId("email-body-html");
+  await expect(htmlBody).toBeVisible({ timeout: 10000 });
+
+  const htmlMetrics = await page.evaluate(() => {
+    const content = document.querySelector('[data-testid="detail-content-inner"]');
+    const body = document.querySelector('[data-testid="email-body-html"]') as HTMLElement | null;
+    const bodyRect = body?.getBoundingClientRect();
+    const contentRect = content?.getBoundingClientRect();
+    const childRects = Array.from(body?.querySelectorAll("*") ?? [])
+      .map((el) => el.getBoundingClientRect())
+      .filter((rect) => rect.width > 1 && rect.height > 1);
+    const maxChildRight = childRects.length ? Math.max(...childRects.map((rect) => rect.right)) : bodyRect?.right ?? 0;
+    const minChildLeft = childRects.length ? Math.min(...childRects.map((rect) => rect.left)) : bodyRect?.left ?? 0;
+    const wideTable = body?.querySelector("table table") as HTMLElement | null;
+    const nowrapParagraph = Array.from(body?.querySelectorAll("p") ?? []).find((el) =>
+      el.textContent?.includes("nowrap指定"),
+    ) as HTMLElement | undefined;
+
+    return {
+      bodyClassApplied: body?.classList.contains("mailhub-email-body") ?? false,
+      documentHorizontalOverflow: document.documentElement.scrollWidth > window.innerWidth + 1,
+      contentHorizontalOverflow: content ? content.scrollWidth > content.clientWidth + 1 : true,
+      bodyHorizontalOverflow: body ? body.scrollWidth > body.clientWidth + 1 : true,
+      bodyInsideContent:
+        bodyRect && contentRect
+          ? bodyRect.left >= contentRect.left - 1 && bodyRect.right <= contentRect.right + 1
+          : false,
+      childrenInsideBody:
+        bodyRect
+          ? minChildLeft >= bodyRect.left - 1 && maxChildRight <= bodyRect.right + 1
+          : false,
+      wideTableFits: wideTable ? Math.round(wideTable.getBoundingClientRect().width) <= Math.round(bodyRect?.width ?? 0) : false,
+      nowrapRelaxed: nowrapParagraph ? getComputedStyle(nowrapParagraph).whiteSpace !== "nowrap" : false,
+    };
+  });
+
+  expect(htmlMetrics).toEqual({
+    bodyClassApplied: true,
+    documentHorizontalOverflow: false,
+    contentHorizontalOverflow: false,
+    bodyHorizontalOverflow: false,
+    bodyInsideContent: true,
+    childrenInsideBody: true,
+    wideTableFits: true,
+    nowrapRelaxed: true,
+  });
+
+  const idsToCheck = ["msg-001", "msg-002", "msg-003", "msg-021"];
+  const positions: Array<{ id: string; contentLeft: number; contentTextLeft: number; bodyLeft: number; bodyRight: number; horizontalOverflow: boolean }> = [];
+
+  for (const id of idsToCheck) {
+    const row = page.locator(`[data-message-id="${id}"]`);
+    await expect(row).toBeVisible({ timeout: 10000 });
+    await row.getByTestId("row-text-block").click();
+    await expect(page.locator('[data-testid="email-body-html"], [data-testid="email-body-text"]')).toBeVisible({
+      timeout: 10000,
+    });
+    positions.push(
+      await page.evaluate((messageId) => {
+        const content = document.querySelector('[data-testid="detail-content-inner"]');
+        const body = document.querySelector('[data-testid="email-body-html"], [data-testid="email-body-text"]');
+        const contentRect = content?.getBoundingClientRect();
+        const bodyRect = body?.getBoundingClientRect();
+        const contentPaddingLeft = content ? Number.parseFloat(getComputedStyle(content).paddingLeft || "0") : 0;
+        return {
+          id: messageId,
+          contentLeft: Math.round(contentRect?.left ?? 0),
+          contentTextLeft: Math.round((contentRect?.left ?? 0) + contentPaddingLeft),
+          bodyLeft: Math.round(bodyRect?.left ?? 0),
+          bodyRight: Math.round(bodyRect?.right ?? 0),
+          horizontalOverflow: document.documentElement.scrollWidth > window.innerWidth + 1,
+        };
+      }, id),
+    );
+  }
+
+  const first = positions[0];
+  expect(first).toBeTruthy();
+  for (const position of positions) {
+    expect(position.horizontalOverflow).toBe(false);
+    expect(Math.abs(position.contentLeft - first.contentLeft)).toBeLessThanOrEqual(1);
+    expect(Math.abs(position.contentTextLeft - first.contentTextLeft)).toBeLessThanOrEqual(1);
+    expect(Math.abs(position.bodyLeft - position.contentTextLeft)).toBeLessThanOrEqual(1);
+    expect(position.bodyRight).toBeGreaterThan(position.bodyLeft + 240);
+  }
+});
+
 test("Step93-3d) Narrow desktop thread actions: 会話履歴アクションが詳細幅で縦割れしない", async ({ page }) => {
   test.setTimeout(120_000);
   await page.request.post("/api/mailhub/test/reset").catch(() => {});

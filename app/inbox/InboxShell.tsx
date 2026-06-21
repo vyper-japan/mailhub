@@ -7972,11 +7972,11 @@ export default function InboxShell({
                             {detailBody.htmlBody ? (
                               <div
                                 ref={htmlBodyRef}
-                                className="prose max-w-none text-[14px] leading-[20px] text-[#202124] font-normal selection:bg-[#E8F0FE] [&_a]:text-blue-600 [&_a]:underline [&_img]:max-w-full [&_img]:h-auto [&_table]:border-collapse [&_td]:p-2 [&_th]:p-2"
+                                className="mailhub-email-body prose max-w-none text-[14px] leading-[20px] text-[#202124] font-normal selection:bg-[#E8F0FE] [&_a]:text-blue-600 [&_a]:underline [&_img]:max-w-full [&_img]:h-auto [&_table]:border-collapse [&_td]:p-2 [&_th]:p-2"
                                 data-testid="email-body-html"
                               />
                             ) : (
-                              <div className="prose max-w-none text-[14px] leading-[20px] whitespace-pre-wrap text-[#202124] font-normal selection:bg-[#E8F0FE]" data-testid="email-body-text">
+                              <div className="mailhub-email-body prose max-w-none text-[14px] leading-[20px] whitespace-pre-wrap text-[#202124] font-normal selection:bg-[#E8F0FE]" data-testid="email-body-text">
                                 {detailBody.plainTextBody || "本文がありません"}
                               </div>
                             )}

@@ -8,9 +8,10 @@
   "snippet": "ご利用のストア様に、売上状況についてご連絡させていただきます。",
   "gmailLink": "https://mail.google.com/mail/u/0/#inbox/msg-002",
   "plainTextBody": "ご利用のストア様に、売上状況についてご連絡させていただきます。\n\n【当月売り上げ（積算）】90,270円\n【前日の結果】\n- PC: 45,000円\n- スマホ: 45,270円\n\n【前日比】+10.5%\n\n引き続きYahoo!ショッピングをよろしくお願いいたします。",
+  "htmlBody": "<div style=\"width: 960px; font-family: Arial, sans-serif; background: #f4f4f4; padding: 24px;\"><table width=\"920\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"width: 920px; min-width: 920px; background: #ffffff;\"><tr><td style=\"padding: 24px;\"><h2 style=\"margin: 0 0 16px; font-size: 24px;\">Yahoo!ショッピング 朝レポ</h2><table width=\"880\" cellpadding=\"8\" cellspacing=\"0\" border=\"1\" style=\"width: 880px; min-width: 880px; border-collapse: collapse;\"><tr><th>指標</th><th>PC</th><th>スマホ</th><th>合計</th></tr><tr><td>前日の売上</td><td>45,000円</td><td>45,270円</td><td>90,270円</td></tr><tr><td>長い商品名の例</td><td colspan=\"3\">固定幅メールで横にはみ出しやすい長いテキスト abcdefghijklmnopqrstuvwxyz-abcdefghijklmnopqrstuvwxyz-abcdefghijklmnopqrstuvwxyz</td></tr></table><p style=\"white-space: nowrap; width: 840px;\">この行はHTMLメール由来のnowrap指定ですが、MailHubでは詳細ペインからはみ出さず折り返して表示します。</p><img alt=\"wide test banner\" width=\"1200\" height=\"80\" src=\"data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==\" style=\"width: 1200px; height: 80px;\" /></td></tr></table></div>",
+  "bodySource": "html",
   "bodyNotice": null
 }
-
 
 
 

@@ -123,6 +123,71 @@ button:disabled .action-spinner {
   animation: mailhub-shimmer 1.05s ease-in-out infinite;
 }
 
+.mailhub-email-body {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: hidden;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.mailhub-email-body,
+.mailhub-email-body * {
+  box-sizing: border-box;
+  max-width: 100% !important;
+}
+
+.mailhub-email-body table {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  table-layout: fixed !important;
+  border-spacing: 0;
+}
+
+.mailhub-email-body tbody,
+.mailhub-email-body thead,
+.mailhub-email-body tr {
+  max-width: 100% !important;
+}
+
+.mailhub-email-body td,
+.mailhub-email-body th {
+  width: auto !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.mailhub-email-body img,
+.mailhub-email-body svg,
+.mailhub-email-body canvas {
+  height: auto !important;
+  max-width: 100% !important;
+}
+
+.mailhub-email-body pre,
+.mailhub-email-body code {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.mailhub-email-body [style*="white-space"] {
+  white-space: normal !important;
+}
+
+.mailhub-email-body a {
+  overflow-wrap: anywhere;
+}
+
+.mailhub-email-body center {
+  display: block;
+  max-width: 100%;
+}
+
 @keyframes mailhub-shimmer {
   0% { background-position: 120% 0; }
   100% { background-position: -120% 0; }
