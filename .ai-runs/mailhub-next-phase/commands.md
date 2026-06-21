@@ -1,5 +1,47 @@
 # MailHub Next Phase Commands
 
+## 2026-06-21 Ownership CI Follow-Up Commands
+
+First pushed ownership visibility CI:
+
+```bash
+gh run watch 27892905045 --exit-status
+gh run watch 27892905026 --exit-status
+```
+
+Result:
+
+- `MailHub Readiness Contract` `27892905045`: PASS.
+- `qa-strict` `27892905026`: FAIL at `Step93-3) Mobile layout`.
+- Failure reason: the test used a global `button[data-testid="assignee-pill"]` locator after visible list ownership chips were added, so `.first()` could resolve to a hidden list-row chip on mobile detail view.
+
+Fix validation:
+
+```bash
+MAILHUB_TEST_MODE=1 npx playwright test e2e/qa-strict-unified.spec.ts --grep "Step93-3\\)" --workers=1
+git diff --check
+npm run ops:readiness-refresh
+```
+
+Result:
+
+- targeted Playwright PASS.
+- diff-check PASS.
+- readiness refresh PASS.
+- `probe:routing-send` stayed `mode=dry_run`.
+- `sentCount=0`.
+- `security:scan-artifacts` passed inside readiness refresh.
+
+Fix commit:
+
+```bash
+git commit -m "Scope mobile ownership check to detail pane"
+```
+
+Result:
+
+- `1c2e5bd Scope mobile ownership check to detail pane`
+
 ## 2026-06-21 Ownership Visibility Commands
 
 Commands run for the list/detail/compose ownership visibility slice:

@@ -1,5 +1,29 @@
 # MailHub Next Phase Progress
 
+## 2026-06-21 Ownership CI Follow-Up
+
+The first pushed ownership visibility CI run failed in `qa-strict` at `Step93-3) Mobile layout`.
+Root cause: the mobile layout test wanted the detail-pane assignee pill after scrolling the detail body, but the new visible list-row assignee chips reused `data-testid="assignee-pill"`. The global `.first()` locator could resolve to a hidden list-row chip while the detail column was active on mobile.
+
+Implemented fix:
+
+- Scoped the `Step93-3` assignee locator to `.mailhub-detail-column button[data-testid="assignee-pill"]`.
+- Kept the user-facing ownership UI unchanged.
+
+Validation:
+
+- `MAILHUB_TEST_MODE=1 npx playwright test e2e/qa-strict-unified.spec.ts --grep "Step93-3\\)" --workers=1`: PASS.
+- `git diff --check`: PASS.
+- `npm run ops:readiness-refresh`: PASS.
+- `probe:routing-send` stayed `mode=dry_run`; `sentCount=0`.
+- `security:scan-artifacts` passed inside readiness refresh.
+
+Code/test fix commit:
+
+- `1c2e5bd Scope mobile ownership check to detail pane`
+
+Refreshed readiness artifacts now reference repo head `1c2e5bd3eeef8fc609d0508f28c897393b71fa27`.
+
 ## 2026-06-21 Ownership Visibility Slice
 
 Completed a focused ownership UX slice after the preview-fit fix. The goal was to make assignment/ownership state visible and actionable across the list, detail, and Gmail compose surfaces without changing backend assignment semantics.
@@ -71,7 +95,7 @@ Readiness refresh after the commit:
 
 Remaining closeout:
 
-- Commit refreshed `.ai-runs` artifacts.
+- Commit refreshed `.ai-runs` artifacts after the CI follow-up.
 - Push and watch `MailHub Readiness Contract` and `qa-strict`.
 
 Production readiness remains intentionally false:

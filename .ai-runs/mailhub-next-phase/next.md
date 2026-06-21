@@ -1,9 +1,11 @@
 # MailHub Next Phase Next Actions
 
-## 2026-06-21 Resume Here: Close Out Ownership Visibility
+## 2026-06-21 Resume Here: Close Out Ownership CI Follow-Up
 
-Current code/test/visual slice is committed as `d8500cb Clarify MailHub ownership across inbox surfaces`.
-Final local verification and post-commit readiness refresh have passed. Finish the refreshed artifact commit, push, and CI watch.
+Current ownership visibility slice is committed as `d8500cb Clarify MailHub ownership across inbox surfaces`.
+The first pushed `qa-strict` failed at `Step93-3` because the mobile test used a global `assignee-pill` locator after list-row ownership chips became visible. The CI follow-up fix is committed as `1c2e5bd Scope mobile ownership check to detail pane`, and readiness artifacts have been refreshed to that head.
+
+Finish the refreshed artifact commit, push, and CI watch.
 
 Immediate sequence:
 
@@ -18,7 +20,7 @@ Artifact commit:
 
 ```bash
 git add .ai-runs/mailhub-next-phase
-git commit -m "Refresh readiness artifacts after ownership visibility polish"
+git commit -m "Refresh readiness artifacts after ownership CI follow-up"
 ```
 
 Then push and watch:
