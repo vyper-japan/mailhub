@@ -1,5 +1,67 @@
 # MailHub Next Phase Progress
 
+## 2026-06-21 Responsive Reading Pane Width
+
+Completed the wide-desktop resize fix requested during manual use. The previous split-pane behavior kept the list capped while the detail column expanded, so the email preview body stayed centered inside a growing white area. The new behavior matches the intended Gmail-like rhythm: the reading pane keeps a stable work width, and extra horizontal space goes to the message list.
+
+Implemented:
+
+- Selected desktop detail pane now uses a stable responsive basis:
+  - narrow desktop: detail can compress to `460px` so the list remains readable.
+  - wide desktop: detail caps around `872px`.
+  - extra horizontal space is returned to the list.
+- Message rows now fill the expanded list width instead of leaving row backgrounds/content at the old narrow width.
+- Manual list resize upper bound increased from `620px` to `900px` so operator resizing aligns with the wider list behavior.
+- Mobile list/detail full-width switch now overrides desktop inline flex basis with `flex: 0 0 100vw !important`.
+- Added E2E `Step93-3c1) Wide desktop resize: 横幅が増えたら一覧が広がり詳細は安定する`.
+- Updated `artifacts/design-brief.json` with the responsive width DoD.
+
+Visual evidence:
+
+- `artifacts/ui-screenshots/mailhub-responsive-after-narrow.png`
+- `artifacts/ui-screenshots/mailhub-responsive-after-1600.png`
+- `artifacts/ui-screenshots/mailhub-responsive-after-1920.png`
+- `artifacts/ui-screenshots/mailhub-responsive-width-after.json`
+
+Visual result from the final clean TEST_MODE capture:
+
+- 1120px: list `413px`, detail `460px`, no horizontal overflow.
+- 1600px: list `488px`, detail `864px`, no horizontal overflow.
+- 1920px: list `800px`, detail `872px`, no horizontal overflow.
+- At 1920px, selected row width `791px` and row text block width `684px`, confirming rows/content now follow the expanded list.
+- Detail content stays at `820px` max with only `22px` / `30px` side gaps inside the detail pane at 1920px.
+- `errors=[]`; `failed=[]`.
+
+Validation:
+
+- `npm run typecheck`: PASS.
+- `npm run lint`: PASS.
+- `npm run smoke`: PASS.
+- `npm run security:scan`: PASS.
+- `npm run test`: PASS, 75 files / 712 tests.
+- `git diff --check`: PASS.
+- `npm run security:scan-artifacts`: PASS.
+- Targeted Playwright:
+
+```bash
+node scripts/e2e-preclean.mjs && MAILHUB_TEST_MODE=1 npx playwright test e2e/qa-strict-unified.spec.ts --grep "Step93-3\\)|Step93-3b|Step93-3c\\)|Step93-3c1|Step93-3c2|Step93-3d" --workers=1
+```
+
+Result: PASS, 6 tests.
+
+Code/test/visual artifact commit:
+
+- `9b0e72f Stabilize MailHub responsive reading pane width`
+
+Readiness refresh after the commit:
+
+- `npm run ops:readiness-refresh`: PASS.
+- `probe:routing-send` stayed `mode=dry_run`.
+- `sentCount=0`.
+- Artifact contracts passed inside refresh.
+- `security:scan-artifacts` passed inside refresh.
+- refreshed artifacts now reference repo head `9b0e72ff81ce97693352bac198f691e29fd38b1f`.
+
 ## 2026-06-21 Ownership CI Follow-Up
 
 The first pushed ownership visibility CI run failed in `qa-strict` at `Step93-3) Mobile layout`.

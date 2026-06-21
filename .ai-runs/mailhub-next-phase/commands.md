@@ -1,5 +1,85 @@
 # MailHub Next Phase Commands
 
+## 2026-06-21 Responsive Reading Pane Width Commands
+
+Commands run for the wide-desktop resize fix:
+
+```bash
+npm run typecheck
+npm run lint
+npm run smoke
+npm run security:scan
+npm run test
+git diff --check
+```
+
+Result: PASS.
+
+Targeted Playwright validation:
+
+```bash
+node scripts/e2e-preclean.mjs && MAILHUB_TEST_MODE=1 npx playwright test e2e/qa-strict-unified.spec.ts --grep "Step93-3\\)|Step93-3b|Step93-3c\\)|Step93-3c1|Step93-3c2|Step93-3d" --workers=1
+```
+
+Result:
+
+- PASS, 6 tests.
+
+Visual evidence was generated against a temporary TEST_MODE server on `localhost:3011`:
+
+```text
+artifacts/ui-screenshots/mailhub-responsive-after-narrow.png
+artifacts/ui-screenshots/mailhub-responsive-after-1600.png
+artifacts/ui-screenshots/mailhub-responsive-after-1920.png
+artifacts/ui-screenshots/mailhub-responsive-width-after.json
+```
+
+Visual result:
+
+```text
+1120.listWidth=413
+1120.detailWidth=460
+1600.listWidth=488
+1600.detailWidth=864
+1920.listWidth=800
+1920.detailWidth=872
+1920.rowFillsList=true
+1920.rowTextBlockWidth=684
+1920.contentWidth=820
+1920.contentLeftGapInsideDetail=22
+1920.contentRightGapInsideDetail=30
+horizontalOverflow=false
+errors=0
+failed=0
+```
+
+No external email send, GitHub setup/apply mutation, or Sheets mutation was run.
+
+Code/test/visual artifact commit:
+
+```bash
+git commit -m "Stabilize MailHub responsive reading pane width"
+```
+
+Result:
+
+- `9b0e72f Stabilize MailHub responsive reading pane width`
+
+Readiness refresh after code commit:
+
+```bash
+npm run ops:readiness-refresh
+```
+
+Result:
+
+- PASS.
+- `probe:routing-send` stayed `mode=dry_run`.
+- `sentCount=0`.
+- artifact contracts passed.
+- `security:scan-artifacts` passed.
+- refreshed artifacts reference repo head `9b0e72ff81ce97693352bac198f691e29fd38b1f`.
+
 ## 2026-06-21 Ownership CI Follow-Up Commands
 
 First pushed ownership visibility CI:

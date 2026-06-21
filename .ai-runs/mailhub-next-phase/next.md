@@ -1,9 +1,9 @@
 # MailHub Next Phase Next Actions
 
-## 2026-06-21 Resume Here: Close Out Ownership CI Follow-Up
+## 2026-06-21 Resume Here: Close Out Responsive Reading Pane Width
 
-Current ownership visibility slice is committed as `d8500cb Clarify MailHub ownership across inbox surfaces`.
-The first pushed `qa-strict` failed at `Step93-3` because the mobile test used a global `assignee-pill` locator after list-row ownership chips became visible. The CI follow-up fix is committed as `1c2e5bd Scope mobile ownership check to detail pane`, and readiness artifacts have been refreshed to that head.
+Current responsive reading-pane width slice is committed as `9b0e72f Stabilize MailHub responsive reading pane width`.
+The change makes wide desktop resizing Gmail-like: detail preview caps around `872px`, extra horizontal room goes to the message list, and row backgrounds/text fill the expanded list. Local checks and targeted E2E passed, and readiness artifacts have been refreshed to that head.
 
 Finish the refreshed artifact commit, push, and CI watch.
 
@@ -20,7 +20,7 @@ Artifact commit:
 
 ```bash
 git add .ai-runs/mailhub-next-phase
-git commit -m "Refresh readiness artifacts after ownership CI follow-up"
+git commit -m "Refresh readiness artifacts after responsive width polish"
 ```
 
 Then push and watch:
