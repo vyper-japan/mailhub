@@ -1,0 +1,14 @@
+{
+  "viewport": {
+    "width": 1280,
+    "height": 840
+  },
+  "fromEmailText": "auto-confirm@amazon.co.jp",
+  "fromEmailTitle": "Amazon.co.jp <auto-confirm@amazon.co.jp> / To: vyper_sc@vtj.co.jp / VYPER SC <vyper_sc@vtj.co.jp> / mailhub@vtj.co.jp / vyper_sc@vtj.co.jp",
+  "contextLineHeight": 16,
+  "contextLineOverflow": false,
+  "workContextHeight": 34,
+  "bodyMessageId": "msg-001",
+  "bodyVisible": true,
+  "horizontalOverflow": false
+}

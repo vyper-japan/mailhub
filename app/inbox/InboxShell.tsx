@@ -339,6 +339,19 @@ function detailToBodyState(detail: MessageDetail): DetailBodyState {
   };
 }
 
+function formatAddressDisplayName(headerValue: string | null | undefined): string | null {
+  const raw = headerValue?.trim();
+  if (!raw) return null;
+  const beforeAngle = raw.includes("<") ? raw.split("<")[0].trim() : "";
+  const displayName = beforeAngle.replace(/^"(.+)"$/, "$1").trim();
+  if (displayName) return displayName;
+  return extractFromEmail(raw) ?? raw;
+}
+
+function joinAddressTitle(...values: Array<string | null | undefined>): string {
+  return values.map((value) => value?.trim()).filter((value): value is string => Boolean(value)).join(" / ");
+}
+
 function formatAttachmentSize(size: number | null): string | null {
   if (typeof size !== "number" || !Number.isFinite(size) || size <= 0) return null;
   if (size < 1024) return `${size} B`;
@@ -2278,6 +2291,23 @@ export default function InboxShell({
       assigneeDisplayName: selectedAssigneeName,
     });
   }, [selectedAssigneeName, selectedAssigneeSlug, selectedMessage, showGmailComposePanel, user.email, user.name]);
+
+  const selectedAddressContext = useMemo(() => {
+    if (!selectedMessage) return null;
+    const currentDetail = selectedDetail?.id === selectedMessage.id ? selectedDetail : null;
+    const fromEmail = extractFromEmail(selectedMessage.from);
+    const senderName = formatAddressDisplayName(selectedMessage.from) ?? "送信者不明";
+    const toCandidates = [currentDetail?.xOriginalTo, currentDetail?.to, ...(currentDetail?.deliveredTo ?? [])];
+    const toTitle = joinAddressTitle(...toCandidates);
+    const fromTitle = joinAddressTitle(selectedMessage.from, toTitle ? `To: ${toTitle}` : null);
+
+    return {
+      senderName,
+      fromEmail,
+      fromLabel: fromEmail ?? senderName,
+      title: fromTitle || fromEmail || "",
+    };
+  }, [selectedDetail, selectedMessage]);
 
   useEffect(() => {
     if (!selectedMessage || !selectedDetail || selectedDetail.id !== selectedMessage.id) {
@@ -7951,7 +7981,7 @@ export default function InboxShell({
                   </div>
                   <div ref={detailScrollRef} className="flex-1 overflow-y-auto custom-scrollbar bg-white text-[#202124]">
                     <div className="sticky top-0 z-10 border-b border-[#e8eaed] bg-white/95 backdrop-blur">
-                      <div className="mx-auto w-full max-w-[820px] px-4 py-1 sm:px-5 lg:px-6" data-testid="detail-header-inner">
+                      <div className="mx-auto w-full max-w-[820px] px-4 py-0.5 sm:px-5 lg:px-6" data-testid="detail-header-inner">
                         <div className="flex min-w-0 flex-wrap items-start gap-x-2 gap-y-1 xl:flex-nowrap">
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2 min-w-0">
@@ -7964,17 +7994,21 @@ export default function InboxShell({
                               </span>
                             </div>
                             <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] leading-4 text-[#5f6368]" data-testid="detail-context-line">
-                              <span className="min-w-0 max-w-[280px] truncate text-[#3c4043]" title={selectedMessage.from ?? ""}>
-                                {selectedMessage.from?.split("<")[0].trim() || selectedMessage.from || "送信者不明"}
+                              <span
+                                className="min-w-0 max-w-[280px] truncate text-[#3c4043]"
+                                data-testid={selectedAddressContext?.fromEmail ? "detail-from-email" : undefined}
+                                title={selectedAddressContext?.title ?? selectedMessage.from ?? ""}
+                              >
+                                {selectedAddressContext?.fromLabel ?? "送信者不明"}
                               </span>
-                              <span className="hidden sm:inline text-[#dadce0]">|</span>
-                              <span className="shrink-0">{activeLabel?.label ?? "現在の一覧"}</span>
-                              <span className="hidden sm:inline text-[#dadce0]">|</span>
-                              <span className="shrink-0">{selectedMessage.receivedAt}</span>
+                              <span className="hidden text-[#dadce0] sm:inline xl:hidden 2xl:inline">|</span>
+                              <span className="hidden shrink-0 sm:inline xl:hidden 2xl:inline">{activeLabel?.label ?? "現在の一覧"}</span>
+                              <span className="hidden text-[#dadce0] sm:inline xl:hidden 2xl:inline">|</span>
+                              <span className="hidden shrink-0 sm:inline xl:hidden 2xl:inline">{selectedMessage.receivedAt}</span>
                               {selectedMessage.attachmentCount ? (
                                 <>
-                                  <span className="hidden sm:inline text-[#dadce0]">|</span>
-                                  <span className="inline-flex shrink-0 items-center gap-1">
+                                  <span className="hidden text-[#dadce0] sm:inline xl:hidden 2xl:inline">|</span>
+                                  <span className="hidden shrink-0 items-center gap-1 sm:inline-flex xl:hidden 2xl:inline-flex">
                                     <Paperclip size={12} />
                                     添付 {selectedMessage.attachmentCount}
                                   </span>
@@ -8072,14 +8106,14 @@ export default function InboxShell({
                     </div>
                     
                     {/* スクロール可能なコンテンツエリア */}
-                    <div className="mx-auto w-full max-w-[820px] px-4 pt-2 pb-8 sm:px-5 lg:px-6" data-testid="detail-content-inner">
+                    <div className="mx-auto w-full max-w-[820px] px-4 pt-0 pb-8 sm:px-5 lg:px-6" data-testid="detail-content-inner">
                       {selectedWorkContext && (
                         <div
-                          className="mb-2 flex flex-wrap items-center gap-1.5 border-y border-[#e8eaed] bg-[#f8fbff] px-0 py-1.5 text-[11px] leading-4 text-[#3c4043]"
+                          className="mb-2 flex flex-wrap items-center gap-1.5 border-y border-[#e8eaed] bg-[#f8fbff] px-0 py-1 text-[11px] leading-4 text-[#3c4043]"
                           data-testid="detail-work-context"
                         >
                           <div
-                            className="inline-flex h-7 max-w-full min-w-0 items-center gap-1 rounded-full border border-[#dadce0] bg-white px-2 font-medium"
+                            className="inline-flex h-6 max-w-full min-w-0 items-center gap-1 rounded-full border border-[#dadce0] bg-white px-2 font-medium"
                             title={`${selectedWorkContext.statusLabel} / ${selectedWorkContext.scopeLabel}`}
                           >
                             <CheckCircle size={12} className="shrink-0 text-[#5f6368]" />
@@ -8091,7 +8125,7 @@ export default function InboxShell({
                           <button
                             type="button"
                             onClick={() => handleAssignClick(selectedMessage?.id ?? selectedId)}
-                            className={`inline-flex h-7 max-w-full min-w-0 items-center gap-1 rounded-full border px-2 font-medium ${selectedWorkContext.ownerTone} hover:opacity-80`}
+                            className={`inline-flex h-6 max-w-full min-w-0 items-center gap-1 rounded-full border px-2 font-medium ${selectedWorkContext.ownerTone} hover:opacity-80`}
                             data-testid="detail-owner-context"
                             title={selectedOwnerActionTitle}
                           >
@@ -8101,7 +8135,7 @@ export default function InboxShell({
                             <span className="shrink-0 font-semibold">{selectedOwnerActionLabel}</span>
                           </button>
                           <div
-                            className={`inline-flex h-7 max-w-full min-w-0 items-center gap-1 rounded-full border px-2 font-medium ${selectedWorkContext.routeTone}`}
+                            className={`inline-flex h-6 max-w-full min-w-0 items-center gap-1 rounded-full border px-2 font-medium ${selectedWorkContext.routeTone}`}
                             data-testid="detail-route-context"
                             title={selectedWorkContext.routeTitle}
                           >
@@ -8109,7 +8143,7 @@ export default function InboxShell({
                             <span className="truncate">{selectedWorkContext.routeLabel}</span>
                           </div>
                           <div
-                            className={`inline-flex h-7 max-w-full min-w-0 items-center gap-1 rounded-full border px-2 font-medium ${selectedWorkContext.slaTone}`}
+                            className={`inline-flex h-6 max-w-full min-w-0 items-center gap-1 rounded-full border px-2 font-medium ${selectedWorkContext.slaTone}`}
                             data-testid="detail-sla-context"
                             title={selectedWorkContext.receivedAt}
                           >

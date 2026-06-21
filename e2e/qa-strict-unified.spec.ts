@@ -6374,6 +6374,57 @@ test("Step93-3c3) Mail preview switching: HTMLメール連続クリックで前�
   await switchAndAssertSynced("msg-002", "Yahoo!ショッピング-朝レポ", "Yahoo!ショッピング 朝レポ", "Amazon.co.jp 注文確認");
 });
 
+test("Step93-3c4) Detail header address: 送信元メールが小さく見える", async ({ page }) => {
+  await page.request.post("/api/mailhub/test/reset").catch(() => {});
+  await page.addInitScript(() => {
+    localStorage.setItem("mailhub-onboarding-shown", "true");
+  });
+  await page.setViewportSize({ width: 1120, height: 840 });
+  await page.goto("/?label=all&id=msg-001&max=20");
+  await expect(page.getByTestId("detail-subject")).toBeVisible({ timeout: 10000 });
+  await expect(page.getByTestId("detail-from-email")).toContainText("auto-confirm@amazon.co.jp", { timeout: 10000 });
+  await expect
+    .poll(async () => (await page.getByTestId("detail-from-email").getAttribute("title")) ?? "", { timeout: 10000 })
+    .toContain("To: vyper_sc@vtj.co.jp");
+
+  const collectAddressMetrics = async () =>
+    page.evaluate(() => {
+      const contextLine = document.querySelector('[data-testid="detail-context-line"]');
+      const fromEmail = document.querySelector('[data-testid="detail-from-email"]');
+      return {
+        fromVisible: Boolean(fromEmail && fromEmail.getBoundingClientRect().height > 0),
+        contextSingleLine: Math.round(contextLine?.getBoundingClientRect().height ?? 999) <= 24,
+        contextOverflow: contextLine ? contextLine.scrollWidth > contextLine.clientWidth + 1 : true,
+        fromTitle: fromEmail?.getAttribute("title") ?? "",
+        horizontalOverflow: document.documentElement.scrollWidth > window.innerWidth + 1,
+      };
+    });
+
+  const narrow = await collectAddressMetrics();
+  expect(narrow.fromVisible).toBe(true);
+  expect(narrow.contextSingleLine).toBe(true);
+  expect(narrow.contextOverflow).toBe(false);
+  expect(narrow.fromTitle).toContain("Amazon.co.jp <auto-confirm@amazon.co.jp>");
+  expect(narrow.fromTitle).toContain("To: vyper_sc@vtj.co.jp");
+  expect(narrow.horizontalOverflow).toBe(false);
+
+  await page.setViewportSize({ width: 1280, height: 840 });
+  await page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
+  const desktop = await collectAddressMetrics();
+  expect(desktop.fromVisible).toBe(true);
+  expect(desktop.contextSingleLine).toBe(true);
+  expect(desktop.contextOverflow).toBe(false);
+  expect(desktop.horizontalOverflow).toBe(false);
+
+  await page.setViewportSize({ width: 1680, height: 900 });
+  await page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
+  const wide = await collectAddressMetrics();
+  expect(wide.fromVisible).toBe(true);
+  expect(wide.contextSingleLine).toBe(true);
+  expect(wide.contextOverflow).toBe(false);
+  expect(wide.horizontalOverflow).toBe(false);
+});
+
 test("Step93-3d) Narrow desktop thread actions: 会話履歴アクションが詳細幅で縦割れしない", async ({ page }) => {
   test.setTimeout(120_000);
   await page.request.post("/api/mailhub/test/reset").catch(() => {});
