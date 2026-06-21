@@ -823,6 +823,7 @@ export default function InboxShell({
   const [workTagsById, setWorkTagsById] = useState<Record<string, string[]>>({});
   const [workTagDraft, setWorkTagDraft] = useState<string[]>([]);
   const [workTagInput, setWorkTagInput] = useState("");
+  const locallySavedWorkTagIdsRef = useRef<Set<string>>(new Set());
 
   const parseNoteSearch = useCallback((query: string) => {
     const tokens = query.split(/\s+/).filter(Boolean);
@@ -940,7 +941,14 @@ export default function InboxShell({
             if (!it?.messageId) continue;
             next[it.messageId] = Array.isArray(it.tags) ? it.tags : [];
           }
-          setWorkTagsById(next);
+          setWorkTagsById((prev) => {
+            if (locallySavedWorkTagIdsRef.current.size === 0) return next;
+            const merged = { ...next };
+            for (const id of locallySavedWorkTagIdsRef.current) {
+              if (prev[id]) merged[id] = prev[id];
+            }
+            return merged;
+          });
         } catch {
           // ignore
         }
@@ -8941,6 +8949,7 @@ export default function InboxShell({
                                         return;
                                       }
                                       const nextTags = Array.isArray(data.meta?.tags) ? data.meta?.tags ?? [] : [];
+                                      locallySavedWorkTagIdsRef.current.add(messageId);
                                       setWorkTagsById((prev) => ({ ...prev, [messageId]: nextTags }));
                                       showToast("タグを保存しました", "success");
                                     } catch (e) {
