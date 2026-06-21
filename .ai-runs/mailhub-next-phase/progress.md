@@ -1,5 +1,77 @@
 # MailHub Next Phase Progress
 
+## 2026-06-21 Rapid Preview Switching Stability
+
+Completed the user-reported repeated-email preview stability fix. The reported symptom was that similar daily notification emails could show a delayed or briefly broken preview while clicking through many messages. The main UI risk was stale HTML body DOM being visible for a frame before the next sanitized body was applied.
+
+Implemented:
+
+- Changed sanitized HTML body injection from normal `useEffect` to `useLayoutEffect`, so sanitized HTML is written before paint.
+- Added a `key` and `data-detail-message-id` to HTML/text body containers so the rendered body is explicitly bound to the selected message.
+- Added a stable `180px` minimum height to the email body and loading skeleton to reduce vertical jump while details load.
+- Extracted shared detail prefetch logic and added adjacent prefetch after selection:
+  - next message
+  - next+1 message
+  - previous message
+- Kept existing hover prefetch but reused the same cache writer.
+- Added HTML body coverage to `fixtures/details/msg-001.json` so HTML-to-HTML switching is tested.
+- Added E2E `Step93-3c3) Mail preview switching: HTMLメール連続クリックで前の本文を残さない`.
+- Strengthened `Step93-3c2` to wait for `data-detail-message-id="msg-002"` before validating fixed-width HTML metrics.
+- Updated `artifacts/design-brief.json` with rapid preview switching DoD.
+
+Visual evidence:
+
+- `artifacts/ui-screenshots/mailhub-preview-switch-initial-msg-002.png`
+- `artifacts/ui-screenshots/mailhub-preview-switch-msg-001.png`
+- `artifacts/ui-screenshots/mailhub-preview-switch-msg-002.png`
+- `artifacts/ui-screenshots/mailhub-preview-switch-check.json`
+
+Visual result from the TEST_MODE capture:
+
+- `msg-002 -> msg-001`: `staleSamples=[]`, body id `msg-001`, required Amazon text present, Yahoo text absent.
+- `msg-001 -> msg-002`: `staleSamples=[]`, body id `msg-002`, required Yahoo text present, Amazon text absent.
+- `documentHorizontalOverflow=false`.
+- `detailHorizontalOverflow=false`.
+- `contentHorizontalOverflow=false`.
+- `bodyInsideContent=true`.
+- `consoleErrors=[]`.
+- `failedResponses=[]`.
+
+Validation:
+
+- `npm run typecheck`: PASS.
+- `npm run lint`: PASS.
+- `npm run smoke`: PASS.
+- `npm run security:scan`: PASS.
+- `npm run test`: PASS, 75 files / 712 tests.
+- `npm run verify`: PASS.
+- `git diff --check`: PASS.
+- `npm run security:scan-artifacts`: PASS.
+- Targeted Playwright:
+
+```bash
+node scripts/e2e-preclean.mjs && MAILHUB_TEST_MODE=1 npx playwright test e2e/qa-strict-unified.spec.ts --grep "Step93-3c2|Step93-3c3" --workers=1
+node scripts/e2e-preclean.mjs && MAILHUB_TEST_MODE=1 npx playwright test e2e/qa-strict-unified.spec.ts --grep "Step93-3\\)|Step93-3b|Step93-3c\\)|Step93-3c1|Step93-3c2|Step93-3c3|Step93-3d" --workers=1
+```
+
+Result:
+
+- PASS, 2 tests.
+- PASS, 7 tests.
+
+Code/test/visual artifact commit:
+
+- `09fdf36 Stabilize MailHub rapid preview switching`
+
+Readiness refresh after the commit:
+
+- `npm run ops:readiness-refresh`: PASS.
+- `probe:routing-send` stayed `mode=dry_run`.
+- `sentCount=0`.
+- artifact contracts passed.
+- `security:scan-artifacts` passed.
+- refreshed artifacts now reference repo head `09fdf363936dc04028982faf811dbdf45a4e1ec8`.
+
 ## 2026-06-21 Responsive Reading Pane Width
 
 Completed the wide-desktop resize fix requested during manual use. The previous split-pane behavior kept the list capped while the detail column expanded, so the email preview body stayed centered inside a growing white area. The new behavior matches the intended Gmail-like rhythm: the reading pane keeps a stable work width, and extra horizontal space goes to the message list.

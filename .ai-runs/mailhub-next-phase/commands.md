@@ -1,5 +1,89 @@
 # MailHub Next Phase Commands
 
+## 2026-06-21 Rapid Preview Switching Commands
+
+Commands run for the repeated-email preview switching fix:
+
+```bash
+npm run typecheck
+npm run lint
+npm run smoke
+npm run security:scan
+npm run test
+npm run verify
+git diff --check
+npm run security:scan-artifacts
+```
+
+Result: PASS.
+
+Targeted Playwright validation:
+
+```bash
+node scripts/e2e-preclean.mjs && MAILHUB_TEST_MODE=1 npx playwright test e2e/qa-strict-unified.spec.ts --grep "Step93-3c2|Step93-3c3" --workers=1
+node scripts/e2e-preclean.mjs && MAILHUB_TEST_MODE=1 npx playwright test e2e/qa-strict-unified.spec.ts --grep "Step93-3\\)|Step93-3b|Step93-3c\\)|Step93-3c1|Step93-3c2|Step93-3c3|Step93-3d" --workers=1
+```
+
+Result:
+
+- PASS, 2 tests.
+- PASS, 7 tests.
+
+Visual evidence was generated against a temporary TEST_MODE server on `localhost:3012`:
+
+```text
+artifacts/ui-screenshots/mailhub-preview-switch-initial-msg-002.png
+artifacts/ui-screenshots/mailhub-preview-switch-msg-001.png
+artifacts/ui-screenshots/mailhub-preview-switch-msg-002.png
+artifacts/ui-screenshots/mailhub-preview-switch-check.json
+```
+
+Visual result:
+
+```text
+switchToAmazon.staleSamples=[]
+switchToAmazon.bodyId=msg-001
+switchToAmazon.hasRequiredText=true
+switchToAmazon.hasForbiddenText=false
+switchBackToYahoo.staleSamples=[]
+switchBackToYahoo.bodyId=msg-002
+switchBackToYahoo.hasRequiredText=true
+switchBackToYahoo.hasForbiddenText=false
+documentHorizontalOverflow=false
+detailHorizontalOverflow=false
+contentHorizontalOverflow=false
+bodyInsideContent=true
+consoleErrors=0
+failedResponses=0
+```
+
+No external email send, GitHub setup/apply mutation, or Sheets mutation was run.
+
+Code/test/visual artifact commit:
+
+```bash
+git commit -m "Stabilize MailHub rapid preview switching"
+```
+
+Result:
+
+- `09fdf36 Stabilize MailHub rapid preview switching`
+
+Readiness refresh after code commit:
+
+```bash
+npm run ops:readiness-refresh
+```
+
+Result:
+
+- PASS.
+- `probe:routing-send` stayed `mode=dry_run`.
+- `sentCount=0`.
+- artifact contracts passed.
+- `security:scan-artifacts` passed.
+- refreshed artifacts reference repo head `09fdf363936dc04028982faf811dbdf45a4e1ec8`.
+
 ## 2026-06-21 Responsive Reading Pane Width Commands
 
 Commands run for the wide-desktop resize fix:

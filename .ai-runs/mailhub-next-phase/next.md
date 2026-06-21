@@ -1,5 +1,53 @@
 # MailHub Next Phase Next Actions
 
+## 2026-06-21 Resume Here: Close Out Rapid Preview Switching
+
+Current rapid preview switching slice is committed as `09fdf36 Stabilize MailHub rapid preview switching`.
+The change prevents repeated HTML email clicks from showing stale body content during the selected-message transition, keeps the body container height stable, and prefetches adjacent messages after selection. Local checks, visual evidence, and targeted E2E passed. Readiness artifacts have been refreshed to that head.
+
+Finish the refreshed artifact commit, push, and CI watch.
+
+Immediate sequence:
+
+```bash
+git status -sb
+git diff --stat
+git diff --check
+npm run security:scan-artifacts
+```
+
+Artifact commit:
+
+```bash
+git add .ai-runs/mailhub-next-phase
+git commit -m "Refresh readiness artifacts after preview switching polish"
+```
+
+Then push and watch:
+
+- `MailHub Readiness Contract`
+- `qa-strict`
+
+After CI is green, resume the active Ownership UX goal:
+
+- make detail owner CTA explicit (`担当する` / `引き継ぐ` / `変更`)
+- surface ownership CTA near the disabled Gmail external reply button
+- keep `/api/mailhub/send` ownership enforcement unchanged
+
+Keep these hard gates:
+
+- no external email send without explicit approval
+- no GitHub setup/apply mutation without explicit approval
+- no Sheets mutation without explicit approval
+- do not claim production complete
+
+Current production blockers remain:
+
+- P0 `current_shared_gmail_routing`
+- P1 `rule_config_source_not_production`
+- P1 `staff_workflow_permissions`
+- P1 `staff_github_config_not_ready`
+
 ## 2026-06-21 Resume Here: Close Out Responsive Reading Pane Width
 
 Current responsive reading-pane width slice is committed as `9b0e72f Stabilize MailHub responsive reading pane width`.
