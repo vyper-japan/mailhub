@@ -26,6 +26,7 @@
     "Takeover reason clarity when Gmail reply is blocked by another owner",
     "Responsive action rail without clipped toolbar or work-mode labels",
     "Wide desktop split-pane behavior where the list expands and the reading pane stays stable",
+    "Same-page wide-to-ultrawide browser resize where the reading pane remains stable and the list absorbs extra width",
     "Rapid repeated-email preview switching without stale body flash, retained scroll position, or layout jump"
   ],
   "must_not_do": [
@@ -41,7 +42,7 @@
     "Browser screenshot reading rail desktop/narrow",
     "Browser screenshot workbench tabs/detail context desktop/narrow",
     "Browser screenshot action rail desktop/narrow",
-    "Browser screenshot responsive width narrow/desktop/wide",
+    "Browser screenshot responsive width narrow/desktop/wide/ultrawide",
     "Browser screenshot rapid preview switch before/after",
     "Browser screenshot ownership CTA before/after",
     "Ownership CTA DOM check for detail owner and Gmail external reply blocker",

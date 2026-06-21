@@ -1,86 +1,5 @@
 [
   {
-    "name": "mailhub-reading-pane-wide",
-    "width": 1680,
-    "height": 900,
-    "screenshot": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/artifacts/ui-screenshots/mailhub-reading-pane-wide.png",
-    "metrics": {
-      "viewportWidth": 1680,
-      "viewportHeight": 900,
-      "detailPane": {
-        "x": 728,
-        "y": 195,
-        "right": 1680,
-        "bottom": 900,
-        "width": 952,
-        "height": 705
-      },
-      "detailHeaderInner": {
-        "x": 790,
-        "y": 195,
-        "right": 1610,
-        "bottom": 239,
-        "width": 820,
-        "height": 44
-      },
-      "detailContentInner": {
-        "x": 790,
-        "y": 240,
-        "right": 1610,
-        "bottom": 2747,
-        "width": 820,
-        "height": 2507
-      },
-      "emailBody": {
-        "x": 814,
-        "y": 298,
-        "right": 1586,
-        "bottom": 658,
-        "width": 772,
-        "height": 360
-      },
-      "detailSubject": {
-        "x": 814,
-        "y": 199,
-        "right": 1385,
-        "bottom": 219,
-        "width": 571,
-        "height": 20
-      },
-      "detailContextLine": {
-        "x": 814,
-        "y": 219,
-        "right": 1385,
-        "bottom": 235,
-        "width": 571,
-        "height": 16
-      },
-      "detailHeaderActions": {
-        "x": 1393,
-        "y": 199,
-        "right": 1586,
-        "bottom": 227,
-        "width": 193,
-        "height": 28
-      },
-      "workContext": {
-        "x": 814,
-        "y": 248,
-        "right": 1586,
-        "bottom": 290,
-        "width": 772,
-        "height": 42
-      },
-      "workContextText": "今返すすべて未割当楽天RMS171d経過",
-      "headerContentLeftDelta": 0,
-      "headerContentRightDelta": 0,
-      "workContextBeforeBody": true,
-      "horizontalOverflow": false
-    },
-    "consoleErrors": [],
-    "failedResponses": []
-  },
-  {
     "name": "mailhub-reading-pane-narrow",
     "width": 1120,
     "height": 840,
@@ -88,75 +7,338 @@
     "metrics": {
       "viewportWidth": 1120,
       "viewportHeight": 840,
+      "subject": "【楽天RMS】お問い合わせが届きました",
+      "list": {
+        "x": 260,
+        "y": 195,
+        "right": 673,
+        "bottom": 840,
+        "width": 413,
+        "height": 645
+      },
+      "row": {
+        "x": 260,
+        "y": 195,
+        "right": 664,
+        "bottom": 268,
+        "width": 404,
+        "height": 73
+      },
+      "rowTextBlock": {
+        "x": 313,
+        "y": 203,
+        "right": 610,
+        "bottom": 259,
+        "width": 297,
+        "height": 56
+      },
       "detailPane": {
-        "x": 652,
+        "x": 660,
         "y": 195,
         "right": 1120,
         "bottom": 840,
-        "width": 468,
+        "width": 460,
         "height": 645
       },
       "detailHeaderInner": {
-        "x": 652,
+        "x": 660,
         "y": 195,
         "right": 1112,
         "bottom": 271,
-        "width": 460,
+        "width": 452,
         "height": 76
       },
       "detailContentInner": {
-        "x": 652,
+        "x": 660,
         "y": 272,
         "right": 1112,
-        "bottom": 2925,
-        "width": 460,
-        "height": 2653
+        "bottom": 2521,
+        "width": 452,
+        "height": 2249
       },
       "emailBody": {
-        "x": 676,
-        "y": 330,
+        "x": 684,
+        "y": 364,
         "right": 1088,
-        "bottom": 690,
-        "width": 412,
-        "height": 360
-      },
-      "detailSubject": {
-        "x": 676,
-        "y": 199,
-        "right": 1088,
-        "bottom": 219,
-        "width": 412,
-        "height": 20
-      },
-      "detailContextLine": {
-        "x": 676,
-        "y": 219,
-        "right": 1088,
-        "bottom": 235,
-        "width": 412,
-        "height": 16
-      },
-      "detailHeaderActions": {
-        "x": 676,
-        "y": 239,
-        "right": 1088,
-        "bottom": 267,
-        "width": 412,
-        "height": 28
+        "bottom": 764,
+        "width": 404,
+        "height": 400
       },
       "workContext": {
-        "x": 676,
+        "x": 684,
         "y": 280,
         "right": 1088,
-        "bottom": 322,
-        "width": 412,
-        "height": 42
+        "bottom": 356,
+        "width": 404,
+        "height": 76
       },
-      "workContextText": "今返すすべて未割当楽天RMS171d経過",
+      "rowFillsList": true,
       "headerContentLeftDelta": 0,
       "headerContentRightDelta": 0,
-      "workContextBeforeBody": true,
-      "horizontalOverflow": false
+      "contentLeftGapInsideDetail": 0,
+      "contentRightGapInsideDetail": 8,
+      "contentHorizontalOverflow": false,
+      "bodyHorizontalOverflow": false,
+      "horizontalOverflow": false,
+      "documentWidth": 1120
+    },
+    "consoleErrors": [],
+    "failedResponses": []
+  },
+  {
+    "name": "mailhub-reading-pane-desktop",
+    "width": 1600,
+    "height": 900,
+    "screenshot": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/artifacts/ui-screenshots/mailhub-reading-pane-desktop.png",
+    "metrics": {
+      "viewportWidth": 1600,
+      "viewportHeight": 900,
+      "subject": "【楽天RMS】お問い合わせが届きました",
+      "list": {
+        "x": 260,
+        "y": 195,
+        "right": 748,
+        "bottom": 900,
+        "width": 488,
+        "height": 705
+      },
+      "row": {
+        "x": 260,
+        "y": 195,
+        "right": 739,
+        "bottom": 268,
+        "width": 479,
+        "height": 73
+      },
+      "rowTextBlock": {
+        "x": 313,
+        "y": 203,
+        "right": 685,
+        "bottom": 259,
+        "width": 372,
+        "height": 56
+      },
+      "detailPane": {
+        "x": 736,
+        "y": 195,
+        "right": 1600,
+        "bottom": 900,
+        "width": 864,
+        "height": 705
+      },
+      "detailHeaderInner": {
+        "x": 754,
+        "y": 195,
+        "right": 1574,
+        "bottom": 239,
+        "width": 820,
+        "height": 44
+      },
+      "detailContentInner": {
+        "x": 754,
+        "y": 240,
+        "right": 1574,
+        "bottom": 2371,
+        "width": 820,
+        "height": 2131
+      },
+      "emailBody": {
+        "x": 778,
+        "y": 298,
+        "right": 1550,
+        "bottom": 658,
+        "width": 772,
+        "height": 360
+      },
+      "workContext": {
+        "x": 778,
+        "y": 248,
+        "right": 1550,
+        "bottom": 290,
+        "width": 772,
+        "height": 42
+      },
+      "rowFillsList": true,
+      "headerContentLeftDelta": 0,
+      "headerContentRightDelta": 0,
+      "contentLeftGapInsideDetail": 18,
+      "contentRightGapInsideDetail": 26,
+      "contentHorizontalOverflow": false,
+      "bodyHorizontalOverflow": false,
+      "horizontalOverflow": false,
+      "documentWidth": 1600
+    },
+    "consoleErrors": [],
+    "failedResponses": []
+  },
+  {
+    "name": "mailhub-reading-pane-wide",
+    "width": 1920,
+    "height": 900,
+    "screenshot": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/artifacts/ui-screenshots/mailhub-reading-pane-wide.png",
+    "metrics": {
+      "viewportWidth": 1920,
+      "viewportHeight": 900,
+      "subject": "【楽天RMS】お問い合わせが届きました",
+      "list": {
+        "x": 260,
+        "y": 195,
+        "right": 1060,
+        "bottom": 900,
+        "width": 800,
+        "height": 705
+      },
+      "row": {
+        "x": 260,
+        "y": 195,
+        "right": 1051,
+        "bottom": 268,
+        "width": 791,
+        "height": 73
+      },
+      "rowTextBlock": {
+        "x": 313,
+        "y": 203,
+        "right": 997,
+        "bottom": 259,
+        "width": 684,
+        "height": 56
+      },
+      "detailPane": {
+        "x": 1048,
+        "y": 195,
+        "right": 1920,
+        "bottom": 900,
+        "width": 872,
+        "height": 705
+      },
+      "detailHeaderInner": {
+        "x": 1070,
+        "y": 195,
+        "right": 1890,
+        "bottom": 239,
+        "width": 820,
+        "height": 44
+      },
+      "detailContentInner": {
+        "x": 1070,
+        "y": 240,
+        "right": 1890,
+        "bottom": 2580,
+        "width": 820,
+        "height": 2340
+      },
+      "emailBody": {
+        "x": 1094,
+        "y": 298,
+        "right": 1866,
+        "bottom": 658,
+        "width": 772,
+        "height": 360
+      },
+      "workContext": {
+        "x": 1094,
+        "y": 248,
+        "right": 1866,
+        "bottom": 290,
+        "width": 772,
+        "height": 42
+      },
+      "rowFillsList": true,
+      "headerContentLeftDelta": 0,
+      "headerContentRightDelta": 0,
+      "contentLeftGapInsideDetail": 22,
+      "contentRightGapInsideDetail": 30,
+      "contentHorizontalOverflow": false,
+      "bodyHorizontalOverflow": false,
+      "horizontalOverflow": false,
+      "documentWidth": 1920
+    },
+    "consoleErrors": [],
+    "failedResponses": []
+  },
+  {
+    "name": "mailhub-reading-pane-ultrawide",
+    "width": 2400,
+    "height": 900,
+    "screenshot": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/artifacts/ui-screenshots/mailhub-reading-pane-ultrawide.png",
+    "metrics": {
+      "viewportWidth": 2400,
+      "viewportHeight": 900,
+      "subject": "【楽天RMS】お問い合わせが届きました",
+      "list": {
+        "x": 260,
+        "y": 195,
+        "right": 1540,
+        "bottom": 900,
+        "width": 1280,
+        "height": 705
+      },
+      "row": {
+        "x": 260,
+        "y": 195,
+        "right": 1531,
+        "bottom": 268,
+        "width": 1271,
+        "height": 73
+      },
+      "rowTextBlock": {
+        "x": 313,
+        "y": 203,
+        "right": 1477,
+        "bottom": 259,
+        "width": 1164,
+        "height": 56
+      },
+      "detailPane": {
+        "x": 1528,
+        "y": 195,
+        "right": 2400,
+        "bottom": 900,
+        "width": 872,
+        "height": 705
+      },
+      "detailHeaderInner": {
+        "x": 1550,
+        "y": 195,
+        "right": 2370,
+        "bottom": 239,
+        "width": 820,
+        "height": 44
+      },
+      "detailContentInner": {
+        "x": 1550,
+        "y": 240,
+        "right": 2370,
+        "bottom": 2747,
+        "width": 820,
+        "height": 2507
+      },
+      "emailBody": {
+        "x": 1574,
+        "y": 298,
+        "right": 2346,
+        "bottom": 658,
+        "width": 772,
+        "height": 360
+      },
+      "workContext": {
+        "x": 1574,
+        "y": 248,
+        "right": 2346,
+        "bottom": 290,
+        "width": 772,
+        "height": 42
+      },
+      "rowFillsList": true,
+      "headerContentLeftDelta": 0,
+      "headerContentRightDelta": 0,
+      "contentLeftGapInsideDetail": 22,
+      "contentRightGapInsideDetail": 30,
+      "contentHorizontalOverflow": false,
+      "bodyHorizontalOverflow": false,
+      "horizontalOverflow": false,
+      "documentWidth": 2400
     },
     "consoleErrors": [],
     "failedResponses": []

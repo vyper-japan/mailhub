@@ -6147,10 +6147,13 @@ test("Step93-3c1) Wide desktop resize: 横幅が増えたら一覧が広がり�
   await page.addInitScript(() => {
     localStorage.setItem("mailhub-onboarding-shown", "true");
   });
+  await page.setViewportSize({ width: 1600, height: 900 });
+  await page.goto("/?label=all&id=msg-021&max=20");
+  await expect(page.getByTestId("detail-subject")).toBeVisible({ timeout: 10000 });
 
   const collectMetrics = async (width: number) => {
     await page.setViewportSize({ width, height: 900 });
-    await page.goto("/?label=all&id=msg-021&max=20");
+    await page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
     await expect(page.getByTestId("detail-subject")).toBeVisible({ timeout: 10000 });
 
     return page.evaluate(() => {
@@ -6175,19 +6178,30 @@ test("Step93-3c1) Wide desktop resize: 横幅が増えたら一覧が広がり�
 
   const desktop = await collectMetrics(1600);
   const wide = await collectMetrics(1920);
+  const ultrawide = await collectMetrics(2400);
 
   expect(desktop.detailWidth).toBeGreaterThanOrEqual(840);
   expect(desktop.detailWidth).toBeLessThanOrEqual(880);
   expect(wide.detailWidth).toBeGreaterThanOrEqual(840);
   expect(wide.detailWidth).toBeLessThanOrEqual(880);
+  expect(ultrawide.detailWidth).toBeGreaterThanOrEqual(840);
+  expect(ultrawide.detailWidth).toBeLessThanOrEqual(880);
+  expect(Math.abs(ultrawide.detailWidth - wide.detailWidth)).toBeLessThanOrEqual(2);
   expect(wide.listWidth - desktop.listWidth).toBeGreaterThanOrEqual(240);
+  expect(ultrawide.listWidth - wide.listWidth).toBeGreaterThanOrEqual(440);
   expect(wide.rowWidth).toBeGreaterThanOrEqual(wide.listWidth - 12);
+  expect(ultrawide.rowWidth).toBeGreaterThanOrEqual(ultrawide.listWidth - 12);
   expect(wide.rowTextBlockWidth - desktop.rowTextBlockWidth).toBeGreaterThanOrEqual(240);
+  expect(ultrawide.rowTextBlockWidth - wide.rowTextBlockWidth).toBeGreaterThanOrEqual(440);
   expect(wide.contentWidth).toBeLessThanOrEqual(820);
   expect(wide.contentLeftGapInsideDetail).toBeLessThanOrEqual(40);
   expect(wide.contentRightGapInsideDetail).toBeLessThanOrEqual(40);
+  expect(ultrawide.contentWidth).toBeLessThanOrEqual(820);
+  expect(ultrawide.contentLeftGapInsideDetail).toBeLessThanOrEqual(40);
+  expect(ultrawide.contentRightGapInsideDetail).toBeLessThanOrEqual(40);
   expect(desktop.horizontalOverflow).toBe(false);
   expect(wide.horizontalOverflow).toBe(false);
+  expect(ultrawide.horizontalOverflow).toBe(false);
 });
 
 test("Step93-3c2) Mail preview body: 固定幅HTMLメールも詳細ペイン内に収まる", async ({ page }) => {
