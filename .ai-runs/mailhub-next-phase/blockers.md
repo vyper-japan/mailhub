@@ -1,5 +1,28 @@
 # MailHub Next Phase Blockers
 
+## 2026-06-21 Reply Ownership Shield Blockers
+
+Process notes:
+
+- Full local `npm run e2e` degraded late in a 17.1 minute run and finished with 129 passed, 5 flaky, 3 failed.
+- The failures were local timeout/disabled-state issues in existing Views tests and W2-T3a after `/api/mailhub/test/reset` timed out.
+- Clean targeted rerun of `Step107-1|Step108-1|W2-T3a Gmail compose send E2E` exited 0 with 5 passed and 1 flaky retry.
+- CI still needs to be watched after push for the authoritative `qa-strict` result.
+
+Product/production blockers remain unchanged:
+
+- P0 `current_shared_gmail_routing`
+- P1 `rule_config_source_not_production`
+- P1 `staff_workflow_permissions`
+- P1 `staff_github_config_not_ready`
+
+Approval gates remain unchanged:
+
+- No external email send without explicit approval.
+- No GitHub setup/apply mutation without explicit approval.
+- No Sheets mutation without explicit approval.
+- No production-complete claim.
+
 ## 2026-06-20 Detail Context Polish Handoff Blockers
 
 Process blockers:

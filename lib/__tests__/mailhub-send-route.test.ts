@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { MessageDetail } from "@/lib/mailhub-types";
+import { assigneeSlug } from "@/lib/assignee";
 import { clearActivityLogs, getActivityLogs, logAction } from "@/lib/audit-log";
 import {
   buildMailhubSendDuplicateKeys,
@@ -15,6 +16,8 @@ const routeMocks = vi.hoisted(() => ({
   archiveMessage: vi.fn(),
   assertSendAsAccepted: vi.fn(),
 }));
+
+const TEST_ASSIGNEE_SLUG = assigneeSlug("test@vtj.co.jp");
 
 vi.mock("@/lib/require-user", () => ({
   requireUser: routeMocks.requireUser,
@@ -58,7 +61,7 @@ function createDetail(overrides: Partial<MessageDetail> = {}): MessageDetail {
     htmlBody: null,
     bodySource: "plain",
     bodyNotice: null,
-    assigneeSlug: null,
+    assigneeSlug: TEST_ASSIGNEE_SLUG,
     to: "VYPER SC <vyper_sc@vtj.co.jp>",
     cc: null,
     bcc: null,
@@ -249,6 +252,51 @@ describe("POST /api/mailhub/send", () => {
     });
     expect(JSON.stringify(logs[0]?.metadata)).not.toContain("customer@example.com");
     expect(JSON.stringify(logs[0]?.metadata)).not.toContain("返信本文です");
+  });
+
+  it("blocks unassigned replies before send-as and releases the duplicate reservation", async () => {
+    routeMocks.getMessageDetail
+      .mockResolvedValueOnce(createDetail({ assigneeSlug: null }))
+      .mockResolvedValueOnce(createDetail({ assigneeSlug: TEST_ASSIGNEE_SLUG }));
+    const POST = await importSendPost();
+
+    let res = await POST(makeRequest(validBody({ clientRequestId: "client-owner-required" })));
+    expect(res.status).toBe(409);
+    expect(await readJson(res)).toMatchObject({
+      error: "reply_lock_required",
+      message: "担当してから送信してください",
+      messageId: "msg-001",
+      actorSlug: TEST_ASSIGNEE_SLUG,
+      ownerSlug: null,
+    });
+    expect(routeMocks.assertSendAsAccepted).not.toHaveBeenCalled();
+    expect(routeMocks.sendGmailReply).not.toHaveBeenCalled();
+    expect(listTestSentReplyCaptures()).toHaveLength(0);
+
+    res = await POST(makeRequest(validBody({ clientRequestId: "client-owner-required" })));
+    expect(res.status).toBe(200);
+    expect(await readJson(res)).toMatchObject({ ok: true, clientRequestId: "client-owner-required" });
+  });
+
+  it("blocks replies assigned to another staff member before send-as", async () => {
+    routeMocks.getMessageDetail.mockResolvedValueOnce(createDetail({
+      assigneeSlug: assigneeSlug("other@vtj.co.jp"),
+    }));
+    const POST = await importSendPost();
+
+    const res = await POST(makeRequest(validBody({ clientRequestId: "client-owner-other" })));
+
+    expect(res.status).toBe(409);
+    expect(await readJson(res)).toMatchObject({
+      error: "reply_locked_by_other",
+      message: "他の担当者が対応中です",
+      messageId: "msg-001",
+      actorSlug: TEST_ASSIGNEE_SLUG,
+      ownerSlug: "other_at_vtj_co_jp",
+    });
+    expect(routeMocks.assertSendAsAccepted).not.toHaveBeenCalled();
+    expect(routeMocks.sendGmailReply).not.toHaveBeenCalled();
+    expect(listTestSentReplyCaptures()).toHaveLength(0);
   });
 
   it.each([

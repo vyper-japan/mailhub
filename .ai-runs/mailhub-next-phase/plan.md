@@ -1,5 +1,41 @@
 # MailHub Next Phase Plan
 
+## 2026-06-21 Reply Ownership Shield Plan
+
+Status: implementation and focused verification complete.
+
+Completed plan:
+
+1. Confirmed the previous UI research was reflected in list density, detail context strip, and thread action rail work.
+2. Chose the next practical UX/API slice: shared-inbox reply ownership safety.
+3. Implemented Reply Ownership Shield v0:
+   - pure evaluator
+   - API send guard
+   - Compose safety tile and ownership CTA
+   - external Gmail reply link disabled while blocked
+4. Added unit/E2E/visual evidence.
+5. Refreshed readiness artifacts without external send.
+
+Remaining closeout plan:
+
+1. Run final `git diff --check` and `npm run security:scan-artifacts`.
+2. Commit the code, tests, UI screenshots, and refreshed `.ai-runs` artifacts.
+3. Push.
+4. Watch `MailHub Readiness Contract` and `qa-strict`.
+5. If CI is green, continue with the next UI/UX slice.
+
+Recommended next UI/UX slice after CI:
+
+- refine owner/assignment affordances in list/detail now that send ownership is enforced, or
+- add a compact customer/order context module in the detail pane if real data hooks are available.
+
+Constraints stay in force:
+
+- no external email send without explicit approval
+- no GitHub setup/apply mutation without explicit approval
+- no Sheets mutation without explicit approval
+- no production-complete claim
+
 ## 2026-06-20 Detail Context Polish Handoff Plan
 
 The active UI/UX sprint is paused for a new session handoff.

@@ -1,5 +1,79 @@
 # MailHub Next Phase Commands
 
+## 2026-06-21 Reply Ownership Shield Commands
+
+Implementation/verification commands run in this slice:
+
+```bash
+git status -sb
+git diff --stat
+git diff --check
+npm run test -- lib/__tests__/mailhub-shield.test.ts lib/__tests__/mailhub-send-route.test.ts
+npm run typecheck
+npm run lint
+node scripts/e2e-preclean.mjs && MAILHUB_TEST_MODE=1 npx playwright test e2e/qa-strict-unified.spec.ts --grep "W2-T3a Gmail compose send E2E" --workers=1
+npm run test
+npm run verify
+npm run smoke
+npm run security:scan
+npm run security:scan-artifacts
+npm run audit:mailhub-readiness-contract
+npm run audit:mailhub-readiness
+npm run ops:readiness-refresh
+npm run test:coverage
+```
+
+Result: PASS.
+
+Visual capture was performed against `http://127.0.0.1:3010` with `MAILHUB_TEST_MODE=1`.
+
+Updated visual artifacts:
+
+```text
+artifacts/ui-screenshots/mailhub-gmail-compose-shield-unassigned.png
+artifacts/ui-screenshots/mailhub-gmail-compose-desktop.png
+artifacts/ui-screenshots/mailhub-gmail-compose-narrow.png
+artifacts/ui-screenshots/mailhub-gmail-compose-check.json
+```
+
+Visual result:
+
+```text
+desktop-unassigned: safetyCheckCount=6, actionsWithinViewport=true, horizontalOverflow=false
+desktop: safetyCheckCount=6, actionsWithinViewport=true, horizontalOverflow=false
+narrow: safetyCheckCount=6, actionsWithinViewport=true, horizontalOverflow=false
+consoleErrors=0
+failedResponses=0
+```
+
+Full local E2E command:
+
+```bash
+npm run e2e
+```
+
+Result: FAIL after a 17.1 minute run, with late-run local server degradation:
+
+```text
+129 passed
+5 flaky
+3 failed
+```
+
+The failing areas were Views/W2-T3a after late-run timeouts, including `/api/mailhub/test/reset` timing out. Clean targeted rerun command:
+
+```bash
+node scripts/e2e-preclean.mjs && MAILHUB_TEST_MODE=1 npx playwright test e2e/qa-strict-unified.spec.ts --grep "Step107-1|Step108-1|W2-T3a Gmail compose send E2E" --workers=1
+```
+
+Result: PASS with one local flaky retry:
+
+```text
+1 flaky
+5 passed
+exit code 0
+```
+
 ## 2026-06-20 Detail Context Polish Handoff Commands
 
 Checkpoint/handoff skill instructions loaded:

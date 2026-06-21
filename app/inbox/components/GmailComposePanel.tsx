@@ -1,6 +1,7 @@
 "use client";
 
-import { AlertTriangle, CheckCircle, Send, X } from "lucide-react";
+import { AlertTriangle, CheckCircle, Send, UserCheck, X } from "lucide-react";
+import type { MailhubReplyOwnershipShieldResult } from "@/lib/mailhub-shield";
 
 export type GmailComposePanelProps = {
   messageId: string;
@@ -15,6 +16,8 @@ export type GmailComposePanelProps = {
   sendDisabledReason:
     | null
     | "read_only"
+    | "reply_lock_required"
+    | "reply_locked_by_other"
     | "send_disabled"
     | "resolve_failed"
     | "send_as_unaccepted"
@@ -22,10 +25,13 @@ export type GmailComposePanelProps = {
     | "empty_body"
     | "maybe_sent";
   isSendingGmailReply: boolean;
+  isTakingOwnership?: boolean;
   sentStatus: "idle" | "sent" | "sent_and_done" | "sent_but_not_done" | "maybe_sent";
+  replyOwnershipShield: MailhubReplyOwnershipShieldResult | null;
   errorMessage: string | null;
   onBodyChange: (value: string) => void;
   onSend: (postSendAction: "none" | "done") => void;
+  onTakeOwnership?: () => void;
   onCancel: () => void;
 };
 
@@ -38,6 +44,10 @@ function disabledReasonMessage(reason: SendDisabledReason, errorMessage: string 
   switch (reason) {
     case "read_only":
       return "READ ONLYのため送信できません";
+    case "reply_lock_required":
+      return "担当してから送信してください";
+    case "reply_locked_by_other":
+      return "他の担当者が対応中です";
     case "send_disabled":
       return "Gmail送信はまだ有効化されていません";
     case "resolve_failed":
@@ -82,8 +92,8 @@ function getEffectiveDisabledReason({
   if (readOnly) return "read_only";
   if (sentStatus === "maybe_sent") return "maybe_sent";
   if (sentStatus !== "idle") return null;
-  if (!sendEnabled) return "send_disabled";
   if (sendDisabledReason) return sendDisabledReason;
+  if (!sendEnabled) return "send_disabled";
   if (unresolvedVars.length > 0) return "unresolved_template_vars";
   if (!bodyText.trim()) return "empty_body";
   return null;
@@ -101,10 +111,13 @@ export function GmailComposePanel({
   sendEnabled,
   sendDisabledReason,
   isSendingGmailReply,
+  isTakingOwnership = false,
   sentStatus,
+  replyOwnershipShield,
   errorMessage,
   onBodyChange,
   onSend,
+  onTakeOwnership,
   onCancel,
 }: GmailComposePanelProps) {
   const effectiveDisabledReason = getEffectiveDisabledReason({
@@ -121,12 +134,27 @@ export function GmailComposePanel({
   const actionDisabled = isSendingGmailReply || effectiveDisabledReason !== null || sentStatus !== "idle";
   const bodyDisabled = readOnly || isSendingGmailReply || sentStatus !== "idle";
   const fromText = fromAlias ? (fromLabel ? `${fromLabel} <${fromAlias}>` : fromAlias) : "-";
+  const canTakeOwnership =
+    Boolean(onTakeOwnership) &&
+    !readOnly &&
+    !isSendingGmailReply &&
+    !isTakingOwnership &&
+    sentStatus === "idle" &&
+    replyOwnershipShield?.ok === false;
+  const takeOwnershipLabel = replyOwnershipShield?.reason === "reply_locked_by_other" ? "引き継ぐ" : "担当する";
   const readinessChecks = [
-    { label: "From", ok: Boolean(fromAlias), detail: fromAlias ?? "未解決" },
-    { label: "To", ok: Boolean(to), detail: to ?? "未解決" },
-    { label: "本文", ok: Boolean(bodyText.trim()), detail: bodyText.trim() ? `${bodyText.trim().length}字` : "未入力" },
-    { label: "変数", ok: unresolvedVars.length === 0, detail: unresolvedVars.length === 0 ? "OK" : `${unresolvedVars.length}件` },
     {
+      id: "owner",
+      label: "担当",
+      ok: replyOwnershipShield?.ok === true,
+      detail: replyOwnershipShield?.detail ?? "確認中",
+    },
+    { id: "from", label: "From", ok: Boolean(fromAlias), detail: fromAlias ?? "未解決" },
+    { id: "to", label: "To", ok: Boolean(to), detail: to ?? "未解決" },
+    { id: "body", label: "本文", ok: Boolean(bodyText.trim()), detail: bodyText.trim() ? `${bodyText.trim().length}字` : "未入力" },
+    { id: "vars", label: "変数", ok: unresolvedVars.length === 0, detail: unresolvedVars.length === 0 ? "OK" : `${unresolvedVars.length}件` },
+    {
+      id: "send",
       label: "送信",
       ok: !effectiveDisabledReason && sentStatus === "idle",
       detail: effectiveDisabledReason ? disabledReasonMessage(effectiveDisabledReason, errorMessage) : "可能",
@@ -177,11 +205,11 @@ export function GmailComposePanel({
         </div>
 
         <div
-          className="grid gap-1.5 rounded-md border border-[#e8eaed] bg-[#f8fafd] p-1.5 sm:grid-cols-5 lg:col-span-2"
+          className="grid gap-1.5 rounded-md border border-[#e8eaed] bg-[#f8fafd] p-1.5 sm:grid-cols-3 lg:grid-cols-6 lg:col-span-2"
           data-testid="gmail-compose-safety-checks"
         >
           {readinessChecks.map((check) => (
-            <div key={check.label} className="min-w-0 rounded border border-[#e8eaed] bg-white px-1.5 py-1">
+            <div key={check.id} className="min-w-0 rounded border border-[#e8eaed] bg-white px-1.5 py-1" data-testid={`gmail-compose-check-${check.id}`}>
               <div className="flex items-center gap-1 text-[11px] font-medium text-[#5f6368]">
                 {check.ok ? (
                   <CheckCircle size={13} className="shrink-0 text-[#137333]" />
@@ -196,6 +224,18 @@ export function GmailComposePanel({
               >
                 {check.detail}
               </div>
+              {check.id === "owner" && replyOwnershipShield?.ok === false && onTakeOwnership && (
+                <button
+                  type="button"
+                  data-testid="gmail-compose-take-ownership"
+                  onClick={onTakeOwnership}
+                  disabled={!canTakeOwnership}
+                  className="mt-1 flex h-6 w-full items-center justify-center gap-1 rounded border border-[#d2e3fc] bg-[#e8f0fe] px-1 text-[11px] font-medium text-[#1a73e8] transition-colors hover:bg-[#d2e3fc] disabled:cursor-not-allowed disabled:border-[#e8eaed] disabled:bg-[#f1f3f4] disabled:text-[#9aa0a6]"
+                >
+                  <UserCheck size={12} />
+                  {isTakingOwnership ? "処理中" : takeOwnershipLabel}
+                </button>
+              )}
             </div>
           ))}
         </div>

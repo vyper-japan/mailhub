@@ -11,6 +11,7 @@ import {
   reserveMailhubSendDuplicateGuard,
   type MailhubSendDuplicateReservation,
 } from "@/lib/mailhub-send-duplicate-guard";
+import { evaluateMailhubReplyOwnershipShield } from "@/lib/mailhub-shield";
 import {
   recordTestSentReplyCapture,
   updateTestSentReplyCaptureStatus,
@@ -259,6 +260,20 @@ export async function POST(req: Request) {
       }
       throw e;
     });
+
+    const ownershipShield = evaluateMailhubReplyOwnershipShield({
+      actorEmail: authResult.user.email,
+      assigneeSlug: detail.assigneeSlug,
+    });
+    if (!ownershipShield.ok) {
+      releaseReservation(reservation);
+      reservation = null;
+      return errorResponse(409, ownershipShield.reason, ownershipShield.message, {
+        messageId: sendRequest.messageId,
+        actorSlug: ownershipShield.actorSlug,
+        ownerSlug: ownershipShield.ownerSlug,
+      });
+    }
 
     const sharedInboxEmail = getSharedInboxEmail(testMode);
     const resolved = resolveReplyContext(detail, getSendResolverChannels(testMode), { sharedInboxEmail });

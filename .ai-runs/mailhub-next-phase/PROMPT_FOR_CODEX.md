@@ -30,15 +30,23 @@ Do not overwrite uncommitted changes. Respect local-only assets and never print 
 
 - repo: `/Users/takayukisuzuki/VYPER-Dev/Mailhub`
 - branch: `main`
-- local HEAD: `2dac19d Polish MailHub detail work context`
-- local branch: `main...origin/main [ahead 1]`
-- uncommitted changes should be `.ai-runs/mailhub-next-phase` readiness/handoff artifacts only
-- latest local UI validation passed:
+- current slice: Reply Ownership Shield v0 for Gmail customer replies
+- uncommitted changes may include Shield code/tests, Gmail compose visual artifacts, and refreshed `.ai-runs/mailhub-next-phase` readiness artifacts until the closeout commit is made
+- latest local validation passed:
+  - targeted send-route and Shield unit tests
   - `npm run typecheck`
   - `npm run lint`
   - `git diff --check`
-  - targeted Playwright `Step93-3b|Step93-3c|Step93-6`
-- `npm run ops:readiness-refresh` passed after `2dac19d`
+  - targeted Playwright `W2-T3a Gmail compose send E2E`
+  - `npm run test`
+  - `npm run verify`
+  - `npm run smoke`
+  - `npm run security:scan`
+  - `npm run security:scan-artifacts`
+  - `npm run test:coverage`
+- visual artifacts record 6 Gmail compose safety checks with no horizontal overflow
+- full local `npm run e2e` degraded late: 129 passed, 5 flaky, 3 failed; clean targeted rerun of Views/W2-T3a exited 0
+- `npm run ops:readiness-refresh` passed after the Shield slice
 - no external send occurred; routing send remained dry-run with `sentCount=0`
 - production readiness is still intentionally false:
   - P0 `current_shared_gmail_routing`
@@ -50,6 +58,6 @@ Do not overwrite uncommitted changes. Respect local-only assets and never print 
 
 Continue from `.ai-runs/mailhub-next-phase/next-session-prompt.md`.
 
-Recommended first action: commit the refreshed `.ai-runs/mailhub-next-phase` readiness/handoff artifacts, push, and watch `MailHub Readiness Contract` and `qa-strict` for the pushed HEAD.
+Recommended first action if not already done: commit the Reply Ownership Shield code/tests/artifacts plus refreshed `.ai-runs/mailhub-next-phase`, push, and watch `MailHub Readiness Contract` and `qa-strict` for the pushed HEAD.
 
 Do not send external mail, do not run GitHub apply/setup mutation, do not mutate Sheets, do not fake production readiness, and do not mark the active goal complete until the production readiness blockers are closed with current evidence.

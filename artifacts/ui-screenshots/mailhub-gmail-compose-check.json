@@ -1,10 +1,132 @@
 {
-  "capturedAt": "2026-06-19T15:59:41.075Z",
+  "capturedAt": "2026-06-21T01:13:40.162Z",
   "baseURL": "http://127.0.0.1:3010",
   "screenshotOptions": {
-    "caret": "initial"
+    "caret": "hide",
+    "animations": "disabled"
   },
   "results": [
+    {
+      "name": "desktop-unassigned",
+      "viewport": {
+        "width": 1440,
+        "height": 980
+      },
+      "screenshotPath": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/artifacts/ui-screenshots/mailhub-gmail-compose-shield-unassigned.png",
+      "metrics": {
+        "viewport": {
+          "width": 1440,
+          "height": 980
+        },
+        "panel": {
+          "x": 752,
+          "y": 262,
+          "width": 656,
+          "height": 652,
+          "right": 1408,
+          "bottom": 914
+        },
+        "safetyChecks": {
+          "x": 769,
+          "y": 463,
+          "width": 622,
+          "height": 87,
+          "right": 1391,
+          "bottom": 550
+        },
+        "owner": {
+          "rect": {
+            "x": 776,
+            "y": 470,
+            "width": 96,
+            "height": 73,
+            "right": 872,
+            "bottom": 543
+          },
+          "text": "担当未割当担当する"
+        },
+        "from": {
+          "x": 769,
+          "y": 356,
+          "width": 308,
+          "height": 38,
+          "right": 1077,
+          "bottom": 393
+        },
+        "to": {
+          "x": 1083,
+          "y": 356,
+          "width": 308,
+          "height": 38,
+          "right": 1391,
+          "bottom": 393
+        },
+        "body": {
+          "x": 769,
+          "y": 578,
+          "width": 622,
+          "height": 220,
+          "right": 1391,
+          "bottom": 798
+        },
+        "actions": {
+          "x": 753,
+          "y": 864,
+          "width": 654,
+          "height": 49,
+          "right": 1407,
+          "bottom": 913
+        },
+        "buttons": [
+          {
+            "text": "Gmailで送信",
+            "rect": {
+              "x": 1025,
+              "y": 871,
+              "width": 118,
+              "height": 36,
+              "right": 1143,
+              "bottom": 907
+            }
+          },
+          {
+            "text": "送信してDone",
+            "rect": {
+              "x": 1149,
+              "y": 871,
+              "width": 128,
+              "height": 36,
+              "right": 1277,
+              "bottom": 907
+            }
+          },
+          {
+            "text": "キャンセル",
+            "rect": {
+              "x": 1283,
+              "y": 871,
+              "width": 108,
+              "height": 36,
+              "right": 1391,
+              "bottom": 907
+            }
+          }
+        ],
+        "safetyCheckCount": 6,
+        "panelOverflow": false,
+        "checksOverflow": false,
+        "fromWraps": true,
+        "toWraps": true,
+        "fromHorizontalOverflow": false,
+        "toHorizontalOverflow": false,
+        "actionsOverflow": false,
+        "actionsWithinViewport": true,
+        "horizontalOverflow": false,
+        "actionText": "送信後は取り消せません。Gmailで送信送信してDoneキャンセル"
+      },
+      "consoleErrors": [],
+      "failedResponses": []
+    },
     {
       "name": "desktop",
       "viewport": {
@@ -19,88 +141,99 @@
         },
         "panel": {
           "x": 752,
-          "y": 276,
+          "y": 323,
           "width": 656,
           "height": 624,
           "right": 1408,
-          "bottom": 900
+          "bottom": 947
         },
         "safetyChecks": {
           "x": 769,
-          "y": 477,
+          "y": 524,
           "width": 622,
           "height": 59,
           "right": 1391,
-          "bottom": 536
+          "bottom": 583
+        },
+        "owner": {
+          "rect": {
+            "x": 776,
+            "y": 531,
+            "width": 96,
+            "height": 45,
+            "right": 872,
+            "bottom": 576
+          },
+          "text": "担当担当: Test"
         },
         "from": {
           "x": 769,
-          "y": 370,
+          "y": 417,
           "width": 308,
           "height": 38,
           "right": 1077,
-          "bottom": 407
+          "bottom": 454
         },
         "to": {
           "x": 1083,
-          "y": 370,
+          "y": 417,
           "width": 308,
           "height": 38,
           "right": 1391,
-          "bottom": 407
+          "bottom": 454
         },
         "body": {
           "x": 769,
-          "y": 564,
+          "y": 611,
           "width": 622,
           "height": 220,
           "right": 1391,
-          "bottom": 784
+          "bottom": 831
         },
         "actions": {
           "x": 753,
-          "y": 850,
+          "y": 897,
           "width": 654,
           "height": 49,
           "right": 1407,
-          "bottom": 899
+          "bottom": 946
         },
         "buttons": [
           {
             "text": "Gmailで送信",
             "rect": {
               "x": 1025,
-              "y": 857,
+              "y": 904,
               "width": 118,
               "height": 36,
               "right": 1143,
-              "bottom": 893
+              "bottom": 940
             }
           },
           {
             "text": "送信してDone",
             "rect": {
               "x": 1149,
-              "y": 857,
+              "y": 904,
               "width": 128,
               "height": 36,
               "right": 1277,
-              "bottom": 893
+              "bottom": 940
             }
           },
           {
             "text": "キャンセル",
             "rect": {
               "x": 1283,
-              "y": 857,
+              "y": 904,
               "width": 108,
               "height": 36,
               "right": 1391,
-              "bottom": 893
+              "bottom": 940
             }
           }
         ],
-        "safetyCheckCount": 5,
+        "safetyCheckCount": 6,
         "panelOverflow": false,
         "checksOverflow": false,
         "fromWraps": true,
@@ -129,88 +262,99 @@
         },
         "panel": {
           "x": 676,
-          "y": 196,
+          "y": 197,
           "width": 412,
           "height": 644,
           "right": 1088,
-          "bottom": 840
+          "bottom": 841
         },
         "safetyChecks": {
           "x": 693,
-          "y": 417,
+          "y": 418,
           "width": 378,
           "height": 59,
           "right": 1071,
-          "bottom": 476
+          "bottom": 477
+        },
+        "owner": {
+          "rect": {
+            "x": 700,
+            "y": 425,
+            "width": 56,
+            "height": 45,
+            "right": 756,
+            "bottom": 470
+          },
+          "text": "担当担当: Test"
         },
         "from": {
           "x": 693,
-          "y": 290,
+          "y": 291,
           "width": 186,
           "height": 57,
           "right": 879,
-          "bottom": 347
+          "bottom": 348
         },
         "to": {
           "x": 885,
-          "y": 290,
+          "y": 291,
           "width": 186,
           "height": 57,
           "right": 1071,
-          "bottom": 347
+          "bottom": 348
         },
         "body": {
           "x": 693,
-          "y": 504,
+          "y": 505,
           "width": 378,
           "height": 220,
           "right": 1071,
-          "bottom": 724
+          "bottom": 725
         },
         "actions": {
           "x": 677,
-          "y": 790,
+          "y": 791,
           "width": 410,
           "height": 49,
           "right": 1087,
-          "bottom": 839
+          "bottom": 840
         },
         "buttons": [
           {
             "text": "Gmailで送信",
             "rect": {
               "x": 705,
-              "y": 797,
+              "y": 798,
               "width": 118,
               "height": 36,
               "right": 823,
-              "bottom": 833
+              "bottom": 834
             }
           },
           {
             "text": "送信してDone",
             "rect": {
               "x": 829,
-              "y": 797,
+              "y": 798,
               "width": 128,
               "height": 36,
               "right": 957,
-              "bottom": 833
+              "bottom": 834
             }
           },
           {
             "text": "キャンセル",
             "rect": {
               "x": 963,
-              "y": 797,
+              "y": 798,
               "width": 108,
               "height": 36,
               "right": 1071,
-              "bottom": 833
+              "bottom": 834
             }
           }
         ],
-        "safetyCheckCount": 5,
+        "safetyCheckCount": 6,
         "panelOverflow": false,
         "checksOverflow": false,
         "fromWraps": true,

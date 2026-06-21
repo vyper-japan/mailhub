@@ -1,5 +1,44 @@
 # MailHub Next Phase Next Actions
 
+## 2026-06-21 Resume Here: Commit/Push Reply Ownership Shield
+
+Current slice is ready for commit/push unless final `git diff --check` or artifact scan finds a new issue.
+
+Immediate sequence:
+
+```bash
+git status -sb
+git diff --stat
+git diff --check
+npm run security:scan-artifacts
+git add app/api/mailhub/send/route.ts app/inbox/InboxShell.tsx app/inbox/components/GmailComposePanel.tsx lib/mailhub-shield.ts lib/__tests__/mailhub-shield.test.ts lib/__tests__/mailhub-send-route.test.ts e2e/qa-strict-unified.spec.ts artifacts/ui-screenshots .ai-runs/mailhub-next-phase
+git commit -m "Add MailHub reply ownership shield"
+git push
+```
+
+Then watch:
+
+- `MailHub Readiness Contract`
+- `qa-strict`
+
+If `qa-strict` fails, inspect whether it matches the local late-run timeout pattern:
+
+- Views creation/input disabled after long run
+- `/api/mailhub/test/reset` timeout late in W2-T3a
+
+Clean targeted local rerun already passed:
+
+```bash
+node scripts/e2e-preclean.mjs && MAILHUB_TEST_MODE=1 npx playwright test e2e/qa-strict-unified.spec.ts --grep "Step107-1|Step108-1|W2-T3a Gmail compose send E2E" --workers=1
+```
+
+Keep these hard gates:
+
+- no external email send without explicit approval
+- no GitHub setup/apply mutation without explicit approval
+- no Sheets mutation without explicit approval
+- do not claim production complete
+
 ## 2026-06-20 Resume Here: Commit Detail Context Readiness Refresh And Watch CI
 
 Start here in the next session:

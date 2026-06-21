@@ -1,5 +1,16 @@
 # MailHub Next Phase Decisions
 
+## 2026-06-21 Reply Ownership Shield Decisions
+
+- Ship Reply Ownership Shield v0 as a lightweight ownership gate, not a persistent lease/lock store.
+- Treat assignment as the current operator ownership signal for this slice.
+- Enforce ownership in both UI and `/api/mailhub/send`; UI-only blocking is insufficient because the send endpoint can be called directly.
+- Place the send-route ownership check after fresh message detail lookup and before send-as/MIME/Gmail send.
+- Release duplicate-send reservations when ownership blocks the send, so operators can take ownership and retry without a false duplicate.
+- Do not persist draft body text, customer email addresses, or other message content in Shield logs or readiness artifacts.
+- Disable the external `Gmailで返信` link while Shield blocks ownership, so the fallback link does not bypass the app's visible safety contract.
+- Keep production readiness false; this UX/API safety slice does not close routing, Sheets config, staff workflow, or staff GitHub blockers.
+
 ## 2026-06-20 Detail Context Polish Handoff Decisions
 
 - Keep `2dac19d` as the completed right-pane detail context UI slice.

@@ -7418,7 +7418,8 @@ type W2T3aActivityLog = {
   metadata?: Record<string, unknown> | null;
 };
 
-async function w2T3aResetAndOpen(page: Page) {
+async function w2T3aResetAndOpen(page: Page, options: { takeOwnership?: boolean } = {}) {
+  const takeOwnership = options.takeOwnership ?? true;
   const resetResp = await page.request.post("/api/mailhub/test/reset", { data: { readOnly: false } });
   expect(resetResp.status()).toBe(200);
 
@@ -7448,6 +7449,17 @@ async function w2T3aResetAndOpen(page: Page) {
   await expect(panel).toBeVisible({ timeout: 15000 });
   await expect(panel.getByTestId("gmail-compose-from")).toContainText("vyper_sc@vtj.co.jp", { timeout: 10000 });
   await expect(panel.getByTestId("gmail-compose-to")).toContainText("buyer-support@amazon.co.jp", { timeout: 10000 });
+  if (takeOwnership) {
+    const takeOwnershipButton = panel.getByTestId("gmail-compose-take-ownership");
+    if (await takeOwnershipButton.isVisible().catch(() => false)) {
+      const assignRespP = page.waitForResponse(
+        (r) => r.url().includes("/api/mailhub/assign") && r.request().method() === "POST" && r.status() === 200,
+        { timeout: 15000 },
+      );
+      await Promise.all([assignRespP, takeOwnershipButton.click()]);
+      await expect(panel.getByTestId("gmail-compose-check-owner")).toContainText("担当:", { timeout: 10000 });
+    }
+  }
   return panel;
 }
 
@@ -7543,6 +7555,26 @@ async function w2T3aExpectReplySendActivity(page: Page) {
 }
 
 test.describe("W2-T3a Gmail compose send E2E", () => {
+  test("E2E #0a) compose ownership Shield blocks send until担当", async ({ page }) => {
+    const panel = await w2T3aResetAndOpen(page, { takeOwnership: false });
+
+    await expect(panel.getByTestId("gmail-compose-check-owner")).toContainText("未割当");
+    await expect(page.getByTestId("gmail-external-reply-disabled")).toBeVisible();
+    await panel.getByTestId("reply-body").fill("W2-T3a ownership body");
+    await expect(panel.getByTestId("gmail-compose-error")).toContainText("担当してから送信してください");
+    await expect(panel.getByTestId("gmail-compose-send")).toBeDisabled();
+
+    const assignRespP = page.waitForResponse(
+      (r) => r.url().includes("/api/mailhub/assign") && r.request().method() === "POST" && r.status() === 200,
+      { timeout: 15000 },
+    );
+    await Promise.all([assignRespP, panel.getByTestId("gmail-compose-take-ownership").click()]);
+
+    await expect(panel.getByTestId("gmail-compose-check-owner")).toContainText("担当:", { timeout: 10000 });
+    await expect(page.getByTestId("gmail-external-reply-link")).toBeVisible({ timeout: 10000 });
+    await expect(panel.getByTestId("gmail-compose-send")).toBeEnabled({ timeout: 10000 });
+  });
+
   test("E2E #0) compose safety layout is readable before send", async ({ page }) => {
     const panel = await w2T3aResetAndOpen(page);
     await page.setViewportSize({ width: 1120, height: 840 });
@@ -7577,7 +7609,7 @@ test.describe("W2-T3a Gmail compose send E2E", () => {
     });
 
     expect(metrics.panelOverflow).toBe(false);
-    expect(metrics.safetyCheckCount).toBe(5);
+    expect(metrics.safetyCheckCount).toBe(6);
     expect(metrics.checksOverflow).toBe(false);
     expect(metrics.fromText).toContain("vyper_sc@vtj.co.jp");
     expect(metrics.toText).toContain("buyer-support@amazon.co.jp");

@@ -1,5 +1,75 @@
 # MailHub Next Phase Progress
 
+## 2026-06-21 Reply Ownership Shield Slice
+
+Completed a focused shared-inbox safety slice: Gmail replies now require the current user to own the selected message before customer-facing send.
+
+Implemented:
+
+- Added `lib/mailhub-shield.ts` with `evaluateMailhubReplyOwnershipShield`.
+- Added unit coverage in `lib/__tests__/mailhub-shield.test.ts`.
+- Updated `/api/mailhub/send` to re-check ownership after fresh Gmail detail lookup and before resolver/send-as/MIME/send.
+- The send route now returns 409 `reply_lock_required` for unassigned messages and 409 `reply_locked_by_other` for other-owner messages.
+- Duplicate-send reservation is released on ownership block, so the same client request can succeed after taking ownership.
+- Updated `GmailComposePanel` safety checks from 5 to 6 by adding a compact `担当` tile.
+- Added Compose CTA:
+  - `担当する` for unassigned mail
+  - `引き継ぐ` for other-owned mail, using the existing takeover-reason flow
+- Disabled the external `Gmailで返信` link while ownership is blocked, so the visible fallback does not bypass the Shield.
+- Updated W2-T3a E2E to cover the unassigned Shield state and to take ownership before send tests.
+- Refreshed Gmail compose screenshots:
+  - `artifacts/ui-screenshots/mailhub-gmail-compose-shield-unassigned.png`
+  - `artifacts/ui-screenshots/mailhub-gmail-compose-desktop.png`
+  - `artifacts/ui-screenshots/mailhub-gmail-compose-narrow.png`
+  - `artifacts/ui-screenshots/mailhub-gmail-compose-check.json`
+
+Visual verification:
+
+- `desktop-unassigned`, `desktop`, and `narrow` captures all recorded `safetyCheckCount=6`.
+- `actionsWithinViewport=true`.
+- `horizontalOverflow=false`.
+- `consoleErrors=[]`.
+- `failedResponses=[]`.
+
+Local validation passed:
+
+- `npm run test -- lib/__tests__/mailhub-shield.test.ts lib/__tests__/mailhub-send-route.test.ts`
+- `npm run typecheck`
+- `npm run lint`
+- `MAILHUB_TEST_MODE=1 npx playwright test e2e/qa-strict-unified.spec.ts --grep "W2-T3a Gmail compose send E2E" --workers=1`
+- `npm run test`
+- `npm run verify`
+- `npm run smoke`
+- `npm run security:scan`
+- `npm run security:scan-artifacts`
+- `npm run ops:readiness-refresh`
+- `npm run test:coverage`
+
+Full local E2E note:
+
+- `npm run e2e` ran 137 tests for 17.1 minutes and degraded late in the run.
+- Result: 129 passed, 5 flaky, 3 failed.
+- Failures were late-run local timeouts/disabled-state flakes in Views and W2-T3a after `/api/mailhub/test/reset` timed out.
+- Clean targeted rerun passed with exit 0:
+
+```bash
+node scripts/e2e-preclean.mjs && MAILHUB_TEST_MODE=1 npx playwright test e2e/qa-strict-unified.spec.ts --grep "Step107-1|Step108-1|W2-T3a Gmail compose send E2E" --workers=1
+```
+
+Result: 5 passed, 1 flaky (`Step107-1` first-run URL polling); exit code 0.
+
+Readiness refresh after the slice:
+
+- `npm run ops:readiness-refresh`: PASS.
+- Routing probe send stayed `mode=dry_run`; no external mail was sent.
+- Artifact contracts passed inside refresh.
+- `security:scan-artifacts` passed inside refresh.
+- Production readiness remains intentionally false:
+  - P0 `current_shared_gmail_routing`
+  - P1 `rule_config_source_not_production`
+  - P1 `staff_workflow_permissions`
+  - P1 `staff_github_config_not_ready`
+
 ## 2026-06-20 Detail Context Polish Handoff Snapshot
 
 This is the latest resume point. Continue from `/Users/takayukisuzuki/VYPER-Dev/Mailhub`.

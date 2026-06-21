@@ -9,6 +9,7 @@ import type { LabelGroup, LabelItem } from "@/lib/labels";
 import type { ThreadMessageSummary } from "@/lib/thread";
 import { routeReply } from "@/lib/replyRouter";
 import { getSendResolverChannels, resolveReplyContext } from "@/lib/mailhub-send-resolver";
+import { evaluateMailhubReplyOwnershipShield } from "@/lib/mailhub-shield";
 import { extractInquiryNumber } from "@/lib/rakuten/extract";
 import { coerceChannelId, getChannelSourceScope, getChannels, type ChannelId, type ChannelSourceScope } from "@/lib/channels";
 import { getTriageCandidates, type TriageContext } from "@/lib/triageRules";
@@ -2171,6 +2172,16 @@ export default function InboxShell({
       !(gmailResolvedContext?.ok === false && gmailResolvedContext.error === "rakuten_reply_blocked"),
   );
 
+  const gmailReplyOwnershipShield = useMemo(() => {
+    if (!showGmailComposePanel || !selectedMessage) return null;
+    return evaluateMailhubReplyOwnershipShield({
+      actorEmail: user.email,
+      actorDisplayName: user.name || user.email.split("@")[0],
+      assigneeSlug: selectedAssigneeSlug,
+      assigneeDisplayName: selectedAssigneeName,
+    });
+  }, [selectedAssigneeName, selectedAssigneeSlug, selectedMessage, showGmailComposePanel, user.email, user.name]);
+
   useEffect(() => {
     if (!selectedMessage || !selectedDetail || selectedDetail.id !== selectedMessage.id) {
       setBrainDecision((prev) => (prev.status === "idle" ? prev : { status: "idle", messageId: null }));
@@ -2220,6 +2231,7 @@ export default function InboxShell({
     }
     if (!gmailResolvedContext) return "resolve_failed";
     if (!gmailResolvedContext.ok) return "resolve_failed";
+    if (gmailReplyOwnershipShield && !gmailReplyOwnershipShield.ok) return gmailReplyOwnershipShield.reason;
     if (!sendEnabledFromHealth) return "send_disabled";
     if (sendAsAcceptedByAlias[gmailResolvedContext.context.fromAlias.toLowerCase()] !== true) {
       return "send_as_unaccepted";
@@ -2227,6 +2239,7 @@ export default function InboxShell({
     return null;
   }, [
     gmailResolvedContext,
+    gmailReplyOwnershipShield,
     gmailSentStatus,
     lastAppliedTemplate?.unresolvedVars.length,
     readOnlyMode,
@@ -5568,6 +5581,15 @@ export default function InboxShell({
     setGmailClientRequestId(selectedMessage?.id ? createClientRequestId() : null);
   }, [selectedMessage?.id]);
 
+  const handleGmailTakeOwnership = useCallback(() => {
+    if (!selectedMessage?.id) return;
+    if (readOnlyMode) {
+      showToast("READ ONLYのため担当変更できません", "error");
+      return;
+    }
+    void handleAssigneeSelect(user.email, undefined, undefined, [selectedMessage.id]);
+  }, [handleAssigneeSelect, readOnlyMode, selectedMessage?.id, showToast, user.email]);
+
   const handleGmailSend = useCallback(async (postSendAction: PostSendAction) => {
     if (!selectedMessage || !selectedDetail || replyRoute?.kind !== "gmail") return;
 
@@ -5587,6 +5609,11 @@ export default function InboxShell({
     if (!gmailResolvedContext?.ok) {
       const message = gmailResolvedContext?.message ?? "返信先を解決できませんでした";
       setGmailSendError(message);
+      return;
+    }
+    if (gmailReplyOwnershipShield && !gmailReplyOwnershipShield.ok) {
+      setGmailSendError(gmailReplyOwnershipShield.message);
+      showToast(gmailReplyOwnershipShield.message, "error");
       return;
     }
     if (!sendEnabledFromHealth) {
@@ -5623,6 +5650,14 @@ export default function InboxShell({
           setGmailSentStatus("maybe_sent");
           setGmailSendError(MAYBE_SENT_MESSAGE);
           showToast(MAYBE_SENT_MESSAGE, "info");
+          return;
+        }
+        if (
+          res.status === 409 &&
+          (errorData.error === "reply_lock_required" || errorData.error === "reply_locked_by_other")
+        ) {
+          setGmailSendError(message);
+          showToast(message, "error");
           return;
         }
         throw new Error(message);
@@ -5666,6 +5701,7 @@ export default function InboxShell({
     }
   }, [
     gmailClientRequestId,
+    gmailReplyOwnershipShield,
     gmailResolvedContext,
     gmailSentStatus,
     isSendingGmailReply,
@@ -8718,15 +8754,29 @@ export default function InboxShell({
                           <div id="section-reply" className="mt-8 pt-8 border-t border-gray-200" data-testid="reply-panel">
                             <div className="flex items-center justify-between gap-3 mb-2">
                               <span className="text-xs text-gray-500" data-testid="reply-route">gmail</span>
-                              <a
-                                href={buildGmailReplyLink(selectedMessage.gmailLink, selectedMessage.threadId)}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="px-3 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-md text-xs font-medium transition-colors flex items-center gap-1"
-                              >
-                                <ExternalLink size={14} />
-                                Gmailで返信
-                              </a>
+                              {gmailReplyOwnershipShield?.ok === false ? (
+                                <button
+                                  type="button"
+                                  disabled
+                                  data-testid="gmail-external-reply-disabled"
+                                  title={gmailReplyOwnershipShield.message}
+                                  className="flex cursor-not-allowed items-center gap-1 rounded-md bg-gray-100 px-3 py-2 text-xs font-medium text-gray-400"
+                                >
+                                  <ExternalLink size={14} />
+                                  Gmailで返信
+                                </button>
+                              ) : (
+                                <a
+                                  href={buildGmailReplyLink(selectedMessage.gmailLink, selectedMessage.threadId)}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  data-testid="gmail-external-reply-link"
+                                  className="px-3 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-md text-xs font-medium transition-colors flex items-center gap-1"
+                                >
+                                  <ExternalLink size={14} />
+                                  Gmailで返信
+                                </a>
+                              )}
                             </div>
                             <GmailComposePanel
                               messageId={selectedMessage.id}
@@ -8740,7 +8790,9 @@ export default function InboxShell({
                               sendEnabled={sendEnabledFromHealth}
                               sendDisabledReason={gmailSendDisabledReason}
                               isSendingGmailReply={isSendingGmailReply}
+                              isTakingOwnership={actionInProgress.has(selectedMessage.id)}
                               sentStatus={gmailSentStatus}
+                              replyOwnershipShield={gmailReplyOwnershipShield}
                               errorMessage={gmailSendError ?? gmailResolveErrorMessage}
                               onBodyChange={(value) => {
                                 setReplyMessage(value);
@@ -8749,6 +8801,7 @@ export default function InboxShell({
                               onSend={(postSendAction) => {
                                 void handleGmailSend(postSendAction);
                               }}
+                              onTakeOwnership={handleGmailTakeOwnership}
                               onCancel={handleGmailCancel}
                             />
                           </div>
