@@ -3603,6 +3603,73 @@ Result:
 - `security:scan-artifacts` passed.
 - Production readiness remains false with P0 `current_shared_gmail_routing` and P1 `rule_config_source_not_production`, `staff_workflow_permissions`, `staff_github_config_not_ready`.
 
+## 2026-06-22 Initial Preview Responsiveness / Switching Jank Commands
+
+Targeted regression and visual checks:
+
+```bash
+MAILHUB_TEST_MODE=1 npx playwright test e2e/qa-strict-unified.spec.ts -g "Step93-3c2|Step93-3c3|Step93-3c6" --workers=1
+```
+
+Result:
+
+- PASS, 3/3.
+
+Manual TEST_MODE browser evidence was captured against `localhost:3012` and saved as:
+
+```text
+artifacts/ui-screenshots/mailhub-preview-interaction-msg-001.png
+artifacts/ui-screenshots/mailhub-preview-interaction-msg-002.png
+artifacts/ui-screenshots/mailhub-preview-interaction-stability-check.json
+```
+
+Final visual evidence checks:
+
+```text
+bodyReadyUnder1500ms=true
+maxFrameGapUnder500ms=true
+noVeryLongTask=true
+noHorizontalOverflow=true
+bodyIdSynced=true
+noConsoleErrors=true
+noFailedResponses=true
+```
+
+Validation commands:
+
+```bash
+npm run build
+npm run typecheck
+npm run lint
+npm run smoke
+npm run security:scan
+npm run test:coverage
+npm run audit:mailhub-readiness-contract
+npm run security:scan-artifacts
+npm run verify
+git diff --check
+```
+
+Result:
+
+- PASS.
+- `npm run test:coverage` passed 75 files / 712 tests.
+
+Readiness refresh:
+
+```bash
+npm run ops:readiness-refresh
+```
+
+Result:
+
+- PASS.
+- `probe:routing-send` stayed `dry_run`.
+- `sentCount=0`.
+- readiness contract chain passed.
+- artifact secret scan passed.
+- Production readiness remains false with P0 `current_shared_gmail_routing` and P1 `rule_config_source_not_production`, `staff_workflow_permissions`, `staff_github_config_not_ready`.
+
 ## 2026-06-21 Reading Pane Resize Proof Commands
 
 Targeted current-state validation before editing:

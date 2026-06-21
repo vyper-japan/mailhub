@@ -123,3 +123,12 @@ These rules are mandatory for the next session:
 - Reset the detail pane scroll on every selected message change; similar Amazon/Yahoo emails should not inherit the previous scroll position.
 - Keep ownership takeover reason modal in the critical Gmail reply path. External Gmail reply stays unavailable until takeover is recorded.
 - Treat visual artifacts and frame-sampled E2E as required evidence for future preview-stability work.
+
+## 2026-06-22 Initial Preview Responsiveness Decisions
+
+- Treat first-load responsiveness as part of preview correctness, not only performance polish. Operators must be able to click a row as soon as the workbench is visible.
+- Non-critical mount refreshes are allowed to be stale for the first few seconds; the selected list/detail path has priority over counts, views, labels, queues, config health, readiness, and background channel counts.
+- TEST_MODE/local channel count hydration must not fan out all channel list requests at once. Use small batches so local dev does not look frozen.
+- Keep detail HTML sanitization off the render path. Render only a stable skeleton until sanitized HTML is ready, then inject sanitized HTML after id matching.
+- Use pointer/focus intent and adjacent prewarm to make repeated daily HTML emails feel warm when clicked, but never show stale previous body text under a new subject.
+- Keep performance E2E thresholds aimed at user-visible stalls: body ready within the measured window, max frame gap below 500ms, and no very long task at or above 500ms.

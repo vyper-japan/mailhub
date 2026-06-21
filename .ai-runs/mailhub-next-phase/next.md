@@ -817,3 +817,36 @@ Recommended next UX slice after CI is green:
 - real-message preview sweep across representative Amazon/Rakuten/Yahoo/newsletter/order HTML fixtures.
 - verify no clipping, horizontal overflow, stale-body flash, retained scroll, or layout jump.
 - add focused regressions only where a real defect is observed.
+
+## Immediate Next After 2026-06-22 Initial Preview Responsiveness
+
+Completed source/evidence slice:
+
+- deferred non-critical first-load refreshes.
+- batched TEST_MODE channel-count hydration.
+- reused in-flight detail prefetch on click.
+- added pointer/focus preview intent prefetch.
+- moved HTML sanitization out of the synchronous render path.
+- added stable skeleton height during detail transitions.
+- narrowed email body CSS descendant selectors.
+- added `Step93-3c6` for frame gap / click-to-body responsiveness.
+
+Updated visual evidence:
+
+- `artifacts/ui-screenshots/mailhub-preview-interaction-msg-001.png`
+- `artifacts/ui-screenshots/mailhub-preview-interaction-msg-002.png`
+- `artifacts/ui-screenshots/mailhub-preview-interaction-stability-check.json`
+
+Final visual evidence checks:
+
+- `bodyReadyUnder1500ms=true`
+- `maxFrameGapUnder500ms=true`
+- `noVeryLongTask=true`
+- `noHorizontalOverflow=true`
+- `bodyIdSynced=true`
+
+Recommended next UX slice after CI is green:
+
+- build a small real-message preview sweep from the user's reported Amazon/Yahoo/Rakuten/newsletter examples.
+- add one or two representative fixture variants that reproduce any remaining real clipping or layout movement.
+- keep performance assertions focused on user-visible stalls and stale/mismatched body states, not micro-jank from local dev server load.

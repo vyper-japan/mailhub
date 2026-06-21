@@ -368,6 +368,69 @@ Readiness refresh after the slice:
   - P1 `staff_workflow_permissions`
   - P1 `staff_github_config_not_ready`
 
+## 2026-06-22 Initial Preview Responsiveness / Switching Jank Slice
+
+- Implemented a focused fix for the user-reported symptoms:
+  - first page load can feel frozen before the workbench accepts clicks.
+  - similar daily HTML emails can briefly feel broken or delayed when operators click through them.
+- Moved non-critical mount refreshes behind idle scheduling:
+  - notes index.
+  - work tags index.
+  - saved views.
+  - assignee roster refresh.
+  - counts.
+  - ops readiness/version.
+  - labels/queues/config health.
+  - TEST_MODE channel count fan-out.
+- Changed TEST_MODE channel count fan-out from one large `Promise.all` to small batches so local/dev does not flood the API while the operator is trying to click.
+- Fixed the rule-apply best-effort effect so it does not mark a list as processed before write guard readiness exists; then deferred the POST to idle.
+- Improved detail switching:
+  - pointer/focus intent now starts detail prefetch earlier.
+  - in-flight detail prefetch is reused by the click path instead of being discarded.
+  - adjacent selected-message prewarm now fetches and sanitizes nearby HTML details.
+  - HTML sanitization no longer runs synchronously in render; unsafe states keep a stable skeleton until sanitized HTML is ready.
+  - loading skeleton keeps a bounded previous body height to reduce vertical jump.
+  - email-body CSS no longer applies a universal descendant rule to every injected HTML node.
+- Added E2E:
+  - `Step93-3c6) Mail preview interaction: 初回直後と連続切替でフレーム停止しない`.
+  - It asserts selected subject/body readiness, body-id sync, max frame gap under 500ms, and no very long task >= 500ms.
+- Added visual evidence:
+  - `artifacts/ui-screenshots/mailhub-preview-interaction-msg-001.png`
+  - `artifacts/ui-screenshots/mailhub-preview-interaction-msg-002.png`
+  - `artifacts/ui-screenshots/mailhub-preview-interaction-stability-check.json`
+- Visual/manual evidence passed:
+  - `bodyReadyUnder1500ms=true`
+  - `maxFrameGapUnder500ms=true`
+  - `noVeryLongTask=true`
+  - `noHorizontalOverflow=true`
+  - `bodyIdSynced=true`
+  - no console errors.
+  - no failed responses.
+- Verification passed:
+  - `MAILHUB_TEST_MODE=1 npx playwright test e2e/qa-strict-unified.spec.ts -g "Step93-3c2|Step93-3c3|Step93-3c6" --workers=1` => PASS, 3/3.
+  - `npm run build` => PASS.
+  - `npm run typecheck` => PASS.
+  - `npm run lint` => PASS.
+  - `npm run smoke` => PASS.
+  - `npm run security:scan` => PASS.
+  - `npm run test:coverage` => PASS, 75 files / 712 tests.
+  - `npm run audit:mailhub-readiness-contract` => PASS.
+  - `npm run security:scan-artifacts` => PASS.
+  - `npm run verify` => PASS.
+  - `git diff --check` => PASS.
+- Source/evidence commit: `00368f5 Stabilize MailHub initial preview interaction`.
+- Refreshed `.ai-runs/mailhub-next-phase` readiness artifacts at repo head `00368f5dc5c5da77b4bdb3551c2a8e37b618d79c`.
+  - `npm run ops:readiness-refresh` => PASS.
+  - `probe:routing-send` stayed `dry_run`.
+  - `sentCount=0`.
+  - readiness contract chain passed.
+  - artifact secret scan passed.
+- Production readiness remains intentionally false:
+  - P0 `current_shared_gmail_routing`
+  - P1 `rule_config_source_not_production`
+  - P1 `staff_workflow_permissions`
+  - P1 `staff_github_config_not_ready`
+
 ## 2026-06-21 Reply Ownership Shield Slice
 
 Completed a focused shared-inbox safety slice: Gmail replies now require the current user to own the selected message before customer-facing send.
