@@ -112,3 +112,14 @@ These rules are mandatory for the next session:
    - whether any required command sessions are still running
 9. Prefer local implementation and verification on the critical path. Agents are sidecars, not the place where the main run can freeze.
 10. For large-team review, simulate additional human/design/UX/nitpick lenses locally if agent capacity is constrained.
+
+## 2026-06-21 Preview Stability / Takeover UX Decisions
+
+- Treat the repeated-email flicker as an inconsistent-render-state bug, not only a prefetch/speed problem.
+- Prefetch remains useful, but the hard correctness rule is: do not show a body unless its `messageId` matches the selected message.
+- Keep the skeleton during unsafe transition states instead of briefly showing stale HTML under a new subject.
+- Keep sanitized HTML rendering without `dangerouslySetInnerHTML`; manual `innerHTML` assignment is only after DOMPurify sanitization and id matching.
+- Disable embedded email animation/transition inside the preview body because external HTML email should not animate the workbench.
+- Reset the detail pane scroll on every selected message change; similar Amazon/Yahoo emails should not inherit the previous scroll position.
+- Keep ownership takeover reason modal in the critical Gmail reply path. External Gmail reply stays unavailable until takeover is recorded.
+- Treat visual artifacts and frame-sampled E2E as required evidence for future preview-stability work.

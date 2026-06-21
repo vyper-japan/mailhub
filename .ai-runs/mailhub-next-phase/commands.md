@@ -3557,3 +3557,48 @@ Result:
 - `sentCount=0`.
 - readiness contract chain passed.
 - `security:scan-artifacts` passed.
+
+## 2026-06-21 Ownership UX / Preview Stability Commands
+
+Targeted visual/E2E validation for the user-reported repeated-email preview flicker and Gmail takeover reason path:
+
+```bash
+MAILHUB_TEST_MODE=1 npx playwright test e2e/qa-strict-unified.spec.ts --grep "Step93-3c3|E2E #0c" --workers=1
+npm run security:scan
+git diff --check
+npm run security:scan-artifacts
+npm run verify
+```
+
+Result:
+
+- targeted Playwright PASS, 2/2.
+- `security:scan` PASS.
+- `git diff --check` PASS.
+- `security:scan-artifacts` PASS.
+- `verify` PASS, including production build.
+
+Source/evidence commit:
+
+```bash
+git commit -m "Stabilize MailHub preview and takeover UX"
+```
+
+Result:
+
+- `5b8200d Stabilize MailHub preview and takeover UX`
+
+Readiness refresh after source commit:
+
+```bash
+npm run ops:readiness-refresh
+```
+
+Result:
+
+- PASS.
+- `probe:routing-send` ran in `dry_run` mode.
+- `sentCount=0`.
+- readiness contract chain passed.
+- `security:scan-artifacts` passed.
+- Production readiness remains false with P0 `current_shared_gmail_routing` and P1 `rule_config_source_not_production`, `staff_workflow_permissions`, `staff_github_config_not_ready`.

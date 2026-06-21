@@ -1455,6 +1455,56 @@ Earlier but now stale or needs rerun after latest changes:
 - Rakuten/Amazon/Yahoo API-based reply integration is not implemented.
 - Production staff workflow and permissions need real-data validation through the new staff workflow audit: production env, durable Sheets config/activity, staff roster/admins, read-only rollout screenshots, activity CSV, and Gmail/MailHub write pilot screenshots.
 
+## 2026-06-21 Ownership UX / Preview Stability Slice
+
+- Implemented `5b8200d Stabilize MailHub preview and takeover UX`.
+- Fixed the repeated-email preview flicker class reported by the user:
+  - `DetailBodyState` now carries `messageId`, and the detail pane only renders a body when the body id matches the selected message id.
+  - Detail fetch and list fetch in-flight tracking are split, so list reloads no longer clobber detail response ownership.
+  - HTML body rendering uses DOMPurify-sanitized HTML with a small cache, but never uses `dangerouslySetInnerHTML`.
+  - Switching messages resets the detail scroll position before and after selection flush, preventing retained scroll from making similar emails feel like they shifted.
+  - Email body CSS disables embedded email animation/transition and overflow anchoring, reducing newsletter-induced movement.
+- Improved ownership/takeover clarity around Gmail reply:
+  - Server first paint now receives the assignee registry so names like `Maki` appear immediately instead of slug-like fallbacks.
+  - The assignee picker merges `/api/mailhub/team` and `/api/mailhub/assignees` to avoid roster/registry drift hiding users such as Yuka.
+  - Other-owner Gmail reply now requires a takeover reason before external Gmail reply is enabled.
+  - The reason modal shows current owner, next owner, subject, and a Gmail reply note.
+  - Gmail compose actions are sticky at the bottom of the compose panel so send/cancel controls stay visible in the right pane.
+- Visual evidence added:
+  - `artifacts/ui-screenshots/mailhub-preview-switch-jank-*.png`
+  - `artifacts/ui-screenshots/mailhub-preview-switch-jank-check.json`
+  - `artifacts/ui-screenshots/mailhub-takeover-reason-*.png`
+  - `artifacts/ui-screenshots/mailhub-takeover-reason-check.json`
+- Preview stability visual check passed:
+  - `switchToAmazonStable=true`
+  - `switchBackToYahooStable=true`
+  - `cleanBrowser=true`
+- Takeover reason visual check passed:
+  - `blockedShowsOtherOwner=true`
+  - `blockedShowsTakeoverAction=true`
+  - `modalShowsCurrentOwner=true`
+  - `modalShowsNextOwner=true`
+  - `modalShowsGmailReplyNote=true`
+  - `afterEnablesExternalReply=true`
+  - `noHorizontalOverflow=true`
+  - `cleanBrowser=true`
+- Verification passed:
+  - `MAILHUB_TEST_MODE=1 npx playwright test e2e/qa-strict-unified.spec.ts --grep "Step93-3c3|E2E #0c" --workers=1` => PASS, 2/2.
+  - `npm run security:scan` => PASS.
+  - `git diff --check` => PASS.
+  - `npm run security:scan-artifacts` => PASS.
+  - `npm run verify` => PASS, production build completed.
+- Refreshed `.ai-runs/mailhub-next-phase` readiness artifacts at repo head `5b8200d5e0203dcc1c6b67f400d161a2a751a200`.
+  - `npm run ops:readiness-refresh` => PASS.
+  - `probe:routing-send` stayed `dry_run`.
+  - `sentCount=0`.
+  - Readiness contracts passed.
+- Production readiness remains intentionally false:
+  - P0 `current_shared_gmail_routing`
+  - P1 `rule_config_source_not_production`
+  - P1 `staff_workflow_permissions`
+  - P1 `staff_github_config_not_ready`
+
 ## Current Runtime
 
 At checkpoint time:

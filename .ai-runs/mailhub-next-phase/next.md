@@ -732,3 +732,38 @@ The next phase is done only when:
 - Brain decision ledger can use production-durable Sheets storage
 - verification passes
 - changes are committed and pushed
+
+## Immediate Next After 2026-06-21 Preview Stability Slice
+
+1. Commit the refreshed `.ai-runs/mailhub-next-phase` artifacts after checking:
+
+```bash
+git status -sb
+git diff --stat
+git diff --check
+npm run security:scan-artifacts
+```
+
+2. Push both commits:
+
+```bash
+git push
+```
+
+3. Watch GitHub Actions:
+
+- `MailHub Readiness Contract`
+- `qa-strict`
+
+4. Continue the UX polish track only after CI is green. The most useful next external-value-free slice is another human-eye reading-pane pass:
+
+- verify real-world HTML newsletters/order emails do not overflow the fixed reading pane at wide desktop widths.
+- preserve Gmail-like behavior where the list column absorbs extra browser width and the reading pane remains stable.
+- add frame-sampled checks for any newly found scroll/body/layout instability.
+
+5. Keep these hard gates:
+
+- no external email send without explicit approval.
+- no GitHub setup/apply mutation without explicit approval.
+- no Sheets mutation without explicit approval.
+- no production-complete claim while the current P0/P1 blockers remain.

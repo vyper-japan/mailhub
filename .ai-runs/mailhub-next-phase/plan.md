@@ -331,3 +331,29 @@ Use SHIELD全開 / Avengers-style execution for the next session:
    - `git diff --check`
    - preferably `MAILHUB_TEST_MODE=1 NEXTAUTH_SECRET=dummy NEXTAUTH_URL=http://localhost:3000 NEXTAUTH_TRUST_HOST=true GOOGLE_CLIENT_ID=dummy GOOGLE_CLIENT_SECRET=dummy GOOGLE_SHARED_INBOX_EMAIL=inbox@vtj.co.jp GOOGLE_SHARED_INBOX_REFRESH_TOKEN=dummy npm run qa:strict`
 6. Refresh `.ai-runs/mailhub-next-phase` artifacts only after source diff is frozen. No-send/dry-run artifact refresh is allowed; external `--send` still requires explicit approval.
+
+# 2026-06-21 Preview Stability / Takeover UX Plan
+
+## Completed Slice
+
+The current goal shifted from pure readiness work to a user-reported UX defect:
+
+- repeated similar HTML emails could briefly show a broken/stale preview during rapid selection.
+- some preview bodies looked clipped or unstable inside the right pane.
+- Gmail reply ownership needed clearer takeover reason handling.
+
+Implemented approach:
+
+1. Stabilize the detail pane contract: selected message id, loaded body id, and rendered HTML id must match before a body is visible.
+2. Keep fast perceived switching through cached sanitized HTML and adjacent prefetch, but do not rely on prefetch as the only fix.
+3. Reset detail scroll on message switch and suppress embedded email motion/overflow anchoring.
+4. Make takeover context explicit before enabling Gmail external reply for another owner's message.
+5. Prove the behavior with frame-sampled E2E plus visual artifacts.
+
+## Next Plan
+
+1. Commit refreshed readiness artifacts for repo head `5b8200d`.
+2. Push the source/evidence commit and readiness-artifact commit.
+3. Watch `MailHub Readiness Contract` and `qa-strict`.
+4. If CI is green, continue with a wider reading-pane QA pass using user-provided real examples as the visual target.
+5. Keep production readiness blockers unchanged until real external routing, Sheets rule config, staff workflow evidence, and GitHub production config are provided.
