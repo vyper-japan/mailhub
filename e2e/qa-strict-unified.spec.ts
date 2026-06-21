@@ -7759,6 +7759,7 @@ test.describe("W2-T3a Gmail compose send E2E", () => {
     await expect(panel.getByTestId("gmail-compose-check-owner")).toContainText("未割当");
     await expect(panel.getByTestId("gmail-compose-ownership-banner")).toContainText("担当してから送信してください");
     await expect(page.getByTestId("gmail-external-reply-disabled")).toBeVisible();
+    await expect(page.getByTestId("gmail-external-reply-ownership-action")).toContainText("担当する");
     await panel.getByTestId("reply-body").fill("W2-T3a ownership body");
     await expect(panel.getByTestId("gmail-compose-error")).toContainText("担当してから送信してください");
     await expect(panel.getByTestId("gmail-compose-send")).toBeDisabled();
@@ -7767,7 +7768,7 @@ test.describe("W2-T3a Gmail compose send E2E", () => {
       (r) => r.url().includes("/api/mailhub/assign") && r.request().method() === "POST" && r.status() === 200,
       { timeout: 15000 },
     );
-    await Promise.all([assignRespP, panel.getByTestId("gmail-compose-take-ownership").click()]);
+    await Promise.all([assignRespP, page.getByTestId("gmail-external-reply-ownership-action").click()]);
 
     await expect(panel.getByTestId("gmail-compose-check-owner")).toContainText("担当:", { timeout: 10000 });
     await expect(page.getByTestId("gmail-external-reply-link")).toBeVisible({ timeout: 10000 });
@@ -7781,7 +7782,9 @@ test.describe("W2-T3a Gmail compose send E2E", () => {
     await expect(row.getByTestId("assignee-pill")).toBeVisible({ timeout: 10000 });
     await expect(row.getByTestId("assignee-pill")).toContainText("未割当");
     await expect(page.getByTestId("detail-owner-context")).toContainText("未割当");
+    await expect(page.getByTestId("detail-owner-context")).toContainText("担当する");
     await expect(panel.getByTestId("gmail-compose-ownership-banner")).toContainText("未割当");
+    await expect(page.getByTestId("gmail-external-reply-ownership-action")).toContainText("担当する");
 
     const assignRespP = page.waitForResponse(
       (r) => r.url().includes("/api/mailhub/assign") && r.request().method() === "POST" && r.status() === 200,
@@ -7792,6 +7795,7 @@ test.describe("W2-T3a Gmail compose send E2E", () => {
     await expect(row.getByTestId("assignee-pill")).toHaveAttribute("data-owner-state", "mine", { timeout: 10000 });
     await expect(row.getByTestId("assignee-pill")).toContainText("自分担当");
     await expect(page.getByTestId("detail-owner-context")).toContainText(/test|担当/i);
+    await expect(page.getByTestId("detail-owner-context")).toContainText("変更");
     await expect(panel.getByTestId("gmail-compose-ownership-banner")).toContainText("自分が担当中");
   });
 

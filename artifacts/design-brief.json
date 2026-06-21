@@ -22,6 +22,7 @@
     "Message list sender/subject density polish",
     "Work-mode tabs with visible queue counts",
     "Reading pane subject/from/status context header",
+    "Explicit ownership action labels in detail header and Gmail external reply blocker",
     "Responsive action rail without clipped toolbar or work-mode labels",
     "Wide desktop split-pane behavior where the list expands and the reading pane stays stable",
     "Rapid repeated-email preview switching without stale body flash or layout jump"
@@ -41,6 +42,8 @@
     "Browser screenshot action rail desktop/narrow",
     "Browser screenshot responsive width narrow/desktop/wide",
     "Browser screenshot rapid preview switch before/after",
+    "Browser screenshot ownership CTA before/after",
+    "Ownership CTA DOM check for detail owner and Gmail external reply blocker",
     "Frame-sampled stale body check during rapid preview switch",
     "Console error check"
   ]

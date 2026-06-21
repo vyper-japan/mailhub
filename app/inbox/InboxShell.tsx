@@ -1300,6 +1300,17 @@ export default function InboxShell({
     [getAssigneeDisplayName, selectedAssigneeSlug],
   );
   const isSelectedMine = selectedAssigneeSlug === myAssigneeSlug;
+  const selectedOwnerActionLabel = !selectedAssigneeSlug ? "担当する" : isSelectedMine ? "変更" : "引き継ぐ";
+  const selectedOwnerStatusLabel = !selectedAssigneeSlug
+    ? "未割当"
+    : isSelectedMine
+      ? `自分担当: ${selectedAssigneeName ?? "自分"}`
+      : `担当: ${selectedAssigneeName ?? "他担当"}`;
+  const selectedOwnerActionTitle = !selectedAssigneeSlug
+    ? "このメールを担当する"
+    : isSelectedMine
+      ? "担当者を変更"
+      : `自分に引き継ぐ: ${selectedAssigneeName ?? selectedAssigneeSlug}`;
   // Step 114: 他人担当かどうか（担当者がいて、自分ではない）
   const isSelectedOtherAssigned = Boolean(selectedAssigneeSlug && !isSelectedMine);
 
@@ -7869,33 +7880,24 @@ export default function InboxShell({
                           </div>
 
                           <div className="flex basis-full shrink-0 items-center justify-end gap-1 xl:basis-auto" data-testid="detail-header-actions">
-                          {selectedAssigneeSlug ? (
-                            <button
-                              data-testid="assignee-pill"
-                              type="button"
-                              onClick={() => handleAssignClick(selectedMessage?.id ?? selectedId)}
-                              className={`shrink-0 text-[11px] font-medium px-2 py-0.5 rounded flex items-center gap-1 cursor-pointer hover:opacity-80 ${
-                                selectedAssigneeSlug === myAssigneeSlug
-                                  ? "bg-blue-50 text-blue-700 border border-blue-200"
-                                  : "bg-gray-100 text-gray-600 border border-gray-300"
-                              }`}
-                              title={`担当: ${getAssigneeDisplayName(selectedAssigneeSlug)} (クリックで変更)`}
-                            >
-                              <UserCheck size={12} />
-                              <span className="hidden sm:inline">{getAssigneeDisplayName(selectedAssigneeSlug)}</span>
-                            </button>
-                          ) : (
-                            <button
-                              data-testid="assignee-pill"
-                              type="button"
-                              onClick={() => handleAssignClick(selectedMessage?.id ?? selectedId)}
-                              className="shrink-0 text-[11px] font-medium px-2 py-0.5 rounded flex items-center gap-1 cursor-pointer hover:opacity-80 bg-gray-100 text-gray-500 border border-gray-200"
-                              title="未割当 (クリックで担当者を選択)"
-                            >
-                              <UserCheck size={12} />
-                              <span className="hidden sm:inline">未割当</span>
-                            </button>
-                          )}
+                          <button
+                            data-testid="assignee-pill"
+                            type="button"
+                            onClick={() => handleAssignClick(selectedMessage?.id ?? selectedId)}
+                            className={`shrink-0 text-[11px] font-medium px-2 py-0.5 rounded-md flex max-w-[220px] items-center gap-1 cursor-pointer transition-colors hover:opacity-90 ${
+                              !selectedAssigneeSlug
+                                ? "bg-[#e8f0fe] text-[#1a73e8] border border-[#d2e3fc] hover:bg-[#d2e3fc]"
+                                : selectedAssigneeSlug === myAssigneeSlug
+                                  ? "bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100"
+                                  : "bg-[#fef7e0] text-[#92400e] border border-[#fdd663] hover:bg-[#feefc3]"
+                            }`}
+                            title={selectedOwnerActionTitle}
+                          >
+                            <UserCheck size={12} className="shrink-0" />
+                            <span className="hidden min-w-0 truncate sm:inline">{selectedOwnerStatusLabel}</span>
+                            <span className="hidden opacity-70 sm:inline">|</span>
+                            <span className="shrink-0 font-semibold">{selectedOwnerActionLabel}</span>
+                          </button>
 
                           {(selectedMessage.userLabels ?? []).length > 0 && (
                             <span className="hidden lg:flex items-center gap-1 shrink-0">
@@ -7987,10 +7989,12 @@ export default function InboxShell({
                             onClick={() => handleAssignClick(selectedMessage?.id ?? selectedId)}
                             className={`inline-flex h-7 max-w-full min-w-0 items-center gap-1 rounded-full border px-2 font-medium ${selectedWorkContext.ownerTone} hover:opacity-80`}
                             data-testid="detail-owner-context"
-                            title={`担当者を変更: ${selectedWorkContext.ownerState}`}
+                            title={selectedOwnerActionTitle}
                           >
                             <UserCheck size={12} />
                             <span className="truncate">{selectedWorkContext.ownerLabel}</span>
+                            <span className="opacity-70">|</span>
+                            <span className="shrink-0 font-semibold">{selectedOwnerActionLabel}</span>
                           </button>
                           <div
                             className={`inline-flex h-7 max-w-full min-w-0 items-center gap-1 rounded-full border px-2 font-medium ${selectedWorkContext.routeTone}`}
@@ -8847,16 +8851,29 @@ export default function InboxShell({
                             <div className="flex items-center justify-between gap-3 mb-2">
                               <span className="text-xs text-gray-500" data-testid="reply-route">gmail</span>
                               {gmailReplyOwnershipShield?.ok === false ? (
-                                <button
-                                  type="button"
-                                  disabled
-                                  data-testid="gmail-external-reply-disabled"
-                                  title={gmailReplyOwnershipShield.message}
-                                  className="flex cursor-not-allowed items-center gap-1 rounded-md bg-gray-100 px-3 py-2 text-xs font-medium text-gray-400"
-                                >
-                                  <ExternalLink size={14} />
-                                  Gmailで返信
-                                </button>
+                                <div className="flex flex-wrap justify-end gap-1.5" data-testid="gmail-external-reply-blocked-actions">
+                                  <button
+                                    type="button"
+                                    disabled
+                                    data-testid="gmail-external-reply-disabled"
+                                    title={gmailReplyOwnershipShield.message}
+                                    className="flex cursor-not-allowed items-center gap-1 rounded-md bg-gray-100 px-3 py-2 text-xs font-medium text-gray-400"
+                                  >
+                                    <ExternalLink size={14} />
+                                    Gmailで返信
+                                  </button>
+                                  <button
+                                    type="button"
+                                    data-testid="gmail-external-reply-ownership-action"
+                                    onClick={handleGmailTakeOwnership}
+                                    disabled={readOnlyMode || actionInProgress.has(selectedMessage.id)}
+                                    title={readOnlyMode ? "READ ONLYのため担当変更できません" : selectedOwnerActionTitle}
+                                    className="flex items-center gap-1 rounded-md border border-[#d2e3fc] bg-[#e8f0fe] px-3 py-2 text-xs font-semibold text-[#1a73e8] transition-colors hover:bg-[#d2e3fc] disabled:cursor-not-allowed disabled:border-[#e8eaed] disabled:bg-[#f1f3f4] disabled:text-[#9aa0a6]"
+                                  >
+                                    <UserCheck size={14} />
+                                    {actionInProgress.has(selectedMessage.id) ? "処理中" : selectedOwnerActionLabel}
+                                  </button>
+                                </div>
                               ) : (
                                 <a
                                   href={buildGmailReplyLink(selectedMessage.gmailLink, selectedMessage.threadId)}

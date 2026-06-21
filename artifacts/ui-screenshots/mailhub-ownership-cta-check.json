@@ -1,0 +1,57 @@
+{
+  "viewport": {
+    "width": 1280,
+    "height": 860
+  },
+  "before": {
+    "detailOwner": "未割当|担当する",
+    "headerOwner": "未割当|担当する",
+    "externalDisabled": "Gmailで返信",
+    "externalOwnershipAction": "担当する",
+    "composeBanner": "担当してから送信してください未割当担当する",
+    "replyPanelBox": {
+      "x": 760,
+      "y": 125.5,
+      "width": 488,
+      "height": 803.5,
+      "right": 1248,
+      "bottom": 929
+    },
+    "externalBlockedBox": {
+      "x": 1039.1875,
+      "y": 158.5,
+      "width": 208.8125,
+      "height": 34,
+      "right": 1248,
+      "bottom": 192.5
+    },
+    "documentHorizontalOverflow": false
+  },
+  "after": {
+    "detailOwner": "test|変更",
+    "headerOwner": "自分担当: test|変更",
+    "externalReplyLink": "Gmailで返信",
+    "externalOwnershipActionPresent": false,
+    "composeBanner": "自分が担当中担当: Test",
+    "externalReplyLinkBox": {
+      "x": 1137.1875,
+      "y": 227.5,
+      "width": 110.8125,
+      "height": 32,
+      "right": 1248,
+      "bottom": 259.5
+    },
+    "documentHorizontalOverflow": false
+  },
+  "checks": {
+    "beforeDetailShowsAction": true,
+    "beforeExternalShowsAction": true,
+    "afterDetailShowsChange": true,
+    "afterExternalReplyEnabled": true,
+    "noHorizontalOverflow": true,
+    "noConsoleErrors": true,
+    "noFailedResponses": true
+  },
+  "consoleErrors": [],
+  "failedResponses": []
+}
