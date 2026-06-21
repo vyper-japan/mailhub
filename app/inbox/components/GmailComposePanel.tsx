@@ -160,6 +160,10 @@ export function GmailComposePanel({
       detail: effectiveDisabledReason ? disabledReasonMessage(effectiveDisabledReason, errorMessage) : "可能",
     },
   ];
+  const ownershipBannerTone =
+    replyOwnershipShield?.ok === true
+      ? "border-[#c8e6c9] bg-[#e6f4ea] text-[#137333]"
+      : "border-[#fdd663] bg-[#fef7e0] text-[#92400e]";
 
   return (
     <div
@@ -183,6 +187,37 @@ export function GmailComposePanel({
           </span>
         )}
       </div>
+
+      {replyOwnershipShield && (
+        <div
+          className={`mx-4 mt-3 flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-md border px-3 py-2 text-[12px] ${ownershipBannerTone}`}
+          data-testid="gmail-compose-ownership-banner"
+        >
+          <div className="flex min-w-0 items-center gap-2">
+            {replyOwnershipShield.ok ? (
+              <CheckCircle size={15} className="shrink-0" />
+            ) : (
+              <AlertTriangle size={15} className="shrink-0" />
+            )}
+            <div className="min-w-0">
+              <div className="truncate font-semibold">{replyOwnershipShield.message}</div>
+              <div className="truncate text-[11px] opacity-90">{replyOwnershipShield.detail}</div>
+            </div>
+          </div>
+          {replyOwnershipShield.ok === false && onTakeOwnership && (
+            <button
+              type="button"
+              data-testid="gmail-compose-ownership-action"
+              onClick={onTakeOwnership}
+              disabled={!canTakeOwnership}
+              className="inline-flex h-7 shrink-0 items-center gap-1 rounded-md border border-[#d2e3fc] bg-white px-2 text-[12px] font-medium text-[#1a73e8] transition-colors hover:bg-[#e8f0fe] disabled:cursor-not-allowed disabled:border-[#e8eaed] disabled:bg-[#f1f3f4] disabled:text-[#9aa0a6]"
+            >
+              <UserCheck size={13} />
+              {isTakingOwnership ? "処理中" : takeOwnershipLabel}
+            </button>
+          )}
+        </div>
+      )}
 
       <div className="grid gap-1.5 px-4 py-3 lg:grid-cols-2">
         <div className="min-w-0">

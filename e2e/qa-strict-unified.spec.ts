@@ -7653,6 +7653,7 @@ test.describe("W2-T3a Gmail compose send E2E", () => {
     const panel = await w2T3aResetAndOpen(page, { takeOwnership: false });
 
     await expect(panel.getByTestId("gmail-compose-check-owner")).toContainText("未割当");
+    await expect(panel.getByTestId("gmail-compose-ownership-banner")).toContainText("担当してから送信してください");
     await expect(page.getByTestId("gmail-external-reply-disabled")).toBeVisible();
     await panel.getByTestId("reply-body").fill("W2-T3a ownership body");
     await expect(panel.getByTestId("gmail-compose-error")).toContainText("担当してから送信してください");
@@ -7667,6 +7668,27 @@ test.describe("W2-T3a Gmail compose send E2E", () => {
     await expect(panel.getByTestId("gmail-compose-check-owner")).toContainText("担当:", { timeout: 10000 });
     await expect(page.getByTestId("gmail-external-reply-link")).toBeVisible({ timeout: 10000 });
     await expect(panel.getByTestId("gmail-compose-send")).toBeEnabled({ timeout: 10000 });
+  });
+
+  test("E2E #0b) ownership state is visible in list, detail, and compose", async ({ page }) => {
+    const panel = await w2T3aResetAndOpen(page, { takeOwnership: false });
+    const row = page.locator(`[data-testid="message-row"][data-message-id="${w2T3aMessageId}"]`);
+
+    await expect(row.getByTestId("assignee-pill")).toBeVisible({ timeout: 10000 });
+    await expect(row.getByTestId("assignee-pill")).toContainText("未割当");
+    await expect(page.getByTestId("detail-owner-context")).toContainText("未割当");
+    await expect(panel.getByTestId("gmail-compose-ownership-banner")).toContainText("未割当");
+
+    const assignRespP = page.waitForResponse(
+      (r) => r.url().includes("/api/mailhub/assign") && r.request().method() === "POST" && r.status() === 200,
+      { timeout: 15000 },
+    );
+    await Promise.all([assignRespP, panel.getByTestId("gmail-compose-ownership-action").click()]);
+
+    await expect(row.getByTestId("assignee-pill")).toHaveAttribute("data-owner-state", "mine", { timeout: 10000 });
+    await expect(row.getByTestId("assignee-pill")).toContainText("自分担当");
+    await expect(page.getByTestId("detail-owner-context")).toContainText(/test|担当/i);
+    await expect(panel.getByTestId("gmail-compose-ownership-banner")).toContainText("自分が担当中");
   });
 
   test("E2E #0) compose safety layout is readable before send", async ({ page }) => {

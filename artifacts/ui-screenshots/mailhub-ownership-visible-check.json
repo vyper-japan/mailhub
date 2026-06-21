@@ -1,0 +1,34 @@
+{
+  "checkedAt": "2026-06-21T03:52:54.885Z",
+  "url": "http://127.0.0.1:3010/?label=all&id=msg-001&max=50",
+  "viewport": {
+    "width": 1280,
+    "height": 860
+  },
+  "before": {
+    "rowChipVisible": true,
+    "rowChipText": "未割当",
+    "rowChipState": "unassigned",
+    "detailOwnerText": "未割当",
+    "bannerText": "担当してから送信してください未割当担当する",
+    "documentHorizontalOverflow": false,
+    "panelHorizontalOverflow": false
+  },
+  "after": {
+    "rowChipVisible": true,
+    "rowChipText": "自分担当",
+    "rowChipState": "mine",
+    "detailOwnerText": "test",
+    "bannerText": "自分が担当中担当: Test",
+    "sendEnabledAfterBody": true,
+    "documentHorizontalOverflow": false,
+    "panelHorizontalOverflow": false
+  },
+  "consoleErrors": [],
+  "failedResponses": [],
+  "screenshots": [
+    "artifacts/ui-screenshots/mailhub-ownership-visible-before.png",
+    "artifacts/ui-screenshots/mailhub-ownership-visible-after.png"
+  ],
+  "note": "No external send was executed; after-state only fills the local compose textarea."
+}

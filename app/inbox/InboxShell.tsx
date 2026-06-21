@@ -7396,6 +7396,30 @@ export default function InboxShell({
                       const hasNote = noteIndexIds?.has(mail.id) ?? false;
                       const workTags = workTagsById[mail.id] ?? [];
                       const isCompactList = listDensity === "compact";
+                      const rowAssigneeName = getAssigneeDisplayName(mail.assigneeSlug);
+                      const rowAssigneeState = !mail.assigneeSlug
+                        ? "unassigned"
+                        : mail.assigneeSlug === myAssigneeSlug
+                          ? "mine"
+                          : "other";
+                      const rowAssigneeLabel =
+                        rowAssigneeState === "unassigned"
+                          ? "未割当"
+                          : rowAssigneeState === "mine"
+                            ? "自分担当"
+                            : `担当: ${rowAssigneeName ?? "他担当"}`;
+                      const rowAssigneeTitle =
+                        rowAssigneeState === "unassigned"
+                          ? "未割当"
+                          : rowAssigneeState === "mine"
+                            ? "自分が担当"
+                            : `担当: ${rowAssigneeName ?? mail.assigneeSlug}`;
+                      const rowAssigneeTone =
+                        rowAssigneeState === "mine"
+                          ? "border-[#d2e3fc] bg-[#e8f0fe] text-[#1a73e8]"
+                          : rowAssigneeState === "other"
+                            ? "border-[#fdd663] bg-[#fef7e0] text-[#92400e]"
+                            : "border-[#dadce0] bg-white text-[#5f6368]";
                       
                       return (
                         <div
@@ -7559,6 +7583,25 @@ export default function InboxShell({
                                 <span data-testid="row-sender" className={`min-w-0 truncate text-[13px] leading-[18px] ${isUnread ? "font-semibold text-[#202124]" : "font-medium text-[#3c4043]"}`}>
                                   {mail.from?.split("<")[0].trim() || mail.from}
                                 </span>
+                                <button
+                                  type="button"
+                                  data-testid="assignee-pill"
+                                  data-owner-state={rowAssigneeState}
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    handleAssignClick(mail.id);
+                                  }}
+                                  onDoubleClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                  }}
+                                  className={`ml-auto inline-flex h-[18px] max-w-[104px] shrink-0 items-center gap-0.5 overflow-hidden rounded border px-1.5 text-[10px] font-semibold leading-none transition-colors hover:opacity-80 ${rowAssigneeTone}`}
+                                  title={rowAssigneeTitle}
+                                >
+                                  <UserCheck size={11} className="shrink-0" />
+                                  <span className="truncate">{rowAssigneeLabel}</span>
+                                </button>
                               </div>
 
                               <div className={`mt-0.5 flex min-w-0 items-center gap-1 text-[13px] leading-[18px] ${isUnread ? "font-medium text-[#202124]" : "font-normal text-[#202124]"} ${isGroupChild ? "pl-4 border-l-2 border-blue-200" : ""}`}>
@@ -7645,13 +7688,6 @@ export default function InboxShell({
                                 </div>
                               )}
 
-                              <span
-                                data-testid="assignee-pill"
-                                className="sr-only"
-                                title={mail.assigneeSlug ? (mail.assigneeSlug === myAssigneeSlug ? "自分が担当" : `担当: ${getAssigneeDisplayName(mail.assigneeSlug)}`) : "未割当"}
-                              >
-                                {mail.assigneeSlug ? "担当" : "未割当"}
-                              </span>
                             </div>
 
                             {/* 日時 + 経過 */}
