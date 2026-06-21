@@ -1,0 +1,177 @@
+{
+  "capturedAt": "2026-06-21T22:34:05.729Z",
+  "cases": [
+    {
+      "viewport": {
+        "name": "narrow",
+        "width": 1120,
+        "height": 840
+      },
+      "messageId": "msg-001",
+      "screenshot": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/artifacts/ui-screenshots/mailhub-detail-recipient-context-narrow.png",
+      "subject": "【重要】注文確認のお知らせ",
+      "fromEmailText": "auto-confirm@amazon.co.jp",
+      "fromEmailTitle": "Amazon.co.jp <auto-confirm@amazon.co.jp> / To: vyper_sc@vtj.co.jp / VYPER SC",
+      "recipientText": "宛先 VYPER SC",
+      "recipientTitle": "すべて / 宛先: vyper_sc@vtj.co.jp / VYPER SC",
+      "detailPaneRect": {
+        "x": 660,
+        "y": 195,
+        "width": 460,
+        "height": 645
+      },
+      "listPaneRect": {
+        "x": 260,
+        "y": 195,
+        "width": 413,
+        "height": 645
+      },
+      "contentInnerRect": {
+        "x": 660,
+        "y": 268,
+        "width": 452,
+        "height": 2479
+      },
+      "contextLineHeight": 16,
+      "workContextHeight": 64,
+      "workContextOverflow": false,
+      "bodyRect": {
+        "x": 684,
+        "y": 340,
+        "width": 404,
+        "height": 312
+      },
+      "bodyVisible": true,
+      "horizontalOverflow": false
+    },
+    {
+      "viewport": {
+        "name": "desktop",
+        "width": 1280,
+        "height": 840
+      },
+      "messageId": "msg-001",
+      "screenshot": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/artifacts/ui-screenshots/mailhub-detail-recipient-context-desktop.png",
+      "subject": "【重要】注文確認のお知らせ",
+      "fromEmailText": "auto-confirm@amazon.co.jp",
+      "fromEmailTitle": "Amazon.co.jp <auto-confirm@amazon.co.jp> / To: vyper_sc@vtj.co.jp / VYPER SC",
+      "recipientText": "宛先 VYPER SC",
+      "recipientTitle": "すべて / 宛先: vyper_sc@vtj.co.jp / VYPER SC",
+      "detailPaneRect": {
+        "x": 736,
+        "y": 195,
+        "width": 544,
+        "height": 645
+      },
+      "listPaneRect": {
+        "x": 260,
+        "y": 195,
+        "width": 488,
+        "height": 645
+      },
+      "contentInnerRect": {
+        "x": 736,
+        "y": 236,
+        "width": 536,
+        "height": 2430
+      },
+      "contextLineHeight": 16,
+      "workContextHeight": 34,
+      "workContextOverflow": false,
+      "bodyRect": {
+        "x": 760,
+        "y": 278,
+        "width": 488,
+        "height": 312
+      },
+      "bodyVisible": true,
+      "horizontalOverflow": false
+    },
+    {
+      "viewport": {
+        "name": "wide",
+        "width": 1680,
+        "height": 900
+      },
+      "messageId": "msg-001",
+      "screenshot": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/artifacts/ui-screenshots/mailhub-detail-recipient-context-wide.png",
+      "subject": "【重要】注文確認のお知らせ",
+      "fromEmailText": "auto-confirm@amazon.co.jp",
+      "fromEmailTitle": "Amazon.co.jp <auto-confirm@amazon.co.jp> / To: vyper_sc@vtj.co.jp / VYPER SC",
+      "recipientText": "宛先 VYPER SC",
+      "recipientTitle": "すべて / 宛先: vyper_sc@vtj.co.jp / VYPER SC",
+      "detailPaneRect": {
+        "x": 808,
+        "y": 195,
+        "width": 872,
+        "height": 705
+      },
+      "listPaneRect": {
+        "x": 260,
+        "y": 195,
+        "width": 560,
+        "height": 705
+      },
+      "contentInnerRect": {
+        "x": 830,
+        "y": 236,
+        "width": 820,
+        "height": 2430
+      },
+      "contextLineHeight": 16,
+      "workContextHeight": 34,
+      "workContextOverflow": false,
+      "bodyRect": {
+        "x": 854,
+        "y": 278,
+        "width": 772,
+        "height": 312
+      },
+      "bodyVisible": true,
+      "horizontalOverflow": false
+    },
+    {
+      "viewport": {
+        "name": "cc-only",
+        "width": 1120,
+        "height": 840
+      },
+      "messageId": "msg-101",
+      "screenshot": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/artifacts/ui-screenshots/mailhub-detail-recipient-context-cc-only.png",
+      "subject": "【ラベルテスト】お問い合わせ 1",
+      "fromEmailText": "label-tester@example.com",
+      "fromEmailTitle": "Label Tester <label-tester@example.com> / To: shop-a@vtj.co.jp / StoreA",
+      "recipientText": "宛先 StoreA",
+      "recipientTitle": "すべて / 宛先: shop-a@vtj.co.jp / StoreA",
+      "detailPaneRect": {
+        "x": 660,
+        "y": 195,
+        "width": 460,
+        "height": 645
+      },
+      "listPaneRect": {
+        "x": 260,
+        "y": 195,
+        "width": 413,
+        "height": 645
+      },
+      "contentInnerRect": {
+        "x": 660,
+        "y": 268,
+        "width": 452,
+        "height": 1386
+      },
+      "contextLineHeight": 16,
+      "workContextHeight": 64,
+      "workContextOverflow": false,
+      "bodyRect": {
+        "x": 684,
+        "y": 340,
+        "width": 404,
+        "height": 180
+      },
+      "bodyVisible": true,
+      "horizontalOverflow": false
+    }
+  ]
+}

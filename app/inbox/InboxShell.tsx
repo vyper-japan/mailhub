@@ -352,6 +352,27 @@ function joinAddressTitle(...values: Array<string | null | undefined>): string {
   return values.map((value) => value?.trim()).filter((value): value is string => Boolean(value)).join(" / ");
 }
 
+function collectAddressEmails(...values: Array<string | string[] | null | undefined>): string[] {
+  const seen = new Set<string>();
+  const emails: string[] = [];
+  for (const value of values) {
+    const rawValues = Array.isArray(value) ? value : [value];
+    for (const rawValue of rawValues) {
+      for (const candidate of rawValue?.split(",") ?? []) {
+        const email = extractFromEmail(candidate);
+        if (!email || seen.has(email)) continue;
+        seen.add(email);
+        emails.push(email);
+      }
+    }
+  }
+  return emails;
+}
+
+function isInternalRecipientEmail(email: string | null | undefined): email is string {
+  return Boolean(email?.endsWith("@vtj.co.jp"));
+}
+
 function formatAttachmentSize(size: number | null): string | null {
   if (typeof size !== "number" || !Number.isFinite(size) || size <= 0) return null;
   if (size < 1024) return `${size} B`;
@@ -2297,17 +2318,37 @@ export default function InboxShell({
     const currentDetail = selectedDetail?.id === selectedMessage.id ? selectedDetail : null;
     const fromEmail = extractFromEmail(selectedMessage.from);
     const senderName = formatAddressDisplayName(selectedMessage.from) ?? "送信者不明";
-    const toCandidates = [currentDetail?.xOriginalTo, currentDetail?.to, ...(currentDetail?.deliveredTo ?? [])];
-    const toTitle = joinAddressTitle(...toCandidates);
+    const toEmails = collectAddressEmails(
+      currentDetail?.deliveredTo,
+      currentDetail?.xOriginalTo,
+      currentDetail?.to,
+      currentDetail?.cc,
+      currentDetail?.bcc,
+    );
+    const channels = testMode ? [...getChannels(true), ...getChannels(false)] : getChannels(false);
+    const recipientChannel = channels.find(
+      (channel) =>
+        channel.id !== "all" &&
+        channel.id !== "stores" &&
+        channel.addresses.some((address) => toEmails.includes(address.toLowerCase())),
+    );
+    const channelEmail = recipientChannel?.addresses.find((address) => toEmails.includes(address.toLowerCase()));
+    const recipientEmail =
+      channelEmail ?? toEmails.find((email) => isInternalRecipientEmail(email)) ?? null;
+    const recipientLabel = recipientChannel?.label ?? recipientEmail ?? null;
+    const toTitle = joinAddressTitle(recipientEmail, recipientChannel?.label);
     const fromTitle = joinAddressTitle(selectedMessage.from, toTitle ? `To: ${toTitle}` : null);
 
     return {
       senderName,
       fromEmail,
       fromLabel: fromEmail ?? senderName,
+      recipientEmail,
+      recipientLabel,
+      recipientTitle: toTitle,
       title: fromTitle || fromEmail || "",
     };
-  }, [selectedDetail, selectedMessage]);
+  }, [selectedDetail, selectedMessage, testMode]);
 
   useEffect(() => {
     if (!selectedMessage || !selectedDetail || selectedDetail.id !== selectedMessage.id) {
@@ -6392,10 +6433,19 @@ export default function InboxShell({
           ? "border-[#fdd663] bg-[#fef7e0] text-[#92400e]"
           : "border-[#dadce0] bg-white text-[#5f6368]";
     const scopeLabel = activeChannelScope?.channel.label ?? activeLabel?.label ?? "現在の一覧";
+    const recipientLabel = selectedAddressContext?.recipientLabel ? `宛先 ${selectedAddressContext.recipientLabel}` : null;
+    const scopeTitle = joinAddressTitle(
+      scopeLabel,
+      selectedAddressContext?.recipientTitle ? `宛先: ${selectedAddressContext.recipientTitle}` : null,
+    );
 
     return {
       statusLabel,
       scopeLabel,
+      scopeDisplayLabel: recipientLabel ?? scopeLabel,
+      scopeTitle,
+      recipientLabel,
+      recipientEmail: selectedAddressContext?.recipientEmail ?? null,
       ownerLabel,
       ownerState,
       ownerTone,
@@ -6413,6 +6463,9 @@ export default function InboxShell({
     isSelectedMine,
     replyRoute?.inquiryId,
     replyRoute?.kind,
+    selectedAddressContext?.recipientEmail,
+    selectedAddressContext?.recipientLabel,
+    selectedAddressContext?.recipientTitle,
     selectedAssigneeName,
     selectedAssigneeSlug,
     selectedDetail,
@@ -8114,12 +8167,16 @@ export default function InboxShell({
                         >
                           <div
                             className="inline-flex h-6 max-w-full min-w-0 items-center gap-1 rounded-full border border-[#dadce0] bg-white px-2 font-medium"
-                            title={`${selectedWorkContext.statusLabel} / ${selectedWorkContext.scopeLabel}`}
+                            title={`${selectedWorkContext.statusLabel} / ${selectedWorkContext.scopeTitle}`}
                           >
                             <CheckCircle size={12} className="shrink-0 text-[#5f6368]" />
                             <span className="font-semibold text-[#202124]">{selectedWorkContext.statusLabel}</span>
-                            <span className="hidden max-w-[120px] truncate text-[#5f6368] sm:inline">
-                              {selectedWorkContext.scopeLabel}
+                            <span
+                              className="hidden max-w-[132px] truncate text-[#5f6368] sm:inline"
+                              data-testid={selectedWorkContext.recipientLabel ? "detail-recipient-context" : undefined}
+                              title={selectedWorkContext.scopeTitle}
+                            >
+                              {selectedWorkContext.scopeDisplayLabel}
                             </span>
                           </div>
                           <button

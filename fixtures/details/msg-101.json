@@ -9,9 +9,10 @@
   "gmailLink": "https://mail.google.com/mail/u/0/#inbox/msg-101",
   "plainTextBody": "これはラベル自動適用のテスト用メール（1通目）です。\n\n同一送信元の2通目にルールでラベルが付くことを確認します。",
   "bodyNotice": null,
+  "to": "customer@example.com",
+  "cc": "StoreA <shop-a@vtj.co.jp>",
+  "bcc": null,
+  "deliveredTo": [],
+  "xOriginalTo": null,
   "assigneeSlug": null
 }
-
-
-
-

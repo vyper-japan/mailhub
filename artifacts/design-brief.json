@@ -28,7 +28,8 @@
     "Wide desktop split-pane behavior where the list expands and the reading pane stays stable",
     "Same-page wide-to-ultrawide browser resize where the reading pane remains stable and the list absorbs extra width",
     "Rapid repeated-email preview switching without stale body flash, retained scroll position, or layout jump",
-    "Detail header sender-address visibility without adding header height or horizontal overflow"
+    "Detail header sender-address visibility without adding header height or horizontal overflow",
+    "Detail work context recipient/store visibility without adding a new detail header line"
   ],
   "must_not_do": [
     "Do not send external email.",
@@ -50,6 +51,7 @@
     "Takeover reason modal DOM check for current owner, next owner, and Gmail reply note",
     "Frame-sampled stale body, scroll reset, and overflow check during rapid preview switch",
     "Console error check",
-    "Browser screenshot and DOM metrics for Amazon detail sender-address visibility"
+    "Browser screenshot and DOM metrics for Amazon detail sender-address visibility",
+    "Browser screenshots and DOM metrics for Amazon detail recipient/store context at 1120/1280/1680 widths"
   ]
 }

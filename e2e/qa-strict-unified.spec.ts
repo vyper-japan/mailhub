@@ -6383,18 +6383,29 @@ test("Step93-3c4) Detail header address: 送信元メールが小さく見える
   await page.goto("/?label=all&id=msg-001&max=20");
   await expect(page.getByTestId("detail-subject")).toBeVisible({ timeout: 10000 });
   await expect(page.getByTestId("detail-from-email")).toContainText("auto-confirm@amazon.co.jp", { timeout: 10000 });
+  await expect(page.getByTestId("detail-recipient-context")).toContainText("宛先 VYPER SC", { timeout: 10000 });
   await expect
     .poll(async () => (await page.getByTestId("detail-from-email").getAttribute("title")) ?? "", { timeout: 10000 })
     .toContain("To: vyper_sc@vtj.co.jp");
+  await expect
+    .poll(async () => (await page.getByTestId("detail-recipient-context").getAttribute("title")) ?? "", { timeout: 10000 })
+    .toContain("宛先: vyper_sc@vtj.co.jp");
 
   const collectAddressMetrics = async () =>
     page.evaluate(() => {
       const contextLine = document.querySelector('[data-testid="detail-context-line"]');
       const fromEmail = document.querySelector('[data-testid="detail-from-email"]');
+      const recipientContext = document.querySelector('[data-testid="detail-recipient-context"]');
+      const workContext = document.querySelector('[data-testid="detail-work-context"]');
       return {
         fromVisible: Boolean(fromEmail && fromEmail.getBoundingClientRect().height > 0),
+        recipientVisible: Boolean(recipientContext && recipientContext.getBoundingClientRect().height > 0),
+        recipientText: recipientContext?.textContent?.trim() ?? "",
+        recipientTitle: recipientContext?.getAttribute("title") ?? "",
         contextSingleLine: Math.round(contextLine?.getBoundingClientRect().height ?? 999) <= 24,
         contextOverflow: contextLine ? contextLine.scrollWidth > contextLine.clientWidth + 1 : true,
+        workContextCompact: Math.round(workContext?.getBoundingClientRect().height ?? 999) <= 64,
+        workContextOverflow: workContext ? workContext.scrollWidth > workContext.clientWidth + 1 : true,
         fromTitle: fromEmail?.getAttribute("title") ?? "",
         horizontalOverflow: document.documentElement.scrollWidth > window.innerWidth + 1,
       };
@@ -6402,8 +6413,13 @@ test("Step93-3c4) Detail header address: 送信元メールが小さく見える
 
   const narrow = await collectAddressMetrics();
   expect(narrow.fromVisible).toBe(true);
+  expect(narrow.recipientVisible).toBe(true);
+  expect(narrow.recipientText).toContain("宛先 VYPER SC");
+  expect(narrow.recipientTitle).toContain("vyper_sc@vtj.co.jp");
   expect(narrow.contextSingleLine).toBe(true);
   expect(narrow.contextOverflow).toBe(false);
+  expect(narrow.workContextCompact).toBe(true);
+  expect(narrow.workContextOverflow).toBe(false);
   expect(narrow.fromTitle).toContain("Amazon.co.jp <auto-confirm@amazon.co.jp>");
   expect(narrow.fromTitle).toContain("To: vyper_sc@vtj.co.jp");
   expect(narrow.horizontalOverflow).toBe(false);
@@ -6412,17 +6428,58 @@ test("Step93-3c4) Detail header address: 送信元メールが小さく見える
   await page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
   const desktop = await collectAddressMetrics();
   expect(desktop.fromVisible).toBe(true);
+  expect(desktop.recipientVisible).toBe(true);
   expect(desktop.contextSingleLine).toBe(true);
   expect(desktop.contextOverflow).toBe(false);
+  expect(desktop.workContextCompact).toBe(true);
+  expect(desktop.workContextOverflow).toBe(false);
   expect(desktop.horizontalOverflow).toBe(false);
 
   await page.setViewportSize({ width: 1680, height: 900 });
   await page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
   const wide = await collectAddressMetrics();
   expect(wide.fromVisible).toBe(true);
+  expect(wide.recipientVisible).toBe(true);
   expect(wide.contextSingleLine).toBe(true);
   expect(wide.contextOverflow).toBe(false);
+  expect(wide.workContextCompact).toBe(true);
+  expect(wide.workContextOverflow).toBe(false);
   expect(wide.horizontalOverflow).toBe(false);
+});
+
+test("Step93-3c5) Detail recipient context: CC-only配送でもストア宛てだけを表示する", async ({ page }) => {
+  await page.request.post("/api/mailhub/test/reset").catch(() => {});
+  await page.addInitScript(() => {
+    localStorage.setItem("mailhub-onboarding-shown", "true");
+  });
+  await page.setViewportSize({ width: 1120, height: 840 });
+  await page.goto("/?label=all&id=msg-101&max=20");
+  await expect(page.getByTestId("detail-subject")).toBeVisible({ timeout: 10000 });
+  await expect(page.getByTestId("detail-from-email")).toContainText("label-tester@example.com", { timeout: 10000 });
+  await expect(page.getByTestId("detail-recipient-context")).toContainText("宛先 StoreA", { timeout: 10000 });
+
+  const ccOnlyMetrics = await page.evaluate(() => {
+    const recipientContext = document.querySelector('[data-testid="detail-recipient-context"]');
+    const fromEmail = document.querySelector('[data-testid="detail-from-email"]');
+    const workContext = document.querySelector('[data-testid="detail-work-context"]');
+    return {
+      recipientText: recipientContext?.textContent?.trim() ?? "",
+      recipientTitle: recipientContext?.getAttribute("title") ?? "",
+      fromTitle: fromEmail?.getAttribute("title") ?? "",
+      workContextCompact: Math.round(workContext?.getBoundingClientRect().height ?? 999) <= 64,
+      workContextOverflow: workContext ? workContext.scrollWidth > workContext.clientWidth + 1 : true,
+      horizontalOverflow: document.documentElement.scrollWidth > window.innerWidth + 1,
+    };
+  });
+
+  expect(ccOnlyMetrics.recipientText).toContain("宛先 StoreA");
+  expect(ccOnlyMetrics.recipientTitle).toContain("shop-a@vtj.co.jp");
+  expect(ccOnlyMetrics.recipientTitle).not.toContain("customer@example.com");
+  expect(ccOnlyMetrics.fromTitle).toContain("To: shop-a@vtj.co.jp");
+  expect(ccOnlyMetrics.fromTitle).not.toContain("customer@example.com");
+  expect(ccOnlyMetrics.workContextCompact).toBe(true);
+  expect(ccOnlyMetrics.workContextOverflow).toBe(false);
+  expect(ccOnlyMetrics.horizontalOverflow).toBe(false);
 });
 
 test("Step93-3d) Narrow desktop thread actions: 会話履歴アクションが詳細幅で縦割れしない", async ({ page }) => {
