@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useTransition } from "react";
 import { usePathname } from "next/navigation";
 import { createPortal, flushSync } from "react-dom";
 import DOMPurify from "dompurify";
@@ -589,11 +589,10 @@ export default function InboxShell({
   }, [detailBody.htmlBody]);
   const htmlBodyRef = useRef<HTMLDivElement | null>(null);
 
-  useEffect(() => {
-    if (htmlBodyRef.current) {
-      htmlBodyRef.current.innerHTML = sanitizedHtmlBody;
-    }
-  }, [sanitizedHtmlBody]);
+  useLayoutEffect(() => {
+    if (!htmlBodyRef.current) return;
+    htmlBodyRef.current.innerHTML = sanitizedHtmlBody;
+  }, [sanitizedHtmlBody, selectedMessage?.id]);
   const [listError, setListError] = useState<string | null>(serverListError);
   const [detailError, setDetailError] = useState<string | null>(null);
 
@@ -1123,6 +1122,7 @@ export default function InboxShell({
   // Step 93: Hover Prefetch用のref
   const hoverPrefetchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hoverPrefetchAbortRef = useRef<AbortController | null>(null);
+  const adjacentPrefetchAbortRef = useRef<AbortController | null>(null);
   
   // Step 50: Detailキャッシュ（LRU、最大20件、TTL 60秒）
   type DetailCacheEntry = {
@@ -1948,6 +1948,24 @@ export default function InboxShell({
     }
   }, []);
 
+  const prefetchDetailToCache = useCallback(async (id: string, signal: AbortSignal) => {
+    const cached = detailCacheRef.current.get(id);
+    if (cached && Date.now() - cached.fetchedAt < DETAIL_CACHE_TTL_MS) return;
+
+    const res = await fetch(`/api/mailhub/detail?id=${encodeURIComponent(id)}`, {
+      cache: "no-store",
+      signal,
+    });
+    if (!res.ok) return;
+
+    const data = (await res.json()) as { detail: MessageDetail };
+    evictOldCacheEntries();
+    detailCacheRef.current.set(id, {
+      detail: data.detail,
+      fetchedAt: Date.now(),
+    });
+  }, [evictOldCacheEntries]);
+
   const loadDetailBodyOnly = useCallback(async (id: string, useCache: boolean = true) => {
     // プリフェッチモード（useCache = false）の場合は、inFlightIdRefを変更しない
     // これにより、現在選択中のメールのレスポンスが正しく処理される
@@ -2301,20 +2319,7 @@ export default function InboxShell({
       hoverPrefetchAbortRef.current = controller;
       
       try {
-        const res = await fetch(`/api/mailhub/detail?id=${encodeURIComponent(id)}`, {
-          cache: "no-store",
-          signal: controller.signal,
-        });
-        if (!res.ok) return; // エラーは無視（prefetchなので）
-        
-        const data = (await res.json()) as { detail: MessageDetail };
-        
-        // キャッシュに保存
-        evictOldCacheEntries();
-        detailCacheRef.current.set(id, {
-          detail: data.detail,
-          fetchedAt: Date.now(),
-        });
+        await prefetchDetailToCache(id, controller.signal);
       } catch {
         // AbortErrorやネットワークエラーは無視（prefetchなので）
       } finally {
@@ -2323,7 +2328,7 @@ export default function InboxShell({
         }
       }
     }, HOVER_PREFETCH_DELAY_MS);
-  }, [selectedId, evictOldCacheEntries]);
+  }, [prefetchDetailToCache, selectedId]);
   
   // Step 93: マウス離脱時にタイマーをキャンセル
   const handleRowMouseLeave = useCallback(() => {
@@ -2343,10 +2348,19 @@ export default function InboxShell({
     }
     hoverPrefetchAbortRef.current?.abort();
     hoverPrefetchAbortRef.current = null;
+    adjacentPrefetchAbortRef.current?.abort();
+    adjacentPrefetchAbortRef.current = null;
     
     // Step 50: キャッシュから即座に表示を試みる
     const cached = detailCacheRef.current.get(id);
     const hasFreshCache = cached && Date.now() - cached.fetchedAt < DETAIL_CACHE_TTL_MS;
+    const visibleMessages = slaFilteredMessages.length > 0 ? slaFilteredMessages : messages;
+    const selectedIndex = visibleMessages.findIndex((m) => m.id === id);
+    const adjacentPrefetchIds = selectedIndex >= 0
+      ? [selectedIndex + 1, selectedIndex + 2, selectedIndex - 1]
+          .map((index) => visibleMessages[index]?.id)
+          .filter((nextId): nextId is string => Boolean(nextId && nextId !== id))
+      : [];
     if (hasFreshCache) {
       abortRef.current?.abort();
       inFlightIdRef.current = id;
@@ -2390,12 +2404,34 @@ export default function InboxShell({
     } else {
       void loadDetailBodyOnly(id);
     }
+    if (adjacentPrefetchIds.length > 0) {
+      window.setTimeout(() => {
+        if (selectedIdRef.current !== id) return;
+        const controller = new AbortController();
+        adjacentPrefetchAbortRef.current = controller;
+        void Promise.allSettled(adjacentPrefetchIds.map((nextId) => prefetchDetailToCache(nextId, controller.signal))).finally(() => {
+          if (adjacentPrefetchAbortRef.current === controller) {
+            adjacentPrefetchAbortRef.current = null;
+          }
+        });
+      }, 220);
+    }
     // Step 51: 検索クエリをURLに保持（idだけ変える時もqが消えないように）
     replaceUrl(labelId, id, true, serverSearchQuery || undefined);
     
     // Step 105: Seenとして記録
     markAsSeen(id);
-  }, [selectedId, messages, labelId, serverSearchQuery, replaceUrl, loadDetailBodyOnly, markAsSeen]);
+  }, [
+    labelId,
+    loadDetailBodyOnly,
+    markAsSeen,
+    messages,
+    prefetchDetailToCache,
+    replaceUrl,
+    serverSearchQuery,
+    selectedId,
+    slaFilteredMessages,
+  ]);
 
   const handleMoveSelection = useCallback((direction: "up" | "down") => {
     if (slaFilteredMessages.length === 0) return;
@@ -7986,7 +8022,7 @@ export default function InboxShell({
                       ) : (
                       <div className="relative">
                         {detailBody.isLoading ? (
-                          <div className="space-y-3 py-1" data-testid="detail-skeleton" aria-busy="true">
+                          <div className="min-h-[180px] space-y-3 py-1" data-testid="detail-skeleton" aria-busy="true">
                             <div className="mailhub-detail-shimmer h-3 rounded-full w-[88%]" />
                             <div className="mailhub-detail-shimmer h-3 rounded-full w-[62%]" />
                             <div className="pt-2 space-y-2">
@@ -8020,12 +8056,19 @@ export default function InboxShell({
                             )}
                             {detailBody.htmlBody ? (
                               <div
+                                key={`${selectedMessage.id}:html`}
                                 ref={htmlBodyRef}
                                 className="mailhub-email-body prose max-w-none text-[14px] leading-[20px] text-[#202124] font-normal selection:bg-[#E8F0FE] [&_a]:text-blue-600 [&_a]:underline [&_img]:max-w-full [&_img]:h-auto [&_table]:border-collapse [&_td]:p-2 [&_th]:p-2"
+                                data-detail-message-id={selectedMessage.id}
                                 data-testid="email-body-html"
                               />
                             ) : (
-                              <div className="mailhub-email-body prose max-w-none text-[14px] leading-[20px] whitespace-pre-wrap text-[#202124] font-normal selection:bg-[#E8F0FE]" data-testid="email-body-text">
+                              <div
+                                key={`${selectedMessage.id}:text`}
+                                className="mailhub-email-body prose max-w-none text-[14px] leading-[20px] whitespace-pre-wrap text-[#202124] font-normal selection:bg-[#E8F0FE]"
+                                data-detail-message-id={selectedMessage.id}
+                                data-testid="email-body-text"
+                              >
                                 {detailBody.plainTextBody || "本文がありません"}
                               </div>
                             )}

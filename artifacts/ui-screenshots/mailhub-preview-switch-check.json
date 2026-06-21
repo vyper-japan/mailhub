@@ -1,0 +1,35 @@
+{
+  "checkedAt": "2026-06-21T05:26:45.035Z",
+  "viewport": {
+    "width": 1280,
+    "height": 860
+  },
+  "switchToAmazon": {
+    "staleSamples": [],
+    "metrics": {
+      "targetId": "msg-001",
+      "bodyId": "msg-001",
+      "hasRequiredText": true,
+      "hasForbiddenText": false,
+      "documentHorizontalOverflow": false,
+      "detailHorizontalOverflow": false,
+      "contentHorizontalOverflow": false,
+      "bodyInsideContent": true
+    }
+  },
+  "switchBackToYahoo": {
+    "staleSamples": [],
+    "metrics": {
+      "targetId": "msg-002",
+      "bodyId": "msg-002",
+      "hasRequiredText": true,
+      "hasForbiddenText": false,
+      "documentHorizontalOverflow": false,
+      "detailHorizontalOverflow": false,
+      "contentHorizontalOverflow": false,
+      "bodyInsideContent": true
+    }
+  },
+  "consoleErrors": [],
+  "failedResponses": []
+}

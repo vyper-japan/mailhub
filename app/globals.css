@@ -133,6 +133,7 @@ button:disabled .action-spinner {
   box-sizing: border-box;
   width: 100%;
   max-width: 100%;
+  min-height: 180px;
   min-width: 0;
   overflow-x: hidden;
   overflow-wrap: anywhere;

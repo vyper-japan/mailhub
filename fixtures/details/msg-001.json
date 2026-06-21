@@ -8,6 +8,7 @@
   "snippet": "ご注文ありがとうございます。注文番号: 123-4567890-1234567",
   "gmailLink": "https://mail.google.com/mail/u/0/#inbox/msg-001",
   "plainTextBody": "ご注文ありがとうございます。\n\n注文番号: 123-4567890-1234567\n注文日: 2025年12月30日\n\nご注文内容:\n- 商品名: サンプル商品A\n- 数量: 1\n- 価格: ¥1,234\n\nお届け先:\n〒123-4567\n東京都渋谷区サンプル町1-2-3\n\nお届け予定日: 2025年1月2日\n\nご不明な点がございましたら、カスタマーサービスまでお問い合わせください。\n\nAmazon.co.jp カスタマーサービス",
+  "htmlBody": "<div style=\"font-family: Arial, sans-serif; color: #202124; width: 720px;\"><table width=\"720\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"width:720px; background:#ffffff;\"><tr><td style=\"padding:20px;\"><h2 style=\"margin:0 0 12px; font-size:20px;\">Amazon.co.jp 注文確認</h2><p>ご注文ありがとうございます。</p><table width=\"680\" cellpadding=\"8\" cellspacing=\"0\" border=\"1\" style=\"width:680px; border-collapse:collapse;\"><tr><th align=\"left\">注文番号</th><td>123-4567890-1234567</td></tr><tr><th align=\"left\">注文日</th><td>2025年12月30日</td></tr><tr><th align=\"left\">商品名</th><td>サンプル商品A</td></tr><tr><th align=\"left\">数量</th><td>1</td></tr><tr><th align=\"left\">価格</th><td>¥1,234</td></tr></table><p style=\"white-space: nowrap; width: 680px;\">お届け予定日: 2025年1月2日。ご不明な点がございましたら、カスタマーサービスまでお問い合わせください。</p></td></tr></table></div>",
   "bodyNotice": null,
   "attachments": [
     {
@@ -28,6 +29,5 @@
   "listId": null,
   "listPost": null
 }
-
 
 

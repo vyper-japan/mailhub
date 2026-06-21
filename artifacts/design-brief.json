@@ -23,7 +23,8 @@
     "Work-mode tabs with visible queue counts",
     "Reading pane subject/from/status context header",
     "Responsive action rail without clipped toolbar or work-mode labels",
-    "Wide desktop split-pane behavior where the list expands and the reading pane stays stable"
+    "Wide desktop split-pane behavior where the list expands and the reading pane stays stable",
+    "Rapid repeated-email preview switching without stale body flash or layout jump"
   ],
   "must_not_do": [
     "Do not send external email.",
@@ -39,6 +40,8 @@
     "Browser screenshot workbench tabs/detail context desktop/narrow",
     "Browser screenshot action rail desktop/narrow",
     "Browser screenshot responsive width narrow/desktop/wide",
+    "Browser screenshot rapid preview switch before/after",
+    "Frame-sampled stale body check during rapid preview switch",
     "Console error check"
   ]
 }

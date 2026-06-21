@@ -6199,6 +6199,8 @@ test("Step93-3c2) Mail preview body: 固定幅HTMLメールも詳細ペイン内
   await page.goto("/?label=all&id=msg-002&max=20");
   const htmlBody = page.getByTestId("email-body-html");
   await expect(htmlBody).toBeVisible({ timeout: 10000 });
+  await expect(htmlBody).toHaveAttribute("data-detail-message-id", "msg-002", { timeout: 10000 });
+  await expect(htmlBody).toContainText("Yahoo!ショッピング 朝レポ", { timeout: 10000 });
 
   const htmlMetrics = await page.evaluate(() => {
     const content = document.querySelector('[data-testid="detail-content-inner"]');
@@ -6282,6 +6284,59 @@ test("Step93-3c2) Mail preview body: 固定幅HTMLメールも詳細ペイン内
     expect(Math.abs(position.bodyLeft - position.contentTextLeft)).toBeLessThanOrEqual(1);
     expect(position.bodyRight).toBeGreaterThan(position.bodyLeft + 240);
   }
+});
+
+test("Step93-3c3) Mail preview switching: HTMLメール連続クリックで前の本文を残さない", async ({ page }) => {
+  await page.request.post("/api/mailhub/test/reset").catch(() => {});
+  await page.addInitScript(() => {
+    localStorage.setItem("mailhub-onboarding-shown", "true");
+  });
+  await page.setViewportSize({ width: 1280, height: 860 });
+  await page.goto("/?label=all&id=msg-002&max=20");
+
+  const initialHtmlBody = page.getByTestId("email-body-html");
+  await expect(initialHtmlBody).toBeVisible({ timeout: 10000 });
+  await expect(initialHtmlBody).toContainText("Yahoo!ショッピング 朝レポ", { timeout: 10000 });
+
+  const switchAndAssertSynced = async (targetId: string, subjectText: string, requiredBodyText: string, forbiddenBodyText: string) => {
+    const row = page.locator(`[data-testid="message-row"][data-message-id="${targetId}"]`);
+    await expect(row).toBeVisible({ timeout: 10000 });
+
+    const staleSamplesP = page.evaluate(
+      async ({ forbiddenBodyText, subjectText }) => {
+        const staleSamples: Array<{ bodyId: string | null; subject: string; text: string }> = [];
+        const deadline = performance.now() + 450;
+        while (performance.now() < deadline) {
+          const subject = document.querySelector('[data-testid="detail-subject"]')?.textContent ?? "";
+          const body = document.querySelector('[data-testid="email-body-html"], [data-testid="email-body-text"]') as HTMLElement | null;
+          const text = body?.textContent ?? "";
+          if (subject.includes(subjectText) && body && text.includes(forbiddenBodyText)) {
+            staleSamples.push({
+              bodyId: body.getAttribute("data-detail-message-id"),
+              subject,
+              text: text.slice(0, 160),
+            });
+          }
+          await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+        }
+        return staleSamples;
+      },
+      { forbiddenBodyText, subjectText },
+    );
+
+    await row.click();
+    const staleSamples = await staleSamplesP;
+    expect(staleSamples).toEqual([]);
+
+    await expect(page.getByTestId("detail-subject")).toContainText(subjectText, { timeout: 10000 });
+    const body = page.locator('[data-testid="email-body-html"], [data-testid="email-body-text"]').first();
+    await expect(body).toHaveAttribute("data-detail-message-id", targetId, { timeout: 10000 });
+    await expect(body).toContainText(requiredBodyText, { timeout: 10000 });
+    await expect(body).not.toContainText(forbiddenBodyText);
+  };
+
+  await switchAndAssertSynced("msg-001", "【重要】注文確認", "Amazon.co.jp 注文確認", "Yahoo!ショッピング 朝レポ");
+  await switchAndAssertSynced("msg-002", "Yahoo!ショッピング-朝レポ", "Yahoo!ショッピング 朝レポ", "Amazon.co.jp 注文確認");
 });
 
 test("Step93-3d) Narrow desktop thread actions: 会話履歴アクションが詳細幅で縦割れしない", async ({ page }) => {
