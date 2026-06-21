@@ -3602,3 +3602,88 @@ Result:
 - readiness contract chain passed.
 - `security:scan-artifacts` passed.
 - Production readiness remains false with P0 `current_shared_gmail_routing` and P1 `rule_config_source_not_production`, `staff_workflow_permissions`, `staff_github_config_not_ready`.
+
+## 2026-06-21 Reading Pane Resize Proof Commands
+
+Targeted current-state validation before editing:
+
+```bash
+node scripts/e2e-preclean.mjs && MAILHUB_TEST_MODE=1 npx playwright test e2e/qa-strict-unified.spec.ts --grep "Step93-3c\)|Step93-3c1|Step93-3c2" --workers=1
+```
+
+Result:
+
+- PASS, 3/3.
+
+After strengthening `Step93-3c1` to test same-page 1600px -> 1920px -> 2400px resizing:
+
+```bash
+node scripts/e2e-preclean.mjs && MAILHUB_TEST_MODE=1 npx playwright test e2e/qa-strict-unified.spec.ts --grep "Step93-3c1" --workers=1
+node scripts/e2e-preclean.mjs && MAILHUB_TEST_MODE=1 npx playwright test e2e/qa-strict-unified.spec.ts --grep "Step93-3c\)|Step93-3c1|Step93-3c2" --workers=1
+npm run build
+npm run typecheck
+npm run lint
+npm run smoke
+npm run security:scan
+npm run security:scan-artifacts
+git diff --check
+```
+
+Result:
+
+- targeted single Playwright PASS, 1/1.
+- targeted group Playwright PASS, 3/3.
+- build PASS.
+- typecheck PASS after build regenerated `.next/types`.
+- lint PASS.
+- smoke PASS.
+- security scan PASS.
+- artifact secret scan PASS.
+- diff check PASS.
+
+Visual evidence capture was generated against a temporary TEST_MODE server with screenshots written to `/tmp` first, then copied into `artifacts/` after stopping Next dev to avoid Fast Refresh reloads:
+
+```text
+artifacts/ui-screenshots/mailhub-reading-pane-check.json
+artifacts/ui-screenshots/mailhub-reading-pane-narrow.png
+artifacts/ui-screenshots/mailhub-reading-pane-desktop.png
+artifacts/ui-screenshots/mailhub-reading-pane-wide.png
+artifacts/ui-screenshots/mailhub-reading-pane-ultrawide.png
+```
+
+Final clean capture metrics:
+
+```text
+1120.list=413 detail=460 content=452 overflow=false
+1600.list=488 detail=864 content=820 overflow=false
+1920.list=800 detail=872 content=820 overflow=false
+2400.list=1280 detail=872 content=820 overflow=false
+rowFillsList=true for all widths
+consoleErrors=0
+failedResponses=0
+```
+
+Source/evidence commit:
+
+```bash
+git commit -m "Harden MailHub reading pane resize proof"
+```
+
+Result:
+
+- `089574d Harden MailHub reading pane resize proof`
+
+Readiness refresh after source commit:
+
+```bash
+npm run ops:readiness-refresh
+```
+
+Result:
+
+- PASS.
+- `probe:routing-send` ran in `dry_run` mode.
+- `sentCount=0`.
+- readiness contract chain passed.
+- `security:scan-artifacts` passed.
+- Production readiness remains false with P0 `current_shared_gmail_routing` and P1 `rule_config_source_not_production`, `staff_workflow_permissions`, `staff_github_config_not_ready`.

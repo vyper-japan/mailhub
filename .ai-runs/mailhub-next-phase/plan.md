@@ -357,3 +357,27 @@ Implemented approach:
 3. Watch `MailHub Readiness Contract` and `qa-strict`.
 4. If CI is green, continue with a wider reading-pane QA pass using user-provided real examples as the visual target.
 5. Keep production readiness blockers unchanged until real external routing, Sheets rule config, staff workflow evidence, and GitHub production config are provided.
+
+# 2026-06-21 Reading Pane Resize Proof Plan
+
+## Completed Slice
+
+The next external-value-free UX slice was the browser-width behavior reported by the user:
+
+- wide monitors previously risked making the preview feel centered/floating while side whitespace grew.
+- target behavior is Gmail-like: stable reading pane, extra width absorbed by the message list.
+
+Implemented and verified:
+
+1. Hardened `Step93-3c1` to test actual same-page resize from 1600px to 1920px to 2400px.
+2. Added ultrawide assertions that the detail pane stays capped while the list and selected row expand.
+3. Refreshed reading-pane visual evidence for 1120px, 1600px, 1920px, and 2400px.
+4. Confirmed by visual inspection that the email body is not clipped and the preview no longer appears to float in expanding whitespace.
+5. Committed source/evidence as `089574d Harden MailHub reading pane resize proof`.
+
+## Next Plan
+
+1. Commit the refreshed `.ai-runs/mailhub-next-phase` artifacts for repo head `089574d`.
+2. Push and watch `MailHub Readiness Contract` plus `qa-strict`.
+3. If CI is green, run a real-message preview sweep across representative Amazon/Rakuten/Yahoo/newsletter/order HTML fixtures.
+4. Keep all hard gates: no external send, no GitHub setup/apply mutation, no Sheets mutation, no production-complete claim.

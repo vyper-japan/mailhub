@@ -1512,3 +1512,50 @@ At checkpoint time:
 - Git status was clean against `origin/main`.
 - Dev server was running on port `3001`.
 - Cloudflare tunnel URL responded with `HTTP/2 200`.
+
+## 2026-06-21 Reading Pane Resize Proof Slice
+
+- Implemented `089574d Harden MailHub reading pane resize proof`.
+- Strengthened `Step93-3c1` so it now keeps the same selected message open and resizes the browser from 1600px to 1920px to 2400px instead of reloading the page per width.
+- Added the ultrawide guard requested by manual use:
+  - detail pane remains stable at 872px from 1920px to 2400px.
+  - extra width is absorbed by the message list (`800px` to `1280px`).
+  - selected row and row text block expand with the list.
+  - detail content rail remains capped at `820px` with small internal gaps.
+  - no document/content/body horizontal overflow.
+- Updated visual evidence:
+  - `artifacts/ui-screenshots/mailhub-reading-pane-check.json`
+  - `artifacts/ui-screenshots/mailhub-reading-pane-narrow.png`
+  - `artifacts/ui-screenshots/mailhub-reading-pane-desktop.png`
+  - `artifacts/ui-screenshots/mailhub-reading-pane-wide.png`
+  - `artifacts/ui-screenshots/mailhub-reading-pane-ultrawide.png`
+- Visual metrics from the clean TEST_MODE capture:
+  - 1120px: list `413px`, detail `460px`, content `452px`, overflow `false`.
+  - 1600px: list `488px`, detail `864px`, content `820px`, overflow `false`.
+  - 1920px: list `800px`, detail `872px`, content `820px`, overflow `false`.
+  - 2400px: list `1280px`, detail `872px`, content `820px`, overflow `false`.
+  - all captures had `rowFillsList=true`, `consoleErrors=[]`, and `failedResponses=[]`.
+- Human-eye image review passed for narrow, wide, and ultrawide screenshots:
+  - no clipped email body.
+  - no centered/floating preview with expanding white gutters.
+  - Gmail-like behavior is preserved: list grows, reading pane stays stable.
+- Verification passed:
+  - `node scripts/e2e-preclean.mjs && MAILHUB_TEST_MODE=1 npx playwright test e2e/qa-strict-unified.spec.ts --grep "Step93-3c\)|Step93-3c1|Step93-3c2" --workers=1` => PASS, 3/3.
+  - `npm run build` => PASS.
+  - `npm run typecheck` => PASS.
+  - `npm run lint` => PASS.
+  - `npm run smoke` => PASS.
+  - `npm run security:scan` => PASS.
+  - `npm run security:scan-artifacts` => PASS.
+  - `git diff --check` => PASS.
+- Refreshed `.ai-runs/mailhub-next-phase` readiness artifacts at repo head `089574d7251f6f317954a5d3c0c9dc1920d1917d`.
+  - `npm run ops:readiness-refresh` => PASS.
+  - `probe:routing-send` stayed `dry_run`.
+  - `sentCount=0`.
+  - readiness contract chain passed.
+  - `security:scan-artifacts` passed.
+- Production readiness remains intentionally false:
+  - P0 `current_shared_gmail_routing`
+  - P1 `rule_config_source_not_production`
+  - P1 `staff_workflow_permissions`
+  - P1 `staff_github_config_not_ready`

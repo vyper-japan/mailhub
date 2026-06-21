@@ -767,3 +767,53 @@ git push
 - no GitHub setup/apply mutation without explicit approval.
 - no Sheets mutation without explicit approval.
 - no production-complete claim while the current P0/P1 blockers remain.
+
+## Immediate Next After 2026-06-21 Reading Pane Resize Proof
+
+Completed source/evidence commit: `089574d Harden MailHub reading pane resize proof`.
+
+The resize contract now verifies actual same-page browser resizing with a selected message open:
+
+- 1600px -> 1920px -> 2400px.
+- detail pane remains stable at the wide cap.
+- message list absorbs the extra horizontal width.
+- selected row and row text block grow with the list.
+- content rail remains capped and overflow-free.
+
+Updated visual evidence:
+
+- `artifacts/ui-screenshots/mailhub-reading-pane-check.json`
+- `artifacts/ui-screenshots/mailhub-reading-pane-narrow.png`
+- `artifacts/ui-screenshots/mailhub-reading-pane-desktop.png`
+- `artifacts/ui-screenshots/mailhub-reading-pane-wide.png`
+- `artifacts/ui-screenshots/mailhub-reading-pane-ultrawide.png`
+
+Final clean capture metrics:
+
+- 1120px: list `413px`, detail `460px`, content `452px`, overflow `false`.
+- 1600px: list `488px`, detail `864px`, content `820px`, overflow `false`.
+- 1920px: list `800px`, detail `872px`, content `820px`, overflow `false`.
+- 2400px: list `1280px`, detail `872px`, content `820px`, overflow `false`.
+
+Immediate handoff commands:
+
+```bash
+git status -sb
+git diff --stat
+git diff --check
+npm run security:scan-artifacts
+git add .ai-runs/mailhub-next-phase
+git commit -m "Refresh readiness artifacts after reading pane resize proof"
+git push
+```
+
+Then watch:
+
+- `MailHub Readiness Contract`
+- `qa-strict`
+
+Recommended next UX slice after CI is green:
+
+- real-message preview sweep across representative Amazon/Rakuten/Yahoo/newsletter/order HTML fixtures.
+- verify no clipping, horizontal overflow, stale-body flash, retained scroll, or layout jump.
+- add focused regressions only where a real defect is observed.
