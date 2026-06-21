@@ -1,5 +1,86 @@
 # MailHub Next Phase Progress
 
+## 2026-06-21 Ownership Visibility Slice
+
+Completed a focused ownership UX slice after the preview-fit fix. The goal was to make assignment/ownership state visible and actionable across the list, detail, and Gmail compose surfaces without changing backend assignment semantics.
+
+Implemented:
+
+- Changed inbox row ownership from an `sr-only` row `assignee-pill` into a visible compact chip.
+- Row chips now show:
+  - `未割当`
+  - `自分担当`
+  - `担当: <name>` for other assignees
+- Row chips are actionable and open the existing assignee picker without selecting/toggling the row.
+- Kept the detail header/work-context ownership surfaces and aligned list chip tone with the existing detail owner state.
+- Added a visible Gmail compose ownership banner above the safety grid:
+  - blocked state: `担当してから送信してください` / `未割当` with `担当する`
+  - ok state: `自分が担当中` with assignee detail
+- Preserved existing Reply Ownership Shield checks and send-route enforcement; no external send path changed.
+- Added E2E `E2E #0b) ownership state is visible in list, detail, and compose`.
+- Updated `E2E #0a` to assert the visible ownership banner while ownership blocks send.
+- Captured visual evidence:
+  - `artifacts/ui-screenshots/mailhub-ownership-visible-before.png`
+  - `artifacts/ui-screenshots/mailhub-ownership-visible-after.png`
+  - `artifacts/ui-screenshots/mailhub-ownership-visible-check.json`
+
+Visual result:
+
+- before ownership: list row chip `未割当`, detail owner `未割当`, compose banner blocked.
+- after taking ownership: list row chip `自分担当`, detail owner `test`, compose banner `自分が担当中`.
+- after filling a local draft body, Gmail send button became enabled in TEST_MODE.
+- No external send was executed.
+- `documentHorizontalOverflow=false`.
+- `panelHorizontalOverflow=false`.
+- `consoleErrors=[]`.
+- `failedResponses=[]`.
+
+Local validation passed so far:
+
+- `npm run typecheck`
+- `npm run lint`
+- `npm run smoke`
+- `npm run test`
+- `npm run verify`
+- `npm run security:scan`
+- `git diff --check`
+- `npm run ops:readiness-refresh`
+- `npm run security:scan-artifacts`
+- targeted Playwright:
+
+```bash
+node scripts/e2e-preclean.mjs && MAILHUB_TEST_MODE=1 npx playwright test e2e/qa-strict-unified.spec.ts --grep "E2E #0a|E2E #0b|compose safety layout" --workers=1
+node scripts/e2e-preclean.mjs && MAILHUB_TEST_MODE=1 npx playwright test e2e/qa-strict-unified.spec.ts --grep "Step93-3b|Step93-3c\\)|Step93-3c2|Step93-3d|Step93-6" --workers=1
+node scripts/e2e-preclean.mjs && MAILHUB_TEST_MODE=1 npx playwright test e2e/qa-strict-unified.spec.ts --grep "11\\) 担当者操作|Step60-1|Step70-1|Assign→Waiting" --workers=1
+```
+
+Result: PASS.
+
+Code/test/visual artifact commit:
+
+- `d8500cb Clarify MailHub ownership across inbox surfaces`
+
+Readiness refresh after the commit:
+
+- `npm run ops:readiness-refresh`: PASS.
+- `probe:routing-send` stayed `mode=dry_run`.
+- `sentCount=0`.
+- Artifact contracts passed inside refresh.
+- `security:scan-artifacts` passed inside refresh.
+- readiness artifacts now reference repo head `d8500cb4325bcf1a9476931a4d4747708c44f075`.
+
+Remaining closeout:
+
+- Commit refreshed `.ai-runs` artifacts.
+- Push and watch `MailHub Readiness Contract` and `qa-strict`.
+
+Production readiness remains intentionally false:
+
+- P0 `current_shared_gmail_routing`
+- P1 `rule_config_source_not_production`
+- P1 `staff_workflow_permissions`
+- P1 `staff_github_config_not_ready`
+
 ## 2026-06-21 Mail Preview Fit Slice
 
 Completed a focused visual stability fix for opened email previews. User-reported symptoms were HTML email bodies appearing clipped, shifted, or unstable inside the detail pane.

@@ -1,5 +1,42 @@
 # MailHub Next Phase Plan
 
+## 2026-06-21 Ownership Visibility Plan
+
+Status: implementation and focused verification complete; full closeout still in progress.
+
+Completed plan:
+
+1. Resumed after preview-fit CI was green and kept the active goal on ownership UX completion.
+2. Used read-only reconnaissance to confirm the weakest current surface was the inbox list row ownership state.
+3. Implemented visible/actionable ownership chips in message rows.
+4. Added a visible ownership banner in Gmail compose above the safety grid.
+5. Added E2E coverage across list, detail, and compose before/after taking ownership.
+6. Ran targeted ownership, layout, preview-fit, and assignment regression tests.
+7. Captured visual screenshots and metrics.
+
+Remaining closeout plan:
+
+1. Run full local verification chain.
+2. Run `git diff --check`.
+3. Refresh readiness artifacts with `npm run ops:readiness-refresh`.
+4. Run `npm run security:scan-artifacts`.
+5. Commit the code/test/visual artifact slice.
+6. Commit refreshed `.ai-runs` artifacts separately if changed by readiness refresh.
+7. Push.
+8. Watch `MailHub Readiness Contract` and `qa-strict`.
+
+Recommended next UX slice after CI:
+
+- Improve thread/customer context around the selected message without changing send behavior, or
+- Add explicit filter/source state explanation where operators may confuse "20 loaded" with all mail.
+
+Constraints stay in force:
+
+- no external email send without explicit approval
+- no GitHub setup/apply mutation without explicit approval
+- no Sheets mutation without explicit approval
+- no production-complete claim
+
 ## 2026-06-21 Mail Preview Fit Plan
 
 Status: implementation and focused verification complete.

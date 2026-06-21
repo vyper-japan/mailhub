@@ -1,5 +1,76 @@
 # MailHub Next Phase Commands
 
+## 2026-06-21 Ownership Visibility Commands
+
+Commands run for the list/detail/compose ownership visibility slice:
+
+```bash
+npm run typecheck
+npm run lint
+node scripts/e2e-preclean.mjs && MAILHUB_TEST_MODE=1 npx playwright test e2e/qa-strict-unified.spec.ts --grep "E2E #0a|E2E #0b|compose safety layout" --workers=1
+node scripts/e2e-preclean.mjs && MAILHUB_TEST_MODE=1 npx playwright test e2e/qa-strict-unified.spec.ts --grep "Step93-3b|Step93-3c\\)|Step93-3c2|Step93-3d|Step93-6" --workers=1
+node scripts/e2e-preclean.mjs && MAILHUB_TEST_MODE=1 npx playwright test e2e/qa-strict-unified.spec.ts --grep "11\\) 担当者操作|Step60-1|Step70-1|Assign→Waiting" --workers=1
+npm run smoke
+npm run test
+npm run verify
+npm run security:scan
+git diff --check
+```
+
+Result: PASS.
+
+Visual evidence was generated against a temporary TEST_MODE server on `127.0.0.1:3010`:
+
+```text
+artifacts/ui-screenshots/mailhub-ownership-visible-before.png
+artifacts/ui-screenshots/mailhub-ownership-visible-after.png
+artifacts/ui-screenshots/mailhub-ownership-visible-check.json
+```
+
+Visual result:
+
+```text
+before.rowChipVisible=true
+before.rowChipText=未割当
+before.detailOwnerText=未割当
+before.panelHorizontalOverflow=false
+after.rowChipVisible=true
+after.rowChipText=自分担当
+after.detailOwnerText=test
+after.sendEnabledAfterBody=true
+after.panelHorizontalOverflow=false
+consoleErrors=0
+failedResponses=0
+```
+
+No external email send, GitHub setup/apply mutation, or Sheets mutation was run.
+
+Code/test/visual artifact commit:
+
+```bash
+git add app/inbox/InboxShell.tsx app/inbox/components/GmailComposePanel.tsx e2e/qa-strict-unified.spec.ts artifacts/ui-screenshots/mailhub-ownership-visible-before.png artifacts/ui-screenshots/mailhub-ownership-visible-after.png artifacts/ui-screenshots/mailhub-ownership-visible-check.json
+git commit -m "Clarify MailHub ownership across inbox surfaces"
+```
+
+Result:
+
+- `d8500cb Clarify MailHub ownership across inbox surfaces`
+
+Readiness refresh after code commit:
+
+```bash
+npm run ops:readiness-refresh
+```
+
+Result:
+
+- PASS.
+- `probe:routing-send` stayed `mode=dry_run`.
+- `sentCount=0`.
+- artifact contracts passed.
+- `security:scan-artifacts` passed.
+- refreshed artifacts reference repo head `d8500cb4325bcf1a9476931a4d4747708c44f075`.
+
 ## 2026-06-21 Mail Preview Fit Commands
 
 Commands run for the opened-email preview stability slice:

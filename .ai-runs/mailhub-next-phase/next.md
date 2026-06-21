@@ -1,5 +1,45 @@
 # MailHub Next Phase Next Actions
 
+## 2026-06-21 Resume Here: Close Out Ownership Visibility
+
+Current code/test/visual slice is committed as `d8500cb Clarify MailHub ownership across inbox surfaces`.
+Final local verification and post-commit readiness refresh have passed. Finish the refreshed artifact commit, push, and CI watch.
+
+Immediate sequence:
+
+```bash
+git status -sb
+git diff --stat
+git diff --check
+npm run security:scan-artifacts
+```
+
+Artifact commit:
+
+```bash
+git add .ai-runs/mailhub-next-phase
+git commit -m "Refresh readiness artifacts after ownership visibility polish"
+```
+
+Then push and watch:
+
+- `MailHub Readiness Contract`
+- `qa-strict`
+
+Keep these hard gates:
+
+- no external email send without explicit approval
+- no GitHub setup/apply mutation without explicit approval
+- no Sheets mutation without explicit approval
+- do not claim production complete
+
+Current production blockers remain:
+
+- P0 `current_shared_gmail_routing`
+- P1 `rule_config_source_not_production`
+- P1 `staff_workflow_permissions`
+- P1 `staff_github_config_not_ready`
+
 ## 2026-06-21 Resume Here: Commit/Push Mail Preview Fit
 
 Current slice is ready for commit/push unless final `git diff --check` or artifact scan finds a new issue.

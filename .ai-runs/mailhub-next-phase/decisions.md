@@ -1,5 +1,17 @@
 # MailHub Next Phase Decisions
 
+## 2026-06-21 Ownership Visibility Decisions
+
+- Treat list ownership visibility as the next safest UX slice after Reply Ownership Shield, because the send gate is already enforced but operators need to see ownership before opening/acting on a message.
+- Keep `assigneeSlug` as the only ownership source of truth for this slice; do not add a new lease/lock store.
+- Make row ownership visible with a compact chip instead of only a left color bar / sr-only text.
+- Reuse the existing assignee picker from row chips; do not add a separate assignment workflow.
+- Keep detail header and detail work-context ownership surfaces intact and align list chip tone with them.
+- Add a top-level Gmail compose ownership banner so the ownership block is visible before the safety grid and before the send buttons.
+- Preserve the existing `gmail-compose-check-owner` text and `gmail-compose-take-ownership` CTA for compatibility with current E2E and operator muscle memory.
+- Do not change send-route behavior or external Gmail links beyond the existing Reply Ownership Shield behavior.
+- Keep production readiness false; this UX slice does not close routing, Sheets config, staff workflow, or staff GitHub blockers.
+
 ## 2026-06-21 Mail Preview Fit Decisions
 
 - Treat opened-email preview stability as a prerequisite to the ownership UX goal, because operators must trust the detail pane before deciding whether to take ownership or reply.

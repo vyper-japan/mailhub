@@ -1,5 +1,30 @@
 # MailHub Next Phase Blockers
 
+## 2026-06-21 Ownership Visibility Blockers
+
+No ownership-visibility implementation blocker remains after the focused slice.
+
+Process notes:
+
+- Row `assignee-pill` is now visible and actionable, so existing tests that query `assignee-pill` can match row or detail pills. Focused assignment tests passed after this change.
+- Visual evidence confirms no document or compose-panel horizontal overflow at `1280x860`.
+- No external send was executed; TEST_MODE verification only took local ownership and filled a local compose textarea.
+- Full local verification and readiness refresh still need to run before commit/push closeout.
+
+Product/production blockers remain unchanged:
+
+- P0 `current_shared_gmail_routing`
+- P1 `rule_config_source_not_production`
+- P1 `staff_workflow_permissions`
+- P1 `staff_github_config_not_ready`
+
+Approval gates remain unchanged:
+
+- No external email send without explicit approval.
+- No GitHub setup/apply mutation without explicit approval.
+- No Sheets mutation without explicit approval.
+- No production-complete claim.
+
 ## 2026-06-21 Mail Preview Fit Blockers
 
 No preview-fit implementation blocker remains after the focused slice.
