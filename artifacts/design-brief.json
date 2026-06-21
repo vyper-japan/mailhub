@@ -28,6 +28,8 @@
     "Wide desktop split-pane behavior where the list expands and the reading pane stays stable",
     "Same-page wide-to-ultrawide browser resize where the reading pane remains stable and the list absorbs extra width",
     "Rapid repeated-email preview switching without stale body flash, retained scroll position, or layout jump",
+    "Initial-load interaction stability where non-critical refreshes do not make the first opened email feel frozen",
+    "Pointer/focus-driven preview prefetch so similar daily HTML emails open from a warm detail/sanitized cache when possible",
     "Detail header sender-address visibility without adding header height or horizontal overflow",
     "Detail work context recipient/store visibility without adding a new detail header line"
   ],
@@ -50,6 +52,8 @@
     "Ownership CTA DOM check for detail owner and Gmail external reply blocker",
     "Takeover reason modal DOM check for current owner, next owner, and Gmail reply note",
     "Frame-sampled stale body, scroll reset, and overflow check during rapid preview switch",
+    "Frame-gap and click-to-body readiness check during initial post-load preview switching",
+    "Browser screenshot and DOM metrics for warmed Amazon/Yahoo preview switching",
     "Console error check",
     "Browser screenshot and DOM metrics for Amazon detail sender-address visibility",
     "Browser screenshots and DOM metrics for Amazon detail recipient/store context at 1120/1280/1680 widths"

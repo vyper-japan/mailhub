@@ -143,10 +143,16 @@ button:disabled .action-spinner {
   word-break: normal;
 }
 
-.mailhub-email-body,
-.mailhub-email-body * {
+.mailhub-email-body {
+  box-sizing: border-box;
+}
+
+.mailhub-email-body :where(div, p, span, table, tbody, thead, tr, td, th, img, svg, canvas, pre, code, blockquote, center, font, [style*="width"], [width]) {
   box-sizing: border-box;
   max-width: 100% !important;
+}
+
+.mailhub-email-body :where(div, p, span, table, tbody, thead, tr, td, th, img, svg, canvas, pre, code, blockquote, center, font, [style*="animation"], [style*="transition"]) {
   animation: none !important;
   transition: none !important;
 }

@@ -1,0 +1,72 @@
+{
+  "generatedAt": "2026-06-21T23:19:48.105Z",
+  "viewport": {
+    "width": 1280,
+    "height": 860
+  },
+  "switchToAmazon": {
+    "report": {
+      "subjectReadyMs": 116,
+      "bodyReadyMs": 116,
+      "maxFrameGapMs": 50,
+      "longTasksMs": [
+        215,
+        57,
+        50,
+        173,
+        170,
+        160
+      ]
+    },
+    "metrics": {
+      "targetId": "msg-001",
+      "bodyId": "msg-001",
+      "skeletonVisible": false,
+      "detailHorizontalOverflow": false,
+      "contentHorizontalOverflow": false,
+      "bodyHorizontalOverflow": false,
+      "documentHorizontalOverflow": false
+    },
+    "screenshot": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/artifacts/ui-screenshots/mailhub-preview-interaction-msg-001.png"
+  },
+  "switchBackToYahoo": {
+    "report": {
+      "subjectReadyMs": 209,
+      "bodyReadyMs": 209,
+      "maxFrameGapMs": 133,
+      "longTasksMs": [
+        215,
+        57,
+        50,
+        173,
+        170,
+        160,
+        174,
+        176,
+        167,
+        142
+      ]
+    },
+    "metrics": {
+      "targetId": "msg-002",
+      "bodyId": "msg-002",
+      "skeletonVisible": false,
+      "detailHorizontalOverflow": false,
+      "contentHorizontalOverflow": false,
+      "bodyHorizontalOverflow": false,
+      "documentHorizontalOverflow": false
+    },
+    "screenshot": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/artifacts/ui-screenshots/mailhub-preview-interaction-msg-002.png"
+  },
+  "noConsoleErrors": true,
+  "noFailedResponses": true,
+  "consoleMessages": [],
+  "failedResponses": [],
+  "checks": {
+    "bodyReadyUnder1500ms": true,
+    "maxFrameGapUnder500ms": true,
+    "noVeryLongTask": true,
+    "noHorizontalOverflow": true,
+    "bodyIdSynced": true
+  }
+}

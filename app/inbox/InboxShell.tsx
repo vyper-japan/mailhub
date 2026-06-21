@@ -53,6 +53,12 @@ type DetailBodyState = {
   isLoading: boolean;
   debugLabels?: { labelIds: string[]; labelNames: Array<string | null> };
 };
+type SanitizedHtmlState = {
+  messageId: string | null;
+  rawHtml: string | null;
+  html: string;
+  ready: boolean;
+};
 type GmailSentStatus = "idle" | "sent" | "sent_and_done" | "sent_but_not_done" | "maybe_sent";
 type PostSendAction = "none" | "done";
 type ListDensity = "comfortable" | "compact";
@@ -309,12 +315,28 @@ function OperationalStatusStrip({
 
 const DETAIL_CACHE_TTL_MS = 60_000;
 const DETAIL_CACHE_REFRESH_DELAY_MS = 180;
-const HOVER_PREFETCH_DELAY_MS = 180;
+const HOVER_PREFETCH_DELAY_MS = 40;
 const THREAD_LOAD_DELAY_MS = 260;
 const SANITIZED_HTML_CACHE_MAX_SIZE = 30;
+const BACKGROUND_FETCH_IDLE_TIMEOUT_MS = 2_500;
+const CHANNEL_COUNT_PREFETCH_BATCH_SIZE = 3;
 const MAYBE_SENT_MESSAGE =
   "すでに同じ送信が処理されています。送信済みの可能性があるため、受信トレイ/送信済みを確認してください";
 const UNRESOLVED_TEMPLATE_VAR_RE = /{{\s*[\w.-]+\s*}}/g;
+
+function scheduleIdleTask(callback: () => void, timeout = BACKGROUND_FETCH_IDLE_TIMEOUT_MS): () => void {
+  if (typeof window === "undefined") return () => {};
+  const idleWindow = window as Window & {
+    requestIdleCallback?: (cb: () => void, options?: { timeout?: number }) => number;
+    cancelIdleCallback?: (id: number) => void;
+  };
+  if (typeof idleWindow.requestIdleCallback === "function") {
+    const id = idleWindow.requestIdleCallback(callback, { timeout });
+    return () => idleWindow.cancelIdleCallback?.(id);
+  }
+  const id = window.setTimeout(callback, timeout);
+  return () => window.clearTimeout(id);
+}
 
 function emptyDetailBodyState(messageId: string | null = null, isLoading = false): DetailBodyState {
   return {
@@ -337,6 +359,67 @@ function detailToBodyState(detail: MessageDetail): DetailBodyState {
     isLoading: false,
     debugLabels: (detail as DetailWithDebug).debugLabels,
   };
+}
+
+function sanitizeMailHtml(rawHtml: string): string {
+  return DOMPurify.sanitize(rawHtml, {
+    ALLOWED_TAGS: [
+      "p",
+      "br",
+      "div",
+      "span",
+      "a",
+      "b",
+      "strong",
+      "i",
+      "em",
+      "u",
+      "ul",
+      "ol",
+      "li",
+      "h1",
+      "h2",
+      "h3",
+      "h4",
+      "h5",
+      "h6",
+      "table",
+      "thead",
+      "tbody",
+      "tr",
+      "td",
+      "th",
+      "img",
+      "blockquote",
+      "pre",
+      "code",
+      "hr",
+      "center",
+      "font",
+    ],
+    ALLOWED_ATTR: [
+      "href",
+      "src",
+      "alt",
+      "title",
+      "style",
+      "class",
+      "width",
+      "height",
+      "border",
+      "cellpadding",
+      "cellspacing",
+      "align",
+      "valign",
+      "bgcolor",
+      "color",
+      "size",
+      "face",
+    ],
+    ALLOW_DATA_ATTR: false,
+    ADD_ATTR: ["target"],
+    FORCE_BODY: true,
+  });
 }
 
 function formatAddressDisplayName(headerValue: string | null | undefined): string | null {
@@ -583,88 +666,99 @@ export default function InboxShell({
   const [isClientReady, setIsClientReady] = useState(false);
   const htmlSanitizeCacheRef = useRef<Map<string, { rawHtml: string; sanitizedHtml: string }>>(new Map());
   const htmlBodyRef = useRef<HTMLDivElement | null>(null);
+  const detailBodyFrameRef = useRef<HTMLDivElement | null>(null);
   const renderedHtmlRef = useRef<{ messageId: string | null; rawHtml: string | null }>({
     messageId: null,
     rawHtml: null,
   });
+  const [stableDetailBodyMinHeight, setStableDetailBodyMinHeight] = useState(180);
 
   useEffect(() => {
     setIsClientReady(true);
   }, []);
 
-  const sanitizedHtmlBody = useMemo(() => {
-    if (!detailBody.htmlBody || !detailBody.messageId) return "";
-    if (typeof window === "undefined") return "";
-    const cached = htmlSanitizeCacheRef.current.get(detailBody.messageId);
-    if (cached?.rawHtml === detailBody.htmlBody) return cached.sanitizedHtml;
-
-    const sanitizedHtml = DOMPurify.sanitize(detailBody.htmlBody, {
-      ALLOWED_TAGS: [
-        "p",
-        "br",
-        "div",
-        "span",
-        "a",
-        "b",
-        "strong",
-        "i",
-        "em",
-        "u",
-        "ul",
-        "ol",
-        "li",
-        "h1",
-        "h2",
-        "h3",
-        "h4",
-        "h5",
-        "h6",
-        "table",
-        "thead",
-        "tbody",
-        "tr",
-        "td",
-        "th",
-        "img",
-        "blockquote",
-        "pre",
-        "code",
-        "hr",
-        "center",
-        "font",
-      ],
-      ALLOWED_ATTR: [
-        "href",
-        "src",
-        "alt",
-        "title",
-        "style",
-        "class",
-        "width",
-        "height",
-        "border",
-        "cellpadding",
-        "cellspacing",
-        "align",
-        "valign",
-        "bgcolor",
-        "color",
-        "size",
-        "face",
-      ],
-      ALLOW_DATA_ATTR: false,
-      ADD_ATTR: ["target"],
-      FORCE_BODY: true,
-    });
-
+  const cacheSanitizedDetailHtml = useCallback((detail: MessageDetail) => {
+    const rawHtml = detail.htmlBody;
+    if (!rawHtml) return;
+    const cached = htmlSanitizeCacheRef.current.get(detail.id);
+    if (cached?.rawHtml === rawHtml) return;
+    const sanitizedHtml = sanitizeMailHtml(rawHtml);
     const cache = htmlSanitizeCacheRef.current;
-    cache.set(detailBody.messageId, { rawHtml: detailBody.htmlBody, sanitizedHtml });
+    cache.set(detail.id, { rawHtml, sanitizedHtml });
     if (cache.size > SANITIZED_HTML_CACHE_MAX_SIZE) {
       const oldestKey = cache.keys().next().value;
       if (typeof oldestKey === "string") cache.delete(oldestKey);
     }
-    return sanitizedHtml;
-  }, [detailBody.htmlBody, detailBody.messageId]);
+  }, []);
+
+  const [sanitizedHtmlState, setSanitizedHtmlState] = useState<SanitizedHtmlState>({
+    messageId: null,
+    rawHtml: null,
+    html: "",
+    ready: true,
+  });
+
+  const setSanitizedHtmlStateStable = useCallback((next: SanitizedHtmlState) => {
+    setSanitizedHtmlState((prev) =>
+      prev.messageId === next.messageId &&
+      prev.rawHtml === next.rawHtml &&
+      prev.html === next.html &&
+      prev.ready === next.ready
+        ? prev
+        : next,
+    );
+  }, []);
+
+  useEffect(() => {
+    const messageId = detailBody.messageId;
+    const rawHtml = detailBody.htmlBody;
+    if (!rawHtml || !messageId) {
+      setSanitizedHtmlStateStable({ messageId: null, rawHtml: null, html: "", ready: true });
+      return;
+    }
+    if (!isClientReady || detailBody.isLoading || messageId !== selectedMessage?.id) {
+      setSanitizedHtmlStateStable({ messageId, rawHtml, html: "", ready: false });
+      return;
+    }
+
+    const cached = htmlSanitizeCacheRef.current.get(messageId);
+    if (cached?.rawHtml === rawHtml) {
+      setSanitizedHtmlStateStable({ messageId, rawHtml, html: cached.sanitizedHtml, ready: true });
+      return;
+    }
+
+    let cancelled = false;
+    setSanitizedHtmlStateStable({ messageId, rawHtml, html: "", ready: false });
+    const cancelIdle = scheduleIdleTask(() => {
+      const sanitizedHtml = sanitizeMailHtml(rawHtml);
+      if (cancelled) return;
+      const cache = htmlSanitizeCacheRef.current;
+      cache.set(messageId, { rawHtml, sanitizedHtml });
+      if (cache.size > SANITIZED_HTML_CACHE_MAX_SIZE) {
+        const oldestKey = cache.keys().next().value;
+        if (typeof oldestKey === "string") cache.delete(oldestKey);
+      }
+      setSanitizedHtmlStateStable({ messageId, rawHtml, html: sanitizedHtml, ready: true });
+    }, 120);
+
+    return () => {
+      cancelled = true;
+      cancelIdle();
+    };
+  }, [
+    detailBody.htmlBody,
+    detailBody.isLoading,
+    detailBody.messageId,
+    isClientReady,
+    selectedMessage?.id,
+    setSanitizedHtmlStateStable,
+  ]);
+
+  const isSelectedHtmlBodyPending =
+    Boolean(detailBody.htmlBody) &&
+    (!sanitizedHtmlState.ready ||
+      sanitizedHtmlState.messageId !== detailBody.messageId ||
+      sanitizedHtmlState.rawHtml !== detailBody.htmlBody);
 
   useLayoutEffect(() => {
     const element = htmlBodyRef.current;
@@ -675,7 +769,10 @@ export default function InboxShell({
       !detailBody.isLoading &&
       Boolean(detailBody.htmlBody) &&
       detailBody.messageId !== null &&
-      detailBody.messageId === selectedMessage?.id;
+      detailBody.messageId === selectedMessage?.id &&
+      sanitizedHtmlState.ready &&
+      sanitizedHtmlState.messageId === detailBody.messageId &&
+      sanitizedHtmlState.rawHtml === detailBody.htmlBody;
 
     if (!shouldRenderHtml || !detailBody.htmlBody) {
       if (renderedHtmlRef.current.messageId !== null || renderedHtmlRef.current.rawHtml !== null) {
@@ -692,16 +789,20 @@ export default function InboxShell({
       return;
     }
 
-    element.innerHTML = sanitizedHtmlBody;
+    element.innerHTML = sanitizedHtmlState.html;
     renderedHtmlRef.current = { messageId: detailBody.messageId, rawHtml: detailBody.htmlBody };
   }, [
     detailBody.htmlBody,
     detailBody.isLoading,
     detailBody.messageId,
     isClientReady,
-    sanitizedHtmlBody,
+    sanitizedHtmlState.html,
+    sanitizedHtmlState.messageId,
+    sanitizedHtmlState.rawHtml,
+    sanitizedHtmlState.ready,
     selectedMessage?.id,
   ]);
+
   const [listError, setListError] = useState<string | null>(serverListError);
   const [detailError, setDetailError] = useState<string | null>(null);
 
@@ -812,36 +913,42 @@ export default function InboxShell({
 
   useEffect(() => {
     let cancelled = false;
-    void (async () => {
-      const ids = await fetchNoteIds({ hasNote: true });
-      if (!cancelled) setNoteIndexIds(new Set(ids));
-    })();
+    const cancelIdle = scheduleIdleTask(() => {
+      void (async () => {
+        const ids = await fetchNoteIds({ hasNote: true });
+        if (!cancelled) setNoteIndexIds(new Set(ids));
+      })();
+    });
     return () => {
       cancelled = true;
+      cancelIdle();
     };
   }, [fetchNoteIds]);
 
   // Step 101: Work Tags index を取得（一覧表示と検索に使用）
   useEffect(() => {
     let cancelled = false;
-    void (async () => {
-      try {
-        const res = await fetch("/api/mailhub/meta?list=1", { cache: "no-store" });
-        if (!res.ok) return;
-        const data = (await res.json()) as { items?: Array<{ messageId: string; tags: string[] }> };
-        if (cancelled) return;
-        const next: Record<string, string[]> = {};
-        for (const it of data.items ?? []) {
-          if (!it?.messageId) continue;
-          next[it.messageId] = Array.isArray(it.tags) ? it.tags : [];
+    const cancelIdle = scheduleIdleTask(() => {
+      void (async () => {
+        try {
+          const res = await fetch("/api/mailhub/meta?list=1", { cache: "no-store" });
+          if (!res.ok) return;
+          const data = (await res.json()) as { items?: Array<{ messageId: string; tags: string[] }> };
+          if (cancelled) return;
+          const next: Record<string, string[]> = {};
+          for (const it of data.items ?? []) {
+            if (!it?.messageId) continue;
+            next[it.messageId] = Array.isArray(it.tags) ? it.tags : [];
+          }
+          setWorkTagsById(next);
+        } catch {
+          // ignore
         }
-        setWorkTagsById(next);
-      } catch {
-        // ignore
-      }
-    })();
+      })();
+    });
     return () => {
       cancelled = true;
+      cancelIdle();
     };
   }, []);
 
@@ -1095,6 +1202,22 @@ export default function InboxShell({
   
   // 本文の折りたたみ状態
   const [bodyCollapsed, setBodyCollapsed] = useState(false);
+
+  useLayoutEffect(() => {
+    if (bodyCollapsed || detailError || detailBody.isLoading || detailBody.messageId !== selectedMessage?.id) return;
+    const frame = detailBodyFrameRef.current;
+    if (!frame) return;
+    const nextHeight = Math.min(720, Math.max(180, Math.round(frame.getBoundingClientRect().height)));
+    setStableDetailBodyMinHeight((prev) => (Math.abs(prev - nextHeight) > 8 ? nextHeight : prev));
+  }, [
+    bodyCollapsed,
+    detailBody.htmlBody,
+    detailBody.isLoading,
+    detailBody.messageId,
+    detailBody.plainTextBody,
+    detailError,
+    selectedMessage?.id,
+  ]);
   
   // 返信完了マクロの状態
   const [showReplyCompleteModal, setShowReplyCompleteModal] = useState(false);
@@ -1234,7 +1357,9 @@ export default function InboxShell({
   // Step 93: Hover Prefetch用のref
   const hoverPrefetchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hoverPrefetchAbortRef = useRef<AbortController | null>(null);
+  const hoverPrefetchTargetIdRef = useRef<string | null>(null);
   const adjacentPrefetchAbortRef = useRef<AbortController | null>(null);
+  const detailPrefetchInFlightRef = useRef<Map<string, Promise<MessageDetail | null>>>(new Map());
   
   // Step 50: Detailキャッシュ（LRU、最大20件、TTL 60秒）
   type DetailCacheEntry = {
@@ -1297,43 +1422,49 @@ export default function InboxShell({
 
   useEffect(() => {
     let cancelled = false;
-    (async () => {
-      try {
-        const res = await fetch("/api/mailhub/views", { cache: "no-store" });
-        const data = (await res.json().catch(() => ({}))) as { views?: View[] };
-        if (!res.ok) return;
-        if (cancelled) return;
-        setViews(Array.isArray(data.views) ? data.views : []);
-      } catch {
-        // ignore（一覧表示が最優先）
-      }
-    })();
+    const cancelIdle = scheduleIdleTask(() => {
+      void (async () => {
+        try {
+          const res = await fetch("/api/mailhub/views", { cache: "no-store" });
+          const data = (await res.json().catch(() => ({}))) as { views?: View[] };
+          if (!res.ok) return;
+          if (cancelled) return;
+          setViews(Array.isArray(data.views) ? data.views : []);
+        } catch {
+          // ignore（一覧表示が最優先）
+        }
+      })();
+    });
     return () => {
       cancelled = true;
+      cancelIdle();
     };
   }, []);
 
   // Step 77: /api/mailhub/assignees から名簿を取得（全員ツリー化）
   useEffect(() => {
     let cancelled = false;
-    (async () => {
-      try {
-        const res = await fetch("/api/mailhub/assignees", { cache: "no-store" });
-        const data = (await res.json().catch(() => ({}))) as { assignees?: Array<{ email: string; displayName?: string }> };
-        if (!res.ok) return;
-        if (cancelled) return;
-        // displayName を name に変換して互換性を維持
-        setTeam(
-          Array.isArray(data.assignees)
-            ? data.assignees.map((a) => ({ email: a.email, name: a.displayName ?? null }))
-            : []
-        );
-      } catch {
-        // ignore（一覧表示が最優先）
-      }
-    })();
+    const cancelIdle = scheduleIdleTask(() => {
+      void (async () => {
+        try {
+          const res = await fetch("/api/mailhub/assignees", { cache: "no-store" });
+          const data = (await res.json().catch(() => ({}))) as { assignees?: Array<{ email: string; displayName?: string }> };
+          if (!res.ok) return;
+          if (cancelled) return;
+          // displayName を name に変換して互換性を維持
+          setTeam(
+            Array.isArray(data.assignees)
+              ? data.assignees.map((a) => ({ email: a.email, name: a.displayName ?? null }))
+              : []
+          );
+        } catch {
+          // ignore（一覧表示が最優先）
+        }
+      })();
+    });
     return () => {
       cancelled = true;
+      cancelIdle();
     };
   }, []);
 
@@ -1931,7 +2062,10 @@ export default function InboxShell({
   ]);
 
   useEffect(() => {
-    fetchCounts();
+    const cancelIdle = scheduleIdleTask(() => {
+      void fetchCounts();
+    }, 3_000);
+    return cancelIdle;
   }, [fetchCounts]);
 
   // Activity Drawerが開いたらログを取得、フィルタ変更時も再取得
@@ -2035,18 +2169,21 @@ export default function InboxShell({
   }, [showOpsDrawer, fetchOpsSummary]);
 
   useEffect(() => {
-    const timerId = window.setTimeout(() => {
+    const cancelIdle = scheduleIdleTask(() => {
       void fetchOpsReadiness();
-    }, 500);
-    return () => window.clearTimeout(timerId);
+    }, 3_000);
+    return cancelIdle;
   }, [fetchOpsReadiness]);
 
   // バージョン情報を取得
   useEffect(() => {
-    fetch("/api/version")
-      .then((res) => res.json())
-      .then((data) => setVersion(data.version))
-      .catch(() => setVersion(null));
+    const cancelIdle = scheduleIdleTask(() => {
+      fetch("/api/version")
+        .then((res) => res.json())
+        .then((data) => setVersion(data.version))
+        .catch(() => setVersion(null));
+    }, 3_000);
+    return cancelIdle;
   }, []);
 
   // Step 50: キャッシュから古いエントリを削除（LRU）
@@ -2071,23 +2208,39 @@ export default function InboxShell({
     }
   }, []);
 
-  const prefetchDetailToCache = useCallback(async (id: string, signal: AbortSignal) => {
+  const prefetchDetailToCache = useCallback(async (id: string, signal: AbortSignal): Promise<MessageDetail | null> => {
     const cached = detailCacheRef.current.get(id);
-    if (cached && Date.now() - cached.fetchedAt < DETAIL_CACHE_TTL_MS) return;
+    if (cached && Date.now() - cached.fetchedAt < DETAIL_CACHE_TTL_MS) return cached.detail;
 
-    const res = await fetch(`/api/mailhub/detail?id=${encodeURIComponent(id)}`, {
-      cache: "no-store",
-      signal,
-    });
-    if (!res.ok) return;
+    const inFlight = detailPrefetchInFlightRef.current.get(id);
+    if (inFlight) return inFlight;
 
-    const data = (await res.json()) as { detail: MessageDetail };
-    evictOldCacheEntries();
-    detailCacheRef.current.set(id, {
-      detail: data.detail,
-      fetchedAt: Date.now(),
-    });
-  }, [evictOldCacheEntries]);
+    const promise = (async (): Promise<MessageDetail | null> => {
+      const res = await fetch(`/api/mailhub/detail?id=${encodeURIComponent(id)}`, {
+        cache: "no-store",
+        signal,
+      });
+      if (!res.ok) return null;
+
+      const data = (await res.json()) as { detail: MessageDetail };
+      evictOldCacheEntries();
+      detailCacheRef.current.set(id, {
+        detail: data.detail,
+        fetchedAt: Date.now(),
+      });
+      cacheSanitizedDetailHtml(data.detail);
+      return data.detail;
+    })();
+
+    detailPrefetchInFlightRef.current.set(id, promise);
+    try {
+      return await promise;
+    } finally {
+      if (detailPrefetchInFlightRef.current.get(id) === promise) {
+        detailPrefetchInFlightRef.current.delete(id);
+      }
+    }
+  }, [cacheSanitizedDetailHtml, evictOldCacheEntries]);
 
   const loadDetailBodyOnly = useCallback(async (id: string, useCache: boolean = true) => {
     // プリフェッチモード（useCache = false）の場合は、detailInFlightIdRefを変更しない
@@ -2132,6 +2285,25 @@ export default function InboxShell({
       setDetailBody((b) =>
         b.messageId === id ? { ...b, isLoading: true } : emptyDetailBodyState(id, true),
       );
+    }
+
+    const prefetchPromise = !isPrefetch ? detailPrefetchInFlightRef.current.get(id) : null;
+    if (prefetchPromise) {
+      try {
+        const prefetchedDetail = await prefetchPromise;
+        if (detailInFlightIdRef.current !== id) return;
+        if (prefetchedDetail) {
+          setSelectedDetail(prefetchedDetail);
+          setDetailBody(detailToBodyState(prefetchedDetail));
+          if (prefetchedDetail.isInProgress !== undefined) {
+            setIsClaimedMap((prev) => ({ ...prev, [id]: prefetchedDetail.isInProgress ?? false }));
+          }
+          return;
+        }
+      } catch {
+        if (detailInFlightIdRef.current !== id) return;
+        // Prefetch is best-effort. If it was cancelled or failed, fall back to the main detail request.
+      }
     }
 
     try {
@@ -2192,6 +2364,33 @@ export default function InboxShell({
       }
     }
   }, [evictOldCacheEntries]);
+
+  useEffect(() => {
+    if (!selectedId) return;
+    const visibleMessages = slaFilteredMessages.length > 0 ? slaFilteredMessages : messages;
+    const selectedIndex = visibleMessages.findIndex((message) => message.id === selectedId);
+    if (selectedIndex < 0) return;
+    const warmIds = [selectedIndex + 1, selectedIndex + 2, selectedIndex - 1, selectedIndex + 3, selectedIndex - 2]
+      .map((index) => visibleMessages[index]?.id)
+      .filter((nextId): nextId is string => Boolean(nextId && nextId !== selectedId));
+    if (warmIds.length === 0) return;
+
+    const controller = new AbortController();
+    const cancelIdle = scheduleIdleTask(() => {
+      void (async () => {
+        for (let i = 0; i < warmIds.length && !controller.signal.aborted; i += 2) {
+          const batch = warmIds.slice(i, i + 2);
+          await Promise.allSettled(batch.map((id) => prefetchDetailToCache(id, controller.signal)));
+          await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
+        }
+      })();
+    }, 20);
+
+    return () => {
+      cancelIdle();
+      controller.abort();
+    };
+  }, [messages, prefetchDetailToCache, selectedId, slaFilteredMessages]);
 
   const loadThreadSummary = useCallback(async (messageId: string) => {
     threadInFlightRef.current = messageId;
@@ -2437,48 +2636,57 @@ export default function InboxShell({
     }
   }, [replyRoute, detailBody.plainTextBody]);
 
-  // Step 93: Hover時のprefetch（150ms debounce、同時1件まで）
-  const handleRowMouseEnter = useCallback((id: string) => {
-    // 現在選択中のメールはprefetch不要
+  const startRowPrefetch = useCallback((id: string) => {
     if (id === selectedId) return;
-    
-    // キャッシュに新鮮なデータがあればprefetch不要
     const cached = detailCacheRef.current.get(id);
     if (cached && Date.now() - cached.fetchedAt < DETAIL_CACHE_TTL_MS) return;
-    
-    // 前のタイマーをキャンセル
+
+    if (hoverPrefetchAbortRef.current && hoverPrefetchTargetIdRef.current !== id) {
+      hoverPrefetchAbortRef.current.abort();
+      hoverPrefetchAbortRef.current = null;
+    }
+
+    hoverPrefetchTargetIdRef.current = id;
+    const controller = new AbortController();
+    hoverPrefetchAbortRef.current = controller;
+
+    void prefetchDetailToCache(id, controller.signal).catch(() => {
+      // AbortErrorやネットワークエラーは無視（prefetchなので）
+    }).finally(() => {
+      if (hoverPrefetchAbortRef.current === controller) {
+        hoverPrefetchAbortRef.current = null;
+      }
+      if (hoverPrefetchTargetIdRef.current === id) {
+        hoverPrefetchTargetIdRef.current = null;
+      }
+    });
+  }, [prefetchDetailToCache, selectedId]);
+
+  // Step 93: Hover/focus/pointer intent prefetch（クリック直前の体感待ちを減らす）
+  const handleRowMouseEnter = useCallback((id: string) => {
+    if (id === selectedId) return;
+    const cached = detailCacheRef.current.get(id);
+    if (cached && Date.now() - cached.fetchedAt < DETAIL_CACHE_TTL_MS) return;
+
     if (hoverPrefetchTimerRef.current) {
       clearTimeout(hoverPrefetchTimerRef.current);
       hoverPrefetchTimerRef.current = null;
     }
-    
-    // 前のprefetchリクエストをキャンセル（同時1件まで）
-    if (hoverPrefetchAbortRef.current) {
-      hoverPrefetchAbortRef.current.abort();
-      hoverPrefetchAbortRef.current = null;
-    }
-    
-    // クリック直後の詳細取得と競合しないように、hover prefetch は少し遅らせる
-    hoverPrefetchTimerRef.current = setTimeout(async () => {
-      // 再度キャッシュをチェック（タイマー中に取得された可能性）
-      const cachedNow = detailCacheRef.current.get(id);
-      if (cachedNow && Date.now() - cachedNow.fetchedAt < DETAIL_CACHE_TTL_MS) return;
-      
-      // AbortControllerを作成
-      const controller = new AbortController();
-      hoverPrefetchAbortRef.current = controller;
-      
-      try {
-        await prefetchDetailToCache(id, controller.signal);
-      } catch {
-        // AbortErrorやネットワークエラーは無視（prefetchなので）
-      } finally {
-        if (hoverPrefetchAbortRef.current === controller) {
-          hoverPrefetchAbortRef.current = null;
-        }
-      }
+
+    hoverPrefetchTargetIdRef.current = id;
+    hoverPrefetchTimerRef.current = setTimeout(() => {
+      hoverPrefetchTimerRef.current = null;
+      startRowPrefetch(id);
     }, HOVER_PREFETCH_DELAY_MS);
-  }, [prefetchDetailToCache, selectedId]);
+  }, [selectedId, startRowPrefetch]);
+
+  const handleRowImmediatePrefetch = useCallback((id: string) => {
+    if (hoverPrefetchTimerRef.current && hoverPrefetchTargetIdRef.current === id) {
+      clearTimeout(hoverPrefetchTimerRef.current);
+      hoverPrefetchTimerRef.current = null;
+    }
+    startRowPrefetch(id);
+  }, [startRowPrefetch]);
   
   // Step 93: マウス離脱時にタイマーをキャンセル
   const handleRowMouseLeave = useCallback(() => {
@@ -2500,8 +2708,11 @@ export default function InboxShell({
       clearTimeout(hoverPrefetchTimerRef.current);
       hoverPrefetchTimerRef.current = null;
     }
-    hoverPrefetchAbortRef.current?.abort();
-    hoverPrefetchAbortRef.current = null;
+    if (hoverPrefetchAbortRef.current && hoverPrefetchTargetIdRef.current !== id) {
+      hoverPrefetchAbortRef.current.abort();
+      hoverPrefetchAbortRef.current = null;
+      hoverPrefetchTargetIdRef.current = null;
+    }
     adjacentPrefetchAbortRef.current?.abort();
     adjacentPrefetchAbortRef.current = null;
     
@@ -2515,11 +2726,9 @@ export default function InboxShell({
           .map((index) => visibleMessages[index]?.id)
           .filter((nextId): nextId is string => Boolean(nextId && nextId !== id))
       : [];
-    if (hasFreshCache) {
-      abortRef.current?.abort();
-      detailInFlightIdRef.current = id;
-      selectedIdRef.current = id;
-    }
+    abortRef.current?.abort();
+    detailInFlightIdRef.current = id;
+    selectedIdRef.current = id;
     
     // flushSyncを使って、選択メッセージとタイトルと本文の更新を同期的に行う
     // これにより、連続クリック時にタイトルと本文がずれる問題を防ぐ
@@ -2556,7 +2765,7 @@ export default function InboxShell({
       void loadDetailBodyOnly(id);
     }
     if (adjacentPrefetchIds.length > 0) {
-      window.setTimeout(() => {
+      window.requestAnimationFrame(() => {
         if (selectedIdRef.current !== id) return;
         const controller = new AbortController();
         adjacentPrefetchAbortRef.current = controller;
@@ -2565,7 +2774,7 @@ export default function InboxShell({
             adjacentPrefetchAbortRef.current = null;
           }
         });
-      }, 220);
+      });
     }
     // Step 51: 検索クエリをURLに保持（idだけ変える時もqが消えないように）
     replaceUrl(labelId, id, true, serverSearchQuery || undefined);
@@ -2762,11 +2971,16 @@ export default function InboxShell({
   const lastRulesApplyKeyRef = useRef<string>("");
   useEffect(() => {
     if (messages.length === 0) return;
+    if (!writeGuardReady || readOnlyMode) return;
     const key = `${labelId}:${messages.map((m) => m.id).join(",")}`;
     if (lastRulesApplyKeyRef.current === key) return;
     lastRulesApplyKeyRef.current = key;
-    void applyRulesBestEffort(messages.map((m) => m.id));
-  }, [applyRulesBestEffort, labelId, messages]);
+    const messageIds = messages.map((m) => m.id);
+    const cancelIdle = scheduleIdleTask(() => {
+      void applyRulesBestEffort(messageIds);
+    }, 3_500);
+    return cancelIdle;
+  }, [applyRulesBestEffort, labelId, messages, readOnlyMode, writeGuardReady]);
 
   const fetchRegisteredLabels = useCallback(async () => {
     try {
@@ -2778,7 +2992,10 @@ export default function InboxShell({
   }, []);
 
   useEffect(() => {
-    void fetchRegisteredLabels();
+    const cancelIdle = scheduleIdleTask(() => {
+      void fetchRegisteredLabels();
+    }, 3_000);
+    return cancelIdle;
   }, [fetchRegisteredLabels]);
 
   // Step 52: Fetch saved searches (queues)
@@ -2792,54 +3009,60 @@ export default function InboxShell({
   }, []);
 
   useEffect(() => {
-    void fetchSavedSearches();
+    const cancelIdle = scheduleIdleTask(() => {
+      void fetchSavedSearches();
+    }, 3_000);
+    return cancelIdle;
   }, [fetchSavedSearches]);
 
   useEffect(() => {
     // Settingsはadminのみ表示（サーバ側でも拒否するが、UIでも事故防止）
     // NOTE: TEST_MODEではE2EでSettingsを確実に操作できるように、admin扱いで表示する。
-    void (async () => {
-      try {
-        const res = await fetch("/api/mailhub/config/health", { cache: "no-store" });
-        const json = (await res.json().catch(() => ({}))) as {
-          isAdmin?: boolean;
-          readOnly?: boolean;
-          gmailModifyEnabled?: boolean | null;
-          gmailSendReady?: boolean;
-          gmailSendBlockedReason?: GmailSendBlockedReason;
-          sendAs?: {
-            acceptedAliases?: unknown;
-            missingAliases?: unknown;
-            checkedAt?: string | null;
+    const cancelIdle = scheduleIdleTask(() => {
+      void (async () => {
+        try {
+          const res = await fetch("/api/mailhub/config/health", { cache: "no-store" });
+          const json = (await res.json().catch(() => ({}))) as {
+            isAdmin?: boolean;
+            readOnly?: boolean;
+            gmailModifyEnabled?: boolean | null;
+            gmailSendReady?: boolean;
+            gmailSendBlockedReason?: GmailSendBlockedReason;
+            sendAs?: {
+              acceptedAliases?: unknown;
+              missingAliases?: unknown;
+              checkedAt?: string | null;
+            };
           };
-        };
-        const admin = testMode ? true : json.isAdmin === true;
-        setCanOpenSettings(admin);
-        setIsAdmin(admin);
-        setGmailSendHealth({
-          gmailSendReady: json.gmailSendReady === true,
-          blockedReason: coerceGmailSendBlockedReason(json.gmailSendBlockedReason ?? (json.gmailSendReady === true ? null : "send_disabled")),
-          acceptedAliases: stringArray(json.sendAs?.acceptedAliases),
-          missingAliases: stringArray(json.sendAs?.missingAliases),
-          checkedAt: typeof json.sendAs?.checkedAt === "string" ? json.sendAs.checkedAt : null,
-        });
-        const blocked =
-          json.readOnly === true
-            ? ("read_only" as const)
-            : json.gmailModifyEnabled === false
-              ? ("insufficient_permissions" as const)
-              : null;
-        setWriteBlockedReason(blocked);
-        setReadOnlyMode(blocked !== null);
-        setWriteGuardReady(true);
-      } catch {
-        setCanOpenSettings(testMode);
-        setIsAdmin(testMode);
-        setWriteBlockedReason(null);
-        setReadOnlyMode(false);
-        setWriteGuardReady(false);
-      }
-    })();
+          const admin = testMode ? true : json.isAdmin === true;
+          setCanOpenSettings(admin);
+          setIsAdmin(admin);
+          setGmailSendHealth({
+            gmailSendReady: json.gmailSendReady === true,
+            blockedReason: coerceGmailSendBlockedReason(json.gmailSendBlockedReason ?? (json.gmailSendReady === true ? null : "send_disabled")),
+            acceptedAliases: stringArray(json.sendAs?.acceptedAliases),
+            missingAliases: stringArray(json.sendAs?.missingAliases),
+            checkedAt: typeof json.sendAs?.checkedAt === "string" ? json.sendAs.checkedAt : null,
+          });
+          const blocked =
+            json.readOnly === true
+              ? ("read_only" as const)
+              : json.gmailModifyEnabled === false
+                ? ("insufficient_permissions" as const)
+                : null;
+          setWriteBlockedReason(blocked);
+          setReadOnlyMode(blocked !== null);
+          setWriteGuardReady(true);
+        } catch {
+          setCanOpenSettings(testMode);
+          setIsAdmin(testMode);
+          setWriteBlockedReason(null);
+          setReadOnlyMode(false);
+          setWriteGuardReady(false);
+        }
+      })();
+    }, 3_000);
+    return cancelIdle;
   }, [testMode]);
 
   const getWriteBlockedTitle = useCallback(() => {
@@ -2981,31 +3204,38 @@ export default function InboxShell({
     if (hasAll) return;
 
     let cancelled = false;
-    (async () => {
-      try {
-        // 取得は軽量化のため max=20（現状UIの表示と一致）
-        const results = await Promise.all(
-          channelIds.map(async (id) => {
-            const url = `/api/mailhub/list?label=${encodeURIComponent(id)}&max=20`;
-            const data = await fetchJson<{ label: string; messages: InboxListMessage[] }>(url);
-            return [id, data.messages.length] as const;
-          }),
-        );
-        if (cancelled) return;
-        setChannelCounts((prev) => {
-          const next = { ...prev };
-          results.forEach(([id, c]) => {
-            next[id] = c;
-          });
-          return next;
-        });
-      } catch {
-        // ignore（表示が消えないことが最優先。失敗時は現状維持）
-      }
-    })();
+    const cancelIdle = scheduleIdleTask(() => {
+      void (async () => {
+        try {
+          // 取得は軽量化のため max=20（現状UIの表示と一致）。初回操作を塞がないよう小バッチで進める。
+          for (let i = 0; i < channelIds.length && !cancelled; i += CHANNEL_COUNT_PREFETCH_BATCH_SIZE) {
+            const batchIds = channelIds.slice(i, i + CHANNEL_COUNT_PREFETCH_BATCH_SIZE);
+            const results = await Promise.all(
+              batchIds.map(async (id) => {
+                const url = `/api/mailhub/list?label=${encodeURIComponent(id)}&max=20`;
+                const data = await fetchJson<{ label: string; messages: InboxListMessage[] }>(url);
+                return [id, data.messages.length] as const;
+              }),
+            );
+            if (cancelled) return;
+            setChannelCounts((prev) => {
+              const next = { ...prev };
+              results.forEach(([id, c]) => {
+                next[id] = c;
+              });
+              return next;
+            });
+            await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
+          }
+        } catch {
+          // ignore（表示が消えないことが最優先。失敗時は現状維持）
+        }
+      })();
+    }, 3_500);
 
     return () => {
       cancelled = true;
+      cancelIdle();
     };
   }, [testMode, labelGroups, channelCounts]);
 
@@ -7722,6 +7952,9 @@ export default function InboxShell({
                             });
                           }}
                           onMouseEnter={() => handleRowMouseEnter(mail.id)}
+                          onPointerEnter={() => handleRowMouseEnter(mail.id)}
+                          onPointerDown={() => handleRowImmediatePrefetch(mail.id)}
+                          onFocus={() => handleRowImmediatePrefetch(mail.id)}
                           onMouseLeave={handleRowMouseLeave}
                         >
                           <div
@@ -8219,9 +8452,14 @@ export default function InboxShell({
                           クリックして本文を展開...
                         </div>
                       ) : (
-                      <div className="relative">
-                        {detailBody.isLoading || detailBody.messageId !== selectedMessage.id || (Boolean(detailBody.htmlBody) && !isClientReady) ? (
-                          <div className="min-h-[180px] space-y-3 py-1" data-testid="detail-skeleton" aria-busy="true">
+                      <div className="relative" ref={detailBodyFrameRef}>
+                        {detailBody.isLoading || detailBody.messageId !== selectedMessage.id || isSelectedHtmlBodyPending ? (
+                          <div
+                            className="min-h-[180px] space-y-3 py-1"
+                            data-testid="detail-skeleton"
+                            aria-busy="true"
+                            style={{ minHeight: stableDetailBodyMinHeight }}
+                          >
                             <div className="mailhub-detail-shimmer h-3 rounded-full w-[88%]" />
                             <div className="mailhub-detail-shimmer h-3 rounded-full w-[62%]" />
                             <div className="pt-2 space-y-2">

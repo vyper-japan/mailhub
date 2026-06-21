@@ -6374,6 +6374,83 @@ test("Step93-3c3) Mail preview switching: HTMLメール連続クリックで前�
   await switchAndAssertSynced("msg-002", "Yahoo!ショッピング-朝レポ", "Yahoo!ショッピング 朝レポ", "Amazon.co.jp 注文確認");
 });
 
+test("Step93-3c6) Mail preview interaction: 初回直後と連続切替でフレーム停止しない", async ({ page }) => {
+  await page.request.post("/api/mailhub/test/reset").catch(() => {});
+  await page.addInitScript(() => {
+    localStorage.setItem("mailhub-onboarding-shown", "true");
+  });
+  await page.setViewportSize({ width: 1280, height: 860 });
+  await page.goto("/?label=all&id=msg-002&max=20", { waitUntil: "domcontentloaded" });
+  await expect(page.getByTestId("message-row").first()).toBeVisible({ timeout: 10000 });
+  await expect(page.getByTestId("email-body-html")).toHaveAttribute("data-detail-message-id", "msg-002", { timeout: 10000 });
+
+  const measureSwitch = async (targetId: string, subjectText: string, requiredBodyText: string) => {
+    const row = page.locator(`[data-testid="message-row"][data-message-id="${targetId}"]`);
+    await expect(row).toBeVisible({ timeout: 10000 });
+    const interactionReportP = page.evaluate(
+      async ({ targetId, subjectText }) => {
+        const start = performance.now();
+        let lastFrame = start;
+        let maxFrameGap = 0;
+        let subjectReadyAt: number | null = null;
+        let bodyReadyAt: number | null = null;
+        const longTasks: number[] = [];
+        let observer: PerformanceObserver | null = null;
+        try {
+          observer = new PerformanceObserver((list) => {
+            for (const entry of list.getEntries()) {
+              longTasks.push(Math.round(entry.duration));
+            }
+          });
+          observer.observe({ type: "longtask", buffered: true });
+        } catch {
+          observer = null;
+        }
+
+        while (performance.now() - start < 1200) {
+          await new Promise<void>((resolve) => {
+            requestAnimationFrame((timestamp) => {
+              maxFrameGap = Math.max(maxFrameGap, timestamp - lastFrame);
+              lastFrame = timestamp;
+              resolve();
+            });
+          });
+          const now = performance.now();
+          const subject = document.querySelector('[data-testid="detail-subject"]')?.textContent ?? "";
+          const body = document.querySelector('[data-testid="email-body-html"], [data-testid="email-body-text"]') as HTMLElement | null;
+          if (!subjectReadyAt && subject.includes(subjectText)) subjectReadyAt = now;
+          if (!bodyReadyAt && body?.getAttribute("data-detail-message-id") === targetId) bodyReadyAt = now;
+          if (subjectReadyAt && bodyReadyAt && now - Math.max(subjectReadyAt, bodyReadyAt) > 64) break;
+        }
+        observer?.disconnect();
+        return {
+          subjectReadyAt: subjectReadyAt == null ? null : Math.round(subjectReadyAt - start),
+          bodyReadyAt: bodyReadyAt == null ? null : Math.round(bodyReadyAt - start),
+          maxFrameGap: Math.round(maxFrameGap),
+          longTasks,
+        };
+      },
+      { targetId, subjectText },
+    );
+
+    await row.click();
+    const interactionReport = await interactionReportP;
+    await expect(page.getByTestId("detail-subject")).toContainText(subjectText, { timeout: 10000 });
+    const body = page.locator('[data-testid="email-body-html"], [data-testid="email-body-text"]').first();
+    await expect(body).toHaveAttribute("data-detail-message-id", targetId, { timeout: 10000 });
+    await expect(body).toContainText(requiredBodyText, { timeout: 10000 });
+
+    expect(interactionReport.subjectReadyAt).not.toBeNull();
+    expect(interactionReport.bodyReadyAt).not.toBeNull();
+    expect(interactionReport.bodyReadyAt ?? 9999).toBeLessThan(1200);
+    expect(interactionReport.maxFrameGap).toBeLessThan(500);
+    expect(interactionReport.longTasks.filter((duration) => duration >= 500)).toEqual([]);
+  };
+
+  await measureSwitch("msg-001", "【重要】注文確認", "Amazon.co.jp 注文確認");
+  await measureSwitch("msg-002", "Yahoo!ショッピング-朝レポ", "Yahoo!ショッピング 朝レポ");
+});
+
 test("Step93-3c4) Detail header address: 送信元メールが小さく見える", async ({ page }) => {
   await page.request.post("/api/mailhub/test/reset").catch(() => {});
   await page.addInitScript(() => {
