@@ -4081,6 +4081,7 @@ test("Step101-1) tag付与→一覧pill→tag検索で絞れる", async ({ page 
   const tagSlug = `refund-${Date.now()}`;
   await page.getByTestId("work-tag-input").fill(tagSlug);
   await page.getByTestId("work-tag-add").click();
+  await expect(page.getByTestId(`work-tag-chip-${tagSlug}`)).toBeVisible({ timeout: 5000 });
 
   const saveRespP = page.waitForResponse((r) => r.url().includes("/api/mailhub/meta") && r.request().method() === "PUT" && r.status() === 200);
   await page.getByTestId("work-tag-save").click();

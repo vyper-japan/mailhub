@@ -823,6 +823,7 @@ export default function InboxShell({
   const [workTagsById, setWorkTagsById] = useState<Record<string, string[]>>({});
   const [workTagDraft, setWorkTagDraft] = useState<string[]>([]);
   const [workTagInput, setWorkTagInput] = useState("");
+  const workTagDraftRef = useRef<string[]>([]);
   const locallySavedWorkTagIdsRef = useRef<Set<string>>(new Set());
 
   const parseNoteSearch = useCallback((query: string) => {
@@ -964,10 +965,13 @@ export default function InboxShell({
   useEffect(() => {
     if (!selectedId) {
       setWorkTagDraft([]);
+      workTagDraftRef.current = [];
       setWorkTagInput("");
       return;
     }
-    setWorkTagDraft(workTagsById[selectedId] ?? []);
+    const nextDraft = workTagsById[selectedId] ?? [];
+    setWorkTagDraft(nextDraft);
+    workTagDraftRef.current = nextDraft;
     setWorkTagInput("");
   }, [selectedId, workTagsById]);
 
@@ -8894,7 +8898,11 @@ export default function InboxShell({
                                       <button
                                         type="button"
                                         className="text-purple-600 hover:text-purple-800"
-                                        onClick={() => setWorkTagDraft((prev) => prev.filter((x) => x !== t))}
+                                        onClick={() => setWorkTagDraft((prev) => {
+                                          const next = prev.filter((x) => x !== t);
+                                          workTagDraftRef.current = next;
+                                          return next;
+                                        })}
                                         data-testid={`work-tag-remove-${t}`}
                                         title="削除"
                                       >
@@ -8921,7 +8929,11 @@ export default function InboxShell({
                                 onClick={() => {
                                   const slug = normalizeTagSlug(workTagInput);
                                   if (!slug) return;
-                                  setWorkTagDraft((prev) => (prev.includes(slug) ? prev : [...prev, slug]).slice(0, 20));
+                                  setWorkTagDraft((prev) => {
+                                    const next = (prev.includes(slug) ? prev : [...prev, slug]).slice(0, 20);
+                                    workTagDraftRef.current = next;
+                                    return next;
+                                  });
                                   setWorkTagInput("");
                                 }}
                                 className="px-3 py-2 rounded-md text-[12px] font-bold bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -8935,7 +8947,7 @@ export default function InboxShell({
                                 onClick={() => {
                                   if (!selectedMessage?.id) return;
                                   const messageId = selectedMessage.id;
-                                  const tags = workTagDraft;
+                                  const tags = workTagDraftRef.current;
                                   void (async () => {
                                     try {
                                       const res = await fetch("/api/mailhub/meta", {
