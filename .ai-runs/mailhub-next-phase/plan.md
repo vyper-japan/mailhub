@@ -1,5 +1,52 @@
 # MailHub Next Phase Plan
 
+## 2026-06-22 Initial Detail Load Responsiveness Checkpoint Plan
+
+Status: implementation, visual evidence, subagent review, and local verification are complete; commit/push/readiness refresh are intentionally paused.
+
+Completed plan:
+
+1. Confirmed latest pushed `main` (`38855fe`) was clean and CI green before starting.
+2. Used parallel subagents:
+   - repo/CI reconnaissance: confirmed correct repo, clean main, latest CI green.
+   - UX/test reconnaissance: identified initial selected detail SSR await as the next high-impact gap.
+   - code critic: reviewed the diff and found no P0/P1 issues.
+   - test-impact explorer: found no existing SSR `initialDetail` dependency; called out `Step93-3c4`/`Step93-3c5` as important detail-derived context guards.
+3. Implemented the initial detail responsiveness slice.
+4. Added delayed-detail E2E coverage.
+5. Captured visual evidence for skeleton-before-body and resolved-body states.
+6. Ran local validation:
+   - `git diff --check`
+   - `npm run typecheck`
+   - `npm run lint`
+   - `npm run smoke`
+   - `npm run security:scan`
+   - `npm run build`
+   - `npm run test:coverage`
+   - `npm run security:scan-artifacts`
+   - targeted Playwright `Step93-3c7`
+   - targeted Playwright `Step93-3c1|...|Step93-3c7`
+
+Remaining closeout plan:
+
+1. Resume in `/Users/takayukisuzuki/VYPER-Dev/Mailhub`.
+2. Confirm `git status -sb`, `git diff --stat`, `git diff --check`, and `npm run security:scan-artifacts`.
+3. Commit the code/test/visual evidence/checkpoint slice:
+   - `Improve MailHub initial detail responsiveness`
+4. Run `npm run ops:readiness-refresh`.
+5. Run `npm run security:scan-artifacts`.
+6. Commit refreshed `.ai-runs/mailhub-next-phase` artifacts:
+   - `Refresh readiness artifacts after initial detail responsiveness`
+7. Push.
+8. Watch `MailHub Readiness Contract` and `qa-strict`.
+
+Constraints stay in force:
+
+- no external email send without explicit approval
+- no GitHub setup/apply mutation without explicit approval
+- no Sheets mutation without explicit approval
+- no production-complete claim
+
 ## 2026-06-21 Ownership CTA Clarity Plan
 
 Status: implementation and focused/full local verification complete; artifact commit/push closeout in progress.

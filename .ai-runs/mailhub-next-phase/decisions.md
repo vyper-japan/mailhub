@@ -1,5 +1,16 @@
 # MailHub Next Phase Decisions
 
+## 2026-06-23 Claude Code Handoff / Initial Detail Load Decisions
+
+- Treat first-open responsiveness as a preview correctness requirement. Operators must be able to see and click the workbench while the selected email body is still loading.
+- Stop awaiting the initially selected message body in `app/page.tsx`; server render now provides the list, selected metadata, and shell first.
+- Load the initially selected detail from `InboxShell.tsx` on the client with a guarded effect so the selected row/header can hydrate before body detail arrives.
+- Keep the detail title/header based on `selectedMessage`; keep recipient/store context derived from `selectedDetail`, which is still covered by `Step93-3c4` and `Step93-3c5`.
+- Add `data-mailhub-client-ready` as a stable hydration-readiness signal for E2E and visual QA.
+- Change `.mailhub-email-body` from silent horizontal clipping to contained horizontal scroll (`overflow-x: auto`) so real email markup is not invisibly cut off.
+- The slice changes preview rendering only. No send route, assignment workflow, Gmail/Sheets/GitHub setup, or production routing behavior was changed.
+- Production readiness remains false until the existing P0/P1 blockers have real evidence.
+
 ## 2026-06-21 Ownership Visibility Decisions
 
 - Treat list ownership visibility as the next safest UX slice after Reply Ownership Shield, because the send gate is already enforced but operators need to see ownership before opening/acting on a message.

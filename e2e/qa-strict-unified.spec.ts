@@ -6453,6 +6453,68 @@ test("Step93-3c6) Mail preview interaction: 初回直後と連続切替でフレ
   await measureSwitch("msg-002", "Yahoo!ショッピング-朝レポ", "Yahoo!ショッピング 朝レポ");
 });
 
+test("Step93-3c7) Initial detail load: 本文取得待ちでも一覧とヘッダーは先に操作できる", async ({ page }) => {
+  await page.request.post("/api/mailhub/test/reset").catch(() => {});
+  await page.addInitScript(() => {
+    localStorage.setItem("mailhub-onboarding-shown", "true");
+  });
+
+  let releaseDetail!: () => void;
+  const detailRelease = new Promise<void>((resolve) => {
+    releaseDetail = resolve;
+  });
+  let selectedDetailRequestCount = 0;
+
+  await page.route("**/api/mailhub/detail?id=msg-002**", async (route) => {
+    selectedDetailRequestCount += 1;
+    await detailRelease;
+    await route.continue();
+  });
+
+  await page.setViewportSize({ width: 1280, height: 860 });
+  await page.goto("/?label=all&id=msg-002&max=20", { waitUntil: "domcontentloaded" });
+
+  await expect(page.getByTestId("message-row").first()).toBeVisible({ timeout: 5000 });
+  await expect(page.getByTestId("detail-subject")).toContainText("Yahoo!ショッピング-朝レポ", { timeout: 5000 });
+  await expect(page.getByTestId("detail-skeleton")).toBeVisible({ timeout: 5000 });
+  await expect(page.locator("[data-mailhub-client-ready='true']")).toBeVisible({ timeout: 5000 });
+  await expect
+    .poll(() => selectedDetailRequestCount, { timeout: 5000 })
+    .toBe(1);
+
+  const blockedMetrics = await page.evaluate(() => {
+    const list = document.querySelector(".mailhub-list-column");
+    const detail = document.querySelector(".mailhub-detail-column");
+    const skeleton = document.querySelector('[data-testid="detail-skeleton"]');
+    const body = document.querySelector('[data-testid="email-body-html"], [data-testid="email-body-text"]');
+    const subject = document.querySelector('[data-testid="detail-subject"]');
+    return {
+      clientReady: document.querySelector("[data-mailhub-client-ready='true']") !== null,
+      listVisible: Boolean(list && list.getBoundingClientRect().width > 320),
+      subjectVisible: Boolean(subject && subject.getBoundingClientRect().height > 0),
+      skeletonStable: Math.round(skeleton?.getBoundingClientRect().height ?? 0) >= 180,
+      bodyVisibleBeforeRelease: Boolean(body && body.getBoundingClientRect().height > 0),
+      horizontalOverflow: document.documentElement.scrollWidth > window.innerWidth + 1,
+      detailOverflowsViewport: detail ? detail.getBoundingClientRect().right > window.innerWidth + 1 : true,
+    };
+  });
+
+  expect(blockedMetrics.clientReady).toBe(true);
+  expect(blockedMetrics.listVisible).toBe(true);
+  expect(blockedMetrics.subjectVisible).toBe(true);
+  expect(blockedMetrics.skeletonStable).toBe(true);
+  expect(blockedMetrics.bodyVisibleBeforeRelease).toBe(false);
+  expect(blockedMetrics.horizontalOverflow).toBe(false);
+  expect(blockedMetrics.detailOverflowsViewport).toBe(false);
+
+  releaseDetail();
+  const htmlBody = page.getByTestId("email-body-html");
+  await expect(htmlBody).toHaveAttribute("data-detail-message-id", "msg-002", { timeout: 10000 });
+  await expect(htmlBody).toContainText("Yahoo!ショッピング 朝レポ", { timeout: 10000 });
+  await expect(page.getByTestId("detail-skeleton")).toBeHidden({ timeout: 5000 });
+  expect(selectedDetailRequestCount).toBe(1);
+});
+
 test("Step93-3c4) Detail header address: 送信元メールが小さく見える", async ({ page }) => {
   await page.request.post("/api/mailhub/test/reset").catch(() => {});
   await page.addInitScript(() => {

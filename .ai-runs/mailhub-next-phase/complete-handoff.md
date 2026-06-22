@@ -1,5 +1,72 @@
 # MailHub Next Phase Complete Handoff
 
+## 2026-06-23 Claude Code Handoff Update
+
+This is the authoritative handoff for Claude Code. Older sections below are historical and may describe already-completed 2026-06-20/2026-06-21 slices.
+
+Repo:
+
+- `/Users/takayukisuzuki/VYPER-Dev/Mailhub`
+- branch `main`
+- expected base state `main...origin/main`
+- worktree is intentionally dirty; do not overwrite it
+
+Current uncommitted implementation slice:
+
+- `app/page.tsx`: no longer awaits the initial selected body detail during server render.
+- `app/inbox/InboxShell.tsx`: guarded client-side initial selected-detail loader plus `data-mailhub-client-ready`.
+- `app/globals.css`: email body uses contained horizontal scroll instead of silent clipping.
+- `e2e/qa-strict-unified.spec.ts`: new `Step93-3c7` delayed-detail responsiveness regression.
+- `artifacts/design-brief.json`: updated verification notes.
+- `artifacts/ui-screenshots/mailhub-initial-detail-load-*`: visual/evidence artifacts.
+- `.ai-runs/mailhub-next-phase/*`: checkpoint and Claude handoff updates.
+
+Latest verified commands before this handoff:
+
+- `git diff --check`: PASS
+- `npm run typecheck`: PASS
+- `npm run lint`: PASS
+- `npm run smoke`: PASS
+- `npm run security:scan`: PASS
+- `npm run build`: PASS
+- `npm run test:coverage`: PASS, 75 files / 712 tests
+- `npm run security:scan-artifacts`: PASS
+- targeted Playwright `Step93-3c7`: PASS
+- targeted Playwright `Step93-3c1|Step93-3c2|Step93-3c3|Step93-3c4|Step93-3c5|Step93-3c6|Step93-3c7`: PASS
+
+Claude Code should start with `.ai-runs/mailhub-next-phase/PROMPT_FOR_CLAUDE.md`, then run:
+
+```bash
+cd /Users/takayukisuzuki/VYPER-Dev/Mailhub
+git status -sb
+git diff --stat
+git diff --check
+npm run security:scan-artifacts
+```
+
+Recommended next actions:
+
+1. Review the dirty diff and preserve all user/Codex changes.
+2. Commit the implementation/evidence/handoff slice as `Improve MailHub initial detail responsiveness`.
+3. Run `npm run ops:readiness-refresh`.
+4. Run `npm run security:scan-artifacts` and `git diff --check`.
+5. Commit refreshed readiness artifacts as `Refresh readiness artifacts after initial detail responsiveness`.
+6. Push and watch `MailHub Readiness Contract` and `qa-strict`.
+
+Hard approval gates:
+
+- no external email send without explicit approval
+- no GitHub setup/apply mutation without explicit approval
+- no Sheets mutation without explicit approval
+- no production-complete claim
+
+Current production blockers remain:
+
+- P0 `current_shared_gmail_routing`
+- P1 `rule_config_source_not_production`
+- P1 `staff_workflow_permissions`
+- P1 `staff_github_config_not_ready`
+
 ## 2026-06-20 Latest Handoff Update
 
 This file has older historical sections below. Treat this section as authoritative for the next session.

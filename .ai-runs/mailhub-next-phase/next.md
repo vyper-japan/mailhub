@@ -1,5 +1,86 @@
 # MailHub Next Phase Next Actions
 
+## 2026-06-22 Resume Here: Commit Initial Detail Load Responsiveness
+
+Current slice is implemented, locally verified, and intentionally left uncommitted because the user asked to pause and create this checkpoint.
+
+Goal of the slice:
+
+- Reduce the first-open "frozen" feeling by not awaiting selected message body detail in `app/page.tsx`.
+- Render the selected row and detail header immediately with a stable skeleton.
+- Fetch selected detail on the client via `InboxShell`.
+- Stop silently clipping third-party email bodies by changing `.mailhub-email-body` to local horizontal auto-scroll if constraints ever fail.
+
+Current working tree should contain only this slice and checkpoint updates:
+
+```text
+.ai-runs/mailhub-next-phase/commands.md
+.ai-runs/mailhub-next-phase/next.md
+.ai-runs/mailhub-next-phase/plan.md
+.ai-runs/mailhub-next-phase/progress.md
+.ai-runs/mailhub-next-phase/decisions.md
+.ai-runs/mailhub-next-phase/blockers.md
+app/globals.css
+app/inbox/InboxShell.tsx
+app/page.tsx
+artifacts/design-brief.json
+e2e/qa-strict-unified.spec.ts
+artifacts/ui-screenshots/mailhub-initial-detail-load-check.json
+artifacts/ui-screenshots/mailhub-initial-detail-load-resolved.png
+artifacts/ui-screenshots/mailhub-initial-detail-load-skeleton.png
+```
+
+Already passed before checkpoint:
+
+```bash
+git diff --check
+npm run typecheck
+npm run lint
+npm run smoke
+npm run security:scan
+npm run build
+npm run test:coverage
+npm run security:scan-artifacts
+MAILHUB_TEST_MODE=1 npx playwright test e2e/qa-strict-unified.spec.ts --grep "Step93-3c7" --workers=1
+MAILHUB_TEST_MODE=1 npx playwright test e2e/qa-strict-unified.spec.ts --grep "Step93-3c1|Step93-3c2|Step93-3c3|Step93-3c4|Step93-3c5|Step93-3c6|Step93-3c7" --workers=1
+```
+
+Recommended resume sequence:
+
+```bash
+cd /Users/takayukisuzuki/VYPER-Dev/Mailhub
+git status -sb
+git diff --stat
+git diff --check
+npm run security:scan-artifacts
+git add app/page.tsx app/inbox/InboxShell.tsx app/globals.css e2e/qa-strict-unified.spec.ts artifacts/design-brief.json artifacts/ui-screenshots/mailhub-initial-detail-load-check.json artifacts/ui-screenshots/mailhub-initial-detail-load-resolved.png artifacts/ui-screenshots/mailhub-initial-detail-load-skeleton.png .ai-runs/mailhub-next-phase
+git commit -m "Improve MailHub initial detail responsiveness"
+npm run ops:readiness-refresh
+npm run security:scan-artifacts
+git add .ai-runs/mailhub-next-phase
+git commit -m "Refresh readiness artifacts after initial detail responsiveness"
+git push
+```
+
+Then watch:
+
+- `MailHub Readiness Contract`
+- `qa-strict`
+
+Keep these hard gates:
+
+- no external email send without explicit approval
+- no GitHub setup/apply mutation without explicit approval
+- no Sheets mutation without explicit approval
+- do not claim production complete
+
+Current production blockers remain:
+
+- P0 `current_shared_gmail_routing`
+- P1 `rule_config_source_not_production`
+- P1 `staff_workflow_permissions`
+- P1 `staff_github_config_not_ready`
+
 ## 2026-06-21 Resume Here: Close Out Ownership CTA Clarity
 
 Current Ownership CTA clarity slice is committed as `c05477d Clarify MailHub ownership CTA surfaces`.

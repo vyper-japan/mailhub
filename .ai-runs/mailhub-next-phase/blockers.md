@@ -1,5 +1,31 @@
 # MailHub Next Phase Blockers
 
+## 2026-06-23 Claude Code Handoff / Initial Detail Load Blockers
+
+No implementation blocker remains for the initial-detail responsiveness slice. The code and evidence are verified locally but intentionally uncommitted because the user asked to stop and hand off to Claude Code.
+
+Process blockers for the next session:
+
+- The source, E2E, screenshot evidence, design brief, and `.ai-runs/mailhub-next-phase` checkpoint diff are uncommitted.
+- `scripts/ai_handoff_snapshot.sh` does not exist in this repo, so this handoff was saved manually.
+- `npm run ops:readiness-refresh` has not been run after this latest source slice.
+- GitHub Actions have not run for this latest slice because it has not been committed/pushed.
+- Older sections in this file describe previous UI/readiness slices. Treat this section plus the latest sections in `plan.md`, `progress.md`, `commands.md`, `next.md`, `complete-handoff.md`, `next-session-prompt.md`, and `PROMPT_FOR_CLAUDE.md` as authoritative.
+
+Product/production blockers remain unchanged:
+
+- P0 `current_shared_gmail_routing`
+- P1 `rule_config_source_not_production`
+- P1 `staff_workflow_permissions`
+- P1 `staff_github_config_not_ready`
+
+Approval gates remain unchanged:
+
+- No external email send without explicit approval.
+- No GitHub setup/apply mutation without explicit approval.
+- No Sheets mutation without explicit approval.
+- No production-complete claim.
+
 ## 2026-06-21 Ownership Visibility Blockers
 
 No ownership-visibility implementation blocker remains after the focused slice.

@@ -1,5 +1,71 @@
 # MailHub Next Phase Commands
 
+## 2026-06-22 Initial Detail Load Responsiveness Commands
+
+Targeted and full local validation:
+
+```bash
+git diff --check
+npm run typecheck
+npm run lint
+npm run smoke
+npm run security:scan
+npm run build
+npm run test:coverage
+npm run security:scan-artifacts
+MAILHUB_TEST_MODE=1 npx playwright test e2e/qa-strict-unified.spec.ts --grep "Step93-3c7" --workers=1
+MAILHUB_TEST_MODE=1 npx playwright test e2e/qa-strict-unified.spec.ts --grep "Step93-3c1|Step93-3c2|Step93-3c3|Step93-3c4|Step93-3c5|Step93-3c6|Step93-3c7" --workers=1
+```
+
+Result:
+
+- PASS.
+- `npm run test:coverage` passed 75 files / 712 tests.
+- Targeted Playwright passed 1/1 and 7/7.
+
+Visual evidence captured against `localhost:3012` TEST_MODE:
+
+```text
+artifacts/ui-screenshots/mailhub-initial-detail-load-skeleton.png
+artifacts/ui-screenshots/mailhub-initial-detail-load-resolved.png
+artifacts/ui-screenshots/mailhub-initial-detail-load-check.json
+```
+
+Final capture checks:
+
+```text
+clientReadyBeforeDetail=true
+listVisibleBeforeDetail=true
+headerVisibleBeforeDetail=true
+skeletonStableBeforeDetail=true
+noBodyBeforeDetailRelease=true
+noHorizontalOverflowBeforeDetail=true
+bodySyncedAfterRelease=true
+noPreviewOverflowAfterRelease=true
+bodyInsideContentAfterRelease=true
+singleSelectedDetailRequest=true
+noConsoleErrors=true
+noFailedResponses=true
+```
+
+No external email send was executed.
+
+## 2026-06-23 Claude Code Handoff Validation
+
+After adding the Claude Code handoff files:
+
+```bash
+git diff --check
+npm run security:scan-artifacts
+```
+
+Result:
+
+- PASS.
+- Artifact scan reported `PASS CR-F9-R007 ops artifact secret scan`.
+- `scanned_files=18`.
+- `scripts/ai_handoff_snapshot.sh` does not exist in this repo, so the checkpoint was written manually.
+
 ## 2026-06-21 Ownership CTA Clarity Commands
 
 Commands run for the detail/Gmail ownership CTA slice:

@@ -136,7 +136,8 @@ button:disabled .action-spinner {
   max-width: 100%;
   min-height: 180px;
   min-width: 0;
-  overflow-x: hidden;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
   overflow-anchor: none;
   contain: inline-size;
   overflow-wrap: anywhere;

@@ -1,0 +1,49 @@
+{
+  "capturedAt": "2026-06-22T11:58:21.684Z",
+  "viewport": {
+    "width": 1280,
+    "height": 860
+  },
+  "selectedMessageId": "msg-002",
+  "selectedDetailRequestCount": 1,
+  "blockedMetrics": {
+    "clientReady": true,
+    "listWidth": 488,
+    "detailWidth": 544,
+    "subjectText": "Yahoo!ショッピング-朝レポ：店舗Aの売上状況",
+    "skeletonHeight": 180,
+    "bodyVisibleBeforeRelease": false,
+    "horizontalOverflow": false,
+    "detailOverflowsViewport": false
+  },
+  "resolvedMetrics": {
+    "bodyTestId": "email-body-html",
+    "bodyMessageId": "msg-002",
+    "bodyContainsExpectedText": true,
+    "skeletonVisible": false,
+    "bodyHorizontalOverflow": false,
+    "contentHorizontalOverflow": false,
+    "bodyInsideContent": true,
+    "horizontalOverflow": false
+  },
+  "checks": {
+    "clientReadyBeforeDetail": true,
+    "listVisibleBeforeDetail": true,
+    "headerVisibleBeforeDetail": true,
+    "skeletonStableBeforeDetail": true,
+    "noBodyBeforeDetailRelease": true,
+    "noHorizontalOverflowBeforeDetail": true,
+    "bodySyncedAfterRelease": true,
+    "noPreviewOverflowAfterRelease": true,
+    "bodyInsideContentAfterRelease": true,
+    "singleSelectedDetailRequest": true,
+    "noConsoleErrors": true,
+    "noFailedResponses": true
+  },
+  "consoleErrors": [],
+  "failedResponses": [],
+  "screenshots": [
+    "artifacts/ui-screenshots/mailhub-initial-detail-load-skeleton.png",
+    "artifacts/ui-screenshots/mailhub-initial-detail-load-resolved.png"
+  ]
+}

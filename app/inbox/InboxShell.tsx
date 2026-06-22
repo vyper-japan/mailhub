@@ -2378,6 +2378,22 @@ export default function InboxShell({
   }, [evictOldCacheEntries]);
 
   useEffect(() => {
+    if (!selectedId || !selectedMessage || detailError) return;
+    if (selectedDetail?.id === selectedId && detailBody.messageId === selectedId && !detailBody.isLoading) return;
+    if (detailBody.messageId === selectedId && detailBody.isLoading) return;
+
+    void loadDetailBodyOnly(selectedId);
+  }, [
+    detailBody.isLoading,
+    detailBody.messageId,
+    detailError,
+    loadDetailBodyOnly,
+    selectedDetail?.id,
+    selectedId,
+    selectedMessage,
+  ]);
+
+  useEffect(() => {
     if (!selectedId) return;
     const visibleMessages = slaFilteredMessages.length > 0 ? slaFilteredMessages : messages;
     const selectedIndex = visibleMessages.findIndex((message) => message.id === selectedId);
@@ -6719,7 +6735,10 @@ export default function InboxShell({
   const selectedDetailBasis = `min(872px, max(460px, calc(100vw - ${sidebarWidth + selectedListBasisPx}px)))`;
 
   return (
-    <div className={`w-full h-screen ${t.bg} flex flex-col font-sans`}>
+    <div
+      className={`w-full h-screen ${t.bg} flex flex-col font-sans`}
+      data-mailhub-client-ready={isClientReady ? "true" : "false"}
+    >
       <div className="flex-1 flex overflow-hidden">
         {/* --- 左サイドバー --- */}
         <Sidebar

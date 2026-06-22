@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { auth, signOut } from "@/auth";
-import { getMessageDetail, listLatestInboxMessages, type ListMessagesResult } from "@/lib/gmail";
+import { listLatestInboxMessages, type ListMessagesResult } from "@/lib/gmail";
 import { buildLabelGroups, getLabelQuery } from "@/lib/labels";
 import { coerceChannelId, type ChannelId } from "@/lib/channels";
 import { isTestMode } from "@/lib/test-mode";
@@ -135,17 +135,6 @@ export default async function HomePage({
       ? requestedId
       : messages[0]?.id;
 
-  let detailError: string | null = null;
-  const detail = await (async () => {
-    if (!selectedId) return null;
-    try {
-      return await getMessageDetail(selectedId);
-    } catch (e) {
-      detailError = e instanceof Error ? e.message : String(e);
-      return null;
-    }
-  })();
-
   const selectedMessage = selectedId
     ? messages.find((m) => m.id === selectedId) ?? null
     : null;
@@ -166,7 +155,7 @@ export default async function HomePage({
         initialNextPageToken={listResult.nextPageToken ?? null}
         initialSelectedId={selectedId ?? null}
         initialSelectedMessage={selectedMessage}
-        initialDetail={detailError ? null : detail}
+        initialDetail={null}
         initialSearchQuery={userSearchQuery}
         initialTeam={initialTeam}
         user={{

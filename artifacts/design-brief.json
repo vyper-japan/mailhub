@@ -31,7 +31,8 @@
     "Initial-load interaction stability where non-critical refreshes do not make the first opened email feel frozen",
     "Pointer/focus-driven preview prefetch so similar daily HTML emails open from a warm detail/sanitized cache when possible",
     "Detail header sender-address visibility without adding header height or horizontal overflow",
-    "Detail work context recipient/store visibility without adding a new detail header line"
+    "Detail work context recipient/store visibility without adding a new detail header line",
+    "Initial selected-message detail fetch must not block first paint; the list, header, and stable skeleton should become usable before the body API resolves"
   ],
   "must_not_do": [
     "Do not send external email.",
@@ -56,6 +57,7 @@
     "Browser screenshot and DOM metrics for warmed Amazon/Yahoo preview switching",
     "Console error check",
     "Browser screenshot and DOM metrics for Amazon detail sender-address visibility",
-    "Browser screenshots and DOM metrics for Amazon detail recipient/store context at 1120/1280/1680 widths"
+    "Browser screenshots and DOM metrics for Amazon detail recipient/store context at 1120/1280/1680 widths",
+    "Browser screenshots and DOM metrics for delayed initial detail load before and after the body API resolves"
   ]
 }

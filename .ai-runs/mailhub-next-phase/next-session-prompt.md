@@ -1,5 +1,58 @@
 # Prompt For New MailHub Session
 
+## 2026-06-23 Claude Code Handoff Prompt
+
+Start from `/Users/takayukisuzuki/VYPER-Dev/Mailhub`. This is a Claude Code handoff after the initial-detail responsiveness slice. Read `.ai-runs/mailhub-next-phase/PROMPT_FOR_CLAUDE.md` first; it supersedes older 2026-06-20 sections below.
+
+First commands:
+
+```bash
+cd /Users/takayukisuzuki/VYPER-Dev/Mailhub
+git status -sb
+git diff --stat
+git diff --check
+npm run security:scan-artifacts
+```
+
+Expected state:
+
+- branch `main`
+- source/evidence/checkpoint diff is intentionally uncommitted
+- dirty source files include `app/page.tsx`, `app/inbox/InboxShell.tsx`, `app/globals.css`, and `e2e/qa-strict-unified.spec.ts`
+- untracked evidence includes `artifacts/ui-screenshots/mailhub-initial-detail-load-*`
+
+What just happened:
+
+- The first-open freeze feeling was addressed by removing the server-side await for the initial selected email body detail.
+- `InboxShell` now fetches the selected detail on the client after the shell/list/header are usable.
+- The body pane shows a stable skeleton while delayed detail is in flight.
+- Email body horizontal overflow is contained instead of silently clipped.
+- `Step93-3c7` covers the delayed initial detail state.
+- Full local validation passed before handoff; see `PROMPT_FOR_CLAUDE.md` and `commands.md`.
+
+Next actions:
+
+1. Confirm the dirty diff is still the expected handoff state.
+2. Commit the implementation/evidence/handoff slice.
+3. Run `npm run ops:readiness-refresh`.
+4. Commit refreshed readiness artifacts.
+5. Push and watch `MailHub Readiness Contract` and `qa-strict`.
+
+Hard rules:
+
+- Do not run external email sends without explicit approval.
+- Do not run GitHub setup/apply mutations without explicit approval.
+- Do not run Sheets mutations without explicit approval.
+- Do not print secret values.
+- Do not claim production complete.
+
+Current production blockers remain:
+
+- P0 `current_shared_gmail_routing`
+- P1 `rule_config_source_not_production`
+- P1 `staff_workflow_permissions`
+- P1 `staff_github_config_not_ready`
+
 ## 2026-06-20 Latest Handoff For New Session: Detail Context Polish
 
 Continue from `/Users/takayukisuzuki/VYPER-Dev/Mailhub`.

@@ -1,5 +1,62 @@
 # MailHub Next Phase Progress
 
+## 2026-06-22 Initial Detail Load Responsiveness
+
+Completed a focused fix for the user-reported first-open freeze feeling. The previous page render awaited `getMessageDetail(selectedId)` in `app/page.tsx`, so opening a selected email could wait for full body detail before the workbench became usable. The new flow renders the selected list row and detail header immediately, shows a stable detail skeleton, and lets `InboxShell` load the selected detail on the client.
+
+Implemented:
+
+- Removed the server-side initial detail await from `app/page.tsx`; `initialDetail` is now `null`.
+- Added a guarded client-side selected-detail loader in `InboxShell` so an initial selected ID fetches once unless it is already loading or already resolved.
+- Added `data-mailhub-client-ready` to the shell root for non-visual hydration/interaction readiness checks.
+- Changed `.mailhub-email-body` from `overflow-x: hidden` to local `overflow-x: auto` with `overscroll-behavior-x: contain`, so fixed-width real email content is not silently clipped.
+- Added E2E `Step93-3c7) Initial detail load: 本文取得待ちでも一覧とヘッダーは先に操作できる`.
+
+Visual evidence:
+
+- `artifacts/ui-screenshots/mailhub-initial-detail-load-skeleton.png`
+- `artifacts/ui-screenshots/mailhub-initial-detail-load-resolved.png`
+- `artifacts/ui-screenshots/mailhub-initial-detail-load-check.json`
+
+Visual/DOM result:
+
+- `clientReadyBeforeDetail=true`
+- `listVisibleBeforeDetail=true`
+- `headerVisibleBeforeDetail=true`
+- `skeletonStableBeforeDetail=true`
+- `noBodyBeforeDetailRelease=true`
+- `noHorizontalOverflowBeforeDetail=true`
+- `bodySyncedAfterRelease=true`
+- `noPreviewOverflowAfterRelease=true`
+- `bodyInsideContentAfterRelease=true`
+- `singleSelectedDetailRequest=true`
+- `noConsoleErrors=true`
+- `noFailedResponses=true`
+
+Validation:
+
+- Code review subagent: no P0/P1 findings.
+- Test-impact subagent: no existing code/test path relies on non-null SSR `initialDetail`; highlighted recipient context remains detail-derived and is covered by `Step93-3c4`/`Step93-3c5`.
+- `git diff --check`: PASS.
+- `npm run typecheck`: PASS.
+- `npm run lint`: PASS.
+- `npm run smoke`: PASS.
+- `npm run security:scan`: PASS.
+- `npm run build`: PASS.
+- `npm run test:coverage`: PASS, 75 files / 712 tests.
+- `npm run security:scan-artifacts`: PASS.
+- Targeted Playwright:
+
+```bash
+MAILHUB_TEST_MODE=1 npx playwright test e2e/qa-strict-unified.spec.ts --grep "Step93-3c7" --workers=1
+MAILHUB_TEST_MODE=1 npx playwright test e2e/qa-strict-unified.spec.ts --grep "Step93-3c1|Step93-3c2|Step93-3c3|Step93-3c4|Step93-3c5|Step93-3c6|Step93-3c7" --workers=1
+```
+
+Result:
+
+- PASS, 1/1.
+- PASS, 7/7.
+
 ## 2026-06-21 Ownership CTA Clarity
 
 Completed the next Ownership UX slice after the rapid preview switching closeout. The goal was to make the next ownership action obvious in the detail pane and beside the blocked Gmail external reply action, without changing `/api/mailhub/send` enforcement.
