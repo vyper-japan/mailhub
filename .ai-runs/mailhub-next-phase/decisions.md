@@ -1,5 +1,14 @@
 # MailHub Next Phase Decisions
 
+## 2026-06-23 Step93-3c6 Flake Triage (post-push, Claude Code shield)
+
+- The initial-detail responsiveness slice was committed (`80e6b06`) and readiness refresh (`e9b2dbd`) and pushed. `MailHub Readiness Contract` passed; `qa-strict` failed only on `Step93-3c6` (frame-stall test), not on the new `Step93-3c7`.
+- `Step93-3c6` is a pre-existing flaky/perf-sensitive test, NOT a regression from this slice. Evidence:
+  - A/B local repro: with our change AND with source reverted to `38855fe`, `Step93-3c6` failed 3/3 both ways (assertion `longTasks >= 500` / `maxFrameGap`).
+  - CI history: `Step93-3c6` already failed pre-change on `cda863b` and passed on `38855fe` — intermittent.
+  - The slice only touches the initial-load path; `Step93-3c6` measures the click-switch path via the unchanged `handleSelectMessage`.
+- Action: re-ran the failed `qa-strict` job to confirm flake. `Step93-3c6` should be hardened separately (its `longTasks >= 500` / `maxFrameGap` thresholds are machine-performance-dependent and fire on fast local machines as well as slow CI runners). Do not attribute this to the initial-detail slice.
+
 ## 2026-06-23 Claude Code Handoff / Initial Detail Load Decisions
 
 - Treat first-open responsiveness as a preview correctness requirement. Operators must be able to see and click the workbench while the selected email body is still loading.
