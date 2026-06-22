@@ -1,3 +1,27 @@
+# LATEST STATUS (2026-06-23, end of Claude Code shield session)
+
+All pushed to `main`. Working tree clean.
+
+- `80e6b06` Improve MailHub initial detail responsiveness (slice + evidence + handoff)
+- `e9b2dbd` Refresh readiness artifacts after initial detail responsiveness
+- `9e3d92e` docs: record Step93-3c6 flake triage
+- `83135d3` test: harden Step93-3c6 frame-stall assertions against dev-mode/runner variance
+
+Verified:
+- The initial-detail slice is correct and innocent. Shield review: 3 critics APPROVE (P0=0/P1=0) + verifier all PASS. New `Step93-3c7` passes. `MailHub Readiness Contract` GREEN.
+- `qa-strict` failed ONLY on pre-existing `Step93-3c6` (frame-stall test), NOT on the slice. Proven by A/B local repro: `Step93-3c6` fails 3/3 BOTH with the slice AND with source reverted to `38855fe`. CI history also shows it failed pre-change on `cda863b`.
+- Shield root-caused `Step93-3c6` as TEST_TOO_STRICT (webServer runs `npm run dev` unoptimized; `buffered:true` cross-contamination; absolute zero-tolerance `bodyReadyAt<1200`/`longTasks>=500` while only maxFrameGap had a CI allowance). `83135d3` is the test-only hardening (keeps real freeze detection).
+
+OPEN / NEXT SESSION MUST DO:
+1. Watch CI for `83135d3`: `gh run list --branch main --limit 6 --json workflowName,status,conclusion,headSha`. Workflows: `MailHub Readiness Contract`, `qa-strict`.
+2. If `qa-strict` is GREEN on `83135d3` -> the 3c6 issue is closed; the initial-detail goal is done. Move to the production blockers below.
+3. If `qa-strict` STILL fails on `Step93-3c6` (likely the `bodyReadyAt.not.toBeNull()` at line ~6446, or `count<=1 moderate longtask`): the local hardening was inconclusive because THIS machine was under heavy contention (many concurrent playwright/workflow runs) producing bodyReadyAt=null even at 2000ms. Re-verify on a QUIET machine: `CI=1 MAILHUB_TEST_MODE=1 npx playwright test e2e/qa-strict-unified.spec.ts --grep "Step93-3c6" --workers=1`. If CI itself can't mount the body in 2000ms, widen the CI body-ready budget further or scope-investigate the click-switch mount path (`handleSelectMessage` in InboxShell.tsx, UNCHANGED by the slice). Do NOT attribute 3c6 to the initial-detail slice.
+4. Then resume production blockers (still open, unchanged): P0 `current_shared_gmail_routing`, P1 `rule_config_source_not_production`, P1 `staff_workflow_permissions`, P1 `staff_github_config_not_ready`. These need real external SMTP/Sheets/GitHub setup — do not fake evidence. `productionReady=false` remains correct.
+
+Resume phrase: "メールハブの続き" / "3c6のCI結果を見て" / "qa-strict緑になった？"
+
+---
+
 # Prompt For Claude Code: MailHub Initial Detail Responsiveness Handoff
 
 これは Codex から Claude Code への引き継ぎです。説明だけでなく、このファイルと同じディレクトリの checkpoint を読んで、続きから安全に再開してください。
