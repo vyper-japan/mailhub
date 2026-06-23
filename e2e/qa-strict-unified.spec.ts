@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Locator, type Page } from "@playwright/test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
@@ -7907,10 +7907,17 @@ type W2T3aActivityLog = {
 
 async function w2T3aResetAndOpen(
   page: Page,
-  options: { takeOwnership?: boolean; seedAssignees?: boolean; initialAssigneeEmail?: string } = {},
+  options: {
+    takeOwnership?: boolean;
+    seedAssignees?: boolean;
+    initialAssigneeEmail?: string;
+    resetData?: Record<string, unknown>;
+  } = {},
 ) {
   const takeOwnership = options.takeOwnership ?? true;
-  const resetResp = await page.request.post("/api/mailhub/test/reset", { data: { readOnly: false } });
+  const resetResp = await page.request.post("/api/mailhub/test/reset", {
+    data: { readOnly: false, ...(options.resetData ?? {}) },
+  });
   expect(resetResp.status()).toBe(200);
 
   if (options.seedAssignees) {
@@ -7967,9 +7974,17 @@ async function w2T3aResetAndOpen(
   return panel;
 }
 
+function w2T3aComposeBody(panel: Locator): Locator {
+  return panel
+    .locator(
+      'textarea[data-testid="gmail-compose-body"], [data-testid="gmail-compose-body"] textarea, textarea[data-testid="reply-body"]',
+    )
+    .first();
+}
+
 async function w2T3aSendAndDone(page: Page, bodyText: string): Promise<W2T3aSendResponse> {
   const panel = page.getByTestId("gmail-compose-panel");
-  await panel.getByTestId("reply-body").fill(bodyText);
+  await w2T3aComposeBody(panel).fill(bodyText);
 
   const sendAndDoneButton = panel.getByTestId("gmail-compose-send-and-done");
   await expect(sendAndDoneButton).toBeEnabled({ timeout: 10000 });
@@ -8058,6 +8073,92 @@ async function w2T3aExpectReplySendActivity(page: Page) {
     .toBe(true);
 }
 
+const w2T3bRakutenMessageId = "msg-021";
+
+type W2T3bErrorResponse = {
+  ok?: unknown;
+  error?: unknown;
+  message?: unknown;
+  reason?: unknown;
+  messageId?: unknown;
+  fromAlias?: unknown;
+  candidates?: unknown;
+  matchedHeader?: unknown;
+};
+
+type W2T3bHealthResponse = {
+  gmailSendReady?: unknown;
+  gmailSendBlockedReason?: unknown;
+  sendAs?: {
+    acceptedAliases?: unknown;
+    missingAliases?: unknown;
+  };
+};
+
+async function w2T3bPostSend(
+  page: Page,
+  overrides: {
+    messageId?: string;
+    bodyText?: string;
+    clientRequestId: string;
+    postSendAction?: "none" | "done";
+  },
+) {
+  const response = await page.request.post("/api/mailhub/send", {
+    data: {
+      messageId: overrides.messageId ?? w2T3aMessageId,
+      bodyText: overrides.bodyText ?? "W2-T3b direct send body",
+      clientRequestId: overrides.clientRequestId,
+      postSendAction: overrides.postSendAction ?? "none",
+    },
+  });
+  const json = (await response.json()) as W2T3bErrorResponse;
+  return { response, json };
+}
+
+async function w2T3bGetHealth(page: Page): Promise<W2T3bHealthResponse> {
+  const response = await page.request.get("/api/mailhub/config/health");
+  expect(response.status()).toBe(200);
+  return (await response.json()) as W2T3bHealthResponse;
+}
+
+async function w2T3bResetAssignAndOpenRakuten(page: Page) {
+  const resetResp = await page.request.post("/api/mailhub/test/reset", { data: { readOnly: false } });
+  expect(resetResp.status()).toBe(200);
+
+  const assignResp = await page.request.post("/api/mailhub/assign", {
+    data: { id: w2T3bRakutenMessageId, action: "assign", assigneeEmail: "test@vtj.co.jp" },
+  });
+  expect(assignResp.status()).toBe(200);
+
+  await page.addInitScript(() => {
+    localStorage.setItem("mailhub-onboarding-shown", "true");
+  });
+
+  const detailRespP = page
+    .waitForResponse(
+      (r) => {
+        const url = new URL(r.url());
+        return (
+          url.pathname.endsWith("/api/mailhub/detail") &&
+          url.searchParams.get("id") === w2T3bRakutenMessageId &&
+          r.request().method() === "GET" &&
+          r.status() === 200
+        );
+      },
+      { timeout: 15000 },
+    )
+    .catch(() => null);
+
+  await page.goto(`/?label=store-a&channel=store-a&id=${w2T3bRakutenMessageId}&max=50`);
+  await detailRespP;
+
+  const replyPanel = page.getByTestId("reply-panel");
+  await expect(replyPanel).toBeVisible({ timeout: 15000 });
+  await expect(page.getByTestId("reply-route")).toHaveText("rakuten_rms", { timeout: 10000 });
+  return replyPanel;
+}
+
 test.describe("W2-T3a Gmail compose send E2E", () => {
   test("E2E #0a) compose ownership Shield blocks send until担当", async ({ page }) => {
     const panel = await w2T3aResetAndOpen(page, { takeOwnership: false });
@@ -8066,7 +8167,7 @@ test.describe("W2-T3a Gmail compose send E2E", () => {
     await expect(panel.getByTestId("gmail-compose-ownership-banner")).toContainText("担当してから送信してください");
     await expect(page.getByTestId("gmail-external-reply-disabled")).toBeVisible();
     await expect(page.getByTestId("gmail-external-reply-ownership-action")).toContainText("担当する");
-    await panel.getByTestId("reply-body").fill("W2-T3a ownership body");
+    await w2T3aComposeBody(panel).fill("W2-T3a ownership body");
     await expect(panel.getByTestId("gmail-compose-error")).toContainText("担当してから送信してください");
     await expect(panel.getByTestId("gmail-compose-send")).toBeDisabled();
 
@@ -8156,7 +8257,9 @@ test.describe("W2-T3a Gmail compose send E2E", () => {
       const checks = el.querySelector('[data-testid="gmail-compose-safety-checks"]');
       const from = el.querySelector('[data-testid="gmail-compose-from"]');
       const to = el.querySelector('[data-testid="gmail-compose-to"]');
-      const body = el.querySelector('[data-testid="reply-body"]');
+      const body = el.querySelector(
+        'textarea[data-testid="gmail-compose-body"], [data-testid="gmail-compose-body"] textarea, textarea[data-testid="reply-body"]',
+      );
       const actions = el.querySelector('[data-testid="gmail-compose-actions"]');
       const fromStyle = from ? getComputedStyle(from) : null;
       const toStyle = to ? getComputedStyle(to) : null;
@@ -8237,5 +8340,89 @@ test.describe("W2-T3a Gmail compose send E2E", () => {
     expect(decodedHeaders["In-Reply-To"]).toBe(w2T3aOriginalMessageId);
     expect(decodedHeaders.References).toContain(w2T3aRootReference);
     expect(decodedHeaders.References).toContain(w2T3aOriginalMessageId);
+  });
+});
+
+test.describe("W2-T3b Gmail compose fail-closed E2E", () => {
+  test("E2E #3) READ ONLY disables compose send and direct API returns read_only", async ({ page }) => {
+    const panel = await w2T3aResetAndOpen(page, {
+      takeOwnership: false,
+      resetData: { readOnly: true },
+    });
+
+    await expect(panel.getByTestId("gmail-compose-send")).toBeDisabled({ timeout: 10000 });
+    await expect(panel.getByTestId("gmail-compose-send-and-done")).toBeDisabled({ timeout: 10000 });
+    await expect(panel.getByTestId("gmail-compose-error")).toContainText("READ ONLY", { timeout: 10000 });
+
+    const { response, json } = await w2T3bPostSend(page, {
+      clientRequestId: "w2-t3b-readonly",
+    });
+
+    expect(response.status()).toBe(403);
+    expect(json).toMatchObject({ ok: false, error: "read_only", reason: "gmail_send" });
+  });
+
+  test("E2E #4) Rakuten msg-021 hides Gmail compose and direct API returns rakuten_reply_blocked", async ({ page }) => {
+    await w2T3bResetAssignAndOpenRakuten(page);
+
+    await expect(page.getByTestId("gmail-compose-panel")).toBeHidden({ timeout: 10000 });
+    await expect(page.getByTestId("gmail-compose-send")).toBeHidden({ timeout: 10000 });
+    await expect(page.getByTestId("gmail-external-reply-link")).toBeHidden({ timeout: 10000 });
+
+    const { response, json } = await w2T3bPostSend(page, {
+      messageId: w2T3bRakutenMessageId,
+      clientRequestId: "w2-t3b-rakuten",
+    });
+
+    expect(response.status()).toBe(403);
+    expect(json).toMatchObject({
+      ok: false,
+      error: "rakuten_reply_blocked",
+      messageId: w2T3bRakutenMessageId,
+    });
+  });
+
+  test("E2E #5) unresolved template vars disable send and direct API returns unresolved_template_vars", async ({ page }) => {
+    const bodyText = "W2-T3b unresolved {{orderId}}";
+    const panel = await w2T3aResetAndOpen(page);
+
+    await w2T3aComposeBody(panel).fill(bodyText);
+    await expect(panel.getByTestId("gmail-compose-send")).toBeDisabled({ timeout: 10000 });
+    await expect(panel.getByTestId("gmail-compose-send-and-done")).toBeDisabled({ timeout: 10000 });
+    await expect(panel.getByTestId("gmail-compose-error")).toContainText("未解決", { timeout: 10000 });
+
+    const { response, json } = await w2T3bPostSend(page, {
+      bodyText,
+      clientRequestId: "w2-t3b-unresolved",
+    });
+
+    expect(response.status()).toBe(400);
+    expect(json).toMatchObject({ ok: false, error: "unresolved_template_vars" });
+  });
+
+  test("E2E #6) send_as_unaccepted health disables send and direct API returns send_as_unaccepted", async ({ page }) => {
+    const panel = await w2T3aResetAndOpen(page, {
+      resetData: { sendAsOverride: { unaccepted: ["vyper_sc@vtj.co.jp"] } },
+    });
+    const health = await w2T3bGetHealth(page);
+    const missingAliases = Array.isArray(health.sendAs?.missingAliases) ? health.sendAs.missingAliases : [];
+
+    expect(health.gmailSendReady).toBe(false);
+    expect(health.gmailSendBlockedReason).toBe("send_as_unaccepted");
+    expect(missingAliases).toContain("vyper_sc@vtj.co.jp");
+    await expect(panel.getByTestId("gmail-compose-send")).toBeDisabled({ timeout: 10000 });
+    await expect(panel.getByTestId("gmail-compose-send-and-done")).toBeDisabled({ timeout: 10000 });
+
+    const { response, json } = await w2T3bPostSend(page, {
+      clientRequestId: "w2-t3b-send-as",
+    });
+
+    expect(response.status()).toBe(403);
+    expect(json).toMatchObject({
+      ok: false,
+      error: "send_as_unaccepted",
+      messageId: w2T3aMessageId,
+      fromAlias: "vyper_sc@vtj.co.jp",
+    });
   });
 });

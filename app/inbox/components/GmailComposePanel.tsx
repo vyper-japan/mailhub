@@ -275,7 +275,7 @@ export function GmailComposePanel({
           ))}
         </div>
 
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-2" data-testid="gmail-compose-body">
           <label className="mb-1 block text-[12px] font-medium text-[#3c4043]" htmlFor={`gmail-compose-body-${messageId}`}>
             返信内容
           </label>
