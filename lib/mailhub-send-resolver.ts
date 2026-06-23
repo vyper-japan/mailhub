@@ -182,24 +182,31 @@ export function resolveReplyContext(
       .filter((alias) => alias.address === hit.email)
       .map((alias) => ({ ...hit, aliasAddress: alias.address, channel: alias.channel })),
   );
-  const matchedAliasAddresses = dedupePreserveOrder(gmailHits.map((hit) => hit.aliasAddress));
+  const gmailHitsByChannel = new Map<ChannelId, GmailAliasHit[]>();
+  for (const hit of gmailHits) {
+    const channelHits = gmailHitsByChannel.get(hit.channel.id) ?? [];
+    channelHits.push(hit);
+    gmailHitsByChannel.set(hit.channel.id, channelHits);
+  }
 
-  if (matchedAliasAddresses.length === 0) {
+  if (gmailHitsByChannel.size === 0) {
     return { ok: false, error: "from_alias_unresolved", message: "送信元グループアドレスを一意に解決できません" };
   }
-  if (matchedAliasAddresses.length > 1) {
+  const representativeHitsByChannel = Array.from(gmailHitsByChannel.values())
+    .map((channelHits) => [...channelHits].sort(compareHeaderHitOrder)[0])
+    .filter((hit): hit is GmailAliasHit => Boolean(hit))
+    .sort(compareHeaderHitOrder);
+
+  if (representativeHitsByChannel.length > 1) {
     return {
       ok: false,
       error: "from_alias_ambiguous",
       message: "送信元グループアドレス候補が複数あります",
-      candidates: matchedAliasAddresses,
+      candidates: dedupePreserveOrder(representativeHitsByChannel.map((hit) => hit.aliasAddress)),
     };
   }
 
-  const selectedAliasAddress = matchedAliasAddresses[0];
-  const selectedHit = gmailHits
-    .filter((hit) => hit.aliasAddress === selectedAliasAddress)
-    .sort(compareHeaderHitOrder)[0];
+  const selectedHit = representativeHitsByChannel[0];
   if (!selectedHit) {
     return { ok: false, error: "from_alias_unresolved", message: "送信元グループアドレスを一意に解決できません" };
   }

@@ -126,7 +126,7 @@ describe("resolveReplyContext", () => {
     });
   });
 
-  it("blocks several aliases from the same channel as ambiguous", () => {
+  it("resolves several aliases from the same channel by tier and occurrence order", () => {
     const result = resolveReplyContext(
       createDetail({
         deliveredTo: ["mailhub@vtj.co.jp", "GoPro Order <gopro_order_yahoo@vtj.co.jp>"],
@@ -135,11 +135,43 @@ describe("resolveReplyContext", () => {
       channels,
     );
 
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.context.fromAlias).toBe("gopro_order_yahoo@vtj.co.jp");
+    expect(result.context.fromChannelId).toBe("gopro-yahoo");
+    expect(result.context.matchedHeader).toBe("deliveredTo");
+    expect(result.context.matchedHeaderValue).toBe("GoPro Order <gopro_order_yahoo@vtj.co.jp>");
+  });
+
+  it("fails closed when Reply-To contains multiple addresses", () => {
+    const result = resolveReplyContext(
+      createDetail({
+        replyTo: "A <a@example.com>, B <b@example.com>",
+      }),
+      channels,
+    );
+
     expect(result).toEqual({
       ok: false,
-      error: "from_alias_ambiguous",
-      message: "送信元グループアドレス候補が複数あります",
-      candidates: ["gopro_order_yahoo@vtj.co.jp", "gopro_y@vtj.co.jp"],
+      error: "reply_to_ambiguous",
+      message: "返信先メールアドレスが複数あります",
+      candidates: ["a@example.com", "b@example.com"],
+    });
+  });
+
+  it("fails closed when the reply target cannot be resolved from Reply-To or From", () => {
+    const result = resolveReplyContext(
+      createDetail({
+        from: "Customer Without Address",
+        replyTo: null,
+      }),
+      channels,
+    );
+
+    expect(result).toEqual({
+      ok: false,
+      error: "reply_to_unresolved",
+      message: "返信先メールアドレスを解決できません",
     });
   });
 
