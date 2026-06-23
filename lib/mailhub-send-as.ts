@@ -67,7 +67,7 @@ function dedupePreserveOrder(values: string[]): string[] {
 
 export function getRequiredGmailSendAsAliases(): string[] {
   return getChannels(false)
-    .filter((channel) => channel.replyKind === "gmail")
+    .filter((channel) => channel.replyKind === "gmail" && channel.id !== "ams-vyper")
     .flatMap((channel) => channel.addresses)
     .map((address) => address.toLowerCase());
 }

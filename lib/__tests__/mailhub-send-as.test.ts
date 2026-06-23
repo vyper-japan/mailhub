@@ -147,7 +147,7 @@ describe("mailhub-send-as", () => {
     });
   });
 
-  it("uses the prod Gmail 16 aliases in TEST_MODE and excludes TEST Rakuten aliases", async () => {
+  it("uses the prod Gmail 15 aliases in TEST_MODE and excludes TEST Rakuten aliases", async () => {
     process.env.MAILHUB_TEST_MODE = "1";
 
     const required = getRequiredGmailSendAsAliases();
@@ -157,8 +157,7 @@ describe("mailhub-send-as", () => {
       testMode: true,
     });
 
-    expect(required).toHaveLength(16);
-    expect(required).toContain("ams_vyper@vtj.co.jp");
+    expect(required).toHaveLength(15);
     expect(required).not.toContain("shop-a@vtj.co.jp");
     expect(result).toMatchObject({
       ok: true,
@@ -166,6 +165,10 @@ describe("mailhub-send-as", () => {
       acceptedAliases: required,
       cache: "test",
     });
+  });
+
+  it("excludes the AMS invoice-only channel from required Gmail send-as aliases", () => {
+    expect(getRequiredGmailSendAsAliases()).not.toContain("ams_vyper@vtj.co.jp");
   });
 
   it("applies sendAsOverride from test/reset and filters it to prod Gmail aliases", async () => {
