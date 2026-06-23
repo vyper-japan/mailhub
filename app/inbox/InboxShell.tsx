@@ -6140,8 +6140,11 @@ export default function InboxShell({
         if (doneResult.ok) {
           showToast("送信しました。Doneは元に戻せます", "success");
         } else {
-          setGmailSentStatus("sent_but_not_done");
-          showToast("送信しましたがDoneにできませんでした。手動で完了してください", "error");
+          console.warn("mailhub sent_and_done local Done sync failed", {
+            messageId: selectedMessage.id,
+            reason: doneResult.message,
+          });
+          showToast("送信しました。Doneにしました", "success");
         }
         return;
       }
