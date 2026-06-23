@@ -33,6 +33,7 @@ const state = vi.hoisted(() => {
       | { ok: false; error: string },
     sendAsError: null as string | null,
     sendAsOverride: null as { unaccepted: string[] } | null,
+    activityStoreType: "sheets" as "memory" | "file" | "sheets",
   };
 });
 
@@ -80,9 +81,9 @@ vi.mock("@/lib/mailhub-env", () => ({
 }));
 
 vi.mock("@/lib/activityStore", () => ({
-  getActivitySheetsConfigured: () => false,
-  getRequestedActivityStoreType: () => "memory",
-  getResolvedActivityStoreType: () => "memory",
+  getActivitySheetsConfigured: () => state.activityStoreType === "sheets",
+  getRequestedActivityStoreType: () => state.activityStoreType,
+  getResolvedActivityStoreType: () => state.activityStoreType,
 }));
 
 vi.mock("@/lib/gmail", () => ({
@@ -125,6 +126,7 @@ type HealthResponse = {
     | null
     | "read_only"
     | "send_disabled"
+    | "send_guard_unavailable"
     | "missing_scope"
     | "send_as_unaccepted"
     | "send_as_check_failed";
@@ -175,6 +177,7 @@ describe("mailhub config health Gmail send", () => {
     };
     state.sendAsError = null;
     state.sendAsOverride = null;
+    state.activityStoreType = "sheets";
   });
 
   it("treats gmail.send scope as send-capable and ready when all gates pass", async () => {
@@ -249,6 +252,15 @@ describe("mailhub config health Gmail send", () => {
     expect(health.gmailSendBlockedReason).toBe("send_as_unaccepted");
     expect(health.sendAs.missingAliases).toEqual(["vyper_sc@vtj.co.jp"]);
     expect(health.sendAs.acceptedAliases).not.toContain("vyper_sc@vtj.co.jp");
+  });
+
+  it("blocks non-TEST_MODE readiness when the durable Sheets send guard is unavailable", async () => {
+    state.activityStoreType = "memory";
+
+    const health = await readHealth();
+
+    expect(health.gmailSendReady).toBe(false);
+    expect(health.gmailSendBlockedReason).toBe("send_guard_unavailable");
   });
 
   it.each([

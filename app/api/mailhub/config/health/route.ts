@@ -35,6 +35,7 @@ type GmailSendBlockedReason =
   | null
   | "read_only"
   | "send_disabled"
+  | "send_guard_unavailable"
   | "missing_scope"
   | "send_as_unaccepted"
   | "send_as_check_failed";
@@ -80,6 +81,7 @@ function getGmailSendCapable(scopeInfo: GmailScopeInfo, testMode: boolean): bool
 function getGmailSendBlockedReason(input: {
   testMode: boolean;
   gmailSendEnabled: boolean;
+  durableGuardReady: boolean;
   readOnly: boolean;
   gmailSendCapable: boolean | null;
   missingAliases: string[];
@@ -91,6 +93,7 @@ function getGmailSendBlockedReason(input: {
   }
   if (input.readOnly) return "read_only";
   if (!input.gmailSendEnabled) return "send_disabled";
+  if (!input.durableGuardReady) return "send_guard_unavailable";
   if (input.gmailSendCapable !== true) return "missing_scope";
   if (input.sendAsError) return "send_as_check_failed";
   if (input.missingAliases.length > 0) return "send_as_unaccepted";
@@ -100,6 +103,7 @@ function getGmailSendBlockedReason(input: {
 function buildGmailSendHealth(input: {
   testMode: boolean;
   readOnly: boolean;
+  durableGuardReady: boolean;
   gmailSendEnabled: boolean;
   scopeInfo: GmailScopeInfo;
   requiredAliases: string[];
@@ -122,6 +126,7 @@ function buildGmailSendHealth(input: {
     ? missingAliases.length === 0 && !input.sendAsError
     : gmailSendEnabled &&
       !input.readOnly &&
+      input.durableGuardReady &&
       gmailSendCapable === true &&
       missingAliases.length === 0 &&
       !input.sendAsError;
@@ -133,6 +138,7 @@ function buildGmailSendHealth(input: {
     gmailSendBlockedReason: getGmailSendBlockedReason({
       testMode: input.testMode,
       gmailSendEnabled,
+      durableGuardReady: input.durableGuardReady,
       readOnly: input.readOnly,
       gmailSendCapable,
       missingAliases,
@@ -189,6 +195,7 @@ async function getSendAsHealthSnapshot(input: {
 async function getGmailSendHealth(input: {
   testMode: boolean;
   readOnly: boolean;
+  durableGuardReady: boolean;
   scopeInfo: GmailScopeInfo;
   sharedInboxEmail: string;
 }): Promise<GmailSendHealth> {
@@ -201,6 +208,7 @@ async function getGmailSendHealth(input: {
   return buildGmailSendHealth({
     testMode: input.testMode,
     readOnly: input.readOnly,
+    durableGuardReady: input.durableGuardReady,
     gmailSendEnabled: gmailSendEnabledFor(input.testMode),
     scopeInfo: input.scopeInfo,
     requiredAliases,
@@ -218,6 +226,7 @@ export async function GET() {
   const env = getMailhubEnv();
   const configStoreType = getResolvedConfigStoreType();
   const activityStoreType = getResolvedActivityStoreType();
+  const durableGuardReady = activityStoreType === "sheets";
   const brainLedgerStoreType = getBrainLedgerStoreType();
   const isAdmin = isAdminEmail(authResult.user.email);
   const readOnly = isReadOnlyMode();
@@ -292,6 +301,7 @@ export async function GET() {
   const gmailSendHealth = await getGmailSendHealth({
     testMode,
     readOnly,
+    durableGuardReady,
     scopeInfo,
     sharedInboxEmail: shared,
   });
