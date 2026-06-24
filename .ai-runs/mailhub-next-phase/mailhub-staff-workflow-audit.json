@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-06-22T22:25:17.500Z",
-  "repoHead": "0d72b00e5ec0d67a74910c41d3188df67d472c16",
+  "generatedAt": "2026-06-24T11:07:28.282Z",
+  "repoHead": "2b54c51b00760bbfe03bb03e489a67b3e7f3647d",
   "inputs": {
     "envFile": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.env.local",
     "assignees": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.mailhub/assignees.json",
@@ -31,11 +31,11 @@
     "teamInvalid": [],
     "teamNonVtj": [],
     "assigneeRegistry": {
-      "count": 0,
-      "validCount": 0,
+      "count": 2,
+      "validCount": 2,
       "invalid": [],
       "nonVtj": [],
-      "source": "missing"
+      "source": "file"
     }
   },
   "evidence": {
@@ -97,7 +97,7 @@
     "productionEnvReady": false,
     "adminsReady": true,
     "staffAccessAllowlistReady": false,
-    "assigneeRosterReady": false,
+    "assigneeRosterReady": true,
     "durableConfigReady": false,
     "durableActivityReady": false,
     "readOnlyRolloutEvidenceReady": false,
@@ -123,19 +123,6 @@
         "teamMemberCount": 0,
         "teamInvalid": [],
         "teamNonVtj": []
-      }
-    },
-    {
-      "id": "assignee_roster_not_ready",
-      "severity": "P1",
-      "message": "At least one @vtj.co.jp staff assignee must be configured.",
-      "evidence": {
-        "teamMemberCount": 0,
-        "assigneeRegistryCount": 0,
-        "teamInvalid": [],
-        "teamNonVtj": [],
-        "assigneeInvalid": [],
-        "assigneeNonVtj": []
       }
     },
     {
@@ -208,7 +195,6 @@
     "p1Blockers": [
       "not_production_env",
       "staff_access_allowlist_not_ready",
-      "assignee_roster_not_ready",
       "config_store_not_durable",
       "activity_store_not_durable",
       "read_only_not_enabled",

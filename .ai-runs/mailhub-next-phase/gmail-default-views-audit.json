@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-06-22T22:25:03.854Z",
-  "repoHead": "0d72b00e5ec0d67a74910c41d3188df67d472c16",
+  "generatedAt": "2026-06-24T11:07:15.092Z",
+  "repoHead": "2b54c51b00760bbfe03bb03e489a67b3e7f3647d",
   "sharedInboxEmailMasked": "inf***@vtj.co.jp",
   "viewCount": 3,
   "gate": {
@@ -32,7 +32,7 @@
       "error": null,
       "resultSizeEstimate": 201,
       "pagesFetched": 6,
-      "uniqueSeenLowerBound": 569,
+      "uniqueSeenLowerBound": 586,
       "hasMoreAfterMaxPages": false,
       "risk": "broad_manual_review_only",
       "pageSummaries": [
@@ -68,8 +68,8 @@
         },
         {
           "page": 6,
-          "idsReturned": 69,
-          "uniqueNewIds": 69,
+          "idsReturned": 86,
+          "uniqueNewIds": 86,
           "hasNextPageToken": false
         }
       ]

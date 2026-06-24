@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-06-22T22:25:07.887Z",
-  "repoHead": "0d72b00e5ec0d67a74910c41d3188df67d472c16",
+  "generatedAt": "2026-06-24T11:07:18.759Z",
+  "repoHead": "2b54c51b00760bbfe03bb03e489a67b3e7f3647d",
   "inputs": {
     "envFile": ".env.local",
     "envFileLoaded": true,
