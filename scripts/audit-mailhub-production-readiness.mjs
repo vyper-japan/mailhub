@@ -661,6 +661,8 @@ function main() {
       escalatesToP0AfterRoutingProof: !currentSharedGmailRoutingReady,
     }));
   }
+  const p0Blockers = blockers.filter((item) => item.severity === "P0");
+  const p1Blockers = blockers.filter((item) => item.severity === "P1");
 
   const result = {
     generatedAt: new Date().toISOString(),
@@ -733,9 +735,10 @@ function main() {
         staffWorkflowDurableConfigReady &&
         staffWorkflowDurableActivityReady &&
         staffGithubConfigReady &&
-        blockers.filter((item) => item.severity === "P0").length === 0,
-      p0Blockers: blockers.filter((item) => item.severity === "P0").map((item) => item.id),
-      p1Blockers: blockers.filter((item) => item.severity === "P1").map((item) => item.id),
+        p0Blockers.length === 0 &&
+        p1Blockers.length === 0,
+      p0Blockers: p0Blockers.map((item) => item.id),
+      p1Blockers: p1Blockers.map((item) => item.id),
     },
   };
 

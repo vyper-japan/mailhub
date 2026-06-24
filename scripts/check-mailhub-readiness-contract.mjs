@@ -337,6 +337,7 @@ function main() {
 
   if (productionReady) {
     if (p0Blockers.length > 0) errors.push("production_ready_with_p0_blockers");
+    if (p1Blockers.length > 0) errors.push("production_ready_with_p1_blockers");
     if (requirements.inputArtifactsFresh !== true) errors.push("production_ready_with_stale_inputs");
     if (requirements.currentSharedGmailRoutingReady !== true) errors.push("production_ready_without_current_shared_gmail_routing");
     if (requirements.routingProbeReady !== true) errors.push("production_ready_without_routing_probe_proof");
@@ -355,8 +356,8 @@ function main() {
     if (requirements.staffWorkflowDurableConfigReady !== true) errors.push("production_ready_without_staff_durable_config");
     if (requirements.staffWorkflowDurableActivityReady !== true) errors.push("production_ready_without_staff_durable_activity");
     if (requirements.staffGithubConfigReady !== true) errors.push("production_ready_without_staff_github_config");
-  } else if (p0Blockers.length === 0) {
-    errors.push("not_ready_without_p0_blockers");
+  } else if (p0Blockers.length === 0 && p1Blockers.length === 0) {
+    errors.push("not_ready_without_blockers");
   }
 
   if (requirements.currentSharedGmailRoutingReady === true && requirements.routingProbeReady !== true) {
