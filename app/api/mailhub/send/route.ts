@@ -34,11 +34,17 @@ type ValidatedSendRequest = {
   postSendAction: PostSendAction;
   templateId: string | null;
   templateTitle: string | null;
+  aiDraftId: string | null;
+  aiDraftTitle: string | null;
+  aiDraftBodyHash: string | null;
+  aiDraftInputHash: string | null;
+  aiDraftSource: "deterministic_draft_v1" | null;
 };
 
 const NO_STORE_HEADERS = { "cache-control": "no-store" };
 const CLIENT_REQUEST_ID_RE = /^[A-Za-z0-9._:-]{8,100}$/;
 const UNRESOLVED_TEMPLATE_VAR_RE = /{{\s*[\w.-]+\s*}}/;
+const PROVENANCE_HASH_RE = /^[a-f0-9]{16,64}$/;
 
 function noStoreJson(body: unknown, init?: { status?: number }) {
   return NextResponse.json(body, { status: init?.status, headers: NO_STORE_HEADERS });
@@ -83,6 +89,13 @@ function normalizedBodyLength(bodyText: string): number {
 
 function shortHash(value: string): string {
   return createHash("sha256").update(value, "utf8").digest("hex").slice(0, 16);
+}
+
+function optionalText(data: Record<string, unknown>, key: string): string | null {
+  const value = data[key];
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed ? trimmed : null;
 }
 
 function toDomain(email: string): string {
@@ -149,6 +162,39 @@ function validateRequest(body: unknown): { ok: true; request: ValidatedSendReque
     return { ok: false, response: errorResponse(400, "invalid_template_title", "templateTitleが不正です") };
   }
 
+  const aiDraftId = optionalText(data, "aiDraftId");
+  if (aiDraftId && aiDraftId.length > 300) {
+    return { ok: false, response: errorResponse(400, "invalid_ai_draft_id", "aiDraftIdが不正です") };
+  }
+
+  const aiDraftTitle = optionalText(data, "aiDraftTitle");
+  if (aiDraftTitle && aiDraftTitle.length > 200) {
+    return { ok: false, response: errorResponse(400, "invalid_ai_draft_title", "aiDraftTitleが不正です") };
+  }
+
+  const aiDraftBodyHash = optionalText(data, "aiDraftBodyHash");
+  if (aiDraftBodyHash && !PROVENANCE_HASH_RE.test(aiDraftBodyHash)) {
+    return { ok: false, response: errorResponse(400, "invalid_ai_draft_body_hash", "aiDraftBodyHashが不正です") };
+  }
+
+  const aiDraftInputHash = optionalText(data, "aiDraftInputHash");
+  if (aiDraftInputHash && !PROVENANCE_HASH_RE.test(aiDraftInputHash)) {
+    return { ok: false, response: errorResponse(400, "invalid_ai_draft_input_hash", "aiDraftInputHashが不正です") };
+  }
+
+  const aiDraftSourceRaw = optionalText(data, "aiDraftSource");
+  if (aiDraftSourceRaw && aiDraftSourceRaw !== "deterministic_draft_v1") {
+    return { ok: false, response: errorResponse(400, "invalid_ai_draft_source", "aiDraftSourceが不正です") };
+  }
+  const aiDraftSource = aiDraftSourceRaw as ValidatedSendRequest["aiDraftSource"];
+  const aiDraftParts = [aiDraftId, aiDraftTitle, aiDraftBodyHash, aiDraftInputHash, aiDraftSource];
+  if (aiDraftParts.some(Boolean) && !aiDraftParts.every(Boolean)) {
+    return {
+      ok: false,
+      response: errorResponse(400, "invalid_ai_draft_provenance", "AI下書きのprovenanceが不足しています"),
+    };
+  }
+
   return {
     ok: true,
     request: {
@@ -158,7 +204,34 @@ function validateRequest(body: unknown): { ok: true; request: ValidatedSendReque
       postSendAction: data.postSendAction,
       templateId,
       templateTitle,
+      aiDraftId,
+      aiDraftTitle,
+      aiDraftBodyHash,
+      aiDraftInputHash,
+      aiDraftSource,
     },
+  };
+}
+
+function buildSendProvenanceMetadata(
+  sendRequest: ValidatedSendRequest,
+  sendBodyHash: string,
+): Record<string, unknown> {
+  const provenanceSources: string[] = [];
+  if (sendRequest.templateId || sendRequest.templateTitle) provenanceSources.push("template");
+  if (sendRequest.aiDraftId) provenanceSources.push("ai_draft");
+
+  return {
+    provenanceSources,
+    templateId: sendRequest.templateId,
+    templateTitle: sendRequest.templateTitle,
+    unresolvedVars: [],
+    aiDraftId: sendRequest.aiDraftId,
+    aiDraftTitle: sendRequest.aiDraftTitle,
+    aiDraftBodyHash: sendRequest.aiDraftBodyHash,
+    aiDraftInputHash: sendRequest.aiDraftInputHash,
+    aiDraftSource: sendRequest.aiDraftSource,
+    aiDraftBodyHashMatchesSendBody: sendRequest.aiDraftBodyHash ? sendRequest.aiDraftBodyHash === sendBodyHash : null,
   };
 }
 
@@ -228,6 +301,7 @@ export async function POST(req: Request) {
   }
 
   let reservation: MailhubSendDuplicateReservation | null = duplicateReservation;
+  const sendProvenanceMetadata = buildSendProvenanceMetadata(sendRequest, duplicateReservation.bodyHash);
 
   const historicalDuplicate = await findMailhubSendDuplicateHistory({
     actorEmail: authResult.user.email,
@@ -380,6 +454,7 @@ export async function POST(req: Request) {
           fromChannelId: resolved.context.fromChannelId,
           toDomain: toDomain(resolved.context.to),
           toHash: shortHash(resolved.context.to.toLowerCase()),
+          ...sendProvenanceMetadata,
         },
       });
       if (!guardLog.storeAppendOk) {
@@ -449,9 +524,7 @@ export async function POST(req: Request) {
         bodyHash: duplicateReservation.bodyHash || shortHash(normalizeBodyForHash(sendRequest.bodyText)),
         postSendAction: sendRequest.postSendAction,
         doneAction: sendRequest.postSendAction === "done" ? "archive" : null,
-        templateId: sendRequest.templateId,
-        templateTitle: sendRequest.templateTitle,
-        unresolvedVars: [],
+        ...sendProvenanceMetadata,
         sendAsAccepted: true,
       },
     });

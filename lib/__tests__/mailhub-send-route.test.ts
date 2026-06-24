@@ -1,7 +1,9 @@
+import { createHash } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { MessageDetail } from "@/lib/mailhub-types";
 import { assigneeSlug } from "@/lib/assignee";
 import { clearActivityLogs, getActivityLogs, logAction } from "@/lib/audit-log";
+import { MemoryStore } from "@/lib/activityStore";
 import {
   buildMailhubSendDuplicateKeys,
   clearMailhubSendDuplicateGuard,
@@ -93,6 +95,10 @@ function validBody(overrides: Record<string, unknown> = {}) {
     postSendAction: "none",
     ...overrides,
   };
+}
+
+function shortHash(value: string): string {
+  return createHash("sha256").update(value.replace(/\r\n?/g, "\n").trim(), "utf8").digest("hex").slice(0, 16);
 }
 
 async function readJson(res: Response): Promise<Record<string, unknown>> {
@@ -272,6 +278,117 @@ describe("POST /api/mailhub/send", () => {
       bodyLength: 5,
     });
     expect(JSON.stringify(logs[0]?.metadata)).not.toContain("返信本文です");
+  });
+
+  it("records template and AI draft provenance in the send guard and final audit", async () => {
+    vi.stubEnv("MAILHUB_TEST_MODE", "0");
+    vi.stubEnv("MAILHUB_SEND_ENABLED", "1");
+    const bodyText = "AI draft body";
+    const aiDraftBodyHash = shortHash(bodyText);
+    const POST = await importSendPost();
+
+    const res = await POST(makeRequest(validBody({
+      bodyText,
+      clientRequestId: "client-provenance-001",
+      templateId: "acknowledged",
+      templateTitle: "受付返信",
+      aiDraftId: "draft-msg-001-gmail-input-body",
+      aiDraftTitle: "Gmail 返信たたき台",
+      aiDraftSource: "deterministic_draft_v1",
+      aiDraftBodyHash,
+      aiDraftInputHash: "0123456789abcdef",
+    })));
+
+    expect(res.status).toBe(200);
+    expect(routeMocks.sendGmailReply).toHaveBeenCalledTimes(1);
+    const expectedProvenance = {
+      provenanceSources: ["template", "ai_draft"],
+      templateId: "acknowledged",
+      templateTitle: "受付返信",
+      unresolvedVars: [],
+      aiDraftId: "draft-msg-001-gmail-input-body",
+      aiDraftTitle: "Gmail 返信たたき台",
+      aiDraftSource: "deterministic_draft_v1",
+      aiDraftBodyHash,
+      aiDraftInputHash: "0123456789abcdef",
+      aiDraftBodyHashMatchesSendBody: true,
+    };
+
+    const guardLogs = await getActivityLogs({ action: "reply_send_guard" });
+    expect(guardLogs).toHaveLength(1);
+    expect(guardLogs[0]?.metadata).toMatchObject(expectedProvenance);
+
+    const sendLogs = await getActivityLogs({ action: "reply_send" });
+    expect(sendLogs).toHaveLength(1);
+    expect(sendLogs[0]?.metadata).toMatchObject(expectedProvenance);
+    expect(JSON.stringify(guardLogs[0]?.metadata)).not.toContain(bodyText);
+    expect(JSON.stringify(sendLogs[0]?.metadata)).not.toContain(bodyText);
+    expect(JSON.stringify(sendLogs[0]?.metadata)).not.toContain("customer@example.com");
+  });
+
+  it("keeps send provenance in the durable guard when final send audit append fails", async () => {
+    vi.stubEnv("MAILHUB_TEST_MODE", "0");
+    vi.stubEnv("MAILHUB_SEND_ENABLED", "1");
+    const bodyText = "AI draft body with edits";
+    const aiDraftBodyHash = "0123456789abcdef";
+    const originalAppendWithResult = MemoryStore.prototype.appendWithResult;
+    const appendSpy = vi.spyOn(MemoryStore.prototype, "appendWithResult").mockImplementation(function (
+      this: MemoryStore,
+      entry,
+    ) {
+      if (entry.action === "reply_send") {
+        return Promise.resolve({ ok: false, error: "append failed" });
+      }
+      return originalAppendWithResult.call(this, entry);
+    });
+
+    try {
+      const POST = await importSendPost();
+      const res = await POST(makeRequest(validBody({
+        bodyText,
+        clientRequestId: "client-final-audit-fails",
+        templateId: "acknowledged",
+        templateTitle: "受付返信",
+        aiDraftId: "draft-msg-001-gmail-input-body",
+        aiDraftTitle: "Gmail 返信たたき台",
+        aiDraftSource: "deterministic_draft_v1",
+        aiDraftBodyHash,
+        aiDraftInputHash: "fedcba9876543210",
+      })));
+      const json = await readJson(res);
+
+      expect(res.status).toBe(200);
+      expect(json).toMatchObject({ ok: true, auditWarning: true });
+      const guardLogs = await getActivityLogs({ action: "reply_send_guard" });
+      expect(guardLogs).toHaveLength(1);
+      expect(guardLogs[0]?.metadata).toMatchObject({
+        templateId: "acknowledged",
+        templateTitle: "受付返信",
+        aiDraftId: "draft-msg-001-gmail-input-body",
+        aiDraftTitle: "Gmail 返信たたき台",
+        aiDraftSource: "deterministic_draft_v1",
+        aiDraftBodyHash,
+        aiDraftInputHash: "fedcba9876543210",
+        aiDraftBodyHashMatchesSendBody: false,
+      });
+      expect(JSON.stringify(guardLogs[0]?.metadata)).not.toContain(bodyText);
+      expect(await getActivityLogs({ action: "reply_send" })).toHaveLength(0);
+    } finally {
+      appendSpy.mockRestore();
+    }
+  });
+
+  it("rejects incomplete AI draft provenance before loading Gmail detail", async () => {
+    const POST = await importSendPost();
+
+    const res = await POST(makeRequest(validBody({
+      clientRequestId: "client-bad-ai-provenance",
+      aiDraftId: "draft-msg-001",
+    })));
+
+    expect(res.status).toBe(400);
+    expect(await readJson(res)).toMatchObject({ error: "invalid_ai_draft_provenance" });
+    expect(routeMocks.getMessageDetail).not.toHaveBeenCalled();
   });
 
   it("blocks unassigned replies before send-as and releases the duplicate reservation", async () => {

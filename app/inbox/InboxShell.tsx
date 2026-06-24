@@ -1272,6 +1272,7 @@ export default function InboxShell({
   const [lastAppliedBrainDraft, setLastAppliedBrainDraft] = useState<{
     id: string;
     title: string;
+    source: "deterministic_draft_v1";
     bodyHash: string;
     inputHash: string;
   } | null>(null);
@@ -2882,6 +2883,7 @@ export default function InboxShell({
       setSelectedMessage(selectedMsg);
       setReplyMessage(""); // 返信メッセージをリセット
       setLastAppliedTemplate(null); // テンプレ適用状態をリセット
+      setLastAppliedBrainDraft(null);
       setBodyCollapsed(false); // 本文の折りたたみをリセット
       setDetailError(null);
       setSelectedDetail(null);
@@ -6154,6 +6156,7 @@ export default function InboxShell({
           setSelectedMessage(message);
           setReplyMessage("");
           setLastAppliedTemplate(null);
+          setLastAppliedBrainDraft(null);
           setBodyCollapsed(false);
           setDetailError(null);
           setDetailBody(emptyDetailBodyState(id, true));
@@ -6281,6 +6284,11 @@ export default function InboxShell({
           postSendAction,
           templateId: lastAppliedTemplate?.id ?? null,
           templateTitle: lastAppliedTemplate?.title ?? null,
+          aiDraftId: lastAppliedBrainDraft?.id ?? null,
+          aiDraftTitle: lastAppliedBrainDraft?.title ?? null,
+          aiDraftSource: lastAppliedBrainDraft?.source ?? null,
+          aiDraftBodyHash: lastAppliedBrainDraft?.bodyHash ?? null,
+          aiDraftInputHash: lastAppliedBrainDraft?.inputHash ?? null,
         }),
       });
       const data = (await res.json().catch(() => ({}))) as MailhubSendSuccessResponse | MailhubSendErrorResponse;
@@ -6349,6 +6357,11 @@ export default function InboxShell({
     gmailResolvedContext,
     gmailSentStatus,
     isSendingGmailReply,
+    lastAppliedBrainDraft?.bodyHash,
+    lastAppliedBrainDraft?.id,
+    lastAppliedBrainDraft?.inputHash,
+    lastAppliedBrainDraft?.source,
+    lastAppliedBrainDraft?.title,
     lastAppliedTemplate?.id,
     lastAppliedTemplate?.title,
     lastAppliedTemplate?.unresolvedVars.length,
@@ -6378,6 +6391,7 @@ export default function InboxShell({
     setLastAppliedBrainDraft({
       id: draft.id,
       title: draft.title,
+      source: draft.source,
       bodyHash: draft.bodyHash,
       inputHash: draft.inputHash,
     });
