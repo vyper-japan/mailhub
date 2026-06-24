@@ -73,8 +73,8 @@ export function classifyMailhubMessage(message: ClassifiableMessage): MailhubCla
   return {
     purpose: "other",
     evidence: [],
-    suppressible: true,
-    blockedReasons: [],
+    suppressible: false,
+    blockedReasons: ["not_noise"],
   };
 }
 

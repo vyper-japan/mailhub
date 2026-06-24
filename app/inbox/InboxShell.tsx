@@ -85,6 +85,36 @@ type MailhubSendErrorResponse = {
   clientRequestId?: string;
   duplicateKey?: "clientRequestId" | "bodyHash";
 };
+type NoisePreviewStatus = "safe_to_suppress" | "protected" | "missing_summary" | "not_noise";
+type NoisePreviewItem = {
+  id: string;
+  threadId: string | null;
+  subject: string | null;
+  from: string | null;
+  status: NoisePreviewStatus;
+  classification: {
+    purpose: string;
+    suppressible: boolean;
+    blockedReasons: string[];
+    evidence: Array<{ field: string; keyword: string }>;
+  };
+};
+type NoisePreviewResponse = {
+  safeCandidates: NoisePreviewItem[];
+  protected: NoisePreviewItem[];
+  missingSummary: NoisePreviewItem[];
+  notNoise: NoisePreviewItem[];
+  warnings: Array<{ type: string; message: string; id?: string }>;
+};
+type NoiseApplyResponse = {
+  processed: number;
+  mutedCount: number;
+  skippedCount: number;
+  failedCount: number;
+  muted: Array<{ id: string }>;
+  skipped: Array<{ id: string; reason: string }>;
+  failed: Array<{ id: string; error: string }>;
+};
 type GmailSendBlockedReason =
   | null
   | "read_only"
@@ -1141,7 +1171,11 @@ export default function InboxShell({
   const [showBulkMuteConfirm, setShowBulkMuteConfirm] = useState(false);
   const [senderMutePreview, setSenderMutePreview] = useState<{
     fromEmail: string;
-    messages: InboxListMessage[];
+    messages: NoisePreviewItem[];
+    protectedCount: number;
+    missingSummaryCount: number;
+    notNoiseCount: number;
+    warningCount: number;
     isLoading: boolean;
     isExecuting: boolean;
     error: string | null;
@@ -2854,6 +2888,7 @@ export default function InboxShell({
             subject: message.subject ?? null,
             from: message.from ?? null,
             snippet: message.snippet ?? null,
+            attachmentCount: message.attachmentCount ?? 0,
           })),
       })) as { appliedDetails?: Array<{ id: string; labels: string[] }> };
       const appliedDetails = res?.appliedDetails ?? [];
@@ -4115,7 +4150,17 @@ export default function InboxShell({
       return;
     }
 
-    setSenderMutePreview({ fromEmail, messages: [], isLoading: true, isExecuting: false, error: null });
+    setSenderMutePreview({
+      fromEmail,
+      messages: [],
+      protectedCount: 0,
+      missingSummaryCount: 0,
+      notNoiseCount: 0,
+      warningCount: 0,
+      isLoading: true,
+      isExecuting: false,
+      error: null,
+    });
     try {
       const params = new URLSearchParams();
       const scopeLabel = activeLabel?.type === "channel" ? labelId : "all";
@@ -4131,11 +4176,43 @@ export default function InboxShell({
         seen.add(message.id);
         return true;
       });
-      setSenderMutePreview({ fromEmail, messages: candidates, isLoading: false, isExecuting: false, error: null });
+      if (candidates.length === 0) {
+        setSenderMutePreview({
+          fromEmail,
+          messages: [],
+          protectedCount: 0,
+          missingSummaryCount: 0,
+          notNoiseCount: 0,
+          warningCount: 0,
+          isLoading: false,
+          isExecuting: false,
+          error: null,
+        });
+        return;
+      }
+      const preview = await postJsonOrThrow<NoisePreviewResponse>("/api/mailhub/noise/preview", {
+        messageIds: candidates.map((message) => message.id),
+      });
+      if (!preview) throw new Error("preview_failed");
+      setSenderMutePreview({
+        fromEmail,
+        messages: preview.safeCandidates,
+        protectedCount: preview.protected.length,
+        missingSummaryCount: preview.missingSummary.length,
+        notNoiseCount: preview.notNoise.length,
+        warningCount: preview.warnings.length,
+        isLoading: false,
+        isExecuting: false,
+        error: null,
+      });
     } catch (e) {
       setSenderMutePreview({
         fromEmail,
         messages: [],
+        protectedCount: 0,
+        missingSummaryCount: 0,
+        notNoiseCount: 0,
+        warningCount: 0,
         isLoading: false,
         isExecuting: false,
         error: e instanceof Error ? e.message : String(e),
@@ -4148,28 +4225,39 @@ export default function InboxShell({
     const ids = senderMutePreview.messages.map((message) => message.id);
     setSenderMutePreview((prev) => (prev ? { ...prev, isExecuting: true, error: null } : prev));
 
-    const failed: string[] = [];
-    for (let i = 0; i < ids.length; i += 5) {
-      const batch = ids.slice(i, i + 5);
-      const results = await Promise.allSettled(
-        batch.map((id) => postJsonOrThrow("/api/mailhub/mute", { id, action: "mute" })),
-      );
-      results.forEach((result, index) => {
-        if (result.status === "rejected") failed.push(batch[index]);
-      });
-    }
-
-    if (failed.length > 0) {
+    const result = await postJsonOrThrow<NoiseApplyResponse>("/api/mailhub/noise/apply", {
+      messageIds: ids,
+      fromEmail: senderMutePreview.fromEmail,
+    }).catch((e) => {
       setSenderMutePreview((prev) =>
-        prev ? { ...prev, isExecuting: false, error: `${failed.length}件を処理不要にできませんでした` } : prev,
+        prev ? { ...prev, isExecuting: false, error: e instanceof Error ? e.message : String(e) } : prev,
       );
-      showToast(`${failed.length}件を処理不要にできませんでした`, "error");
+      showToast(`エラー: ${e instanceof Error ? e.message : String(e)}`, "error");
+      return null;
+    });
+    if (!result) return;
+
+    if (result.failedCount > 0) {
+      const firstError = result.failed[0]?.error ?? "unknown_error";
+      setSenderMutePreview((prev) =>
+        prev ? { ...prev, isExecuting: false, error: `${result.failedCount}件を処理不要にできませんでした: ${firstError}` } : prev,
+      );
+      showToast(`${result.failedCount}件を処理不要にできませんでした`, "error");
       void fetchCountsDebounced();
       return;
     }
 
+    if (result.mutedCount === 0) {
+      setSenderMutePreview((prev) =>
+        prev ? { ...prev, isExecuting: false, error: "安全に処理不要へ移動できるメールはありませんでした" } : prev,
+      );
+      showToast("安全に処理不要へ移動できるメールはありませんでした", "error");
+      return;
+    }
+
     setSenderMutePreview(null);
-    showToast(`${ids.length}件を処理不要に移動しました`, "success");
+    const skippedSuffix = result.skippedCount > 0 ? `（${result.skippedCount}件は保護/対象外）` : "";
+    showToast(`${result.mutedCount}件を処理不要に移動しました${skippedSuffix}`, "success");
     void fetchCountsDebounced();
     await loadList(labelId, null, { q: serverSearchQuery || undefined });
   }, [fetchCountsDebounced, labelId, loadList, senderMutePreview, serverSearchQuery, showToast]);
@@ -5193,13 +5281,31 @@ export default function InboxShell({
     if (ids.length === 0 || bulkProgress) return; // 実行中は無効化
     
     try {
-      const { successIds, failedIds, failedMessages } = await executeBulkAction(
-        ids,
-        async (id) => {
-          await postJsonOrThrow("/api/mailhub/mute", { id, action: "mute" });
-        },
-        "bulkMute",
-      );
+      const startedAt = Date.now();
+      setBulkProgress({ current: 0, total: ids.length });
+      const result = await postJsonOrThrow<NoiseApplyResponse>("/api/mailhub/noise/apply", { messageIds: ids });
+      if (!result) throw new Error("noise_apply_failed");
+      setBulkProgress({ current: ids.length, total: ids.length });
+      const elapsed = Date.now() - startedAt;
+      if (elapsed < 300) {
+        await new Promise((r) => setTimeout(r, 300 - elapsed));
+      }
+      setBulkProgress(null);
+
+      const successIds = result.muted.map((item) => item.id);
+      const failedIds = result.failed.map((item) => item.id);
+      const failedMessages = failedIds.map((id) => {
+        const msg = messages.find((m) => m.id === id);
+        return { id, subject: msg?.subject || id };
+      });
+      const skippedCount = result.skipped.length;
+      if (successIds.length > 0) {
+        addToUndoStack({
+          action: "bulkMute",
+          ids: successIds,
+          messages: messages.filter((m) => successIds.includes(m.id)),
+        });
+      }
 
       // UI更新
       if (successIds.length > 0) {
@@ -5275,16 +5381,19 @@ export default function InboxShell({
           action: "bulkMute",
         });
         showToast(`${successIds.length}件処理完了。${failedIds.length}件失敗しました（再実行できます）`, "error");
+      } else if (successIds.length === 0 && skippedCount > 0) {
+        showToast(`${skippedCount}件は保護/対象外のため処理不要にしませんでした`, "info");
       } else {
         // すべて成功した場合も選択状態を維持（要件4）
         // setCheckedIds(new Set());
-        showToast(`${successIds.length}件を処理不要に移動しました`, "success");
+        const skippedSuffix = skippedCount > 0 ? `（${skippedCount}件は保護/対象外）` : "";
+        showToast(`${successIds.length}件を処理不要に移動しました${skippedSuffix}`, "success");
       }
     } catch (e) {
       setBulkProgress(null);
       showToast(`エラー: ${e instanceof Error ? e.message : String(e)}`, "error");
     }
-  }, [activeLabel?.statusType, bumpCounts, messages, selectedId, onSelectMessage, showToast, fetchCountsDebounced, labelId, executeBulkAction, bulkProgress, replaceUrl]);
+  }, [activeLabel?.statusType, addToUndoStack, bumpCounts, messages, selectedId, onSelectMessage, showToast, fetchCountsDebounced, labelId, bulkProgress, replaceUrl]);
 
   // Step 90: 一括Mute（確認付きラッパー）
   const handleBulkMuteSelected = useCallback((ids: string[]) => {
@@ -5722,35 +5831,19 @@ export default function InboxShell({
       return;
     }
     
-    // API成功後にUIを更新（事故防止）
-    const successIds: string[] = [];
-    const failedIds: string[] = [];
+    const result = await postJsonOrThrow<NoiseApplyResponse>("/api/mailhub/noise/apply", {
+      messageIds: candidates.map((msg) => msg.id),
+    });
+    if (!result) throw new Error("noise_apply_failed");
+    const successIds = result.muted.map((item) => item.id);
+    const failedIds = result.failed.map((item) => item.id);
+    const skippedCount = result.skipped.length;
 
-    // 並列3件ずつ処理
-    const BATCH_SIZE = 3;
-    for (let i = 0; i < candidates.length; i += BATCH_SIZE) {
-      const batch = candidates.slice(i, i + BATCH_SIZE);
-      const results = await Promise.allSettled(
-        batch.map(async (msg) => {
-          const res = await fetch("/api/mailhub/mute", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ id: msg.id, action: "mute" }),
-          });
-          if (!res.ok) {
-            throw new Error(`Failed: ${res.status}`);
-          }
-          return msg.id;
-        })
-      );
-
-      results.forEach((result, idx) => {
-        if (result.status === "fulfilled") {
-          successIds.push(result.value);
-          addToUndoStack({ id: result.value, message: batch[idx], action: "mute" });
-        } else {
-          failedIds.push(batch[idx].id);
-        }
+    if (successIds.length > 0) {
+      addToUndoStack({
+        action: "bulkMute",
+        ids: successIds,
+        messages: candidates.filter((msg) => successIds.includes(msg.id)),
       });
     }
 
@@ -5792,8 +5885,11 @@ export default function InboxShell({
 
     if (failedIds.length > 0) {
       showToast(`${successIds.length}件処理完了。${failedIds.length}件失敗しました`, "error");
+    } else if (successIds.length === 0 && skippedCount > 0) {
+      showToast(`${skippedCount}件は保護/対象外のため処理不要にしませんでした`, "info");
     } else {
-      showToast(`${successIds.length}件を処理不要に移動しました`, "success");
+      const skippedSuffix = skippedCount > 0 ? `（${skippedCount}件は保護/対象外）` : "";
+      showToast(`${successIds.length}件を処理不要に移動しました${skippedSuffix}`, "success");
     }
   }, [triageCandidates, messages, selectedId, onSelectMessage, showToast, fetchCountsDebounced, addToUndoStack, labelId, replaceUrl]);
 
@@ -10321,16 +10417,17 @@ export default function InboxShell({
             ) : (
               <>
                 <div className="mt-4 rounded border border-[#e8eaed] bg-[#f8fbff] px-3 py-2 text-xs text-[#3c4043]">
-                  {senderMutePreview.messages.length}件を処理不要へ移動します。実行後は現在の一覧を再読み込みします。
+                  実行対象 {senderMutePreview.messages.length}件 / 保護 {senderMutePreview.protectedCount}件 / 未判定 {senderMutePreview.missingSummaryCount}件 / 対象外 {senderMutePreview.notNoiseCount}件
+                  {senderMutePreview.warningCount > 0 ? ` / 警告 ${senderMutePreview.warningCount}件` : ""}
                 </div>
                 <div className="mt-3 max-h-56 overflow-auto rounded border border-[#e8eaed]">
                   {senderMutePreview.messages.length === 0 ? (
-                    <div className="p-4 text-sm text-[#5f6368]">対象メールはありません</div>
+                    <div className="p-4 text-sm text-[#5f6368]">安全に処理不要へ移動できる対象メールはありません</div>
                   ) : (
                     senderMutePreview.messages.slice(0, 12).map((message) => (
                       <div key={message.id} className="border-b border-[#f1f3f4] px-3 py-2 last:border-b-0">
                         <div className="truncate text-[13px] font-medium text-[#202124]">{message.subject ?? "(no subject)"}</div>
-                        <div className="mt-0.5 truncate text-[11px] text-[#5f6368]">{message.receivedAt}</div>
+                        <div className="mt-0.5 truncate text-[11px] text-[#5f6368]">{message.from ?? "from unknown"}</div>
                       </div>
                     ))
                   )}

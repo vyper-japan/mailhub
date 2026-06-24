@@ -3,12 +3,13 @@ import { requireUser, authErrorResponse } from "@/lib/require-user";
 import { getLabelRulesStore } from "@/lib/labelRulesStore";
 import { getLabelRegistryStore } from "@/lib/labelRegistryStore";
 import { matchRulesWithAssign, type AssignToSpec } from "@/lib/labelRules";
-import { applyLabelsToMessages, ensureLabelId, getMessageMetadataForRules, getTestUserLabelNames, listLatestInboxMessages, applyTestActionDelay, assignMessage, getTestAssigneeMap, assigneeSlug } from "@/lib/gmail";
+import { applyLabelsToMessages, ensureLabelId, getMessageDetail, getMessageMetadataForRules, getTestUserLabelNames, listLatestInboxMessages, applyTestActionDelay, assignMessage, getTestAssigneeMap, assigneeSlug } from "@/lib/gmail";
 import { isTestMode } from "@/lib/test-mode";
 import { logAction } from "@/lib/audit-log";
 import { isAdminEmail } from "@/lib/admin";
 import { isReadOnlyMode, writeForbiddenResponse } from "@/lib/read-only";
-import { classifyMailhubMessage, isSuppressiveLabelName, type MailhubClassification } from "@/lib/mailhubClassification";
+import { isSuppressiveLabelName, type MailhubClassification } from "@/lib/mailhubClassification";
+import { evaluateDetailNoiseSafety, evaluateNoiseSafety } from "@/lib/noiseSafety";
 
 export const dynamic = "force-dynamic";
 
@@ -56,6 +57,7 @@ type MessageSummaryInput = {
   subject: string | null;
   from: string | null;
   snippet: string | null;
+  attachmentCount?: number;
 };
 
 function parseMessageSummaries(value: unknown): MessageSummaryInput[] {
@@ -70,6 +72,7 @@ function parseMessageSummaries(value: unknown): MessageSummaryInput[] {
         subject: typeof obj.subject === "string" ? obj.subject : null,
         from: typeof obj.from === "string" ? obj.from : null,
         snippet: typeof obj.snippet === "string" ? obj.snippet : null,
+        attachmentCount: typeof obj.attachmentCount === "number" ? obj.attachmentCount : undefined,
       },
     ];
   });
@@ -107,8 +110,8 @@ export async function POST(req: Request) {
   const targetIds = sourceIds.slice(0, max);
   const idToSummary = new Map(
     [
-      ...requestSummaries.map((m) => [m.id, { subject: m.subject, from: m.from, snippet: m.snippet }] as const),
-      ...(listForPreview ?? []).map((m) => [m.id, { subject: m.subject ?? null, from: m.from ?? null, snippet: m.snippet ?? null }] as const),
+      ...requestSummaries.map((m) => [m.id, { subject: m.subject, from: m.from, snippet: m.snippet, attachmentCount: m.attachmentCount }] as const),
+      ...(listForPreview ?? []).map((m) => [m.id, { subject: m.subject ?? null, from: m.from ?? null, snippet: m.snippet ?? null, attachmentCount: m.attachmentCount }] as const),
     ],
   );
 
@@ -161,28 +164,46 @@ export async function POST(req: Request) {
       const matchedLabels = matchResult.labels.filter((n) => registered.has(n));
       const assignToEmail = resolveAssigneeEmail(matchResult.assignTo);
       const summary = idToSummary.get(id);
-      const classification = classifyMailhubMessage({
+      let safety = evaluateNoiseSafety({
+        id,
         subject: summary?.subject ?? null,
         from: summary?.from ?? fromEmail,
         snippet: summary?.snippet ?? "",
+        attachmentCount: summary?.attachmentCount,
       });
-      const hasClassificationText = Boolean(
-        (summary?.subject ?? "").trim() || (summary?.snippet ?? "").trim(),
-      );
       const hasSuppressiveLabel = matchedLabels.some(isSuppressiveLabelName);
 
       // labels も assignTo も無い場合はスキップ
       if (matchedLabels.length === 0 && !assignToEmail) {
-        return { id, status: "skipped", reason: "no_match", classification };
+        return { id, status: "skipped", reason: "no_match", classification: safety.classification };
       }
 
-      if (hasSuppressiveLabel && !hasClassificationText) {
-        return { id, status: "skipped", reason: "missing_classification_summary", classification };
+      if (hasSuppressiveLabel && messageIds.length > 0 && summary) {
+        const detail = await withTimeout(getMessageDetail(id), PER_MESSAGE_TIMEOUT_MS, `detail:${id}`).catch(() => null);
+        if (!detail) {
+          return {
+            id,
+            status: "skipped",
+            reason: "missing_classification_summary",
+            classification: evaluateNoiseSafety({ id, subject: null, from: fromEmail, snippet: "" }).classification,
+          };
+        }
+        safety = evaluateDetailNoiseSafety(detail);
       }
 
-      if (hasSuppressiveLabel && !classification.suppressible) {
-        return { id, status: "skipped", reason: "protected_classification", classification };
+      if (hasSuppressiveLabel && safety.status === "missing_summary") {
+        return { id, status: "skipped", reason: "missing_classification_summary", classification: safety.classification };
       }
+
+      if (hasSuppressiveLabel && safety.status !== "safe_to_suppress") {
+        return {
+          id,
+          status: "skipped",
+          reason: safety.status === "not_noise" ? "not_noise_classification" : "protected_classification",
+          classification: safety.classification,
+        };
+      }
+      const classification = safety.classification;
 
       // 既に付いているラベルはスキップ（冪等・API保護）
       const alreadyNames = inTest

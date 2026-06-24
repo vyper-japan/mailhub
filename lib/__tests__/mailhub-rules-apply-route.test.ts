@@ -5,6 +5,7 @@ const routeMocks = vi.hoisted(() => ({
   getRules: vi.fn(),
   listRegisteredLabels: vi.fn(),
   listLatestInboxMessages: vi.fn(),
+  getMessageDetail: vi.fn(),
   getMessageMetadataForRules: vi.fn(),
   ensureLabelId: vi.fn(),
   applyLabelsToMessages: vi.fn(),
@@ -38,6 +39,7 @@ vi.mock("@/lib/labelRegistryStore", () => ({
 
 vi.mock("@/lib/gmail", () => ({
   listLatestInboxMessages: routeMocks.listLatestInboxMessages,
+  getMessageDetail: routeMocks.getMessageDetail,
   getMessageMetadataForRules: routeMocks.getMessageMetadataForRules,
   ensureLabelId: routeMocks.ensureLabelId,
   applyLabelsToMessages: routeMocks.applyLabelsToMessages,
@@ -78,6 +80,36 @@ function post(body: Record<string, unknown>): Request {
   });
 }
 
+function detail(overrides: Record<string, unknown>) {
+  return {
+    id: "m1",
+    threadId: "t1",
+    subject: "Weekly newsletter",
+    from: "no-reply@example.com",
+    messageId: "msg1",
+    receivedAt: new Date().toISOString(),
+    snippet: "unsubscribe here",
+    gmailLink: "",
+    plainTextBody: null,
+    htmlBody: null,
+    bodySource: null,
+    bodyNotice: null,
+    attachments: [],
+    assigneeSlug: null,
+    to: null,
+    cc: null,
+    bcc: null,
+    replyTo: null,
+    deliveredTo: [],
+    xOriginalTo: null,
+    references: null,
+    inReplyTo: null,
+    listId: null,
+    listPost: null,
+    ...overrides,
+  };
+}
+
 describe("mailhub rules apply route", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -111,6 +143,7 @@ describe("mailhub rules apply route", () => {
       ],
       nextPageToken: undefined,
     });
+    routeMocks.getMessageDetail.mockImplementation((id: string) => Promise.resolve(detail({ id })));
     routeMocks.getMessageMetadataForRules.mockResolvedValue({ fromEmail: "billing@example.com", labelIds: [] });
     routeMocks.ensureLabelId.mockResolvedValue("Label_Muted");
     routeMocks.applyLabelsToMessages.mockResolvedValue({ applied: ["m1"], failed: [] });
@@ -206,8 +239,57 @@ describe("mailhub rules apply route", () => {
     });
   });
 
+  it("does not apply suppressive label rules to unknown non-noise messages", async () => {
+    routeMocks.listLatestInboxMessages.mockReset();
+    routeMocks.listLatestInboxMessages.mockResolvedValueOnce({
+      messages: [
+        {
+          id: "m-other",
+          threadId: "t-other",
+          subject: "ご確認ください",
+          from: "partner@example.com",
+          messageId: "msg-other",
+          receivedAt: new Date().toISOString(),
+          snippet: "明日の件です",
+          gmailLink: "",
+          assigneeSlug: null,
+        },
+      ],
+      nextPageToken: undefined,
+    });
+    routeMocks.getMessageMetadataForRules.mockReset();
+    routeMocks.getMessageMetadataForRules.mockResolvedValueOnce({ fromEmail: "partner@example.com", labelIds: [] });
+    const POST = await importPost();
+
+    const res = await POST(post({ dryRun: true, ruleId: "mute-billing", max: 10 }));
+    const json = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(json.preview).toMatchObject({
+      matchedCount: 0,
+      protectedCount: 0,
+    });
+    expect(json.skippedDetails).toContainEqual(
+      expect.objectContaining({
+        id: "m-other",
+        reason: "not_noise_classification",
+        classification: expect.objectContaining({
+          purpose: "other",
+          suppressible: false,
+        }),
+      }),
+    );
+    expect(routeMocks.applyLabelsToMessages).not.toHaveBeenCalled();
+  });
+
   it("uses client-provided summaries to protect explicit messageIds", async () => {
     routeMocks.listLatestInboxMessages.mockReset();
+    routeMocks.getMessageDetail.mockResolvedValueOnce(detail({
+      id: "m-explicit",
+      subject: "請求書を送付します",
+      from: "no-reply@example.com",
+      snippet: "添付をご確認ください",
+    }));
     routeMocks.getMessageMetadataForRules.mockReset();
     routeMocks.getMessageMetadataForRules.mockResolvedValueOnce({ fromEmail: "no-reply@example.com", labelIds: [] });
     const POST = await importPost();
@@ -250,6 +332,53 @@ describe("mailhub rules apply route", () => {
         reason: "protected_classification",
       }),
     );
+  });
+
+  it("rechecks explicit messageIds with full detail before suppressive rules", async () => {
+    routeMocks.listLatestInboxMessages.mockReset();
+    routeMocks.getMessageDetail.mockReset();
+    routeMocks.getMessageDetail.mockResolvedValueOnce(detail({
+      id: "m-explicit-attachment",
+      subject: "Weekly newsletter",
+      from: "no-reply@example.com",
+      snippet: "unsubscribe here",
+      attachments: [{ id: "a1", filename: "invoice-2026-06.pdf", mimeType: "application/pdf", size: 1234 }],
+    }));
+    routeMocks.getMessageMetadataForRules.mockReset();
+    routeMocks.getMessageMetadataForRules.mockResolvedValueOnce({ fromEmail: "no-reply@example.com", labelIds: [] });
+    const POST = await importPost();
+
+    const res = await POST(
+      post({
+        dryRun: true,
+        ruleId: "mute-billing",
+        messageIds: ["m-explicit-attachment"],
+        messageSummaries: [
+          {
+            id: "m-explicit-attachment",
+            subject: "Weekly newsletter",
+            from: "no-reply@example.com",
+            snippet: "unsubscribe here",
+          },
+        ],
+      }),
+    );
+    const json = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(routeMocks.getMessageDetail).toHaveBeenCalledWith("m-explicit-attachment");
+    expect(json.preview).toMatchObject({
+      matchedCount: 0,
+      protectedCount: 1,
+    });
+    expect(json.skippedDetails).toContainEqual(
+      expect.objectContaining({
+        id: "m-explicit-attachment",
+        reason: "protected_classification",
+        classification: expect.objectContaining({ purpose: "invoice", suppressible: false }),
+      }),
+    );
+    expect(routeMocks.applyLabelsToMessages).not.toHaveBeenCalled();
   });
 
   it("fails closed for explicit messageIds without classification summaries", async () => {

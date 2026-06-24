@@ -39,6 +39,20 @@ describe("mailhubClassification", () => {
     expect(result.suppressible).toBe(true);
   });
 
+  it("does not treat unknown purpose as suppressible", () => {
+    const result = classifyMailhubMessage({
+      subject: "ご確認ください",
+      from: "partner@example.com",
+      snippet: "明日の件です",
+    });
+
+    expect(result).toMatchObject({
+      purpose: "other",
+      suppressible: false,
+      blockedReasons: ["not_noise"],
+    });
+  });
+
   it("recognizes suppressive label names", () => {
     expect(isSuppressiveLabelName("MailHub/Muted")).toBe(true);
     expect(isSuppressiveLabelName("処理不要")).toBe(true);

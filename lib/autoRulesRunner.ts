@@ -12,7 +12,8 @@ import {
 } from "@/lib/gmail";
 import { isTestMode } from "@/lib/test-mode";
 import { MAILHUB_USER_LABEL_PREFIX } from "@/lib/mailhub-labels";
-import { classifyMailhubMessage, isSuppressiveLabelName } from "@/lib/mailhubClassification";
+import { isSuppressiveLabelName } from "@/lib/mailhubClassification";
+import { evaluateNoiseSafety } from "@/lib/noiseSafety";
 
 const DEFAULT_MAX_TOTAL = 100;
 const DEFAULT_MAX_PER_RULE = 50;
@@ -196,18 +197,19 @@ export async function runAutoRules(opts: {
           ruleSkipped.push(message.id);
           return;
         }
-        const classification = classifyMailhubMessage({
+        const safety = evaluateNoiseSafety({
+          id: message.id,
           subject: message.subject ?? null,
           from: message.from ?? fromEmail,
           snippet: message.snippet ?? "",
+          attachmentCount: message.attachmentCount,
         });
-        const hasClassificationText = Boolean((message.subject ?? "").trim() || (message.snippet ?? "").trim());
         const hasSuppressiveLabel = toAdd.some(isSuppressiveLabelName);
-        if (hasSuppressiveLabel && !hasClassificationText) {
+        if (hasSuppressiveLabel && safety.status === "missing_summary") {
           ruleSkipped.push(message.id);
           return;
         }
-        if (hasSuppressiveLabel && !classification.suppressible) {
+        if (hasSuppressiveLabel && safety.status !== "safe_to_suppress") {
           ruleSkipped.push(message.id);
           return;
         }
