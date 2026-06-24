@@ -44,6 +44,10 @@ describe("mailhub brain decisions route", () => {
 
   beforeEach(async () => {
     process.env = { ...originalEnv, MAILHUB_BRAIN_LEDGER_STORE: "memory", MAILHUB_BRAIN_SECRET: "secret-1" };
+    delete process.env.MAILHUB_SHEETS_ID;
+    delete process.env.MAILHUB_SHEETS_SPREADSHEET_ID;
+    delete process.env.MAILHUB_SHEETS_CLIENT_EMAIL;
+    delete process.env.MAILHUB_SHEETS_PRIVATE_KEY;
     routeMocks.requireUser.mockReset().mockResolvedValue({
       ok: true,
       user: { email: "test@vtj.co.jp", name: "Test" },
@@ -60,7 +64,38 @@ describe("mailhub brain decisions route", () => {
     }));
 
     expect(res.status).toBe(403);
+    expect(res.headers.get("cache-control")).toBe("no-store");
     expect(await store.list()).toEqual([]);
+  });
+
+  it("fails closed instead of writing to memory when Sheets ledger is requested but not configured", async () => {
+    process.env.MAILHUB_BRAIN_LEDGER_STORE = "sheets";
+    const { GET, POST } = await importRoute();
+
+    const res = await POST(new Request("http://localhost/api/mailhub/brain/decisions", {
+      method: "POST",
+      headers: { authorization: "Bearer secret-1" },
+      body: JSON.stringify(entry()),
+    }));
+    const json = await res.json();
+
+    expect(res.status).toBe(503);
+    expect(res.headers.get("cache-control")).toBe("no-store");
+    expect(json).toMatchObject({
+      error: "brain_ledger_sheets_not_configured",
+      requested: "sheets",
+      resolved: "memory",
+    });
+    expect(await store.list()).toEqual([]);
+
+    const getRes = await GET(new Request("http://localhost/api/mailhub/brain/decisions?messageId=m-1"));
+    expect(getRes.status).toBe(503);
+    expect(getRes.headers.get("cache-control")).toBe("no-store");
+    expect(await getRes.json()).toMatchObject({
+      error: "brain_ledger_sheets_not_configured",
+      requested: "sheets",
+      resolved: "memory",
+    });
   });
 
   it("appends a non-destructive decision and GET returns it", async () => {
@@ -72,11 +107,13 @@ describe("mailhub brain decisions route", () => {
       body: JSON.stringify(entry()),
     }));
     expect(postRes.status).toBe(200);
+    expect(postRes.headers.get("cache-control")).toBe("no-store");
 
     const getRes = await GET(new Request("http://localhost/api/mailhub/brain/decisions?messageId=m-1&latest=1"));
     const json = (await getRes.json()) as { entries: BrainDecisionLedgerEntry[] };
 
     expect(getRes.status).toBe(200);
+    expect(getRes.headers.get("cache-control")).toBe("no-store");
     expect(json.entries).toHaveLength(1);
     expect(json.entries[0]).toMatchObject({
       decisionId: "decision-1",
@@ -98,6 +135,7 @@ describe("mailhub brain decisions route", () => {
     }));
 
     expect(res.status).toBe(400);
+    expect(res.headers.get("cache-control")).toBe("no-store");
     expect(await store.list()).toEqual([]);
   });
 });
