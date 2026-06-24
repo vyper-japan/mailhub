@@ -39,11 +39,11 @@
   {
     "id": "msg-101",
     "threadId": "thread-101",
-    "subject": "【ラベルテスト】お問い合わせ 1",
+    "subject": "【ラベルテスト】キャンペーン通知 1",
     "from": "Label Tester <label-tester@example.com>",
     "messageId": "<msg101@example.com>",
     "receivedAt": "2025/12/31 09:50:00",
-    "snippet": "ラベル自動適用のテスト用メール（1通目）です。",
+    "snippet": "ラベル自動適用のテスト用キャンペーン通知メール（1通目）です。unsubscribe linkがあります。",
     "gmailLink": "https://mail.google.com/mail/u/0/#inbox/msg-101",
     "isUnread": true,
     "isStarred": false
@@ -51,11 +51,11 @@
   {
     "id": "msg-102",
     "threadId": "thread-102",
-    "subject": "【ラベルテスト】お問い合わせ 2",
+    "subject": "【ラベルテスト】キャンペーン通知 2",
     "from": "Label Tester <label-tester@example.com>",
     "messageId": "<msg102@example.com>",
     "receivedAt": "2025/12/31 09:49:00",
-    "snippet": "ラベル自動適用のテスト用メール（2通目）です。",
+    "snippet": "ラベル自動適用のテスト用キャンペーン通知メール（2通目）です。unsubscribe linkがあります。",
     "gmailLink": "https://mail.google.com/mail/u/0/#inbox/msg-102",
     "isUnread": false,
     "isStarred": false

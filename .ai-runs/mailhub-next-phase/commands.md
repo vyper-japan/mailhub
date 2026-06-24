@@ -3697,6 +3697,28 @@ Result:
 - `security:scan-artifacts` passed.
 - Production readiness remains false with P0 `current_shared_gmail_routing` and P1 `rule_config_source_not_production`, `staff_workflow_permissions`, `staff_github_config_not_ready`.
 
+## PR #1 qa-strict Recovery Commands
+
+```bash
+MAILHUB_TEST_MODE=1 npx playwright test e2e/qa-strict-unified.spec.ts --grep "Step93-5" --workers=1
+MAILHUB_TEST_MODE=1 npx playwright test e2e/qa-strict-unified.spec.ts --grep "10\\)|12\\)|13\\)|Step93-5" --workers=1
+npm run lint
+npm run typecheck
+git diff --check
+MAILHUB_TEST_MODE=1 npx playwright test e2e/qa-strict-unified.spec.ts --grep "21\\)|22\\)|Step93-5" --workers=1
+npm test -- lib/__tests__/noiseSafety.test.ts lib/__tests__/mailhubClassification.test.ts
+```
+
+Result:
+
+- Step93-5 single run PASS, 1/1.
+- Original failing PR subset PASS, 4/4.
+- lint PASS.
+- typecheck PASS.
+- diff check PASS.
+- label fixture regression subset exited 0 with 2 passed and 1 flaky retry pass.
+- classification unit subset PASS, 11/11.
+
 ## 2026-06-22 Initial Preview Responsiveness / Switching Jank Commands
 
 Targeted regression and visual checks:

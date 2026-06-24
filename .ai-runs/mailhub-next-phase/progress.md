@@ -468,6 +468,30 @@ Readiness refresh after the slice:
   - P1 `staff_workflow_permissions`
   - P1 `staff_github_config_not_ready`
 
+## 2026-06-25 PR #1 qa-strict Recovery
+
+- Investigated PR #1 `qa-strict` failure after readiness-contract was fixed to run on the PR head SHA.
+- Root cause:
+  - E2E tests still waited for the legacy per-message `/api/mailhub/mute` behavior.
+  - Current bulk/sender noise suppression contract uses a single `/api/mailhub/noise/apply` request and returns `muted`, `skipped`, and `failed` arrays.
+  - Bulk tests assumed selected count equals muted count, but the safety gate intentionally skips protected/not-noise messages.
+  - `label-tester@example.com` fixture subjects used `お問い合わせ`, which makes sender mute preview correctly classify them as protected rather than safe.
+- Updated `e2e/qa-strict-unified.spec.ts`:
+  - bulk mute tests now wait for `/api/mailhub/noise/apply`.
+  - row-count and Undo expectations now use the actual `muted` item count.
+  - sender mute preview now validates `safeCandidates` from `/api/mailhub/noise/preview` and waits for `/api/mailhub/noise/apply`.
+- Updated `fixtures/messages.json` plus `fixtures/details/msg-101.json` and `fixtures/details/msg-102.json`:
+  - retained the same IDs and sender for label-rule coverage.
+  - changed label-tester content from protected inquiry text to safe campaign/unsubscribe notification text.
+  - avoided the Japanese substring `停止`, because current classification checks important keywords before noise keywords.
+- Local verification:
+  - `MAILHUB_TEST_MODE=1 npx playwright test e2e/qa-strict-unified.spec.ts --grep "10\\)|12\\)|13\\)|Step93-5" --workers=1` => PASS, 4/4.
+  - `MAILHUB_TEST_MODE=1 npx playwright test e2e/qa-strict-unified.spec.ts --grep "21\\)|22\\)|Step93-5" --workers=1` => exit 0, 2 passed and 1 flaky retry pass. The retry was label popover timing before fixture-dependent assertions.
+  - `npm run lint` => PASS.
+  - `npm run typecheck` => PASS.
+  - `git diff --check` => PASS.
+  - `npm test -- lib/__tests__/noiseSafety.test.ts lib/__tests__/mailhubClassification.test.ts` => PASS, 11/11.
+
 ## 2026-06-22 Initial Preview Responsiveness / Switching Jank Slice
 
 - Implemented a focused fix for the user-reported symptoms:

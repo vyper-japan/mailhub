@@ -961,3 +961,11 @@ Recommended next UX slice after CI is green:
 - build a small real-message preview sweep from the user's reported Amazon/Yahoo/Rakuten/newsletter examples.
 - add one or two representative fixture variants that reproduce any remaining real clipping or layout movement.
 - keep performance assertions focused on user-visible stalls and stale/mismatched body states, not micro-jank from local dev server load.
+
+## Immediate Next After PR #1 qa-strict Recovery
+
+- Commit and push the `qa-strict` E2E contract fix.
+- Watch PR #1 checks:
+  - `MailHub Readiness Contract` should remain green.
+  - `qa-strict` should rerun against the updated branch and verify the full suite.
+- If full `qa-strict` finds a new failure, inspect the GitHub Actions log first and avoid broad E2E rewrites unless the log points at a real contract mismatch.
