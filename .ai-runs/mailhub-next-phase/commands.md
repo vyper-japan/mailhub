@@ -1,5 +1,29 @@
 # MailHub Next Phase Commands
 
+## 2026-06-25 T10 Alerts Readiness Gate Recovery Commands
+
+Recovery and validation commands:
+
+```bash
+npm run audit:mailhub-config-request
+npm run audit:mailhub-config-request-contract
+npm test -- lib/__tests__/mailhub-staff-secrets-readiness.test.ts
+npm run typecheck
+npm run lint
+git diff --check
+npm run security:scan-artifacts
+npm run ops:readiness-refresh
+```
+
+Result:
+
+- PASS.
+- `npm test -- lib/__tests__/mailhub-staff-secrets-readiness.test.ts` passed 30 tests.
+- `npm run ops:readiness-refresh` passed all configured contracts, including `audit:mailhub-config-request-contract`.
+- `probe:routing-send` stayed `mode=dry_run` with `sentCount=0`.
+
+No external email send, GitHub setup/apply mutation, or Sheets mutation was run.
+
 ## 2026-06-22 Initial Detail Load Responsiveness Commands
 
 Targeted and full local validation:

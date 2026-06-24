@@ -8,6 +8,7 @@ const staffSecretsPath = resolve(process.cwd(), "scripts/check-mailhub-staff-sec
 const staffSecretContractPath = resolve(process.cwd(), "scripts/check-mailhub-staff-secret-readiness-contract.mjs");
 const staffGithubSetupPath = resolve(process.cwd(), "scripts/setup-mailhub-staff-github-config.mjs");
 const productionConfigRequestPath = resolve(process.cwd(), "scripts/write-mailhub-production-config-request.mjs");
+const productionConfigRequestContractPath = resolve(process.cwd(), "scripts/check-mailhub-production-config-request-contract.mjs");
 
 function withTempDir<T>(fn: (dir: string) => T): T {
   const dir = mkdtempSync(join(tmpdir(), "mailhub-staff-secrets-"));
@@ -1271,6 +1272,177 @@ printf 'called\\n' >> "${ghLog}"
       expect(markdown).not.toContain("nextauth-secret-value");
       expect(markdown).not.toContain("BEGIN PRIVATE KEY");
       expect(markdown).not.toContain("probe-pass");
+    });
+  });
+
+  test("production config request contract accepts generated approval-gated intake", () => {
+    withTempDir((dir) => {
+      const runDir = join(dir, "run");
+      const outPath = join(runDir, "mailhub-production-config-request.json");
+      const markdownOutPath = join(runDir, "mailhub-production-config-intake.md");
+      mkdirSync(runDir, { recursive: true });
+      writeJson(join(runDir, "mailhub-production-readiness-audit.json"), {
+        gate: {
+          productionReady: false,
+          p0Blockers: ["current_shared_gmail_routing"],
+          p1Blockers: ["staff_github_config_not_ready"],
+        },
+      });
+      writeJson(join(runDir, "github-routing-secrets-readiness.json"), {
+        secretGroups: {
+          externalSmtpProof: { missing: ["MAILHUB_PROBE_SMTP_HOST"] },
+          gmailProof: { missing: [] },
+        },
+      });
+      writeJson(join(runDir, "github-staff-secrets-readiness.json"), {
+        missingProductionStaffConfig: ["MAILHUB_TEAM_MEMBERS"],
+        missingSecretConfig: ["MAILHUB_SHEETS_PRIVATE_KEY"],
+        missingAlertAutomationConfig: ["MAILHUB_ALERTS_SECRET", "MAILHUB_PROD_URL"],
+        alertAutomationWorkflow: { missing: [] },
+      });
+
+      const writeResult = runNodeScript(productionConfigRequestPath, [
+        "--run-dir",
+        runDir,
+        "--out",
+        outPath,
+        "--markdown-out",
+        markdownOutPath,
+      ]);
+      expect(writeResult.status).toBe(0);
+
+      const contractResult = runNodeScript(productionConfigRequestContractPath, [
+        "--request",
+        outPath,
+        "--readiness",
+        join(runDir, "mailhub-production-readiness-audit.json"),
+        "--markdown",
+        markdownOutPath,
+      ]);
+
+      expect(contractResult.status).toBe(0);
+      expect(JSON.parse(contractResult.stdout)).toMatchObject({
+        ok: true,
+        productionReady: false,
+        p0Blockers: ["current_shared_gmail_routing"],
+        p1Blockers: ["staff_github_config_not_ready"],
+        markdownChecked: true,
+      });
+    });
+  });
+
+  test("production config request contract rejects unsafe approval and stale artifacts", () => {
+    withTempDir((dir) => {
+      const runDir = join(dir, "run");
+      const outPath = join(runDir, "mailhub-production-config-request.json");
+      const readinessPath = join(runDir, "mailhub-production-readiness-audit.json");
+      const markdownPath = join(runDir, "mailhub-production-config-intake.md");
+      mkdirSync(runDir, { recursive: true });
+      writeJson(readinessPath, {
+        repoHead: "parent-head",
+        gate: {
+          productionReady: false,
+          p0Blockers: ["current_shared_gmail_routing"],
+          p1Blockers: ["staff_github_config_not_ready"],
+        },
+      });
+      writeJson(outPath, {
+        generatedAt: "not-a-date",
+        repoHead: "old-head",
+        valuePolicy: "values may appear here",
+        readiness: {
+          productionReady: true,
+          p0Blockers: [],
+          p1Blockers: [],
+        },
+        currentMissing: {
+          externalSmtpSecrets: ["MAILHUB_PROBE_SMTP_HOST"],
+        },
+        safeCommands: {
+          dryRun: [
+            "gh secret set MAILHUB_PROBE_SMTP_HOST --body probe-pass",
+            "npm run probe:routing-send -- --send",
+            "npm run setup:mailhub-routing-secrets -- --out .ai-runs/mailhub-next-phase/mailhub-routing-secrets-plan.json",
+            "npm run setup:mailhub-staff-github-config -- --out .ai-runs/mailhub-next-phase/mailhub-staff-github-config-plan.json",
+            "npm run setup:mailhub-staff-env -- --strict --out .ai-runs/mailhub-next-phase/mailhub-staff-env-readiness.json",
+            "npm run probe:routing-preflight -- --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-preflight.json",
+            "npm run ops:readiness-refresh -- --plan-only",
+          ],
+        },
+        approvalGatedActions: [
+          {
+            id: "apply_routing_probe_github_secrets",
+            sideEffect: "github_mutation",
+            requiresApproval: false,
+            confirmationToken: "",
+            commandAfterApproval: "gh secret set MAILHUB_PROBE_SMTP_HOST --body probe-pass",
+            preconditions: [],
+            status: "ready",
+          },
+        ],
+      });
+      writeFileSync(
+        markdownPath,
+        [
+          "# MailHub Production Config Intake",
+          "",
+          "This artifact is intentionally value-free.",
+          "",
+          "Dry-run commands:",
+          "",
+          "- `npm run probe:routing-send -- --send`",
+          "",
+          "Approval-gated commands, only after values are present and explicit approval is given:",
+          "",
+          "- apply_routing_probe_github_secrets: ready",
+          "  - commandAfterApproval: `gh secret set MAILHUB_PROBE_SMTP_HOST --body probe-pass`",
+          "",
+          "## Post-Apply Verification",
+          "",
+        ].join("\n"),
+        "utf8",
+      );
+
+      const result = runNodeScript(productionConfigRequestContractPath, [
+        "--request",
+        outPath,
+        "--readiness",
+        readinessPath,
+        "--markdown",
+        markdownPath,
+        "--repo-head",
+        "current-head",
+        "--repo-parent-head",
+        "parent-head",
+      ]);
+
+      expect(result.status).toBe(1);
+      expect(result.stdout).toContain("invalid_generated_at");
+      expect(result.stdout).toContain("stale_request_repo_head");
+      expect(result.stdout).toContain("production_ready_mismatch");
+      expect(result.stdout).toContain("p0_blockers_mismatch");
+      expect(result.stdout).toContain("p1_blockers_mismatch");
+      expect(result.stdout).toContain("production_ready_with_missing_config_values");
+      expect(result.stdout).toContain("missing_no_secret_value_policy");
+      expect(result.stdout).toContain("secret_value_signal_in_request");
+      expect(result.stdout).toContain("safe_dry_run_commands_mismatch");
+      expect(result.stdout).toContain("unknown_safe_dry_run_command:gh secret set MAILHUB_PROBE_SMTP_HOST --body probe-pass");
+      expect(result.stdout).toContain("unknown_safe_dry_run_command:npm run probe:routing-send -- --send");
+      expect(result.stdout).toContain("safe_command_contains_send");
+      expect(result.stdout).toContain("safe_command_contains_raw_gh_mutation");
+      expect(result.stdout).toContain("raw_gh_mutation_command_disallowed");
+      expect(result.stdout).toContain("raw_gh_mutation_command_in_markdown");
+      expect(result.stdout).toContain("markdown_dry_run_commands_mismatch");
+      expect(result.stdout).toContain("markdown_unknown_dry_run_command:npm run probe:routing-send -- --send");
+      expect(result.stdout).toContain("markdown_dry_run_command_contains_send");
+      expect(result.stdout).toContain("approval_action_must_require_approval:apply_routing_probe_github_secrets");
+      expect(result.stdout).toContain("approval_action_confirmation_token_mismatch:apply_routing_probe_github_secrets");
+      expect(result.stdout).toContain("approval_action_command_mismatch:apply_routing_probe_github_secrets");
+      expect(result.stdout).toContain("approval_action_status_invalid:apply_routing_probe_github_secrets");
+      expect(result.stdout).toContain("approval_action_missing_explicit_approval_precondition:apply_routing_probe_github_secrets");
+      expect(result.stdout).toContain("missing_approval_action:apply_staff_github_config");
+      expect(result.stdout).toContain("missing_approval_action:send_external_routing_probes");
+      expect(result.stdout).toContain("missing_approval_action:run_sheets_mutation_paths");
     });
   });
 

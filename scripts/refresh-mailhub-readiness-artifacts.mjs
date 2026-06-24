@@ -117,6 +117,7 @@ function buildCommands(args) {
     command("npm", ["run", "audit:mailhub-rule-config-next-contract"]),
     command("npm", ["run", "audit:mailhub-routing-next-contract"]),
     command("npm", ["run", "audit:mailhub-routing-proof-contract"]),
+    command("npm", ["run", "audit:mailhub-config-request-contract"]),
     command("npm", ["run", "security:scan-artifacts"]),
   ];
   return args.skipContracts ? refresh : [...refresh, ...contracts];

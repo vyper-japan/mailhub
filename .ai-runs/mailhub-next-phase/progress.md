@@ -1,5 +1,43 @@
 # MailHub Next Phase Progress
 
+## 2026-06-25 T10 Alerts Readiness Gate Recovery
+
+Recovered the frozen `feat/t10-alerts-readiness-gate` session. The active dirty tree was a readiness hardening slice, not the older initial-detail UI checkpoint.
+
+Implemented:
+
+- Added `scripts/check-mailhub-production-config-request-contract.mjs`.
+- Added `audit:mailhub-config-request-contract` to `package.json`.
+- Added the new contract to `scripts/refresh-mailhub-readiness-artifacts.mjs`.
+- Added unit coverage in `lib/__tests__/mailhub-staff-secrets-readiness.test.ts`.
+- Refreshed `.ai-runs/mailhub-next-phase` readiness artifacts at repo head `ad446acd81527879ef16d928a31dd09511ba1a4a`.
+
+Validation:
+
+- `npm run audit:mailhub-config-request`: PASS.
+- `npm run audit:mailhub-config-request-contract`: PASS, `ok: true`.
+- `npm test -- lib/__tests__/mailhub-staff-secrets-readiness.test.ts`: PASS, 30 tests.
+- `npm run typecheck`: PASS.
+- `npm run lint`: PASS.
+- `git diff --check`: PASS.
+- `npm run security:scan-artifacts`: PASS.
+- `npm run ops:readiness-refresh`: PASS, including the new config-request contract.
+
+Safety result:
+
+- External mail send did not run. Refresh stayed in preflight/dry-run paths with `sentCount=0`.
+- GitHub setup/apply mutation did not run.
+- Sheets mutation did not run.
+
+Production readiness remains false:
+
+- P0 `current_shared_gmail_routing`.
+- P1 `rule_config_source_not_production`.
+- P1 `alerts_not_ready`.
+- P1 `alerts_automation_not_ready`.
+- P1 `staff_workflow_permissions`.
+- P1 `staff_github_config_not_ready`.
+
 ## 2026-06-22 Initial Detail Load Responsiveness
 
 Completed a focused fix for the user-reported first-open freeze feeling. The previous page render awaited `getMessageDetail(selectedId)` in `app/page.tsx`, so opening a selected email could wait for full body detail before the workbench became usable. The new flow renders the selected list row and detail header immediately, shows a stable detail skeleton, and lets `InboxShell` load the selected detail on the client.

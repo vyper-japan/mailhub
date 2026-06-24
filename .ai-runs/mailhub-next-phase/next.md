@@ -1,5 +1,33 @@
 # MailHub Next Phase Next Actions
 
+## 2026-06-25 Resume Here: Close Out T10 Alerts Readiness Gate
+
+Current recovered slice is implemented and locally verified on `feat/t10-alerts-readiness-gate`.
+
+Immediate sequence:
+
+```bash
+git status -sb
+git diff --stat
+git diff --check
+npm run security:scan-artifacts
+git add package.json scripts/refresh-mailhub-readiness-artifacts.mjs scripts/check-mailhub-production-config-request-contract.mjs lib/__tests__/mailhub-staff-secrets-readiness.test.ts .ai-runs/mailhub-next-phase
+git commit -m "Guard MailHub production config intake artifacts"
+git push
+```
+
+Then watch:
+
+- `MailHub Readiness Contract`
+- `qa-strict`
+
+Keep these hard gates:
+
+- no external email send without explicit approval
+- no GitHub setup/apply mutation without explicit approval
+- no Sheets mutation without explicit approval
+- do not claim production complete
+
 ## 2026-06-22 Resume Here: Commit Initial Detail Load Responsiveness
 
 Current slice is implemented, locally verified, and intentionally left uncommitted because the user asked to pause and create this checkpoint.

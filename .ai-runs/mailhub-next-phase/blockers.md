@@ -1,5 +1,30 @@
 # MailHub Next Phase Blockers
 
+## 2026-06-25 T10 Alerts Readiness Gate Recovery Blockers
+
+No implementation blocker remains for the config-request contract slice.
+
+Process blockers:
+
+- The recovered slice still needs commit and push.
+- GitHub Actions have not yet run for the recovered commit.
+
+Product/production blockers remain:
+
+- P0 `current_shared_gmail_routing`.
+- P1 `rule_config_source_not_production`.
+- P1 `alerts_not_ready`.
+- P1 `alerts_automation_not_ready`.
+- P1 `staff_workflow_permissions`.
+- P1 `staff_github_config_not_ready`.
+
+Approval gates remain unchanged:
+
+- No external email send without explicit approval.
+- No GitHub setup/apply mutation without explicit approval.
+- No Sheets mutation without explicit approval.
+- No production-complete claim.
+
 ## 2026-06-23 Claude Code Handoff / Initial Detail Load Blockers
 
 No implementation blocker remains for the initial-detail responsiveness slice. The code and evidence are verified locally but intentionally uncommitted because the user asked to stop and hand off to Claude Code.

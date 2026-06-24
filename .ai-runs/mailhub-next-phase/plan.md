@@ -1,5 +1,35 @@
 # MailHub Next Phase Plan
 
+## 2026-06-25 T10 Alerts Readiness Gate Recovery Plan
+
+Status: recovered after frozen session; implementation and local verification are complete.
+
+Completed plan:
+
+1. Reconstructed the active work from the dirty tree on `feat/t10-alerts-readiness-gate`.
+2. Confirmed the slice adds a contract for the generated production config intake/request artifact.
+3. Verified the contract blocks unsafe content:
+   - stale repo heads
+   - secret-like values in JSON or Markdown
+   - raw `gh secret/variable set` commands in generated artifacts
+   - `--apply` / `--send` commands in safe dry-run lists
+   - missing explicit approval gates for GitHub, external mail, and Sheets mutation paths
+4. Integrated the contract into `npm run ops:readiness-refresh`.
+5. Refreshed readiness artifacts without external send.
+
+Remaining closeout plan:
+
+1. Commit code, tests, contract script, and refreshed `.ai-runs/mailhub-next-phase` artifacts.
+2. Push `feat/t10-alerts-readiness-gate`.
+3. Watch `MailHub Readiness Contract` and `qa-strict`.
+
+Constraints stay in force:
+
+- no external email send without explicit approval
+- no GitHub setup/apply mutation without explicit approval
+- no Sheets mutation without explicit approval
+- no production-complete claim
+
 ## 2026-06-22 Initial Detail Load Responsiveness Checkpoint Plan
 
 Status: implementation, visual evidence, subagent review, and local verification are complete; commit/push/readiness refresh are intentionally paused.

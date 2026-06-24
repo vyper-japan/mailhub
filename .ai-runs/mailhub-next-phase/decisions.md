@@ -1,5 +1,15 @@
 # MailHub Next Phase Decisions
 
+## 2026-06-25 T10 Alerts Readiness Gate Recovery Decisions
+
+- Treat the generated production config intake/request artifacts as operator-facing safety surfaces, not loose notes.
+- Contract-check the generated artifacts before readiness refresh can pass.
+- Keep generated artifacts value-free: key names, blocker IDs, readiness booleans, and approved command shapes only.
+- Keep apply/send/Sheets mutation commands out of safe dry-run lists.
+- Require explicit approval action records for GitHub mutation, external email send, and Sheets mutation paths.
+- Do not allow raw `gh secret set` / `gh variable set` commands in generated JSON or Markdown; approved paths must route through guarded npm scripts.
+- Production readiness remains false until existing P0/P1 blockers have real evidence.
+
 ## 2026-06-23 Step93-3c6 Flake Triage (post-push, Claude Code shield)
 
 - The initial-detail responsiveness slice was committed (`80e6b06`) and readiness refresh (`e9b2dbd`) and pushed. `MailHub Readiness Contract` passed; `qa-strict` failed only on `Step93-3c6` (frame-stall test), not on the new `Step93-3c7`.
