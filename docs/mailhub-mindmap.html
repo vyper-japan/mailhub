@@ -1,0 +1,426 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MailHub Recovery Mind Map</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f7f9;
+      --ink: #202124;
+      --muted: #5f6368;
+      --line: #c9d3df;
+      --card: #ffffff;
+      --blue: #1a73e8;
+      --green: #188038;
+      --amber: #b06000;
+      --red: #b3261e;
+      --violet: #7b1fa2;
+      --shadow: 0 10px 30px rgba(60, 64, 67, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        linear-gradient(90deg, rgba(201, 211, 223, 0.35) 1px, transparent 1px),
+        linear-gradient(rgba(201, 211, 223, 0.35) 1px, transparent 1px),
+        var(--bg);
+      background-size: 32px 32px;
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 24px;
+      padding: 28px 36px 12px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 28px;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .status-strip {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: flex-end;
+      max-width: 620px;
+    }
+
+    .pill {
+      border: 1px solid #dfe4ea;
+      border-radius: 999px;
+      background: #fff;
+      color: var(--muted);
+      padding: 7px 10px;
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .pill.pass {
+      border-color: rgba(24, 128, 56, 0.25);
+      color: var(--green);
+      background: #ecf7ee;
+    }
+
+    .pill.pending {
+      border-color: rgba(176, 96, 0, 0.25);
+      color: var(--amber);
+      background: #fff7e6;
+    }
+
+    .pill.blocked {
+      border-color: rgba(179, 38, 30, 0.25);
+      color: var(--red);
+      background: #fceeee;
+    }
+
+    main {
+      padding: 8px 28px 36px;
+      overflow-x: auto;
+    }
+
+    .mindmap {
+      min-width: 1260px;
+      display: grid;
+      grid-template-columns: 250px 1fr 1fr 1fr;
+      gap: 28px;
+      align-items: center;
+      position: relative;
+      padding: 24px 0;
+    }
+
+    .root {
+      position: sticky;
+      left: 0;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 220px;
+      border-radius: 18px;
+      background: #174ea6;
+      color: #fff;
+      box-shadow: var(--shadow);
+      padding: 24px;
+      text-align: center;
+    }
+
+    .root strong {
+      display: block;
+      font-size: 25px;
+      line-height: 1.2;
+    }
+
+    .root span {
+      display: block;
+      margin-top: 12px;
+      font-size: 13px;
+      line-height: 1.6;
+      opacity: 0.92;
+    }
+
+    .column {
+      display: grid;
+      gap: 18px;
+      align-content: center;
+      position: relative;
+    }
+
+    .node {
+      border: 1px solid #e3e8ef;
+      border-left: 6px solid var(--blue);
+      border-radius: 10px;
+      background: var(--card);
+      box-shadow: var(--shadow);
+      padding: 15px 16px;
+      position: relative;
+    }
+
+    .node::before {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: -28px;
+      width: 22px;
+      border-top: 2px solid var(--line);
+    }
+
+    .column:first-of-type .node::before {
+      width: 28px;
+      left: -28px;
+    }
+
+    .node h2,
+    .node h3 {
+      margin: 0 0 9px;
+      font-size: 16px;
+      letter-spacing: 0;
+    }
+
+    .node p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    .node ul {
+      margin: 10px 0 0;
+      padding-left: 18px;
+      color: var(--ink);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    .node li + li {
+      margin-top: 4px;
+    }
+
+    .green {
+      border-left-color: var(--green);
+    }
+
+    .amber {
+      border-left-color: var(--amber);
+    }
+
+    .red {
+      border-left-color: var(--red);
+    }
+
+    .violet {
+      border-left-color: var(--violet);
+    }
+
+    .meta {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin: 0 28px 24px;
+      min-width: 900px;
+    }
+
+    .meta-card {
+      background: rgba(255, 255, 255, 0.85);
+      border: 1px solid #e3e8ef;
+      border-radius: 8px;
+      padding: 12px 14px;
+      box-shadow: 0 4px 16px rgba(60, 64, 67, 0.08);
+    }
+
+    .meta-card b {
+      display: block;
+      margin-bottom: 5px;
+      font-size: 12px;
+    }
+
+    .meta-card span {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    code {
+      border-radius: 5px;
+      background: #eef2f7;
+      padding: 1px 5px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 11px;
+    }
+
+    @media (max-width: 760px) {
+      header {
+        display: block;
+        padding: 22px 18px 8px;
+      }
+
+      .status-strip {
+        justify-content: flex-start;
+        margin-top: 16px;
+      }
+
+      main {
+        padding: 8px 16px 28px;
+      }
+
+      .meta {
+        grid-template-columns: 1fr;
+        margin: 0 16px 16px;
+        min-width: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>MailHub Recovery Mind Map</h1>
+      <p class="subtitle">更新: 2026-06-25 07:18 JST / Branch: <code>feat/t10-alerts-readiness-gate</code> / PR #1</p>
+    </div>
+    <div class="status-strip" aria-label="current status">
+      <span class="pill pass">readiness-contract PASS</span>
+      <span class="pill pass">Vercel PASS</span>
+      <span class="pill pending">qa PENDING</span>
+      <span class="pill blocked">productionReady=false</span>
+    </div>
+  </header>
+
+  <section class="meta" aria-label="summary">
+    <div class="meta-card">
+      <b>Latest pushed commits</b>
+      <span><code>7516fc0</code> QA strict mute expectations<br><code>65615ad</code> readiness artifact refresh</span>
+    </div>
+    <div class="meta-card">
+      <b>Local verification</b>
+      <span>failing E2E subset 4/4 pass, lint pass, typecheck pass, diff check pass, classification tests 11/11 pass.</span>
+    </div>
+    <div class="meta-card">
+      <b>Safety</b>
+      <span>No external email send. Routing probe stayed <code>dry_run</code> with <code>sentCount=0</code>.</span>
+    </div>
+    <div class="meta-card">
+      <b>CI watch</b>
+      <span>Latest PR checks: readiness green, Vercel green, qa still running when this map was updated.</span>
+    </div>
+  </section>
+
+  <main>
+    <div class="mindmap" role="img" aria-label="MailHub recovery mind map">
+      <section class="root">
+        <div>
+          <strong>MailHub<br>Frozen Session Recovery</strong>
+          <span>別セッション停止から PR #1 復旧、readiness gate、qa-strict 修正、残ブロッカーまでの現在地</span>
+        </div>
+      </section>
+
+      <section class="column">
+        <article class="node green">
+          <h2>1. 復旧完了</h2>
+          <p>実コード repo は <code>/Users/takayukisuzuki/VYPER-Dev/Mailhub</code>。</p>
+          <ul>
+            <li>凍結セッションの dirty tree を回収</li>
+            <li>draft PR #1 を作成</li>
+            <li>branch は origin に push 済み</li>
+          </ul>
+        </article>
+
+        <article class="node violet">
+          <h2>2. Readiness hardening</h2>
+          <p>production config intake artifacts を gate 化。</p>
+          <ul>
+            <li><code>check-mailhub-production-config-request-contract.mjs</code></li>
+            <li><code>audit:mailhub-config-request-contract</code></li>
+            <li>readiness refresh に新 contract を追加</li>
+          </ul>
+        </article>
+
+        <article class="node amber">
+          <h2>3. CI contract fix</h2>
+          <p>PR merge ref ではなく PR head SHA を checkout。</p>
+          <ul>
+            <li><code>1f0240b</code> workflow fix</li>
+            <li><code>48d58ae</code> artifacts refresh</li>
+            <li>readiness-contract は最新 run で PASS</li>
+          </ul>
+        </article>
+      </section>
+
+      <section class="column">
+        <article class="node red">
+          <h2>4. qa-strict failure</h2>
+          <p>旧 E2E が legacy <code>/api/mailhub/mute</code> を待っていた。</p>
+          <ul>
+            <li>現行 bulk mute は <code>/api/mailhub/noise/apply</code> 1 回</li>
+            <li>安全判定で protected/not-noise は skip される</li>
+            <li>選択数と mute 数は一致しない仕様</li>
+          </ul>
+        </article>
+
+        <article class="node green">
+          <h2>5. E2E 修正</h2>
+          <p><code>muted/skipped/failed</code> 配列をテストの source of truth に変更。</p>
+          <ul>
+            <li>bulk row count は <code>muted.length</code> ベース</li>
+            <li>Undo 待機も実際に mute された件数だけ</li>
+            <li>sender preview は <code>safeCandidates</code> を検証</li>
+          </ul>
+        </article>
+
+        <article class="node green">
+          <h2>6. Fixture 調整</h2>
+          <p><code>label-tester@example.com</code> は ID/sender を維持して通知メール化。</p>
+          <ul>
+            <li><code>msg-101</code> / <code>msg-102</code></li>
+            <li>問い合わせ語を除去</li>
+            <li><code>停止</code> は important keyword なので避けた</li>
+          </ul>
+        </article>
+      </section>
+
+      <section class="column">
+        <article class="node green">
+          <h2>7. Verification</h2>
+          <p>PR で落ちた対象はローカルで復旧確認済み。</p>
+          <ul>
+            <li>failing E2E subset: PASS 4/4</li>
+            <li>Step93-5 single: PASS 1/1</li>
+            <li>label fixture subset: exit 0, 1 flaky retry pass</li>
+            <li>lint/typecheck/diff/classification tests: PASS</li>
+          </ul>
+        </article>
+
+        <article class="node amber">
+          <h2>8. Current CI</h2>
+          <p>最新 push 後の PR #1 status。</p>
+          <ul>
+            <li>readiness-contract: PASS</li>
+            <li>Vercel: PASS</li>
+            <li>qa: PENDING</li>
+            <li>PR は draft のまま</li>
+          </ul>
+        </article>
+
+        <article class="node red">
+          <h2>9. Production blockers</h2>
+          <p>productionReady=false は意図通り。未解決は運用/設定系。</p>
+          <ul>
+            <li>P0: <code>current_shared_gmail_routing</code></li>
+            <li>P1: production rule config</li>
+            <li>P1: alerts automation config</li>
+            <li>P1: staff workflow permissions / GitHub config</li>
+          </ul>
+        </article>
+
+        <article class="node violet">
+          <h2>10. Next</h2>
+          <p>qa の最終結果を見て、必要なら GitHub Actions log から次の一点だけ直す。</p>
+          <ul>
+            <li>新規 failure は log-first で切り分け</li>
+            <li>広い E2E rewrite は避ける</li>
+            <li>green 後に draft PR の次判断へ進む</li>
+          </ul>
+        </article>
+      </section>
+    </div>
+  </main>
+</body>
+</html>
