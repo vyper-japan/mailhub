@@ -1,8 +1,8 @@
 # MailHub Production Config Intake
 
-Generated: 2026-06-24T13:07:26.677Z
+Generated: 2026-06-24T13:19:28.378Z
 
-Repo head: `41e897acccfed1f8899daa43584f387280f78488`
+Repo head: `a86b4b0067b745053677210cac612a71a57f31b6`
 
 This artifact is intentionally value-free. Do not paste production secrets, tokens, private keys, SMTP passwords, or OAuth values into this file.
 
