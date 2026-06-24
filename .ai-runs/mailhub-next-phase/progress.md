@@ -11,6 +11,9 @@ Implemented:
 - Added the new contract to `scripts/refresh-mailhub-readiness-artifacts.mjs`.
 - Added unit coverage in `lib/__tests__/mailhub-staff-secrets-readiness.test.ts`.
 - Refreshed `.ai-runs/mailhub-next-phase` readiness artifacts at repo head `ad446acd81527879ef16d928a31dd09511ba1a4a`.
+- Opened draft PR #1 and found `MailHub Readiness Contract` failed on the PR merge ref with `stale_repo_head`.
+- Fixed `.github/workflows/mailhub-readiness-contract.yml` to checkout the PR head SHA and added the new config-request contract to CI.
+- Refreshed `.ai-runs/mailhub-next-phase` readiness artifacts again at repo head `1f0240b26ca1ac871ab91caa8a97fc5271f4ee8a`.
 
 Validation:
 
@@ -22,6 +25,8 @@ Validation:
 - `git diff --check`: PASS.
 - `npm run security:scan-artifacts`: PASS.
 - `npm run ops:readiness-refresh`: PASS, including the new config-request contract.
+- PR #1 first `readiness-contract` run failed because CI checked out the generated merge ref; source fix committed as `1f0240b`.
+- Post-fix artifact refresh passed locally.
 
 Safety result:
 

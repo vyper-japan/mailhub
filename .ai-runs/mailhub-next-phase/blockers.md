@@ -6,8 +6,9 @@ No implementation blocker remains for the config-request contract slice.
 
 Process blockers:
 
-- The recovered slice still needs commit and push.
-- GitHub Actions have not yet run for the recovered commit.
+- Draft PR #1 is open.
+- First `readiness-contract` run failed on stale artifact detection against the PR merge ref; workflow source fix is committed and latest readiness artifacts have been refreshed locally.
+- Latest artifact refresh still needs artifact-only commit, push, and CI re-check.
 
 Product/production blockers remain:
 

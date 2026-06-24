@@ -2,7 +2,9 @@
 
 ## 2026-06-25 Resume Here: Close Out T10 Alerts Readiness Gate
 
-Current recovered slice is implemented and locally verified on `feat/t10-alerts-readiness-gate`.
+Current recovered slice is implemented, locally verified, pushed, and opened as draft PR #1 on `feat/t10-alerts-readiness-gate`.
+
+The first PR `readiness-contract` run failed on the generated merge ref (`stale_repo_head`). Source fix `1f0240b` changed the workflow to checkout the PR head SHA and added the production config request contract to CI. Latest local artifact refresh passed and is ready as an artifact-only commit.
 
 Immediate sequence:
 
@@ -11,8 +13,8 @@ git status -sb
 git diff --stat
 git diff --check
 npm run security:scan-artifacts
-git add package.json scripts/refresh-mailhub-readiness-artifacts.mjs scripts/check-mailhub-production-config-request-contract.mjs lib/__tests__/mailhub-staff-secrets-readiness.test.ts .ai-runs/mailhub-next-phase
-git commit -m "Guard MailHub production config intake artifacts"
+git add .ai-runs/mailhub-next-phase
+git commit -m "Refresh readiness artifacts after PR head CI fix"
 git push
 ```
 

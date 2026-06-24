@@ -13,6 +13,8 @@ npm run lint
 git diff --check
 npm run security:scan-artifacts
 npm run ops:readiness-refresh
+gh pr create --draft --base main --head feat/t10-alerts-readiness-gate
+gh pr checks 1 --watch --interval 10
 ```
 
 Result:
@@ -21,6 +23,8 @@ Result:
 - `npm test -- lib/__tests__/mailhub-staff-secrets-readiness.test.ts` passed 30 tests.
 - `npm run ops:readiness-refresh` passed all configured contracts, including `audit:mailhub-config-request-contract`.
 - `probe:routing-send` stayed `mode=dry_run` with `sentCount=0`.
+- Draft PR #1 was created.
+- First `readiness-contract` CI run failed with `stale_repo_head` because the workflow checked out the pull request merge ref. The workflow was fixed to checkout `github.event.pull_request.head.sha || github.sha`, then artifacts were refreshed again.
 
 No external email send, GitHub setup/apply mutation, or Sheets mutation was run.
 
