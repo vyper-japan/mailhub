@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-06-24T11:40:59.550Z",
-  "repoHead": "a0bd8f125d224a0034c9ccdcaccbec9695db6cfc",
+  "generatedAt": "2026-06-24T12:37:48.688Z",
+  "repoHead": "5586f8b995e2c7843dd20c77ef5e4f0ced76459d",
   "valuePolicy": "Secret values are never printed; this artifact contains only key names, blocker ids, readiness booleans, and commands.",
   "readiness": {
     "productionReady": false,
@@ -9,6 +9,8 @@
     ],
     "p1Blockers": [
       "rule_config_source_not_production",
+      "alerts_not_ready",
+      "alerts_automation_not_ready",
       "staff_workflow_permissions",
       "staff_github_config_not_ready"
     ]
@@ -40,6 +42,11 @@
       "NEXTAUTH_SECRET",
       "MAILHUB_SHEETS_PRIVATE_KEY"
     ],
+    "alertAutomationConfig": [
+      "MAILHUB_ALERTS_SECRET",
+      "MAILHUB_PROD_URL"
+    ],
+    "alertAutomationWorkflow": [],
     "staffRequiredActions": [],
     "ruleRequiredActions": []
   },
@@ -104,6 +111,20 @@
       "constraints": [
         "NEXTAUTH_URL must be a verified HTTPS non-localhost URL.",
         "MAILHUB_ADMINS and MAILHUB_TEAM_MEMBERS must be non-empty @vtj.co.jp email lists."
+      ]
+    },
+    "alertAutomation": {
+      "purpose": "Allow the scheduled GitHub Actions SLA alert workflow to authenticate and call the production MailHub alert endpoint.",
+      "requiredGitHubSecrets": [
+        "MAILHUB_ALERTS_SECRET",
+        "MAILHUB_PROD_URL"
+      ],
+      "workflowPath": ".github/workflows/mailhub-alerts.yml",
+      "requiredWorkflowSignals": [
+        "schedule.cron",
+        "MAILHUB_ALERTS_SECRET",
+        "MAILHUB_PROD_URL",
+        "alerts_run_endpoint"
       ]
     },
     "sheetsRuleSource": {

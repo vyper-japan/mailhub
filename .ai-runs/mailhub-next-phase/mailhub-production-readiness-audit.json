@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-06-24T11:40:59.092Z",
-  "repoHead": "a0bd8f125d224a0034c9ccdcaccbec9695db6cfc",
+  "generatedAt": "2026-06-24T12:37:47.650Z",
+  "repoHead": "5586f8b995e2c7843dd20c77ef5e4f0ced76459d",
   "inputs": {
     "sourceAudit": ".ai-runs/mailhub-next-phase/gmail-source-coverage-audit.json",
     "opsAudit": ".ai-runs/mailhub-next-phase/mailhub-operational-confirmations.json",
@@ -13,23 +13,23 @@
     "viewsAudit": ".ai-runs/mailhub-next-phase/gmail-default-views-audit.json",
     "rulesAudit": ".ai-runs/mailhub-next-phase/gmail-rule-safety-audit.json",
     "staffWorkflowAudit": ".ai-runs/mailhub-next-phase/mailhub-staff-workflow-audit.json",
-    "sourceAuditGeneratedAt": "2026-06-24T11:40:38.097Z",
-    "opsAuditGeneratedAt": "2026-06-24T11:40:49.613Z",
-    "gwsRoutingAuditGeneratedAt": "2026-06-24T11:40:56.220Z",
-    "routingProbeAuditGeneratedAt": "2026-06-24T11:40:58.722Z",
-    "routingProbeSendGeneratedAt": "2026-06-24T11:40:58.927Z",
-    "routingProbePreflightGeneratedAt": "2026-06-24T11:40:58.109Z",
-    "githubRoutingSecretsCheckedAt": "2026-06-24T11:40:56.865Z",
-    "githubStaffSecretsCheckedAt": "2026-06-24T11:40:57.878Z",
-    "viewsAuditGeneratedAt": "2026-06-24T11:40:45.493Z",
-    "rulesAuditGeneratedAt": "2026-06-24T11:40:49.475Z",
+    "sourceAuditGeneratedAt": "2026-06-24T12:37:21.157Z",
+    "opsAuditGeneratedAt": "2026-06-24T12:37:35.247Z",
+    "gwsRoutingAuditGeneratedAt": "2026-06-24T12:37:43.775Z",
+    "routingProbeAuditGeneratedAt": "2026-06-24T12:37:47.248Z",
+    "routingProbeSendGeneratedAt": "2026-06-24T12:37:47.436Z",
+    "routingProbePreflightGeneratedAt": "2026-06-24T12:37:46.372Z",
+    "githubRoutingSecretsCheckedAt": "2026-06-24T12:37:44.522Z",
+    "githubStaffSecretsCheckedAt": "2026-06-24T12:37:45.534Z",
+    "viewsAuditGeneratedAt": "2026-06-24T12:37:31.697Z",
+    "rulesAuditGeneratedAt": "2026-06-24T12:37:35.088Z",
     "ruleSafetyAuditEnv": {
       "envFile": ".env.local",
       "envFileLoaded": true,
       "envFileMode": "env_file",
       "valuePolicyPresent": true
     },
-    "staffWorkflowAuditGeneratedAt": "2026-06-24T11:40:57.988Z",
+    "staffWorkflowAuditGeneratedAt": "2026-06-24T12:37:45.761Z",
     "rulesConfigFingerprint": "sha256:64ce3c152193b489c6d1b48a3c89ad4ea195b7824e0c25c5412db1c4a1cababd",
     "ruleConfigSource": {
       "requestedSource": "file",
@@ -43,14 +43,14 @@
         "path": ".ai-runs/mailhub-next-phase/gmail-source-coverage-audit.json",
         "present": true,
         "timestampField": "generatedAt",
-        "timestamp": "2026-06-24T11:40:38.097Z",
+        "timestamp": "2026-06-24T12:37:21.157Z",
         "repoHeadPolicy": "fresh_repo_head",
         "requiresFreshRepoHead": true,
-        "repoHead": "a0bd8f125d224a0034c9ccdcaccbec9695db6cfc",
+        "repoHead": "5586f8b995e2c7843dd20c77ef5e4f0ced76459d",
         "repoHeadFresh": true,
         "maxAgeMs": 86400000,
         "timestampFresh": true,
-        "timestampAgeMs": 20966,
+        "timestampAgeMs": 26456,
         "status": "fresh",
         "readyForProduction": true
       },
@@ -59,14 +59,14 @@
         "path": ".ai-runs/mailhub-next-phase/mailhub-operational-confirmations.json",
         "present": true,
         "timestampField": "generatedAt",
-        "timestamp": "2026-06-24T11:40:49.613Z",
+        "timestamp": "2026-06-24T12:37:35.247Z",
         "repoHeadPolicy": "fresh_repo_head",
         "requiresFreshRepoHead": true,
-        "repoHead": "a0bd8f125d224a0034c9ccdcaccbec9695db6cfc",
+        "repoHead": "5586f8b995e2c7843dd20c77ef5e4f0ced76459d",
         "repoHeadFresh": true,
         "maxAgeMs": 86400000,
         "timestampFresh": true,
-        "timestampAgeMs": 9450,
+        "timestampAgeMs": 12366,
         "status": "fresh",
         "readyForProduction": true
       },
@@ -75,14 +75,14 @@
         "path": ".ai-runs/mailhub-next-phase/mailhub-gws-routing-audit.json",
         "present": true,
         "timestampField": "generatedAt",
-        "timestamp": "2026-06-24T11:40:56.220Z",
+        "timestamp": "2026-06-24T12:37:43.775Z",
         "repoHeadPolicy": "fresh_repo_head",
         "requiresFreshRepoHead": true,
-        "repoHead": "a0bd8f125d224a0034c9ccdcaccbec9695db6cfc",
+        "repoHead": "5586f8b995e2c7843dd20c77ef5e4f0ced76459d",
         "repoHeadFresh": true,
         "maxAgeMs": 86400000,
         "timestampFresh": true,
-        "timestampAgeMs": 2843,
+        "timestampAgeMs": 3838,
         "status": "fresh",
         "readyForProduction": true
       },
@@ -91,14 +91,14 @@
         "path": ".ai-runs/mailhub-next-phase/mailhub-routing-probe-audit.json",
         "present": true,
         "timestampField": "generatedAt",
-        "timestamp": "2026-06-24T11:40:58.722Z",
+        "timestamp": "2026-06-24T12:37:47.248Z",
         "repoHeadPolicy": "fresh_repo_head",
         "requiresFreshRepoHead": true,
-        "repoHead": "a0bd8f125d224a0034c9ccdcaccbec9695db6cfc",
+        "repoHead": "5586f8b995e2c7843dd20c77ef5e4f0ced76459d",
         "repoHeadFresh": true,
         "maxAgeMs": 86400000,
         "timestampFresh": true,
-        "timestampAgeMs": 341,
+        "timestampAgeMs": 365,
         "status": "fresh",
         "readyForProduction": true
       },
@@ -107,14 +107,14 @@
         "path": ".ai-runs/mailhub-next-phase/mailhub-routing-probe-send.json",
         "present": true,
         "timestampField": "generatedAt",
-        "timestamp": "2026-06-24T11:40:58.927Z",
+        "timestamp": "2026-06-24T12:37:47.436Z",
         "repoHeadPolicy": "fresh_repo_head",
         "requiresFreshRepoHead": true,
-        "repoHead": "a0bd8f125d224a0034c9ccdcaccbec9695db6cfc",
+        "repoHead": "5586f8b995e2c7843dd20c77ef5e4f0ced76459d",
         "repoHeadFresh": true,
         "maxAgeMs": 86400000,
         "timestampFresh": true,
-        "timestampAgeMs": 136,
+        "timestampAgeMs": 177,
         "status": "fresh",
         "readyForProduction": true
       },
@@ -123,14 +123,14 @@
         "path": ".ai-runs/mailhub-next-phase/mailhub-routing-probe-preflight.json",
         "present": true,
         "timestampField": "generatedAt",
-        "timestamp": "2026-06-24T11:40:58.109Z",
+        "timestamp": "2026-06-24T12:37:46.372Z",
         "repoHeadPolicy": "fresh_repo_head",
         "requiresFreshRepoHead": true,
-        "repoHead": "a0bd8f125d224a0034c9ccdcaccbec9695db6cfc",
+        "repoHead": "5586f8b995e2c7843dd20c77ef5e4f0ced76459d",
         "repoHeadFresh": true,
         "maxAgeMs": 86400000,
         "timestampFresh": true,
-        "timestampAgeMs": 954,
+        "timestampAgeMs": 1241,
         "status": "fresh",
         "readyForProduction": true
       },
@@ -139,14 +139,14 @@
         "path": ".ai-runs/mailhub-next-phase/github-routing-secrets-readiness.json",
         "present": true,
         "timestampField": "checkedAt",
-        "timestamp": "2026-06-24T11:40:56.865Z",
+        "timestamp": "2026-06-24T12:37:44.522Z",
         "repoHeadPolicy": "fresh_repo_head",
         "requiresFreshRepoHead": true,
-        "repoHead": "a0bd8f125d224a0034c9ccdcaccbec9695db6cfc",
+        "repoHead": "5586f8b995e2c7843dd20c77ef5e4f0ced76459d",
         "repoHeadFresh": true,
         "maxAgeMs": 86400000,
         "timestampFresh": true,
-        "timestampAgeMs": 2198,
+        "timestampAgeMs": 3091,
         "status": "fresh",
         "readyForProduction": true
       },
@@ -155,14 +155,14 @@
         "path": ".ai-runs/mailhub-next-phase/github-staff-secrets-readiness.json",
         "present": true,
         "timestampField": "checkedAt",
-        "timestamp": "2026-06-24T11:40:57.878Z",
+        "timestamp": "2026-06-24T12:37:45.534Z",
         "repoHeadPolicy": "fresh_repo_head",
         "requiresFreshRepoHead": true,
-        "repoHead": "a0bd8f125d224a0034c9ccdcaccbec9695db6cfc",
+        "repoHead": "5586f8b995e2c7843dd20c77ef5e4f0ced76459d",
         "repoHeadFresh": true,
         "maxAgeMs": 86400000,
         "timestampFresh": true,
-        "timestampAgeMs": 1185,
+        "timestampAgeMs": 2079,
         "status": "fresh",
         "readyForProduction": true
       },
@@ -171,14 +171,14 @@
         "path": ".ai-runs/mailhub-next-phase/gmail-default-views-audit.json",
         "present": true,
         "timestampField": "generatedAt",
-        "timestamp": "2026-06-24T11:40:45.493Z",
+        "timestamp": "2026-06-24T12:37:31.697Z",
         "repoHeadPolicy": "fresh_repo_head",
         "requiresFreshRepoHead": true,
-        "repoHead": "a0bd8f125d224a0034c9ccdcaccbec9695db6cfc",
+        "repoHead": "5586f8b995e2c7843dd20c77ef5e4f0ced76459d",
         "repoHeadFresh": true,
         "maxAgeMs": 86400000,
         "timestampFresh": true,
-        "timestampAgeMs": 13570,
+        "timestampAgeMs": 15916,
         "status": "fresh",
         "readyForProduction": true
       },
@@ -187,14 +187,14 @@
         "path": ".ai-runs/mailhub-next-phase/gmail-rule-safety-audit.json",
         "present": true,
         "timestampField": "generatedAt",
-        "timestamp": "2026-06-24T11:40:49.475Z",
+        "timestamp": "2026-06-24T12:37:35.088Z",
         "repoHeadPolicy": "fresh_repo_head",
         "requiresFreshRepoHead": true,
-        "repoHead": "a0bd8f125d224a0034c9ccdcaccbec9695db6cfc",
+        "repoHead": "5586f8b995e2c7843dd20c77ef5e4f0ced76459d",
         "repoHeadFresh": true,
         "maxAgeMs": 86400000,
         "timestampFresh": true,
-        "timestampAgeMs": 9588,
+        "timestampAgeMs": 12525,
         "status": "fresh",
         "readyForProduction": true
       },
@@ -203,14 +203,14 @@
         "path": ".ai-runs/mailhub-next-phase/mailhub-staff-workflow-audit.json",
         "present": true,
         "timestampField": "generatedAt",
-        "timestamp": "2026-06-24T11:40:57.988Z",
+        "timestamp": "2026-06-24T12:37:45.761Z",
         "repoHeadPolicy": "fresh_repo_head",
         "requiresFreshRepoHead": true,
-        "repoHead": "a0bd8f125d224a0034c9ccdcaccbec9695db6cfc",
+        "repoHead": "5586f8b995e2c7843dd20c77ef5e4f0ced76459d",
         "repoHeadFresh": true,
         "maxAgeMs": 86400000,
         "timestampFresh": true,
-        "timestampAgeMs": 1075,
+        "timestampAgeMs": 1852,
         "status": "fresh",
         "readyForProduction": true
       }
@@ -233,6 +233,8 @@
     "currentRuleConfigFingerprintPresent": true,
     "currentRuleConfigSourceProductionReady": false,
     "currentRuleSafetyEnvSourceExplicit": true,
+    "productionAlertsReady": false,
+    "productionAlertsAutomationReady": false,
     "staffWorkflowPermissionsReady": false,
     "staffGithubConfigReady": false,
     "staffReadOnlyRolloutReady": false,
@@ -310,7 +312,7 @@
         },
         "routingProbeSend": {
           "mode": "dry_run",
-          "marker": "MAILHUB-ROUTING-PROBE-20260624T114058Z",
+          "marker": "MAILHUB-ROUTING-PROBE-20260624T123747Z",
           "probeCount": 8,
           "addressProbeCount": 8,
           "sentCount": 0,
@@ -365,7 +367,7 @@
             "routing_probe_github_secrets_not_ready"
           ],
           "auditMarker": null,
-          "sendMarker": "MAILHUB-ROUTING-PROBE-20260624T114058Z",
+          "sendMarker": "MAILHUB-ROUTING-PROBE-20260624T123747Z",
           "auditMode": "plan_only",
           "sendMode": "dry_run",
           "auditAddressCount": 8,
@@ -417,18 +419,18 @@
           "matchedDuplicateAddresses": [],
           "sendDuplicateAddresses": [],
           "maxAgeMs": 86400000,
-          "auditGeneratedAt": "2026-06-24T11:40:58.722Z",
-          "sendGeneratedAt": "2026-06-24T11:40:58.927Z",
+          "auditGeneratedAt": "2026-06-24T12:37:47.248Z",
+          "sendGeneratedAt": "2026-06-24T12:37:47.436Z",
           "auditGeneratedAtFreshness": {
             "fresh": true,
             "status": "fresh",
-            "ageMs": 341,
+            "ageMs": 365,
             "maxAgeMs": 86400000
           },
           "sendGeneratedAtFreshness": {
             "fresh": true,
             "status": "fresh",
-            "ageMs": 136,
+            "ageMs": 177,
             "maxAgeMs": 86400000
           },
           "auditMarkerFreshness": {
@@ -440,7 +442,7 @@
           "sendMarkerFreshness": {
             "fresh": true,
             "status": "fresh",
-            "ageMs": 1063,
+            "ageMs": 613,
             "maxAgeMs": 86400000
           },
           "routingProbePreflightReady": false,
@@ -557,6 +559,75 @@
           "blockingFindings": []
         },
         "ruleSetFingerprint": "sha256:64ce3c152193b489c6d1b48a3c89ad4ea195b7824e0c25c5412db1c4a1cababd"
+      }
+    },
+    {
+      "id": "alerts_not_ready",
+      "severity": "P1",
+      "message": "Production readiness requires configured SLA alerts and MAILHUB_ALERTS_SECRET.",
+      "evidence": {
+        "alerts": {
+          "provider": "none",
+          "providerAllowed": false,
+          "providerConfigured": false,
+          "alertsSecretConfigured": false,
+          "missing": [
+            "MAILHUB_ALERTS_PROVIDER=slack|chatwork",
+            "MAILHUB_ALERTS_SECRET"
+          ]
+        },
+        "staffWorkflowAuditGeneratedAt": "2026-06-24T12:37:45.761Z"
+      }
+    },
+    {
+      "id": "alerts_automation_not_ready",
+      "severity": "P1",
+      "message": "Production readiness requires GitHub Actions SLA alert automation secrets.",
+      "evidence": {
+        "alertAutomation": {
+          "source": "github_actions_config",
+          "sourceTrusted": true,
+          "checkedAt": "2026-06-24T12:37:45.534Z",
+          "repoHead": "5586f8b995e2c7843dd20c77ef5e4f0ced76459d",
+          "currentRepoHead": "5586f8b995e2c7843dd20c77ef5e4f0ced76459d",
+          "repoParentHead": "0069606584f0d5ca94377f65ae597db83af84fd0",
+          "repoHeadMatchesCurrent": true,
+          "repoHeadFresh": true,
+          "readyForProductionAlerts": false,
+          "requiredAlertAutomationConfig": [
+            "MAILHUB_ALERTS_SECRET",
+            "MAILHUB_PROD_URL"
+          ],
+          "missingAlertAutomationConfig": [
+            "MAILHUB_ALERTS_SECRET",
+            "MAILHUB_PROD_URL"
+          ],
+          "alertAutomationWorkflow": {
+            "path": ".github/workflows/mailhub-alerts.yml",
+            "sha256": "5ee9d75e7f40fecd92a2af0dbd398e11a66fb97caac12e1466fc614d521c1e89",
+            "ready": true,
+            "missing": []
+          },
+          "currentAlertAutomationWorkflow": {
+            "path": ".github/workflows/mailhub-alerts.yml",
+            "sha256": "5ee9d75e7f40fecd92a2af0dbd398e11a66fb97caac12e1466fc614d521c1e89",
+            "ready": true,
+            "missing": []
+          },
+          "workflowFingerprintFresh": true,
+          "secretGroup": {
+            "required": [
+              "MAILHUB_ALERTS_SECRET",
+              "MAILHUB_PROD_URL"
+            ],
+            "present": [],
+            "missing": [
+              "MAILHUB_ALERTS_SECRET",
+              "MAILHUB_PROD_URL"
+            ],
+            "ready": false
+          }
+        }
       }
     },
     {
@@ -708,10 +779,10 @@
         "staffGithubConfig": {
           "source": "github_actions_config",
           "sourceTrusted": true,
-          "checkedAt": "2026-06-24T11:40:57.878Z",
-          "repoHead": "a0bd8f125d224a0034c9ccdcaccbec9695db6cfc",
-          "currentRepoHead": "a0bd8f125d224a0034c9ccdcaccbec9695db6cfc",
-          "repoParentHead": "3aa58fac655ec12282880018dd22f02d50585fc9",
+          "checkedAt": "2026-06-24T12:37:45.534Z",
+          "repoHead": "5586f8b995e2c7843dd20c77ef5e4f0ced76459d",
+          "currentRepoHead": "5586f8b995e2c7843dd20c77ef5e4f0ced76459d",
+          "repoParentHead": "0069606584f0d5ca94377f65ae597db83af84fd0",
           "repoHeadMatchesCurrent": true,
           "repoHeadFresh": true,
           "secretCount": 4,
@@ -766,6 +837,8 @@
     ],
     "p1Blockers": [
       "rule_config_source_not_production",
+      "alerts_not_ready",
+      "alerts_automation_not_ready",
       "staff_workflow_permissions",
       "staff_github_config_not_ready"
     ]

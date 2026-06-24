@@ -1,8 +1,8 @@
 # MailHub Production Config Intake
 
-Generated: 2026-06-24T11:40:59.550Z
+Generated: 2026-06-24T12:37:48.688Z
 
-Repo head: `a0bd8f125d224a0034c9ccdcaccbec9695db6cfc`
+Repo head: `5586f8b995e2c7843dd20c77ef5e4f0ced76459d`
 
 This artifact is intentionally value-free. Do not paste production secrets, tokens, private keys, SMTP passwords, or OAuth values into this file.
 
@@ -13,6 +13,8 @@ This artifact is intentionally value-free. Do not paste production secrets, toke
 - `current_shared_gmail_routing`
 - P1 blockers:
 - `rule_config_source_not_production`
+- `alerts_not_ready`
+- `alerts_automation_not_ready`
 - `staff_workflow_permissions`
 - `staff_github_config_not_ready`
 
@@ -173,3 +175,12 @@ Staff secret config:
 
 - `NEXTAUTH_SECRET`
 - `MAILHUB_SHEETS_PRIVATE_KEY`
+
+Alert automation secrets:
+
+- `MAILHUB_ALERTS_SECRET`
+- `MAILHUB_PROD_URL`
+
+Alert automation workflow:
+
+_none_
