@@ -2209,6 +2209,125 @@ describe("MailHub routing probe CLI gates", () => {
     });
   });
 
+  test("routing proof contract rejects stale repoHead proof artifacts", () => {
+    withTempDir((dir) => {
+      const preflightPath = join(dir, "preflight.json");
+      const sendPath = join(dir, "send.json");
+      const auditPath = join(dir, "audit.json");
+      const readinessPath = join(dir, "readiness.json");
+      const marker = routingProbeMarker;
+      const probes = canonicalRoutingProbeAddresses.map((address, index) => ({
+        channelId: `channel-${index}`,
+        label: `Channel ${index}`,
+        address,
+        subject: marker,
+      }));
+      const staleRepoHead = "stale-head";
+
+      writeJson(preflightPath, {
+        repoHead: staleRepoHead,
+        generatedAt: freshFixtureTimestamp,
+        mode: "preflight",
+        marker,
+        inputs: { preflight: true, verifyAfterSend: false },
+        smtpPreflight: {
+          missingRequiredEnv: [],
+          readyForProductionProof: true,
+          fromIsVtj: false,
+        },
+        probeCount: probes.length,
+        addressProbes: probes,
+        sent: [],
+        verification: null,
+      });
+      writeJson(sendPath, {
+        repoHead: staleRepoHead,
+        generatedAt: freshFixtureTimestamp,
+        mode: "sent",
+        marker,
+        smtpPreflight: {
+          missingRequiredEnv: [],
+          readyForProductionProof: true,
+          fromIsVtj: false,
+        },
+        probeCount: probes.length,
+        addressProbes: probes,
+        sent: probes.map(({ channelId, address }, index) => ({
+          channelId,
+          address,
+          accepted: [address],
+          rejected: [],
+          messageId: `fixture-${index}`,
+        })),
+        verification: {
+          status: "matched",
+          allExpectedAddressesConfirmed: true,
+          productionReady: true,
+          p0Blockers: [],
+        },
+      });
+      writeJson(auditPath, {
+        repoHead: staleRepoHead,
+        generatedAt: freshFixtureTimestamp,
+        mode: "verify_marker",
+        inputs: { marker },
+        plannedAddressProbes: probes.map(({ channelId, label, address }) => ({ channelId, label, address })),
+        gate: {
+          markerProvided: true,
+          targetAddressCount: canonicalRoutingProbeAddresses.length,
+          matchedAddresses: canonicalRoutingProbeAddresses,
+          missingAddresses: [],
+          allExpectedAddressesConfirmed: true,
+        },
+      });
+      writeJson(readinessPath, {
+        repoHead: staleRepoHead,
+        generatedAt: freshFixtureTimestamp,
+        requirements: {
+          currentSharedGmailRoutingReady: true,
+          routingProbeReady: true,
+          routingProbeSendReady: true,
+          routingProofChainReady: true,
+        },
+        gate: {
+          productionReady: true,
+          p0Blockers: [],
+        },
+        blockers: [],
+      });
+
+      const result = runNodeScript(routingProofContractPath, [
+        "--preflight",
+        preflightPath,
+        "--send",
+        sendPath,
+        "--audit",
+        auditPath,
+        "--readiness",
+        readinessPath,
+        "--repo-head",
+        "current-head",
+        "--repo-parent-head",
+        "parent-head",
+      ]);
+
+      expect(result.status).toBe(1);
+      const out = JSON.parse(result.stdout) as { errors: string[]; repoFreshness: Record<string, { fresh: boolean }> };
+      expect(out.errors).toEqual(
+        expect.arrayContaining([
+          "stale_preflight_repo_head",
+          "stale_send_repo_head",
+          "stale_audit_repo_head",
+          "stale_readiness_repo_head",
+        ]),
+      );
+      expect(out.repoFreshness.preflight.fresh).toBe(false);
+      expect(out.repoFreshness.send.fresh).toBe(false);
+      expect(out.repoFreshness.audit.fresh).toBe(false);
+      expect(out.repoFreshness.readiness.fresh).toBe(false);
+    });
+  });
+
   test("routing proof contract rejects 8 matching non-canonical address artifacts", () => {
     withTempDir((dir) => {
       const preflightPath = join(dir, "preflight.json");

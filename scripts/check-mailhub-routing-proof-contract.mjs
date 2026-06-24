@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 
+import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { isFreshRepoHead } from "./artifact-freshness.mjs";
 
 const repoRoot = process.cwd();
 const runDir = join(repoRoot, ".ai-runs", "mailhub-next-phase");
@@ -29,19 +31,33 @@ const ROUTING_PROOF_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 const ROUTING_PROBE_MARKER_RE = /^MAILHUB-ROUTING-PROBE-(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z$/;
 
 function parseArgs(argv) {
-  const out = { ...defaultPaths };
+  const out = { ...defaultPaths, repoHead: "", repoParentHead: "" };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     if (arg === "--preflight") out.preflight = argv[++i];
     else if (arg === "--send") out.send = argv[++i];
     else if (arg === "--audit") out.audit = argv[++i];
     else if (arg === "--readiness") out.readiness = argv[++i];
+    else if (arg === "--repo-head") out.repoHead = argv[++i];
+    else if (arg === "--repo-parent-head") out.repoParentHead = argv[++i];
     else if (arg === "--help" || arg === "-h") {
-      console.log("Usage: node scripts/check-mailhub-routing-proof-contract.mjs [--preflight path] [--send path] [--audit path] [--readiness path]");
+      console.log("Usage: node scripts/check-mailhub-routing-proof-contract.mjs [--preflight path] [--send path] [--audit path] [--readiness path] [--repo-head sha] [--repo-parent-head sha]");
       process.exit(0);
     }
   }
   return out;
+}
+
+function gitRevParse(ref) {
+  try {
+    return execFileSync("git", ["rev-parse", ref], {
+      cwd: repoRoot,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    }).trim();
+  } catch {
+    return null;
+  }
 }
 
 function readJson(path, label) {
@@ -131,6 +147,17 @@ function proofTimestampIssue(label, freshness) {
   return `${label}_${suffix}`;
 }
 
+function repoHeadFreshness(label, artifact, repoHead, repoParentHead, errors, warnings) {
+  const artifactRepoHead = typeof artifact.repoHead === "string" && artifact.repoHead.length > 0 ? artifact.repoHead : null;
+  if (!artifactRepoHead) {
+    warnings.push(`missing_${label}_repo_head`);
+    return { repoHead: null, fresh: null, status: "missing_repo_head" };
+  }
+  const fresh = isFreshRepoHead({ repoRoot, artifactRepoHead, repoHead, repoParentHead });
+  if (!fresh) errors.push(`stale_${label}_repo_head`);
+  return { repoHead: artifactRepoHead, fresh, status: fresh ? "fresh" : "stale_repo_head" };
+}
+
 function validateProbeList({ label, artifact, probes, errors }) {
   const addresses = probeAddresses(probes);
   if (artifact.probeCount !== addresses.length) errors.push(`${label}_probe_count_mismatch`);
@@ -174,7 +201,15 @@ function main() {
   const readinessRequirements = objectValue(readiness.requirements);
   const readinessBlockers = Array.isArray(readiness.blockers) ? readiness.blockers.filter((item) => item && typeof item === "object") : [];
   const auditMarker = typeof audit.inputs?.marker === "string" ? audit.inputs.marker : null;
+  const repoHead = args.repoHead || gitRevParse("HEAD");
+  const repoParentHead = args.repoParentHead || gitRevParse("HEAD^");
   const nowMs = Date.now();
+  const repoFreshness = {
+    preflight: repoHeadFreshness("preflight", preflight, repoHead, repoParentHead, errors, warnings),
+    send: repoHeadFreshness("send", send, repoHead, repoParentHead, errors, warnings),
+    audit: repoHeadFreshness("audit", audit, repoHead, repoParentHead, errors, warnings),
+    readiness: repoHeadFreshness("readiness", readiness, repoHead, repoParentHead, errors, warnings),
+  };
   const auditGeneratedAtFreshness = timestampFreshness(audit.generatedAt, ROUTING_PROOF_MAX_AGE_MS, nowMs);
   const sendGeneratedAtFreshness = timestampFreshness(send.generatedAt, ROUTING_PROOF_MAX_AGE_MS, nowMs);
   const markerFreshness = markerTimestampFreshness(auditMarker, ROUTING_PROOF_MAX_AGE_MS, nowMs);
@@ -359,6 +394,9 @@ function main() {
       audit: auditGate.targetAddressCount ?? null,
     },
     sentCount: sendSent.length,
+    repoHead,
+    repoParentHead,
+    repoFreshness,
     readyForProductionProof,
     allExpectedAddressesConfirmed: auditGate.allExpectedAddressesConfirmed === true,
     productionReady: readinessGate.productionReady === true,
