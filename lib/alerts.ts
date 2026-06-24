@@ -1,5 +1,6 @@
 import "server-only";
 import { getActivityLogs, type AuditAction } from "./audit-log";
+import { isTestMode } from "./test-mode";
 import type { SLAStatus } from "./slaRules";
 
 export interface AlertProvider {
@@ -100,6 +101,67 @@ export class SlackProvider implements AlertProvider {
   }
 }
 
+function truncateChatworkLine(value: string, max = 500): string {
+  const normalized = value.replace(/\s+/g, " ").trim();
+  return normalized.length > max ? `${normalized.slice(0, max - 1)}...` : normalized;
+}
+
+function formatChatworkPayload(payload: AlertPayload): string {
+  const lines: string[] = [];
+  lines.push(`[info][title]${payload.title}[/title]`);
+  lines.push(payload.text);
+  if (payload.openUrl || payload.openCriticalUrl) {
+    lines.push("");
+    lines.push("MailHubで確認:");
+    if (payload.openUrl) lines.push(`- SLA Focus: ${payload.openUrl}`);
+    if (payload.openCriticalUrl) lines.push(`- Critical-only: ${payload.openCriticalUrl}`);
+  }
+
+  if (payload.items.length > 0) {
+    lines.push("");
+    lines.push("超過メール（上位5件）:");
+    for (const item of payload.items.slice(0, 5)) {
+      const status = item.status === "critical" ? "CRITICAL" : "WARN";
+      lines.push(`- [${status}] ${truncateChatworkLine(item.subject || "(no subject)")}`);
+      lines.push(`  経過: ${item.age}${item.assignee ? ` / 担当: ${item.assignee}` : ""}`);
+      if (item.url) lines.push(`  MailHub: ${item.url}`);
+      if (item.takeUrl) lines.push(`  Take: ${item.takeUrl}`);
+      lines.push(`  Gmail: ${item.gmailLink}`);
+    }
+  }
+  lines.push("[/info]");
+  return lines.join("\n");
+}
+
+// Chatwork通知プロバイダー
+export class ChatworkProvider implements AlertProvider {
+  private apiToken: string;
+  private roomId: string;
+  private baseUrl: string;
+
+  constructor(apiToken: string, roomId: string, baseUrl: string = "https://api.chatwork.com/v2") {
+    this.apiToken = apiToken;
+    this.roomId = roomId;
+    this.baseUrl = baseUrl.replace(/\/$/, "");
+  }
+
+  async send(payload: AlertPayload): Promise<void> {
+    const body = formatChatworkPayload(payload);
+    const response = await fetch(`${this.baseUrl}/rooms/${encodeURIComponent(this.roomId)}/messages`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "X-ChatWorkToken": this.apiToken,
+      },
+      body: new URLSearchParams({ body, self_unread: "0" }).toString(),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Chatwork API failed: ${response.status}`);
+    }
+  }
+}
+
 // テストモード用（ログ出力のみ）
 export class LogProvider implements AlertProvider {
   async send(payload: AlertPayload): Promise<void> {
@@ -107,11 +169,22 @@ export class LogProvider implements AlertProvider {
   }
 }
 
+export class MisconfiguredProvider implements AlertProvider {
+  private reason: string;
+
+  constructor(reason: string) {
+    this.reason = reason;
+  }
+
+  async send(): Promise<void> {
+    throw new Error(this.reason);
+  }
+}
+
 // 無効化プロバイダー
 export class NoneProvider implements AlertProvider {
-  async send(payload: AlertPayload): Promise<void> {
-    // 何もしない（interface整合のためpayloadは受け取る）
-    void payload;
+  async send(): Promise<void> {
+    throw new Error("alerts_provider_disabled");
   }
 }
 
@@ -119,19 +192,27 @@ export class NoneProvider implements AlertProvider {
  * AlertProviderインスタンスを取得
  */
 export function getAlertProvider(): AlertProvider {
-  const provider = process.env.MAILHUB_ALERTS_PROVIDER || "none";
+  const provider = (process.env.MAILHUB_ALERTS_PROVIDER || "none").trim().toLowerCase();
   const webhookUrl = process.env.MAILHUB_SLACK_WEBHOOK_URL;
+  const chatworkToken = process.env.MAILHUB_CHATWORK_API_TOKEN;
+  const chatworkRoomId = process.env.MAILHUB_CHATWORK_ROOM_ID;
+
+  if (provider === "log" || isTestMode()) {
+    return new LogProvider();
+  }
 
   if (provider === "slack") {
     if (!webhookUrl) {
-      console.warn("[AlertProvider] Slack webhook URL not configured, falling back to LogProvider");
-      return new LogProvider();
+      return new MisconfiguredProvider("slack_webhook_missing");
     }
     return new SlackProvider(webhookUrl);
   }
 
-  if (provider === "log" || process.env.MAILHUB_TEST_MODE === "1") {
-    return new LogProvider();
+  if (provider === "chatwork") {
+    if (!chatworkToken || !chatworkRoomId) {
+      return new MisconfiguredProvider("chatwork_config_missing");
+    }
+    return new ChatworkProvider(chatworkToken, chatworkRoomId);
   }
 
   return new NoneProvider();
@@ -160,4 +241,3 @@ export async function shouldSkipAlert(
     }
   });
 }
-

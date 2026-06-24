@@ -765,8 +765,12 @@ Productionは **最初に必ず READ ONLY** で公開し、問題が無いこと
 - **困った時の確認先**: Activity → 誰が処理したかを確認
 
 **SLA Alerts（放置防止通知）**:
-- **通知チャネル**: Slack webhook（推奨）または無効化
-- **設定**: `MAILHUB_ALERTS_PROVIDER=slack` + `MAILHUB_SLACK_WEBHOOK_URL` + `MAILHUB_ALERTS_SECRET`（本番必須）
+- **通知チャネル**: Slack webhook / Chatwork room / 無効化
+- **設定**:
+  - Slack: `MAILHUB_ALERTS_PROVIDER=slack` + `MAILHUB_SLACK_WEBHOOK_URL`
+  - Chatwork: `MAILHUB_ALERTS_PROVIDER=chatwork` + `MAILHUB_CHATWORK_API_TOKEN` + `MAILHUB_CHATWORK_ROOM_ID`
+  - 共通: `MAILHUB_ALERTS_SECRET`（本番必須）
+  - 担当者割当通知も出す場合のみ `MAILHUB_ASSIGNMENT_NOTIFY_ENABLED=1`
 - **実行**: `.github/workflows/mailhub-alerts.yml` が15分ごとにproductionを実行する。手動実行ではproduction/stagingを選択可能。
 - **Vercel保護**: Deployment Protectionを維持する場合、GitHub Actions secret `MAILHUB_VERCEL_PROTECTION_BYPASS` を設定する。workflowは `x-vercel-protection-bypass` ヘッダをhealth checkとalerts runの両方に付ける。
 - **Secret不足時**: schedule実行は失敗扱いにせずskipし、手動実行はfailする。
@@ -784,7 +788,7 @@ Productionは **最初に必ず READ ONLY** で公開し、問題が無いこと
   ```
 - **重複防止**: 同一メール/同一閾値で24時間以内は再通知しない（Activityログで判定）
 - **漏れゼロ**: Gmail検索クエリでページング対応（最大10ページ、1500件まで）
-- **上限到達検知**: `truncated: true`が返された場合は取りこぼしの可能性あり（Slack通知にも警告が含まれる）
+- **上限到達検知**: `truncated: true`が返された場合は取りこぼしの可能性あり（通知本文にも警告が含まれる）
 - **アラートが来た時の運用**:
   ① **MailHubで確認**: SLA warn/critical相当の一覧を見る（検索クエリ例: `label:inbox older_than:1d`）
   ② **担当者Assign**: 未割当の場合は担当者を割り当て

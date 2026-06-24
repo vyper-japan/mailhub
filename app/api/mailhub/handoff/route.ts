@@ -6,26 +6,36 @@ import { isReadOnlyMode, writeForbiddenResponse } from "@/lib/read-only";
 import { isAdminEmail } from "@/lib/admin";
 import { logAction } from "@/lib/audit-log";
 import { buildHandoffPreview } from "@/lib/handoff";
-import { SlackProvider, LogProvider, type AlertProvider } from "@/lib/alerts";
+import { ChatworkProvider, SlackProvider, LogProvider, type AlertProvider } from "@/lib/alerts";
 import { isTestMode } from "@/lib/test-mode";
 
 export const dynamic = "force-dynamic";
 
-function getSlackProviderForHandoff(): { ok: true; provider: AlertProvider } | { ok: false; status: number; error: string } {
+function getProviderForHandoff(): { ok: true; provider: AlertProvider; providerName: string } | { ok: false; status: number; error: string } {
   if (isTestMode()) {
-    return { ok: true, provider: new LogProvider() };
+    return { ok: true, provider: new LogProvider(), providerName: "log" };
   }
 
   const provider = (process.env.MAILHUB_ALERTS_PROVIDER ?? "none").trim().toLowerCase();
   const webhookUrl = (process.env.MAILHUB_SLACK_WEBHOOK_URL ?? "").trim();
+  const chatworkToken = (process.env.MAILHUB_CHATWORK_API_TOKEN ?? "").trim();
+  const chatworkRoomId = (process.env.MAILHUB_CHATWORK_ROOM_ID ?? "").trim();
 
-  if (provider !== "slack") {
-    return { ok: false, status: 400, error: "slack_not_configured" };
+  if (provider === "slack") {
+    if (!webhookUrl) {
+      return { ok: false, status: 400, error: "slack_webhook_missing" };
+    }
+    return { ok: true, provider: new SlackProvider(webhookUrl), providerName: "slack" };
   }
-  if (!webhookUrl) {
-    return { ok: false, status: 400, error: "slack_webhook_missing" };
+
+  if (provider === "chatwork") {
+    if (!chatworkToken || !chatworkRoomId) {
+      return { ok: false, status: 400, error: "chatwork_config_missing" };
+    }
+    return { ok: true, provider: new ChatworkProvider(chatworkToken, chatworkRoomId), providerName: "chatwork" };
   }
-  return { ok: true, provider: new SlackProvider(webhookUrl) };
+
+  return { ok: false, status: 400, error: "alert_provider_not_configured" };
 }
 
 /**
@@ -77,9 +87,9 @@ export async function POST(): Promise<Response> {
   }
   if (isReadOnlyMode()) return writeForbiddenResponse("handoff_send");
 
-  const slack = getSlackProviderForHandoff();
-  if (!slack.ok) {
-    return NextResponse.json({ error: slack.error }, { status: slack.status });
+  const providerResult = getProviderForHandoff();
+  if (!providerResult.ok) {
+    return NextResponse.json({ error: providerResult.error }, { status: providerResult.status });
   }
 
   const preview = await buildHandoffPreview({
@@ -89,7 +99,7 @@ export async function POST(): Promise<Response> {
     opsTopN: 5,
   });
 
-  await slack.provider.send({
+  await providerResult.provider.send({
     title: `Handoff (${preview.envLabel})`,
     text: preview.markdown,
     items: [],
@@ -101,7 +111,7 @@ export async function POST(): Promise<Response> {
       actorEmail: authResult.user.email,
       action: "handoff_send",
       messageId: "",
-      metadata: { length: preview.markdown.length },
+      metadata: { length: preview.markdown.length, provider: providerResult.providerName },
     });
   } catch {
     // ignore
@@ -109,4 +119,3 @@ export async function POST(): Promise<Response> {
 
   return NextResponse.json({ ok: true });
 }
-

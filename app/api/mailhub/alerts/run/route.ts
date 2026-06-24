@@ -7,6 +7,7 @@ import { buildGmailLink } from "@/lib/gmail";
 import { listCandidatesByQuery } from "@/lib/gmail-alerts";
 import { formatElapsedTime, getElapsedMs } from "@/lib/time-utils";
 import { logAction } from "@/lib/audit-log";
+import type { AuditAction } from "@/lib/audit-log";
 import { mustGetEnv } from "@/lib/env";
 import { isTestMode } from "@/lib/test-mode";
 import { isReadOnlyMode } from "@/lib/read-only";
@@ -217,6 +218,11 @@ async function runSLAAlerts(
   let totalSkipped = 0;
   let anyTruncated = false;
   const allItems: AlertPayload["items"] = [];
+  const pendingLogs: Array<{
+    action: AuditAction;
+    messageId: string;
+    metadata: Record<string, unknown>;
+  }> = [];
 
   for (const rule of rules) {
     // Gmail検索で候補を絞る（ページング対応、古いメールが漏れない）
@@ -296,11 +302,9 @@ async function runSLAAlerts(
         }),
       });
 
-      // Activityログに記録（dryRun=falseの場合のみ）
       if (!dryRun) {
         const actionName = getSLAActionName(rule.type, violation.status);
-        await logAction({
-          actorEmail: "system@mailhub",
+        pendingLogs.push({
           action: actionName,
           messageId: violation.message.id,
           metadata: {
@@ -308,17 +312,11 @@ async function runSLAAlerts(
             status: violation.status,
             age,
           },
-        }).catch(() => {
-          // ログ失敗は無視
         });
-        totalSent++;
       }
     }
 
-    // dryRunの場合はここでカウント
-    if (dryRun) {
-      totalSent += toSend.length;
-    }
+    totalSent = dryRun ? allItems.length : pendingLogs.length;
   }
 
   // アラート送信（dryRun=falseの場合のみ）
@@ -340,9 +338,29 @@ async function runSLAAlerts(
     items: allItems.slice(0, 5), // 上位5件のみ
   };
 
+  // Step 68: SLA Focus直リンクを生成
+  const openUrl = buildMailhubSlaUrl(baseUrl);
+  const openCriticalUrl = buildMailhubSlaUrl(baseUrl, { criticalOnly: true });
+  // Step 69: Open Unassignedリンク
+  const openUnassignedUrl = buildMailhubSlaUrl(baseUrl, { criticalOnly: true, unassigned: true });
+
+  if (openUrl) payload.openUrl = openUrl;
+  if (openCriticalUrl) payload.openCriticalUrl = openCriticalUrl;
+
   if (!dryRun && totalSent > 0) {
     const provider = getAlertProvider();
     await provider.send(payload);
+
+    for (const entry of pendingLogs) {
+      await logAction({
+        actorEmail: "system@mailhub",
+        action: entry.action,
+        messageId: entry.messageId,
+        metadata: entry.metadata,
+      }).catch(() => {
+        // ログ失敗は無視（送信成功後なので、再通知の抑制だけが弱くなる）
+      });
+    }
     
     // 上限到達をActivityログに記録
     if (anyTruncated) {
@@ -361,12 +379,6 @@ async function runSLAAlerts(
       });
     }
   }
-
-  // Step 68: SLA Focus直リンクを生成
-  const openUrl = buildMailhubSlaUrl(baseUrl);
-  const openCriticalUrl = buildMailhubSlaUrl(baseUrl, { criticalOnly: true });
-  // Step 69: Open Unassignedリンク
-  const openUnassignedUrl = buildMailhubSlaUrl(baseUrl, { criticalOnly: true, unassigned: true });
 
   return {
     sent: totalSent,

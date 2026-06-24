@@ -8,8 +8,52 @@ import { assigneeSlug } from "@/lib/assignee";
 import type { NextRequest } from "next/server";
 import { isReadOnlyMode, writeForbiddenResponse } from "@/lib/read-only";
 import { isAdminEmail } from "@/lib/admin";
+import { getAlertProvider } from "@/lib/alerts";
 
 export const dynamic = "force-dynamic";
+
+function isAssignmentNotifyEnabled(): boolean {
+  return process.env.MAILHUB_ASSIGNMENT_NOTIFY_ENABLED?.trim() === "1";
+}
+
+function buildAssignmentMailhubUrl(messageId: string): string {
+  const params = new URLSearchParams();
+  params.set("label", "todo");
+  params.set("id", messageId);
+  const path = `/?${params.toString()}`;
+  const base = (process.env.MAILHUB_PUBLIC_BASE_URL || process.env.NEXTAUTH_URL || "").trim().replace(/\/$/, "");
+  return base ? `${base}${path}` : path;
+}
+
+async function notifyAssignment(input: {
+  actorEmail: string;
+  assigneeEmail: string;
+  messageId: string;
+  force: boolean;
+}): Promise<void> {
+  if (!isAssignmentNotifyEnabled()) return;
+  const provider = getAlertProvider();
+  const mailhubUrl = buildAssignmentMailhubUrl(input.messageId);
+  const title = input.force ? "MailHub Takeover" : "MailHub Assignment";
+  const text = [
+    `担当者: ${input.assigneeEmail}`,
+    `操作: ${input.actorEmail}`,
+    `messageId: ${input.messageId}`,
+    `MailHub: ${mailhubUrl}`,
+  ].join("\n");
+
+  await Promise.race([
+    provider.send({
+      title,
+      text,
+      items: [],
+      openUrl: mailhubUrl,
+    }),
+    new Promise<void>((resolve) => setTimeout(resolve, 3_000)),
+  ]).catch(() => {
+    // Assignment itself is the source of truth; notification failure must not fail the mutation.
+  });
+}
 
 export async function POST(req: NextRequest) {
   const authResult = await requireUser();
@@ -81,6 +125,12 @@ export async function POST(req: NextRequest) {
         metadata: { assigneeEmail: targetEmail },
         reason,
       }).catch(() => {});
+      await notifyAssignment({
+        actorEmail: authResult.user.email,
+        assigneeEmail: targetEmail,
+        messageId: id,
+        force,
+      });
       // Step 76: assigneeSlugを返す
       return NextResponse.json({ ok: true, assigneeSlug: assigneeSlug(targetEmail), assigneeEmail: targetEmail });
     } else {
@@ -120,6 +170,12 @@ export async function POST(req: NextRequest) {
         reason, // Step 91: 理由入力
       }).catch(() => {
         // ログ失敗は無視
+      });
+      await notifyAssignment({
+        actorEmail: authResult.user.email,
+        assigneeEmail: targetEmail,
+        messageId: id,
+        force,
       });
       // Step 76: assigneeSlugを返す
       return NextResponse.json(

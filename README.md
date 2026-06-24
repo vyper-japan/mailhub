@@ -250,12 +250,13 @@ Activityの証跡を残す場合は、Activity Drawerの **Export（CSV）** を
 
 ### SLA Alerts（放置防止通知）
 
-**通知を使うなら Slack webhook を入れる**:
-1. SlackでIncoming Webhookを作成
+**通知を使うなら Slack webhook または Chatwork room を設定する**:
+1. SlackでIncoming Webhookを作成、またはChatwork API token/room idを用意
 2. 環境変数を設定：
-   - `MAILHUB_ALERTS_PROVIDER=slack`
-   - `MAILHUB_SLACK_WEBHOOK_URL=<webhook URL>`
+   - Slack: `MAILHUB_ALERTS_PROVIDER=slack` + `MAILHUB_SLACK_WEBHOOK_URL=<webhook URL>`
+   - Chatwork: `MAILHUB_ALERTS_PROVIDER=chatwork` + `MAILHUB_CHATWORK_API_TOKEN=<token>` + `MAILHUB_CHATWORK_ROOM_ID=<room id>`
    - `MAILHUB_ALERTS_SECRET=<secret token>`（本番必須）
+   - 担当者割当通知も出す場合のみ `MAILHUB_ASSIGNMENT_NOTIFY_ENABLED=1`
 3. GitHub Actions workflow `.github/workflows/mailhub-alerts.yml` が15分おきに `/api/mailhub/alerts/run?scope=all` を実行
 
 **GitHub Actions Secrets**:
@@ -275,7 +276,7 @@ curl -H "Authorization: Bearer $MAILHUB_ALERTS_SECRET" \
   "https://<YOUR_DOMAIN>/api/mailhub/alerts/run?scope=all"
 ```
 
-**staging/prodでWebhookを分ける注意**: 各環境で異なるWebhook URLを設定してください（通知の重複を防ぐため）。
+**staging/prodで通知先を分ける注意**: 各環境で異なるWebhook URLまたはChatwork roomを設定してください（通知の重複を防ぐため）。
 
 **止め方**: `MAILHUB_ALERTS_PROVIDER=none` を設定すると通知が無効化されます。
 

@@ -42,7 +42,9 @@ function buildMailhubLink(messageId: string, label: "todo" | "waiting"): string 
   const params = new URLSearchParams();
   params.set("label", label);
   params.set("id", messageId);
-  return `/?${params.toString()}`;
+  const path = `/?${params.toString()}`;
+  const base = (process.env.MAILHUB_PUBLIC_BASE_URL || process.env.NEXTAUTH_URL || "").trim().replace(/\/$/, "");
+  return base ? `${base}${path}` : path;
 }
 
 function opsCounts(summary: OpsSummary): {

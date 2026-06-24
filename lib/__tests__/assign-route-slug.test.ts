@@ -11,6 +11,7 @@ const routeMocks = vi.hoisted(() => ({
   assignMessage: vi.fn(),
   unassignMessage: vi.fn(),
   logAction: vi.fn(),
+  providerSend: vi.fn(),
 }));
 
 vi.mock("@/lib/require-user", () => ({
@@ -42,6 +43,10 @@ vi.mock("@/lib/gmail", () => ({
 
 vi.mock("@/lib/audit-log", () => ({
   logAction: routeMocks.logAction,
+}));
+
+vi.mock("@/lib/alerts", () => ({
+  getAlertProvider: () => ({ send: routeMocks.providerSend }),
 }));
 
 async function importPost() {
@@ -77,6 +82,9 @@ describe("assign route assigneeSlug", () => {
     routeMocks.assignMessage.mockReset().mockResolvedValue({ currentAssigneeSlug: null });
     routeMocks.unassignMessage.mockReset().mockResolvedValue(undefined);
     routeMocks.logAction.mockReset().mockResolvedValue(undefined);
+    routeMocks.providerSend.mockReset().mockResolvedValue(undefined);
+    delete process.env.MAILHUB_ASSIGNMENT_NOTIFY_ENABLED;
+    delete process.env.MAILHUB_PUBLIC_BASE_URL;
   });
 
   it("returns normalized success assigneeSlug in production mode", async () => {
@@ -97,6 +105,46 @@ describe("assign route assigneeSlug", () => {
       assigneeSlug: assigneeSlug("first.last+tag@vtj.co.jp"),
     });
     expect(routeMocks.assignMessage).toHaveBeenCalledWith("msg-1", "first.last+tag@vtj.co.jp", { force: false });
+    expect(routeMocks.providerSend).not.toHaveBeenCalled();
+  });
+
+  it("sends assignment notification only when explicitly enabled", async () => {
+    process.env.MAILHUB_ASSIGNMENT_NOTIFY_ENABLED = "1";
+    process.env.MAILHUB_PUBLIC_BASE_URL = "https://mailhub.example";
+    const POST = await importPost();
+
+    const res = await POST(makeRequest({
+      id: "msg-notify",
+      action: "assign",
+      assigneeEmail: "member@vtj.co.jp",
+    }));
+
+    expect(res.status).toBe(200);
+    expect(routeMocks.providerSend).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: "MailHub Assignment",
+        text: expect.stringContaining("担当者: member@vtj.co.jp"),
+        openUrl: "https://mailhub.example/?label=todo&id=msg-notify",
+      }),
+    );
+  });
+
+  it("does not fail assignment when notification delivery fails", async () => {
+    process.env.MAILHUB_ASSIGNMENT_NOTIFY_ENABLED = "1";
+    routeMocks.providerSend.mockRejectedValueOnce(new Error("notify failed"));
+    const POST = await importPost();
+
+    const res = await POST(makeRequest({
+      id: "msg-notify-fail",
+      action: "assign",
+      assigneeEmail: "member@vtj.co.jp",
+    }));
+
+    expect(res.status).toBe(200);
+    expect(await readJson(res)).toMatchObject({
+      success: true,
+      id: "msg-notify-fail",
+    });
   });
 
   it("returns normalized success assigneeSlug in TEST_MODE", async () => {
