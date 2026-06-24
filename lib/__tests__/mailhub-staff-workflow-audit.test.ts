@@ -280,6 +280,95 @@ describe("MailHub staff workflow audit", () => {
     });
   });
 
+  test("records production alert readiness as an explicit config gate", () => {
+    withTempDir((dir) => {
+      const outPath = join(dir, "staff.json");
+      const evidenceDir = join(dir, "prod");
+      const assigneesPath = join(dir, "assignees.json");
+      writeProductionEvidence(evidenceDir);
+      writeJson(assigneesPath, [{ email: "yuka@vtj.co.jp", displayName: "Yuka" }]);
+
+      const missingAlerts = runNodeScript(staffAuditPath, [
+        "--out",
+        outPath,
+        "--prod-evidence-dir",
+        evidenceDir,
+        "--assignees",
+        assigneesPath,
+      ], productionEnv);
+
+      expect(missingAlerts.status).toBe(0);
+      const missingArtifact = JSON.parse(readFileSync(outPath, "utf8")) as {
+        config: {
+          alertsSecretConfigured: boolean;
+          alerts: {
+            provider: string;
+            providerAllowed: boolean;
+            providerConfigured: boolean;
+            alertsSecretConfigured: boolean;
+            productionAlertsReady: boolean;
+            missing: string[];
+          };
+        };
+      };
+      expect(missingArtifact.config.alerts).toMatchObject({
+        provider: "none",
+        providerAllowed: false,
+        providerConfigured: false,
+        alertsSecretConfigured: false,
+        productionAlertsReady: false,
+      });
+      expect(missingArtifact.config.alertsSecretConfigured).toBe(false);
+      expect(missingArtifact.config.alerts.missing).toEqual(expect.arrayContaining([
+        "MAILHUB_ALERTS_PROVIDER=slack|chatwork",
+        "MAILHUB_ALERTS_SECRET",
+      ]));
+
+      const readyAlerts = runNodeScript(staffAuditPath, [
+        "--out",
+        outPath,
+        "--prod-evidence-dir",
+        evidenceDir,
+        "--assignees",
+        assigneesPath,
+      ], {
+        ...productionEnv,
+        MAILHUB_ALERTS_PROVIDER: "chatwork",
+        MAILHUB_ALERTS_SECRET: "alert-secret",
+        MAILHUB_CHATWORK_API_TOKEN: "chatwork-token",
+        MAILHUB_CHATWORK_ROOM_ID: "123456",
+      });
+
+      expect(readyAlerts.status).toBe(0);
+      const readyArtifact = JSON.parse(readFileSync(outPath, "utf8")) as {
+        config: {
+          alertsSecretConfigured: boolean;
+          alerts: {
+            provider: string;
+            providerAllowed: boolean;
+            providerConfigured: boolean;
+            alertsSecretConfigured: boolean;
+            chatworkTokenConfigured: boolean;
+            chatworkRoomConfigured: boolean;
+            productionAlertsReady: boolean;
+            missing: string[];
+          };
+        };
+      };
+      expect(readyArtifact.config.alerts).toMatchObject({
+        provider: "chatwork",
+        providerAllowed: true,
+        providerConfigured: true,
+        alertsSecretConfigured: true,
+        chatworkTokenConfigured: true,
+        chatworkRoomConfigured: true,
+        productionAlertsReady: true,
+        missing: [],
+      });
+      expect(readyArtifact.config.alertsSecretConfigured).toBe(true);
+    });
+  });
+
   test("rejects controlled write CSV evidence when the matching row timestamp is stale", () => {
     withTempDir((dir) => {
       const outPath = join(dir, "staff.json");

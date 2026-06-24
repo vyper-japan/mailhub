@@ -115,6 +115,8 @@ const completeConfig = {
     { name: "GOOGLE_SHARED_INBOX_EMAIL" },
     { name: "GOOGLE_SHARED_INBOX_REFRESH_TOKEN" },
     { name: "MAILHUB_SHEETS_PRIVATE_KEY" },
+    { name: "MAILHUB_ALERTS_SECRET" },
+    { name: "MAILHUB_PROD_URL" },
   ],
   variables: [
     { name: "MAILHUB_ENV", value: "production" },
@@ -144,14 +146,22 @@ describe("MailHub staff GitHub config readiness", () => {
       const out = JSON.parse(result.stdout) as {
         readyForProductionStaffPreflight: boolean;
         readyForSecretBackedStaffConfig: boolean;
+        readyForProductionAlerts: boolean;
         missingProductionStaffConfig: string[];
         missingSecretConfig: string[];
+        missingAlertAutomationConfig: string[];
+        alertAutomationWorkflow: { ready: boolean; missing: string[] };
         setupCommands: string[];
-        secretGroups: { sheetsConfig: { missing: string[]; ready: boolean } };
+        secretGroups: {
+          sheetsConfig: { missing: string[]; ready: boolean };
+          alertAutomation: { missing: string[]; ready: boolean };
+        };
         note: string;
       };
       expect(out.readyForProductionStaffPreflight).toBe(false);
       expect(out.readyForSecretBackedStaffConfig).toBe(false);
+      expect(out.readyForProductionAlerts).toBe(false);
+      expect(out.alertAutomationWorkflow).toMatchObject({ ready: true, missing: [] });
       expect(out.missingProductionStaffConfig).toContain("MAILHUB_ENV");
       expect(out.missingProductionStaffConfig).toContain("MAILHUB_TEAM_MEMBERS");
       expect(out.missingProductionStaffConfig).toContain("MAILHUB_SHEETS_ID or MAILHUB_SHEETS_SPREADSHEET_ID");
@@ -161,6 +171,7 @@ describe("MailHub staff GitHub config readiness", () => {
         "GOOGLE_SHARED_INBOX_REFRESH_TOKEN",
         "MAILHUB_SHEETS_PRIVATE_KEY",
       ]);
+      expect(out.missingAlertAutomationConfig).toEqual(["MAILHUB_ALERTS_SECRET", "MAILHUB_PROD_URL"]);
       expect(out.setupCommands).toEqual([
         "npm run setup:mailhub-staff-github-config",
         "npm run setup:mailhub-staff-github-config -- --apply --confirm-apply APPLY_MAILHUB_STAFF_GITHUB_CONFIG",
@@ -172,6 +183,10 @@ describe("MailHub staff GitHub config readiness", () => {
           "MAILHUB_SHEETS_CLIENT_EMAIL",
           "MAILHUB_SHEETS_PRIVATE_KEY",
         ],
+      });
+      expect(out.secretGroups.alertAutomation).toMatchObject({
+        ready: false,
+        missing: ["MAILHUB_ALERTS_SECRET", "MAILHUB_PROD_URL"],
       });
       expect(result.stdout).not.toContain("BEGIN PRIVATE KEY");
       expect(out.note).toContain("values are never accessible or printed");
@@ -190,8 +205,11 @@ describe("MailHub staff GitHub config readiness", () => {
       const out = readJson<{
         readyForProductionStaffPreflight: boolean;
         readyForSecretBackedStaffConfig: boolean;
+        readyForProductionAlerts: boolean;
         missingProductionStaffConfig: string[];
         missingSecretConfig: string[];
+        missingAlertAutomationConfig: string[];
+        alertAutomationWorkflow: { ready: boolean; missing: string[] };
         semanticIssues: string[];
         setupCommands: string[];
         configuredOptionalRuleSheetConfig: string[];
@@ -199,12 +217,16 @@ describe("MailHub staff GitHub config readiness", () => {
         secretGroups: {
           sheetsConfig: { ready: boolean; present: string[] };
           sensitiveSecrets: { ready: boolean; present: string[] };
+          alertAutomation: { ready: boolean; present: string[] };
         };
       }>(outPath);
       expect(out.readyForProductionStaffPreflight).toBe(true);
       expect(out.readyForSecretBackedStaffConfig).toBe(true);
+      expect(out.readyForProductionAlerts).toBe(true);
+      expect(out.alertAutomationWorkflow).toMatchObject({ ready: true, missing: [] });
       expect(out.missingProductionStaffConfig).toEqual([]);
       expect(out.missingSecretConfig).toEqual([]);
+      expect(out.missingAlertAutomationConfig).toEqual([]);
       expect(out.semanticIssues).toEqual([]);
       expect(out.setupCommands).toEqual([]);
       expect(out.configuredOptionalRuleSheetConfig).toEqual(["MAILHUB_SHEETS_TAB_RULES"]);
@@ -229,6 +251,182 @@ describe("MailHub staff GitHub config readiness", () => {
           "MAILHUB_SHEETS_PRIVATE_KEY",
         ],
       });
+      expect(out.secretGroups.alertAutomation).toMatchObject({
+        ready: true,
+        present: ["MAILHUB_ALERTS_SECRET", "MAILHUB_PROD_URL"],
+      });
+    });
+  });
+
+  test("separates SLA alert automation secrets from staff runtime preflight", () => {
+    withTempDir((dir) => {
+      const configPath = join(dir, "github-config.json");
+      const outPath = join(dir, "github-staff-secrets-readiness.json");
+      writeJson(configPath, {
+        ...completeConfig,
+        secrets: completeConfig.secrets.filter((item) => !["MAILHUB_ALERTS_SECRET", "MAILHUB_PROD_URL"].includes(item.name)),
+      });
+
+      const result = runNodeScript(staffSecretsPath, ["--config-json", configPath, "--out", outPath]);
+
+      expect(result.status).toBe(0);
+      const out = readJson<{
+        readyForProductionStaffPreflight: boolean;
+        readyForSecretBackedStaffConfig: boolean;
+        readyForProductionAlerts: boolean;
+        missingProductionStaffConfig: string[];
+        missingSecretConfig: string[];
+        missingAlertAutomationConfig: string[];
+        alertAutomationWorkflow: { ready: boolean; missing: string[] };
+        secretGroups: { alertAutomation: { ready: boolean; missing: string[] } };
+      }>(outPath);
+      expect(out.readyForProductionStaffPreflight).toBe(true);
+      expect(out.readyForSecretBackedStaffConfig).toBe(true);
+      expect(out.readyForProductionAlerts).toBe(false);
+      expect(out.alertAutomationWorkflow).toMatchObject({ ready: true, missing: [] });
+      expect(out.missingProductionStaffConfig).toEqual([]);
+      expect(out.missingSecretConfig).toEqual([]);
+      expect(out.missingAlertAutomationConfig).toEqual(["MAILHUB_ALERTS_SECRET", "MAILHUB_PROD_URL"]);
+      expect(out.secretGroups.alertAutomation).toMatchObject({
+        ready: false,
+        missing: ["MAILHUB_ALERTS_SECRET", "MAILHUB_PROD_URL"],
+      });
+
+      const contract = runNodeScript(staffSecretContractPath, ["--artifact", outPath, "--allow-non-github-source"]);
+      expect(contract.status).toBe(0);
+      expect(contract.stdout).toContain('"readyForProductionAlerts": false');
+    });
+  });
+
+  test("marks alert automation not ready when the GitHub workflow proof is missing", () => {
+    withTempDir((dir) => {
+      createArtifactOnlyRefreshRepo(dir);
+      const configPath = join(dir, "github-config.json");
+      const outPath = join(dir, "github-staff-secrets-readiness.json");
+      writeJson(configPath, completeConfig);
+
+      const result = runNodeScript(staffSecretsPath, ["--config-json", configPath, "--out", outPath], {}, dir);
+
+      expect(result.status).toBe(0);
+      const out = readJson<{
+        readyForProductionStaffPreflight: boolean;
+        readyForProductionAlerts: boolean;
+        missingAlertAutomationConfig: string[];
+        alertAutomationWorkflow: { path: string; sha256: string | null; ready: boolean; missing: string[] };
+      }>(outPath);
+      expect(out.readyForProductionStaffPreflight).toBe(true);
+      expect(out.readyForProductionAlerts).toBe(false);
+      expect(out.missingAlertAutomationConfig).toEqual([]);
+      expect(out.alertAutomationWorkflow).toEqual({
+        path: ".github/workflows/mailhub-alerts.yml",
+        sha256: null,
+        ready: false,
+        missing: ["workflow_file"],
+      });
+
+      const contract = runNodeScript(staffSecretContractPath, [
+        "--artifact",
+        outPath,
+        "--allow-non-github-source",
+      ], {}, dir);
+      expect(contract.status).toBe(0);
+      expect(contract.stdout).toContain('"readyForProductionAlerts": false');
+    });
+  });
+
+  test("contract rejects alert automation ready claims without workflow proof", () => {
+    withTempDir((dir) => {
+      const configPath = join(dir, "github-config.json");
+      const outPath = join(dir, "github-staff-secrets-readiness.json");
+      writeJson(configPath, completeConfig);
+
+      const audit = runNodeScript(staffSecretsPath, ["--config-json", configPath, "--out", outPath]);
+      expect(audit.status).toBe(0);
+      const artifact = readJson<Record<string, unknown>>(outPath);
+      writeJson(outPath, {
+        ...artifact,
+        readyForProductionAlerts: true,
+        alertAutomationWorkflow: {
+          path: ".github/workflows/mailhub-alerts.yml",
+          ready: false,
+          missing: ["alerts_run_endpoint"],
+        },
+      });
+
+      const contract = runNodeScript(staffSecretContractPath, ["--artifact", outPath, "--allow-non-github-source"]);
+      expect(contract.status).toBe(1);
+      expect(contract.stdout).toContain("production_alerts_ready_mismatch");
+      expect(contract.stdout).toContain("production_alerts_ready_without_workflow");
+    });
+  });
+
+  test("contract rejects stale alert workflow fingerprints", () => {
+    withTempDir((dir) => {
+      const configPath = join(dir, "github-config.json");
+      const outPath = join(dir, "github-staff-secrets-readiness.json");
+      writeJson(configPath, completeConfig);
+
+      const audit = runNodeScript(staffSecretsPath, ["--config-json", configPath, "--out", outPath]);
+      expect(audit.status).toBe(0);
+      const artifact = readJson<Record<string, unknown>>(outPath);
+      const workflow = artifact.alertAutomationWorkflow as Record<string, unknown>;
+      writeJson(outPath, {
+        ...artifact,
+        alertAutomationWorkflow: {
+          ...workflow,
+          sha256: "stale-workflow-sha",
+        },
+      });
+
+      const contract = runNodeScript(staffSecretContractPath, ["--artifact", outPath, "--allow-non-github-source"]);
+      expect(contract.status).toBe(1);
+      expect(contract.stdout).toContain("alert_automation_workflow_fingerprint_mismatch");
+    });
+  });
+
+  test("does not treat commented alert workflow strings as automation proof", () => {
+    withTempDir((dir) => {
+      const workflowDir = join(dir, ".github", "workflows");
+      const configPath = join(dir, "github-config.json");
+      const outPath = join(dir, "github-staff-secrets-readiness.json");
+      mkdirSync(workflowDir, { recursive: true });
+      writeJson(configPath, completeConfig);
+      writeFileSync(join(workflowDir, "mailhub-alerts.yml"), [
+        "name: MailHub SLA Alerts",
+        "on:",
+        "  workflow_dispatch:",
+        "#  schedule:",
+        "#    - cron: \"*/15 * * * *\"",
+        "jobs:",
+        "  run-alerts:",
+        "    runs-on: ubuntu-latest",
+        "    steps:",
+        "      - name: Disabled placeholder",
+        "        run: |",
+        "          # ${{ secrets.MAILHUB_ALERTS_SECRET }}",
+        "          # ${{ secrets.MAILHUB_PROD_URL }}",
+        "          # /api/mailhub/alerts/run?scope=all",
+      ].join("\n"), "utf8");
+
+      const result = runNodeScript(staffSecretsPath, ["--config-json", configPath, "--out", outPath], {}, dir);
+
+      expect(result.status).toBe(0);
+      const out = readJson<{
+        readyForProductionStaffPreflight: boolean;
+        readyForProductionAlerts: boolean;
+        missingAlertAutomationConfig: string[];
+        alertAutomationWorkflow: { ready: boolean; missing: string[] };
+      }>(outPath);
+      expect(out.readyForProductionStaffPreflight).toBe(true);
+      expect(out.missingAlertAutomationConfig).toEqual([]);
+      expect(out.readyForProductionAlerts).toBe(false);
+      expect(out.alertAutomationWorkflow.ready).toBe(false);
+      expect(out.alertAutomationWorkflow.missing).toEqual([
+        "schedule.cron",
+        "MAILHUB_ALERTS_SECRET",
+        "MAILHUB_PROD_URL",
+        "alerts_run_endpoint",
+      ]);
     });
   });
 
@@ -940,6 +1138,10 @@ printf 'called\\n' >> "${ghLog}"
       writeJson(join(runDir, "github-staff-secrets-readiness.json"), {
         missingProductionStaffConfig: ["MAILHUB_TEAM_MEMBERS", "MAILHUB_SHEETS_ID or MAILHUB_SHEETS_SPREADSHEET_ID"],
         missingSecretConfig: ["MAILHUB_SHEETS_PRIVATE_KEY"],
+        missingAlertAutomationConfig: ["MAILHUB_ALERTS_SECRET", "MAILHUB_PROD_URL"],
+        alertAutomationWorkflow: {
+          missing: ["alerts_run_endpoint"],
+        },
       });
       writeJson(join(runDir, "mailhub-rule-config-next-steps.json"), {
         requiredActions: ["configure_sheets_rule_config_env", "verify_rule_sheets_tabs"],
@@ -958,12 +1160,15 @@ printf 'called\\n' >> "${ghLog}"
           routingGmailProofSecrets: string[];
           staffProductionConfig: string[];
           staffSecretConfig: string[];
+          alertAutomationConfig: string[];
+          alertAutomationWorkflow: string[];
           ruleRequiredActions: string[];
         };
         requiredInputs: {
           externalSmtpProof: { requiredGitHubSecrets: string[]; constraints: string[] };
           routingGmailProof: { requiredGitHubSecrets: string[]; constraints: string[] };
           staffGitHubConfig: { requiredGitHubVariables: string[]; requiredGitHubSecrets: string[] };
+          alertAutomation: { requiredGitHubSecrets: string[]; workflowPath: string; requiredWorkflowSignals: string[] };
           sheetsRuleSource: { defaultRuleTabs: Record<string, string> };
           readOnlyRolloutEvidence: { requiredFiles: string[] };
         };
@@ -992,10 +1197,15 @@ printf 'called\\n' >> "${ghLog}"
       ]);
       expect(out.currentMissing.staffProductionConfig).toContain("MAILHUB_TEAM_MEMBERS");
       expect(out.currentMissing.staffSecretConfig).toEqual(["MAILHUB_SHEETS_PRIVATE_KEY"]);
+      expect(out.currentMissing.alertAutomationConfig).toEqual(["MAILHUB_ALERTS_SECRET", "MAILHUB_PROD_URL"]);
+      expect(out.currentMissing.alertAutomationWorkflow).toEqual(["alerts_run_endpoint"]);
       expect(out.requiredInputs.externalSmtpProof.constraints.join("\n")).toContain("non-@vtj.co.jp");
       expect(out.requiredInputs.routingGmailProof.requiredGitHubSecrets).toContain("GOOGLE_CLIENT_SECRET");
       expect(out.requiredInputs.staffGitHubConfig.requiredGitHubVariables).toContain("MAILHUB_READ_ONLY");
       expect(out.requiredInputs.staffGitHubConfig.requiredGitHubSecrets).toContain("MAILHUB_SHEETS_PRIVATE_KEY");
+      expect(out.requiredInputs.alertAutomation.requiredGitHubSecrets).toEqual(["MAILHUB_ALERTS_SECRET", "MAILHUB_PROD_URL"]);
+      expect(out.requiredInputs.alertAutomation.workflowPath).toBe(".github/workflows/mailhub-alerts.yml");
+      expect(out.requiredInputs.alertAutomation.requiredWorkflowSignals).toContain("alerts_run_endpoint");
       expect(out.requiredInputs.sheetsRuleSource.defaultRuleTabs.MAILHUB_SHEETS_TAB_RULES).toBe("ConfigRules");
       expect(out.requiredInputs.readOnlyRolloutEvidence.requiredFiles).toContain("staff-workflow-evidence-manifest.json");
       expect(out.safeCommands.dryRun).toContain(
@@ -1050,6 +1260,8 @@ printf 'called\\n' >> "${ghLog}"
       expect(markdown).toContain("# MailHub Production Config Intake");
       expect(markdown).toContain("This artifact is intentionally value-free");
       expect(markdown).toContain("MAILHUB_TEAM_MEMBERS");
+      expect(markdown).toContain("MAILHUB_ALERTS_SECRET");
+      expect(markdown).toContain("alerts_run_endpoint");
       expect(markdown).toContain("non-@vtj.co.jp external sender");
       expect(markdown).toContain("Routing Gmail Proof Intake");
       expect(markdown).toContain("only after values are present and explicit approval is given");

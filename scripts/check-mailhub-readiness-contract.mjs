@@ -4,6 +4,10 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { execFileSync } from "node:child_process";
 import { isFreshRepoHead } from "./artifact-freshness.mjs";
+import {
+  alertAutomationWorkflowFresh,
+  alertAutomationWorkflowReadiness,
+} from "./mailhub-alert-workflow-readiness.mjs";
 
 const repoRoot = process.cwd();
 const defaultAuditPath = join(repoRoot, ".ai-runs", "mailhub-next-phase", "mailhub-production-readiness-audit.json");
@@ -84,6 +88,20 @@ function stringArray(value) {
 
 function objectValue(value) {
   return value && typeof value === "object" && !Array.isArray(value) ? value : {};
+}
+
+function childProductionAlertsReady(alerts) {
+  const provider = alerts.provider;
+  const providerCredentialsReady =
+    (provider === "slack" && alerts.slackWebhookConfigured === true) ||
+    (provider === "chatwork" && alerts.chatworkTokenConfigured === true && alerts.chatworkRoomConfigured === true);
+  return alerts.productionAlertsReady === true &&
+    (provider === "slack" || provider === "chatwork") &&
+    alerts.providerAllowed === true &&
+    alerts.providerConfigured === true &&
+    alerts.alertsSecretConfigured === true &&
+    providerCredentialsReady &&
+    stringArray(alerts.missing).length === 0;
 }
 
 function ruleSheetsFromConfig(value) {
@@ -350,6 +368,8 @@ function main() {
     if (requirements.currentRuleConfigFingerprintPresent !== true) errors.push("production_ready_without_rule_config_fingerprint");
     if (requirements.currentRuleSafetyEnvSourceExplicit !== true) errors.push("production_ready_without_rule_safety_env_source");
     if (requirements.currentRuleConfigSourceProductionReady !== true) errors.push("production_ready_without_production_rule_config_source");
+    if (requirements.productionAlertsReady !== true) errors.push("production_ready_without_alerts");
+    if (requirements.productionAlertsAutomationReady !== true) errors.push("production_ready_without_alerts_automation");
     if (requirements.staffWorkflowPermissionsReady !== true) errors.push("production_ready_without_staff_workflow_permissions");
     if (requirements.staffReadOnlyRolloutReady !== true) errors.push("production_ready_without_staff_readonly_rollout");
     if (requirements.staffControlledWritePilotReady !== true) errors.push("production_ready_without_staff_controlled_write_pilot");
@@ -384,6 +404,12 @@ function main() {
 
   if (requirements.currentRuleConfigRealDataSafetyReady === true && requirements.currentRuleConfigFingerprintPresent !== true) {
     errors.push("rule_safety_ready_without_config_fingerprint");
+  }
+  if (typeof requirements.productionAlertsReady !== "boolean") {
+    errors.push("production_alerts_gate_missing");
+  }
+  if (typeof requirements.productionAlertsAutomationReady !== "boolean") {
+    errors.push("production_alerts_automation_gate_missing");
   }
   if (typeof requirements.currentRuleSafetyEnvSourceExplicit !== "boolean") {
     errors.push("rule_safety_env_source_gate_missing");
@@ -447,6 +473,52 @@ function main() {
     if (ruleConfigSourceSheets.length !== 2) {
       errors.push("rule_config_source_ready_without_rule_sheets");
     }
+  }
+
+  const alertsBlocker = blockers.find((item) => item.id === "alerts_not_ready");
+  if (requirements.productionAlertsReady !== true) {
+    if (!p0Blockers.includes("alerts_not_ready") && !p1Blockers.includes("alerts_not_ready")) {
+      errors.push("alerts_not_ready_without_blocker");
+    }
+    if (!alertsBlocker) {
+      errors.push("alerts_blocker_missing_detail");
+    } else {
+      const evidence = objectValue(alertsBlocker.evidence);
+      const alerts = objectValue(evidence.alerts);
+      if (typeof alerts.provider !== "string") errors.push("alerts_blocker_missing_provider");
+      if (typeof alerts.alertsSecretConfigured !== "boolean") errors.push("alerts_blocker_missing_secret_flag");
+    }
+  } else if (alertsBlocker) {
+    warnings.push("alerts_blocker_detail_present_when_ready");
+  }
+
+  const alertsAutomationBlocker = blockers.find((item) => item.id === "alerts_automation_not_ready");
+  if (requirements.productionAlertsAutomationReady !== true) {
+    if (!p0Blockers.includes("alerts_automation_not_ready") && !p1Blockers.includes("alerts_automation_not_ready")) {
+      errors.push("alerts_automation_not_ready_without_blocker");
+    }
+    if (!alertsAutomationBlocker) {
+      errors.push("alerts_automation_blocker_missing_detail");
+    } else {
+      const evidence = objectValue(alertsAutomationBlocker.evidence);
+      const alertAutomation = objectValue(evidence.alertAutomation);
+      if (typeof alertAutomation.readyForProductionAlerts !== "boolean" && !alertAutomation.missingArtifact) {
+        errors.push("alerts_automation_blocker_missing_ready_flag");
+      }
+      const missingAlertAutomationConfig = stringArray(alertAutomation.missingAlertAutomationConfig);
+      const hasTrustGap =
+        alertAutomation.sourceTrusted === false ||
+        alertAutomation.repoHeadFresh === false ||
+        (typeof alertAutomation.repoHeadFresh !== "boolean" && alertAutomation.repoHeadMatchesCurrent === false);
+      if (alertAutomation.readyForProductionAlerts !== true &&
+        missingAlertAutomationConfig.length === 0 &&
+        !hasTrustGap &&
+        !alertAutomation.missingArtifact) {
+        errors.push("alerts_automation_blocker_missing_gap_detail");
+      }
+    }
+  } else if (alertsAutomationBlocker) {
+    warnings.push("alerts_automation_blocker_detail_present_when_ready");
   }
 
   const syntaxFailedViews = stringArray(viewSafety.syntaxFailedViews);
@@ -526,6 +598,13 @@ function main() {
     warnings.push("staff_workflow_blocker_detail_present_when_ready");
   }
   if (staffWorkflowAudit) {
+    const staffAuditConfig = objectValue(staffWorkflowAudit.config);
+    const staffAuditAlerts = objectValue(staffAuditConfig.alerts);
+    const staffAuditProductionAlertsReady = childProductionAlertsReady(staffAuditAlerts);
+    if (typeof requirements.productionAlertsReady === "boolean" &&
+      requirements.productionAlertsReady !== staffAuditProductionAlertsReady) {
+      errors.push("production_alerts_gate_mismatch_with_child_config");
+    }
     const staffAuditRequirements = objectValue(staffWorkflowAudit.requirements);
     const staffAuditGate = objectValue(staffWorkflowAudit.gate);
     const staffAuditReadOnlyRolloutReady =
@@ -583,6 +662,29 @@ function main() {
     if (typeof requirements.staffGithubConfigReady === "boolean" && requirements.staffGithubConfigReady !== artifactReady) {
       errors.push("staff_github_config_gate_mismatch");
     }
+    const staffAlertAutomationWorkflow = objectValue(githubStaffSecrets.alertAutomationWorkflow);
+    const currentAlertAutomationWorkflow = alertAutomationWorkflowReadiness(repoRoot);
+    const staffAlertAutomationWorkflowFresh = alertAutomationWorkflowFresh(
+      staffAlertAutomationWorkflow,
+      currentAlertAutomationWorkflow,
+    );
+    const artifactAlertAutomationReady =
+      githubStaffSecrets.readyForProductionAlerts === true &&
+      stringArray(githubStaffSecrets.missingAlertAutomationConfig).length === 0 &&
+      staffAlertAutomationWorkflow.ready === true &&
+      stringArray(staffAlertAutomationWorkflow.missing).length === 0 &&
+      staffAlertAutomationWorkflowFresh;
+    if (typeof requirements.productionAlertsAutomationReady === "boolean" &&
+      requirements.productionAlertsAutomationReady !== artifactAlertAutomationReady) {
+      errors.push("production_alerts_automation_gate_mismatch");
+    }
+    if (!staffAlertAutomationWorkflowFresh) {
+      errors.push("alerts_automation_workflow_fingerprint_mismatch");
+    }
+    if ((requirements.productionAlertsAutomationReady === true || productionReady) &&
+      staffAlertAutomationWorkflow.ready !== true) {
+      errors.push("alerts_automation_ready_without_workflow");
+    }
     if (artifactReady && githubStaffSecrets.readyForSecretBackedStaffConfig !== true) {
       errors.push("staff_github_config_ready_without_secret_backing");
     }
@@ -604,6 +706,29 @@ function main() {
       }
       if (githubStaffSecrets.readyForSecretBackedStaffConfig !== true) {
         errors.push("staff_github_config_ready_without_secret_artifact");
+      }
+    }
+  }
+  if (requirements.productionAlertsAutomationReady === true || productionReady) {
+    if (!githubStaffSecretsPath) {
+      errors.push("alerts_automation_input_missing");
+    } else if (!githubStaffSecrets) {
+      errors.push("alerts_automation_input_artifact_missing");
+    } else {
+      if (githubStaffSecrets.source !== "github_actions_config") {
+        errors.push("alerts_automation_ready_without_github_actions_source");
+      }
+      if (githubStaffSecrets.readyForProductionAlerts !== true) {
+        errors.push("alerts_automation_ready_without_ready_artifact");
+      }
+      if (objectValue(githubStaffSecrets.alertAutomationWorkflow).ready !== true) {
+        errors.push("alerts_automation_ready_without_workflow_artifact");
+      }
+      if (!alertAutomationWorkflowFresh(
+        objectValue(githubStaffSecrets.alertAutomationWorkflow),
+        alertAutomationWorkflowReadiness(repoRoot),
+      )) {
+        errors.push("alerts_automation_ready_without_current_workflow_fingerprint");
       }
     }
   }

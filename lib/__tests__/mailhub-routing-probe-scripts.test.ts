@@ -3,6 +3,7 @@ import { tmpdir } from "os";
 import { dirname, join, resolve } from "path";
 import { execFileSync, spawn, spawnSync } from "child_process";
 import { describe, expect, test } from "vitest";
+import { createHash } from "crypto";
 
 const routingProbeAuditPath = resolve(process.cwd(), "scripts/audit-mailhub-routing-probes.mjs");
 const readinessAuditPath = resolve(process.cwd(), "scripts/audit-mailhub-production-readiness.mjs");
@@ -15,6 +16,12 @@ const routingProofContractPath = resolve(process.cwd(), "scripts/check-mailhub-r
 const routingSecretSetupPath = resolve(process.cwd(), "scripts/setup-mailhub-routing-probe-secrets.mjs");
 const readinessRefreshPath = resolve(process.cwd(), "scripts/refresh-mailhub-readiness-artifacts.mjs");
 const routingProbeWorkflowPath = resolve(process.cwd(), ".github/workflows/mailhub-routing-probe.yml");
+
+function currentAlertWorkflowSha256() {
+  return createHash("sha256")
+    .update(readFileSync(resolve(process.cwd(), ".github/workflows/mailhub-alerts.yml"), "utf8"))
+    .digest("hex");
+}
 
 function formatRoutingProbeMarker(date: Date) {
   const pad = (value: number) => String(value).padStart(2, "0");
@@ -531,6 +538,14 @@ function writeReadinessFixtures(
     semanticIssues: [],
     readyForSecretBackedStaffConfig: staffWorkflowReady,
     readyForProductionStaffPreflight: staffWorkflowReady,
+    readyForProductionAlerts: true,
+    missingAlertAutomationConfig: [],
+    alertAutomationWorkflow: {
+      path: ".github/workflows/mailhub-alerts.yml",
+      sha256: currentAlertWorkflowSha256(),
+      ready: true,
+      missing: [],
+    },
     setupCommands: staffWorkflowReady ? [] : [
       "npm run setup:mailhub-staff-github-config",
       "npm run setup:mailhub-staff-github-config -- --apply --confirm-apply APPLY_MAILHUB_STAFF_GITHUB_CONFIG",
@@ -607,6 +622,20 @@ function writeReadinessFixtures(
   writeJson(paths.staffWorkflow, {
     generatedAt: freshFixtureTimestamp,
     repoHead,
+    config: {
+      alertsSecretConfigured: true,
+      alerts: {
+        provider: "chatwork",
+        providerAllowed: true,
+        providerConfigured: true,
+        alertsSecretConfigured: true,
+        slackWebhookConfigured: false,
+        chatworkTokenConfigured: true,
+        chatworkRoomConfigured: true,
+        missing: [],
+        productionAlertsReady: true,
+      },
+    },
     gate: {
       staffWorkflowPermissionsReady: staffWorkflowReady,
       readOnlyRolloutReady: staffWorkflowReady,
@@ -2958,6 +2987,196 @@ describe("MailHub routing probe CLI gates", () => {
       expect(out.requirements.currentSharedGmailRoutingReady).toBe(true);
       expect(out.gate.productionReady).toBe(true);
       expect(out.gate.p0Blockers).toEqual([]);
+    });
+  });
+
+  test("production readiness blocks full routing proof when alert automation secrets are missing", () => {
+    withTempDir((dir) => {
+      const paths = writeReadinessFixtures(
+        dir,
+        {
+          markerProvided: true,
+          targetChannelCount: 8,
+          targetAddressCount: canonicalRoutingProbeAddresses.length,
+          matchedChannels: canonicalRoutingProbePlan.map((probe) => probe.channelId),
+          missingChannels: [],
+          matchedAddresses: canonicalRoutingProbeAddresses,
+          missingAddresses: [],
+          allExpectedChannelsConfirmed: true,
+          allExpectedAddressesConfirmed: true,
+        },
+        {
+          staffWorkflowReady: true,
+          routingSendReady: true,
+          routingProbeAddressPlan: canonicalRoutingProbePlan,
+        },
+      );
+      const staffGithubSecrets = readJson<Record<string, unknown>>(paths.githubStaffSecrets);
+      writeJson(paths.githubStaffSecrets, {
+        ...staffGithubSecrets,
+        readyForProductionAlerts: false,
+        missingAlertAutomationConfig: ["MAILHUB_ALERTS_SECRET", "MAILHUB_PROD_URL"],
+        alertAutomationWorkflow: {
+          path: ".github/workflows/mailhub-alerts.yml",
+          sha256: currentAlertWorkflowSha256(),
+          ready: true,
+          missing: [],
+        },
+        secretGroups: {
+          ...(staffGithubSecrets.secretGroups as Record<string, unknown>),
+          alertAutomation: {
+            required: ["MAILHUB_ALERTS_SECRET", "MAILHUB_PROD_URL"],
+            present: [],
+            missing: ["MAILHUB_ALERTS_SECRET", "MAILHUB_PROD_URL"],
+            ready: false,
+          },
+        },
+      });
+
+      const result = runNodeScript(readinessAuditPath, [
+        "--source-audit",
+        paths.source,
+        "--ops-audit",
+        paths.ops,
+        "--gws-routing-audit",
+        paths.gws,
+        "--routing-probe-audit",
+        paths.routing,
+        "--routing-probe-send",
+        paths.send,
+        "--routing-probe-preflight",
+        paths.preflight,
+        "--github-routing-secrets",
+        paths.githubSecrets,
+        "--github-staff-secrets",
+        paths.githubStaffSecrets,
+        "--views-audit",
+        paths.views,
+        "--rules-audit",
+        paths.rules,
+        "--staff-workflow-audit",
+        paths.staffWorkflow,
+        "--out",
+        paths.out,
+      ]);
+
+      expect(result.status).toBe(0);
+      const out = readJson<{
+        requirements: {
+          productionAlertsAutomationReady: boolean;
+          currentSharedGmailRoutingReady: boolean;
+        };
+        gate: {
+          productionReady: boolean;
+          p0Blockers: string[];
+          p1Blockers: string[];
+        };
+        blockers: Array<{
+          id: string;
+          evidence?: {
+            alertAutomation?: { readyForProductionAlerts?: boolean; missingAlertAutomationConfig?: string[] };
+          };
+        }>;
+      }>(paths.out);
+      expect(out.requirements.currentSharedGmailRoutingReady).toBe(true);
+      expect(out.requirements.productionAlertsAutomationReady).toBe(false);
+      expect(out.gate.productionReady).toBe(false);
+      expect(out.gate.p0Blockers).toEqual([]);
+      expect(out.gate.p1Blockers).toContain("alerts_automation_not_ready");
+      const blocker = out.blockers.find((item) => item.id === "alerts_automation_not_ready");
+      expect(blocker?.evidence?.alertAutomation).toMatchObject({
+        readyForProductionAlerts: false,
+        missingAlertAutomationConfig: ["MAILHUB_ALERTS_SECRET", "MAILHUB_PROD_URL"],
+      });
+    });
+  });
+
+  test("production readiness blocks full routing proof when alert automation workflow fingerprint is stale", () => {
+    withTempDir((dir) => {
+      const paths = writeReadinessFixtures(
+        dir,
+        {
+          markerProvided: true,
+          targetChannelCount: 8,
+          targetAddressCount: canonicalRoutingProbeAddresses.length,
+          matchedChannels: canonicalRoutingProbePlan.map((probe) => probe.channelId),
+          missingChannels: [],
+          matchedAddresses: canonicalRoutingProbeAddresses,
+          missingAddresses: [],
+          allExpectedChannelsConfirmed: true,
+          allExpectedAddressesConfirmed: true,
+        },
+        {
+          staffWorkflowReady: true,
+          routingSendReady: true,
+          routingProbeAddressPlan: canonicalRoutingProbePlan,
+        },
+      );
+      const staffGithubSecrets = readJson<Record<string, unknown>>(paths.githubStaffSecrets);
+      const alertWorkflow = staffGithubSecrets.alertAutomationWorkflow as Record<string, unknown>;
+      writeJson(paths.githubStaffSecrets, {
+        ...staffGithubSecrets,
+        alertAutomationWorkflow: {
+          ...alertWorkflow,
+          sha256: "stale-workflow-fingerprint",
+        },
+      });
+
+      const result = runNodeScript(readinessAuditPath, [
+        "--source-audit",
+        paths.source,
+        "--ops-audit",
+        paths.ops,
+        "--gws-routing-audit",
+        paths.gws,
+        "--routing-probe-audit",
+        paths.routing,
+        "--routing-probe-send",
+        paths.send,
+        "--routing-probe-preflight",
+        paths.preflight,
+        "--github-routing-secrets",
+        paths.githubSecrets,
+        "--github-staff-secrets",
+        paths.githubStaffSecrets,
+        "--views-audit",
+        paths.views,
+        "--rules-audit",
+        paths.rules,
+        "--staff-workflow-audit",
+        paths.staffWorkflow,
+        "--out",
+        paths.out,
+      ]);
+
+      expect(result.status).toBe(0);
+      const out = readJson<{
+        requirements: {
+          productionAlertsAutomationReady: boolean;
+          currentSharedGmailRoutingReady: boolean;
+        };
+        gate: {
+          productionReady: boolean;
+          p0Blockers: string[];
+          p1Blockers: string[];
+        };
+        blockers: Array<{
+          id: string;
+          evidence?: {
+            alertAutomation?: { readyForProductionAlerts?: boolean; workflowFingerprintFresh?: boolean };
+          };
+        }>;
+      }>(paths.out);
+      expect(out.requirements.currentSharedGmailRoutingReady).toBe(true);
+      expect(out.requirements.productionAlertsAutomationReady).toBe(false);
+      expect(out.gate.productionReady).toBe(false);
+      expect(out.gate.p0Blockers).toEqual([]);
+      expect(out.gate.p1Blockers).toContain("alerts_automation_not_ready");
+      const blocker = out.blockers.find((item) => item.id === "alerts_automation_not_ready");
+      expect(blocker?.evidence?.alertAutomation).toMatchObject({
+        readyForProductionAlerts: true,
+        workflowFingerprintFresh: false,
+      });
     });
   });
 

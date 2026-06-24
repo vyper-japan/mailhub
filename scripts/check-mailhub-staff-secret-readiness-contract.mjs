@@ -4,6 +4,11 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { execFileSync } from "node:child_process";
 import { isFreshRepoHead } from "./artifact-freshness.mjs";
+import {
+  ALERT_AUTOMATION_WORKFLOW_PATH,
+  ALERT_AUTOMATION_WORKFLOW_REQUIRED_MISSING,
+  alertAutomationWorkflowReadiness,
+} from "./mailhub-alert-workflow-readiness.mjs";
 
 const repoRoot = process.cwd();
 const defaultArtifactPath = join(repoRoot, ".ai-runs", "mailhub-next-phase", "github-staff-secrets-readiness.json");
@@ -38,6 +43,7 @@ const REQUIRED_SECRET_CONFIG = [
   "GOOGLE_SHARED_INBOX_REFRESH_TOKEN",
   "MAILHUB_SHEETS_PRIVATE_KEY",
 ];
+const REQUIRED_ALERT_AUTOMATION_SECRET_CONFIG = ["MAILHUB_ALERTS_SECRET", "MAILHUB_PROD_URL"];
 const REQUIRED_VARIABLE_CONFIG = [
   "MAILHUB_ENV",
   "NEXTAUTH_URL",
@@ -194,16 +200,23 @@ function main() {
 
   const requiredProductionStaffConfig = stringArray(artifact.requiredProductionStaffConfig);
   const requiredSecretConfig = stringArray(artifact.requiredSecretConfig);
+  const requiredAlertAutomationConfig = stringArray(artifact.requiredAlertAutomationConfig);
   const optionalRuleSheetConfig = stringArray(artifact.optionalRuleSheetConfig);
   const configuredOptionalRuleSheetConfig = stringArray(artifact.configuredOptionalRuleSheetConfig);
   const missingProductionStaffConfig = stringArray(artifact.missingProductionStaffConfig);
   const missingSecretConfig = stringArray(artifact.missingSecretConfig);
+  const missingAlertAutomationConfig = stringArray(artifact.missingAlertAutomationConfig);
   const semanticIssues = stringArray(artifact.semanticIssues);
   const setupCommands = stringArray(artifact.setupCommands);
   const presentRequiredConfigNames = stringArray(artifact.presentRequiredConfigNames);
   const expectedRequired = REQUIRED_PRODUCTION_STAFF_CONFIG.map(requirementLabel);
   const expectedMissing = expectedRequired.filter((name) => !presentRequiredConfigNames.includes(name));
   const expectedMissingSecrets = REQUIRED_SECRET_CONFIG.filter((name) => artifact.presentRequiredConfigSources?.[name] !== "secret");
+  const expectedMissingAlertAutomationSecrets = REQUIRED_ALERT_AUTOMATION_SECRET_CONFIG.filter((name) =>
+    !stringArray(objectValue(objectValue(artifact.secretGroups).alertAutomation).present).includes(name));
+  const alertAutomationWorkflow = objectValue(artifact.alertAutomationWorkflow);
+  const alertAutomationWorkflowMissing = stringArray(alertAutomationWorkflow.missing);
+  const currentAlertAutomationWorkflow = alertAutomationWorkflowReadiness(repoRoot);
   const sourceMap = objectValue(artifact.presentRequiredConfigSources);
   const sensitiveSecretVariableIssueNames = REQUIRED_SECRET_CONFIG.filter((name) =>
     semanticIssues.includes(`${name}_must_not_be_variable`));
@@ -229,6 +242,24 @@ function main() {
   if (hasDuplicates(presentRequiredConfigNames)) errors.push("duplicate_present_required_config");
   if (!sameArray(missingProductionStaffConfig, expectedMissing)) errors.push("missing_production_staff_config_mismatch");
   if (!sameArray(missingSecretConfig, expectedMissingSecrets)) errors.push("missing_secret_config_mismatch");
+  if (!sameArray(requiredAlertAutomationConfig, REQUIRED_ALERT_AUTOMATION_SECRET_CONFIG)) errors.push("required_alert_automation_config_mismatch");
+  if (!sameArray(missingAlertAutomationConfig, expectedMissingAlertAutomationSecrets)) errors.push("missing_alert_automation_config_mismatch");
+  if (alertAutomationWorkflow.path !== ALERT_AUTOMATION_WORKFLOW_PATH) errors.push("alert_automation_workflow_path_mismatch");
+  if (alertAutomationWorkflowMissing.some((item) => !ALERT_AUTOMATION_WORKFLOW_REQUIRED_MISSING.includes(item))) {
+    errors.push("unknown_alert_automation_workflow_missing_item");
+  }
+  if ((alertAutomationWorkflow.ready === true) !== (alertAutomationWorkflowMissing.length === 0)) {
+    errors.push("alert_automation_workflow_ready_mismatch");
+  }
+  if (alertAutomationWorkflow.sha256 !== currentAlertAutomationWorkflow.sha256) {
+    errors.push("alert_automation_workflow_fingerprint_mismatch");
+  }
+  if (alertAutomationWorkflow.ready !== currentAlertAutomationWorkflow.ready) {
+    errors.push("alert_automation_workflow_current_ready_mismatch");
+  }
+  if (!sameArray(alertAutomationWorkflowMissing, currentAlertAutomationWorkflow.missing)) {
+    errors.push("alert_automation_workflow_current_missing_mismatch");
+  }
   for (const issue of semanticIssues) {
     if (!isKnownSemanticIssue(issue)) errors.push(`unknown_semantic_issue:${issue}`);
   }
@@ -240,6 +271,12 @@ function main() {
   }
   if ((artifact.readyForProductionStaffPreflight === true) !== (missingProductionStaffConfig.length === 0 && missingSecretConfig.length === 0 && semanticIssues.length === 0)) {
     errors.push("production_staff_preflight_ready_mismatch");
+  }
+  if ((artifact.readyForProductionAlerts === true) !== (missingAlertAutomationConfig.length === 0 && alertAutomationWorkflow.ready === true)) {
+    errors.push("production_alerts_ready_mismatch");
+  }
+  if (artifact.readyForProductionAlerts === true && alertAutomationWorkflow.ready !== true) {
+    errors.push("production_alerts_ready_without_workflow");
   }
   if (artifact.readyForProductionStaffPreflight === true && setupCommands.length > 0) {
     errors.push("ready_staff_config_with_setup_commands");
@@ -290,6 +327,7 @@ function main() {
   const sheetsConfig = validateGroup({ artifact, groupName: "sheetsConfig", required: REQUIRED_SHEETS_CONFIG, errors });
   const readOnlyGuard = validateGroup({ artifact, groupName: "readOnlyGuard", required: REQUIRED_READ_ONLY_GUARD, errors });
   validateGroup({ artifact, groupName: "sensitiveSecrets", required: REQUIRED_SECRET_CONFIG, errors });
+  validateGroup({ artifact, groupName: "alertAutomation", required: REQUIRED_ALERT_AUTOMATION_SECRET_CONFIG, errors });
 
   const expectedPresent = [
     ...productionRuntime.presentNames,
@@ -314,8 +352,11 @@ function main() {
     variableCount: artifact.variableCount ?? null,
     readyForProductionStaffPreflight: artifact.readyForProductionStaffPreflight === true,
     readyForSecretBackedStaffConfig: artifact.readyForSecretBackedStaffConfig === true,
+    readyForProductionAlerts: artifact.readyForProductionAlerts === true,
+    alertAutomationWorkflow,
     missingProductionStaffConfig,
     missingSecretConfig,
+    missingAlertAutomationConfig,
     semanticIssues,
     setupCommands,
     errors,

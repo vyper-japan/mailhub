@@ -179,6 +179,36 @@ function getActivityStore(env) {
   return "memory";
 }
 
+function getAlertsReadiness(env, mailhubEnv, testMode) {
+  const rawProvider = value(env, "MAILHUB_ALERTS_PROVIDER").toLowerCase() || "none";
+  const provider = ["none", "log", "slack", "chatwork"].includes(rawProvider) ? rawProvider : "unknown";
+  const alertsSecretConfigured = Boolean(value(env, "MAILHUB_ALERTS_SECRET"));
+  const slackWebhookConfigured = Boolean(value(env, "MAILHUB_SLACK_WEBHOOK_URL"));
+  const chatworkTokenConfigured = Boolean(value(env, "MAILHUB_CHATWORK_API_TOKEN"));
+  const chatworkRoomConfigured = Boolean(value(env, "MAILHUB_CHATWORK_ROOM_ID"));
+  const providerAllowed = provider === "slack" || provider === "chatwork";
+  const providerConfigured =
+    (provider === "slack" && slackWebhookConfigured) ||
+    (provider === "chatwork" && chatworkTokenConfigured && chatworkRoomConfigured);
+  const missing = [];
+  if (!providerAllowed) missing.push("MAILHUB_ALERTS_PROVIDER=slack|chatwork");
+  if (!alertsSecretConfigured) missing.push("MAILHUB_ALERTS_SECRET");
+  if (provider === "slack" && !slackWebhookConfigured) missing.push("MAILHUB_SLACK_WEBHOOK_URL");
+  if (provider === "chatwork" && !chatworkTokenConfigured) missing.push("MAILHUB_CHATWORK_API_TOKEN");
+  if (provider === "chatwork" && !chatworkRoomConfigured) missing.push("MAILHUB_CHATWORK_ROOM_ID");
+  return {
+    provider,
+    providerAllowed,
+    providerConfigured,
+    alertsSecretConfigured,
+    slackWebhookConfigured,
+    chatworkTokenConfigured,
+    chatworkRoomConfigured,
+    missing,
+    productionAlertsReady: mailhubEnv === "production" && !testMode && alertsSecretConfigured && providerAllowed && providerConfigured,
+  };
+}
+
 function getReadOnly(env, mailhubEnv, activityStore) {
   const raw = value(env, "MAILHUB_READ_ONLY");
   const requiresDurableAudit = mailhubEnv === "staging" || mailhubEnv === "production";
@@ -708,6 +738,7 @@ function main() {
   const configStore = getConfigStore(env, testMode);
   const activityStore = getActivityStore(env);
   const readOnly = getReadOnly(env, mailhubEnv, activityStore);
+  const alerts = getAlertsReadiness(env, mailhubEnv, testMode);
   const sheetsReady = sheetsConfigured(env);
   const admins = parseEmailList(value(env, "MAILHUB_ADMINS"));
   const teamMembers = parseEmailList(value(env, "MAILHUB_TEAM_MEMBERS"));
@@ -815,7 +846,8 @@ function main() {
       activityStore,
       sheetsConfigured: sheetsReady,
       missingProductionEnv,
-      alertsSecretConfigured: Boolean(value(env, "MAILHUB_ALERTS_SECRET")),
+      alertsSecretConfigured: alerts.alertsSecretConfigured,
+      alerts,
       gmailSendEnabled: value(env, "MAILHUB_SEND_ENABLED") === "1",
     },
     staff: {

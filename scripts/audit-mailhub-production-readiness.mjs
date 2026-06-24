@@ -4,6 +4,10 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import { execFileSync } from "node:child_process";
 import { isFreshRepoHead } from "./artifact-freshness.mjs";
+import {
+  alertAutomationWorkflowFresh,
+  alertAutomationWorkflowReadiness,
+} from "./mailhub-alert-workflow-readiness.mjs";
 
 const repoRoot = process.cwd();
 const runDir = join(repoRoot, ".ai-runs", "mailhub-next-phase");
@@ -490,6 +494,9 @@ function main() {
   const ruleSafetyReady = Boolean(rulesAudit.ruleSafetyGate?.realDataRuleRiskPass) && ruleConfigFingerprintPresent;
   const staffWorkflowGate = objectValue(staffWorkflowAudit?.gate);
   const staffWorkflowRequirements = objectValue(staffWorkflowAudit?.requirements);
+  const staffWorkflowConfig = objectValue(staffWorkflowAudit?.config);
+  const alertsConfig = objectValue(staffWorkflowConfig.alerts);
+  const productionAlertsReady = alertsConfig.productionAlertsReady === true;
   const staffWorkflowDurableConfigReady = staffWorkflowRequirements.durableConfigReady === true;
   const staffWorkflowDurableActivityReady = staffWorkflowRequirements.durableActivityReady === true;
   const staffReadOnlyRolloutReady =
@@ -522,6 +529,20 @@ function main() {
     githubStaffSecrets?.readyForSecretBackedStaffConfig === true &&
     stringArray(githubStaffSecrets?.semanticIssues).length === 0 &&
     staffGithubSemanticSourcesReady;
+  const alertAutomationWorkflow = objectValue(githubStaffSecrets?.alertAutomationWorkflow);
+  const currentAlertAutomationWorkflow = alertAutomationWorkflowReadiness(repoRoot);
+  const alertAutomationWorkflowFingerprintFresh = alertAutomationWorkflowFresh(
+    alertAutomationWorkflow,
+    currentAlertAutomationWorkflow,
+  );
+  const productionAlertsAutomationReady =
+    githubStaffSecrets?.source === "github_actions_config" &&
+    staffGithubRepoHeadFresh &&
+    githubStaffSecrets?.readyForProductionAlerts === true &&
+    stringArray(githubStaffSecrets?.missingAlertAutomationConfig).length === 0 &&
+    alertAutomationWorkflow.ready === true &&
+    stringArray(alertAutomationWorkflow.missing).length === 0 &&
+    alertAutomationWorkflowFingerprintFresh;
   const staffWorkflowBlockerSeverity = currentSharedGmailRoutingReady ? "P0" : "P1";
   const staffGithubConfigBlockerSeverity = currentSharedGmailRoutingReady ? "P0" : "P1";
   const artifactsByKey = {
@@ -618,6 +639,41 @@ function main() {
       ruleSetFingerprint: rulesConfigFingerprint,
     }));
   }
+  if (!productionAlertsReady) {
+    blockers.push(blocker("alerts_not_ready", "P1", "Production readiness requires configured SLA alerts and MAILHUB_ALERTS_SECRET.", {
+      alerts: {
+        provider: alertsConfig.provider ?? null,
+        providerAllowed: alertsConfig.providerAllowed ?? null,
+        providerConfigured: alertsConfig.providerConfigured ?? null,
+        alertsSecretConfigured: alertsConfig.alertsSecretConfigured ?? staffWorkflowConfig.alertsSecretConfigured ?? null,
+        missing: alertsConfig.missing ?? [],
+      },
+      staffWorkflowAuditGeneratedAt: staffWorkflowAudit?.generatedAt ?? null,
+    }));
+  }
+  if (!productionAlertsAutomationReady) {
+    blockers.push(blocker("alerts_automation_not_ready", "P1", "Production readiness requires GitHub Actions SLA alert automation secrets.", {
+      alertAutomation: githubStaffSecrets ? {
+        source: githubStaffSecrets.source ?? null,
+        sourceTrusted: githubStaffSecrets.source === "github_actions_config",
+        checkedAt: githubStaffSecrets.checkedAt ?? null,
+        repoHead: githubStaffSecrets.repoHead ?? null,
+        currentRepoHead: repoHead,
+        repoParentHead,
+        repoHeadMatchesCurrent: githubStaffSecrets.repoHead === repoHead,
+        repoHeadFresh: staffGithubRepoHeadFresh,
+        readyForProductionAlerts: githubStaffSecrets.readyForProductionAlerts ?? null,
+        requiredAlertAutomationConfig: githubStaffSecrets.requiredAlertAutomationConfig ?? [],
+        missingAlertAutomationConfig: githubStaffSecrets.missingAlertAutomationConfig ?? [],
+        alertAutomationWorkflow: githubStaffSecrets.alertAutomationWorkflow ?? null,
+        currentAlertAutomationWorkflow,
+        workflowFingerprintFresh: alertAutomationWorkflowFingerprintFresh,
+        secretGroup: githubStaffSecrets.secretGroups?.alertAutomation ?? null,
+      } : {
+        missingArtifact: args.githubStaffSecrets,
+      },
+    }));
+  }
   if (!staffWorkflowPermissionsReady) {
     blockers.push(blocker("staff_workflow_permissions", staffWorkflowBlockerSeverity, "Production staff workflow and permission rollout evidence is not complete.", {
       staffWorkflowGate: staffWorkflowAudit?.gate ?? null,
@@ -712,6 +768,8 @@ function main() {
       currentRuleConfigFingerprintPresent: ruleConfigFingerprintPresent,
       currentRuleConfigSourceProductionReady: ruleConfigSourceProductionReady,
       currentRuleSafetyEnvSourceExplicit: ruleSafetyEnvSourceExplicit,
+      productionAlertsReady,
+      productionAlertsAutomationReady,
       staffWorkflowPermissionsReady,
       staffGithubConfigReady,
       staffReadOnlyRolloutReady,
@@ -731,6 +789,8 @@ function main() {
         ruleSafetyReady &&
         ruleSafetyEnvSourceExplicit &&
         ruleConfigSourceProductionReady &&
+        productionAlertsReady &&
+        productionAlertsAutomationReady &&
         staffWorkflowPermissionsReady &&
         staffWorkflowDurableConfigReady &&
         staffWorkflowDurableActivityReady &&

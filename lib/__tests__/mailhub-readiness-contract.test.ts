@@ -3,6 +3,7 @@ import { tmpdir } from "os";
 import { isAbsolute, join, resolve } from "path";
 import { spawnSync } from "child_process";
 import { describe, expect, test } from "vitest";
+import { createHash } from "crypto";
 
 const readinessContractPath = resolve(process.cwd(), "scripts/check-mailhub-readiness-contract.mjs");
 const readinessAuditPath = resolve(process.cwd(), "scripts/audit-mailhub-production-readiness.mjs");
@@ -25,6 +26,13 @@ function formatRoutingProbeMarker(date: Date) {
 
 const freshFixtureTimestamp = new Date().toISOString();
 const routingProbeMarker = formatRoutingProbeMarker(new Date(freshFixtureTimestamp));
+
+function currentAlertWorkflowSha256() {
+  return createHash("sha256")
+    .update(readFileSync(resolve(process.cwd(), ".github/workflows/mailhub-alerts.yml"), "utf8"))
+    .digest("hex");
+}
+
 const canonicalRoutingProbeAddresses = [
   "gopro_y@vtj.co.jp",
   "gopro_order_yahoo@vtj.co.jp",
@@ -120,9 +128,40 @@ function writeBaseInputArtifacts(
   ) as Record<string, string>;
 
   for (const key of inputFreshnessKeys) {
+    const defaults = key === "staffWorkflowAudit"
+      ? {
+          config: {
+            alertsSecretConfigured: true,
+            alerts: {
+              provider: "chatwork",
+              providerAllowed: true,
+              providerConfigured: true,
+              alertsSecretConfigured: true,
+              slackWebhookConfigured: false,
+              chatworkTokenConfigured: true,
+              chatworkRoomConfigured: true,
+              missing: [],
+              productionAlertsReady: true,
+            },
+          },
+        }
+      : key === "githubStaffSecrets"
+        ? {
+            source: "github_actions_config",
+            readyForProductionAlerts: true,
+            missingAlertAutomationConfig: [],
+            alertAutomationWorkflow: {
+              path: ".github/workflows/mailhub-alerts.yml",
+              sha256: currentAlertWorkflowSha256(),
+              ready: true,
+              missing: [],
+            },
+          }
+        : {};
     writeJson(paths[key], {
       [inputFreshnessTimestampField(key)]: freshFixtureTimestamp,
       repoHead,
+      ...defaults,
       ...(overrides[key] ?? {}),
     });
   }
@@ -180,6 +219,8 @@ function baseReadinessAudit(
       currentRuleConfigFingerprintPresent: true,
       currentRuleConfigSourceProductionReady: true,
       currentRuleSafetyEnvSourceExplicit: true,
+      productionAlertsReady: true,
+      productionAlertsAutomationReady: true,
       staffWorkflowPermissionsReady: false,
       staffGithubConfigReady: false,
       staffReadOnlyRolloutReady: false,
@@ -406,6 +447,14 @@ function writeReadyAggregateArtifacts(
       variableCount: 12,
       readyForProductionStaffPreflight: true,
       readyForSecretBackedStaffConfig: true,
+      readyForProductionAlerts: true,
+      missingAlertAutomationConfig: [],
+      alertAutomationWorkflow: {
+        path: ".github/workflows/mailhub-alerts.yml",
+        sha256: currentAlertWorkflowSha256(),
+        ready: true,
+        missing: [],
+      },
       missingProductionStaffConfig: [],
       missingSecretConfig: [],
       semanticIssues: [],
@@ -454,6 +503,20 @@ function writeReadyAggregateArtifacts(
     staffWorkflowAudit: {
       generatedAt: freshFixtureTimestamp,
       repoHead,
+      config: {
+        alertsSecretConfigured: true,
+        alerts: {
+          provider: "chatwork",
+          providerAllowed: true,
+          providerConfigured: true,
+          alertsSecretConfigured: true,
+          slackWebhookConfigured: false,
+          chatworkTokenConfigured: true,
+          chatworkRoomConfigured: true,
+          missing: [],
+          productionAlertsReady: true,
+        },
+      },
       gate: {
         staffWorkflowPermissionsReady: true,
         readOnlyRolloutReady: true,
@@ -1223,6 +1286,18 @@ describe("MailHub readiness contract check", () => {
       writeJson(inputPaths.staffWorkflowAudit, {
         generatedAt: freshFixtureTimestamp,
         repoHead: "head123",
+        config: {
+          alerts: {
+            provider: "chatwork",
+            providerAllowed: true,
+            providerConfigured: true,
+            alertsSecretConfigured: true,
+            chatworkTokenConfigured: true,
+            chatworkRoomConfigured: true,
+            missing: [],
+            productionAlertsReady: true,
+          },
+        },
         requirements: {
           readOnlyRolloutReady: true,
           controlledWritePilotReady: true,
@@ -1242,6 +1317,14 @@ describe("MailHub readiness contract check", () => {
         source: "github_actions_config",
         readyForProductionStaffPreflight: true,
         readyForSecretBackedStaffConfig: true,
+        readyForProductionAlerts: true,
+        missingAlertAutomationConfig: [],
+        alertAutomationWorkflow: {
+          path: ".github/workflows/mailhub-alerts.yml",
+          sha256: currentAlertWorkflowSha256(),
+          ready: true,
+          missing: [],
+        },
         semanticIssues: [],
         presentRequiredConfigSources: {
           MAILHUB_ENV: "variable",
@@ -1340,6 +1423,207 @@ describe("MailHub readiness contract check", () => {
     });
   });
 
+  test("rejects missing production alerts readiness without blocker evidence", () => {
+    withTempDir((dir) => {
+      const auditPath = join(dir, "readiness.json");
+      const audit = baseReadinessAudit(dir);
+      writeJson(auditPath, {
+        ...audit,
+        requirements: {
+          ...audit.requirements,
+          productionAlertsReady: false,
+        },
+      });
+
+      const result = runContract(auditPath);
+      expect(result.status).toBe(1);
+      expect(result.stdout).toContain("alerts_not_ready_without_blocker");
+      expect(result.stdout).toContain("alerts_blocker_missing_detail");
+    });
+  });
+
+  test("accepts missing production alerts readiness when blocker evidence is present", () => {
+    withTempDir((dir) => {
+      const auditPath = join(dir, "readiness.json");
+      const audit = baseReadinessAudit(dir);
+      const inputPaths = audit.inputs as typeof audit.inputs & Record<string, string>;
+      writeJson(inputPaths.staffWorkflowAudit, {
+        generatedAt: freshFixtureTimestamp,
+        repoHead: "head123",
+        config: {
+          alerts: {
+            provider: "none",
+            providerAllowed: false,
+            providerConfigured: false,
+            alertsSecretConfigured: false,
+            missing: ["MAILHUB_ALERTS_PROVIDER=slack|chatwork", "MAILHUB_ALERTS_SECRET"],
+            productionAlertsReady: false,
+          },
+        },
+      });
+      writeJson(auditPath, {
+        ...audit,
+        requirements: {
+          ...audit.requirements,
+          productionAlertsReady: false,
+        },
+        gate: {
+          ...audit.gate,
+          p1Blockers: [...audit.gate.p1Blockers, "alerts_not_ready"],
+        },
+        blockers: [
+          ...audit.blockers,
+          {
+            id: "alerts_not_ready",
+            severity: "P1",
+            evidence: {
+              alerts: {
+                provider: "none",
+                providerAllowed: false,
+                providerConfigured: false,
+                alertsSecretConfigured: false,
+                missing: ["MAILHUB_ALERTS_PROVIDER=slack|chatwork", "MAILHUB_ALERTS_SECRET"],
+              },
+            },
+          },
+        ],
+      });
+
+      const result = runContract(auditPath);
+      expect(result.status).toBe(0);
+    });
+  });
+
+  test("rejects missing production alert automation readiness without blocker evidence", () => {
+    withTempDir((dir) => {
+      const auditPath = join(dir, "readiness.json");
+      const audit = baseReadinessAudit(dir);
+      writeJson(auditPath, {
+        ...audit,
+        requirements: {
+          ...audit.requirements,
+          productionAlertsAutomationReady: false,
+        },
+      });
+
+      const result = runContract(auditPath);
+      expect(result.status).toBe(1);
+      expect(result.stdout).toContain("alerts_automation_not_ready_without_blocker");
+      expect(result.stdout).toContain("alerts_automation_blocker_missing_detail");
+    });
+  });
+
+  test("rejects production alert automation readiness backed by a stale workflow fingerprint", () => {
+    withTempDir((dir) => {
+      const auditPath = join(dir, "readiness.json");
+      const audit = baseReadinessAudit(dir);
+      const inputPaths = audit.inputs as typeof audit.inputs & Record<string, string>;
+      const githubStaffSecrets = JSON.parse(readFileSync(inputPaths.githubStaffSecrets, "utf8")) as Record<string, unknown>;
+      const alertWorkflow = githubStaffSecrets.alertAutomationWorkflow as Record<string, unknown>;
+      writeJson(inputPaths.githubStaffSecrets, {
+        ...githubStaffSecrets,
+        alertAutomationWorkflow: {
+          ...alertWorkflow,
+          sha256: "stale-workflow-fingerprint",
+        },
+      });
+      writeJson(auditPath, audit);
+
+      const result = runContract(auditPath);
+      expect(result.status).toBe(1);
+      expect(result.stdout).toContain("production_alerts_automation_gate_mismatch");
+      expect(result.stdout).toContain("alerts_automation_workflow_fingerprint_mismatch");
+    });
+  });
+
+  test("accepts missing production alert automation readiness when blocker evidence is present", () => {
+    withTempDir((dir) => {
+      const auditPath = join(dir, "readiness.json");
+      const audit = baseReadinessAudit(dir);
+      const inputPaths = audit.inputs as typeof audit.inputs & Record<string, string>;
+      writeJson(inputPaths.githubStaffSecrets, {
+        checkedAt: freshFixtureTimestamp,
+        repoHead: "head123",
+        source: "github_actions_config",
+        readyForProductionAlerts: false,
+        missingAlertAutomationConfig: ["MAILHUB_ALERTS_SECRET", "MAILHUB_PROD_URL"],
+        alertAutomationWorkflow: {
+          path: ".github/workflows/mailhub-alerts.yml",
+          sha256: currentAlertWorkflowSha256(),
+          ready: true,
+          missing: [],
+        },
+      });
+      writeJson(auditPath, {
+        ...audit,
+        requirements: {
+          ...audit.requirements,
+          productionAlertsAutomationReady: false,
+        },
+        gate: {
+          ...audit.gate,
+          p1Blockers: [...audit.gate.p1Blockers, "alerts_automation_not_ready"],
+        },
+        blockers: [
+          ...audit.blockers,
+          {
+            id: "alerts_automation_not_ready",
+            severity: "P1",
+            evidence: {
+              alertAutomation: {
+                source: "github_actions_config",
+                sourceTrusted: true,
+                repoHeadFresh: true,
+                readyForProductionAlerts: false,
+                missingAlertAutomationConfig: ["MAILHUB_ALERTS_SECRET", "MAILHUB_PROD_URL"],
+                secretGroup: {
+                  ready: false,
+                  missing: ["MAILHUB_ALERTS_SECRET", "MAILHUB_PROD_URL"],
+                },
+              },
+            },
+          },
+        ],
+      });
+
+      const result = runContract(auditPath);
+      expect(result.status).toBe(0);
+    });
+  });
+
+  test("rejects positive production alerts readiness contradicted by child alert config details", () => {
+    withTempDir((dir) => {
+      const auditPath = join(dir, "readiness.json");
+      const staffWorkflowPath = join(dir, "mailhub-staff-workflow-audit.json");
+      const audit = baseReadinessAudit(dir);
+      writeJson(staffWorkflowPath, {
+        generatedAt: freshFixtureTimestamp,
+        repoHead: "head123",
+        config: {
+          alerts: {
+            provider: "none",
+            providerAllowed: false,
+            providerConfigured: false,
+            alertsSecretConfigured: false,
+            missing: ["MAILHUB_ALERTS_PROVIDER=slack|chatwork", "MAILHUB_ALERTS_SECRET"],
+            productionAlertsReady: true,
+          },
+        },
+      });
+      writeJson(auditPath, {
+        ...audit,
+        inputs: {
+          ...audit.inputs,
+          staffWorkflowAudit: staffWorkflowPath,
+        },
+      });
+
+      const result = runContract(auditPath);
+      expect(result.status).toBe(1);
+      expect(result.stdout).toContain("production_alerts_gate_mismatch_with_child_config");
+    });
+  });
+
   test("rejects missing staff GitHub config gate", () => {
     withTempDir((dir) => {
       const auditPath = join(dir, "readiness.json");
@@ -1435,6 +1719,18 @@ describe("MailHub readiness contract check", () => {
         },
       });
       writeJson(staffWorkflowPath, {
+        config: {
+          alerts: {
+            provider: "chatwork",
+            providerAllowed: true,
+            providerConfigured: true,
+            alertsSecretConfigured: true,
+            chatworkTokenConfigured: true,
+            chatworkRoomConfigured: true,
+            missing: [],
+            productionAlertsReady: true,
+          },
+        },
         gate: {
           staffWorkflowPermissionsReady: true,
           readOnlyRolloutReady: true,
@@ -1453,6 +1749,14 @@ describe("MailHub readiness contract check", () => {
         variableCount: 12,
         readyForProductionStaffPreflight: true,
         readyForSecretBackedStaffConfig: true,
+        readyForProductionAlerts: true,
+        missingAlertAutomationConfig: [],
+        alertAutomationWorkflow: {
+          path: ".github/workflows/mailhub-alerts.yml",
+          sha256: currentAlertWorkflowSha256(),
+          ready: true,
+          missing: [],
+        },
         missingProductionStaffConfig: [],
         missingSecretConfig: [],
         semanticIssues: [],
@@ -1509,6 +1813,14 @@ describe("MailHub readiness contract check", () => {
         repoHead: "head123",
         readyForProductionStaffPreflight: true,
         readyForSecretBackedStaffConfig: true,
+        readyForProductionAlerts: true,
+        missingAlertAutomationConfig: [],
+        alertAutomationWorkflow: {
+          path: ".github/workflows/mailhub-alerts.yml",
+          sha256: currentAlertWorkflowSha256(),
+          ready: true,
+          missing: [],
+        },
         missingProductionStaffConfig: [],
         missingSecretConfig: [],
         semanticIssues: [],
@@ -1636,6 +1948,14 @@ describe("MailHub readiness contract check", () => {
         repoHead: "parent123",
         readyForProductionStaffPreflight: true,
         readyForSecretBackedStaffConfig: true,
+        readyForProductionAlerts: true,
+        missingAlertAutomationConfig: [],
+        alertAutomationWorkflow: {
+          path: ".github/workflows/mailhub-alerts.yml",
+          sha256: currentAlertWorkflowSha256(),
+          ready: true,
+          missing: [],
+        },
         missingProductionStaffConfig: [],
         missingSecretConfig: [],
         semanticIssues: [],

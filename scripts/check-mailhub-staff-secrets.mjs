@@ -3,6 +3,7 @@
 import { execFileSync } from "node:child_process";
 import { dirname } from "node:path";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { alertAutomationWorkflowReadiness } from "./mailhub-alert-workflow-readiness.mjs";
 
 const DEFAULT_REPO = "vyper-japan/mailhub";
 
@@ -49,6 +50,11 @@ const REQUIRED_SECRET_CONFIG = [
   "GOOGLE_CLIENT_SECRET",
   "GOOGLE_SHARED_INBOX_REFRESH_TOKEN",
   "MAILHUB_SHEETS_PRIVATE_KEY",
+];
+
+const REQUIRED_ALERT_AUTOMATION_SECRET_CONFIG = [
+  "MAILHUB_ALERTS_SECRET",
+  "MAILHUB_PROD_URL",
 ];
 
 const REQUIRED_VARIABLE_CONFIG = [
@@ -161,6 +167,7 @@ function currentRepoHead() {
 function readEnvConfig() {
   const names = new Set([
     ...flattenRequirements(REQUIRED_PRODUCTION_STAFF_CONFIG),
+    ...REQUIRED_ALERT_AUTOMATION_SECRET_CONFIG,
     ...OPTIONAL_RULE_SHEET_CONFIG,
   ]);
   return {
@@ -328,9 +335,11 @@ function main() {
     sheetsConfig: groupReadiness(REQUIRED_SHEETS_CONFIG, present),
     readOnlyGuard: groupReadiness(REQUIRED_READ_ONLY_GUARD, present),
     sensitiveSecrets: groupReadiness(REQUIRED_SECRET_CONFIG, secretNames),
+    alertAutomation: groupReadiness(REQUIRED_ALERT_AUTOMATION_SECRET_CONFIG, secretNames),
   };
   const missingProductionStaffConfig = missingRequirementNames(REQUIRED_PRODUCTION_STAFF_CONFIG, present);
   const missingSecretConfig = missingSecretConfigNames(REQUIRED_SECRET_CONFIG, secretNames);
+  const missingAlertAutomationConfig = missingSecretConfigNames(REQUIRED_ALERT_AUTOMATION_SECRET_CONFIG, secretNames);
   const sensitiveSecretVariableIssueCodes = sensitiveSecretVariableIssues(secretNames, variableNames);
   const productionSemanticIssues = [
     ...semanticIssues(config.variables, secretNames, variableNames),
@@ -340,6 +349,8 @@ function main() {
   const readyForProductionStaffPreflight = missingProductionStaffConfig.length === 0 &&
     missingSecretConfig.length === 0 &&
     productionSemanticIssues.length === 0;
+  const alertAutomationWorkflow = alertAutomationWorkflowReadiness();
+  const readyForProductionAlerts = missingAlertAutomationConfig.length === 0 && alertAutomationWorkflow.ready;
   const presentRequiredConfigNames = presentRequirementNames(REQUIRED_PRODUCTION_STAFF_CONFIG, present);
   const presentRequiredConfigSources = Object.fromEntries(
     flattenRequirements(REQUIRED_PRODUCTION_STAFF_CONFIG)
@@ -355,13 +366,17 @@ function main() {
     variableCount: config.variables.length,
     requiredProductionStaffConfig: REQUIRED_PRODUCTION_STAFF_CONFIG.map(requirementLabel),
     requiredSecretConfig: REQUIRED_SECRET_CONFIG,
+    requiredAlertAutomationConfig: REQUIRED_ALERT_AUTOMATION_SECRET_CONFIG,
     optionalRuleSheetConfig: OPTIONAL_RULE_SHEET_CONFIG,
     configuredOptionalRuleSheetConfig: configuredOptional(OPTIONAL_RULE_SHEET_CONFIG, variableNames),
     missingProductionStaffConfig,
     missingSecretConfig,
+    missingAlertAutomationConfig,
     semanticIssues: productionSemanticIssues,
     readyForSecretBackedStaffConfig,
     readyForProductionStaffPreflight,
+    readyForProductionAlerts,
+    alertAutomationWorkflow,
     setupCommands: readyForProductionStaffPreflight
       ? []
       : [STAFF_GITHUB_SETUP_DRY_RUN_COMMAND, STAFF_GITHUB_SETUP_APPLY_COMMAND],

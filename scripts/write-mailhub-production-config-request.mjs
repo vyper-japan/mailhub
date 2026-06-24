@@ -34,6 +34,11 @@ const STAFF_REQUIRED_SECRETS = [
   "MAILHUB_SHEETS_PRIVATE_KEY",
 ];
 
+const ALERT_AUTOMATION_REQUIRED_SECRETS = [
+  "MAILHUB_ALERTS_SECRET",
+  "MAILHUB_PROD_URL",
+];
+
 const STAFF_REQUIRED_VARIABLES = [
   "MAILHUB_ENV",
   "NEXTAUTH_URL",
@@ -412,6 +417,14 @@ ${mdList(result.currentMissing.staffProductionConfig)}
 Staff secret config:
 
 ${mdList(result.currentMissing.staffSecretConfig)}
+
+Alert automation secrets:
+
+${mdList(result.currentMissing.alertAutomationConfig)}
+
+Alert automation workflow:
+
+${mdList(result.currentMissing.alertAutomationWorkflow)}
 `;
 }
 
@@ -445,6 +458,8 @@ function main() {
   );
   const missingStaffConfig = unique(array(staffConfig?.missingProductionStaffConfig));
   const missingStaffSecrets = unique(array(staffConfig?.missingSecretConfig));
+  const missingAlertAutomationConfig = unique(array(staffConfig?.missingAlertAutomationConfig));
+  const missingAlertAutomationWorkflow = unique(array(staffConfig?.alertAutomationWorkflow?.missing));
   const ruleRequiredActions = array(ruleNext?.requiredActions);
   const staffRequiredActions = array(staffNext?.requiredActions);
   const routingApplyIncludeGmail = missingRoutingGmailProofSecrets.length > 0 ? " --include-gmail" : "";
@@ -533,6 +548,8 @@ function main() {
       routingGmailProofSecrets: missingRoutingGmailProofSecrets,
       staffProductionConfig: missingStaffConfig,
       staffSecretConfig: missingStaffSecrets,
+      alertAutomationConfig: missingAlertAutomationConfig,
+      alertAutomationWorkflow: missingAlertAutomationWorkflow,
       staffRequiredActions,
       ruleRequiredActions,
     },
@@ -567,6 +584,17 @@ function main() {
         constraints: [
           "NEXTAUTH_URL must be a verified HTTPS non-localhost URL.",
           "MAILHUB_ADMINS and MAILHUB_TEAM_MEMBERS must be non-empty @vtj.co.jp email lists.",
+        ],
+      },
+      alertAutomation: {
+        purpose: "Allow the scheduled GitHub Actions SLA alert workflow to authenticate and call the production MailHub alert endpoint.",
+        requiredGitHubSecrets: ALERT_AUTOMATION_REQUIRED_SECRETS,
+        workflowPath: ".github/workflows/mailhub-alerts.yml",
+        requiredWorkflowSignals: [
+          "schedule.cron",
+          "MAILHUB_ALERTS_SECRET",
+          "MAILHUB_PROD_URL",
+          "alerts_run_endpoint",
         ],
       },
       sheetsRuleSource: {
@@ -611,6 +639,8 @@ function main() {
     missingRoutingGmailProofSecrets,
     missingStaffConfig,
     missingStaffSecrets,
+    missingAlertAutomationConfig,
+    missingAlertAutomationWorkflow,
   }, null, 2));
 }
 
