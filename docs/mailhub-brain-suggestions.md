@@ -23,6 +23,17 @@ Current outputs:
 - keyword-level evidence
 - warnings
 
+`/api/mailhub/brain/draft` returns an optional deterministic reply skeleton for the same selected-message surface. It is a read-only sibling endpoint, not part of the Brain ledger.
+
+Draft endpoint outputs:
+
+- status: `ready` / `blocked` / `not_needed`
+- deterministic source id
+- generic skeleton body when `ready`
+- body hash, body length, and input hash
+- compact evidence labels
+- warnings and `requiresHumanReview`
+
 ## Safety Rules
 
 - No send, archive, mute, assign, rule creation, or auto-discard actions.
@@ -30,6 +41,9 @@ Current outputs:
 - No Activity log write.
 - The selected-message suggestion endpoint does not write ledger entries by itself.
 - No full body or snippet text in returned evidence; evidence is keyword-level only.
+- Draft endpoint must not persist generated body text to Activity, Brain ledger, notes, or template storage.
+- Draft endpoint must not call Gmail send/archive, Chatwork, alerts, or external AI services.
+- Draft endpoint may return the generic skeleton body to the active UI only; provenance is hashes/labels only.
 - Only the currently selected message is evaluated, avoiding list-wide detail fetches.
 
 ## Next Step

@@ -155,10 +155,46 @@ type BrainDecisionView = {
   evidence: Array<{ source: string; label: string; detail: string }>;
   warnings: string[];
 };
+type AiDraftSuggestionView = {
+  id: string;
+  source: "deterministic_draft_v1";
+  route: "gmail";
+  title: string;
+  body: string;
+  bodyHash: string;
+  bodyLength: number;
+  inputHash: string;
+  evidence: Array<{ source: string; label: string; summary: string }>;
+  warnings: string[];
+  unresolvedVars: string[];
+  requiresHumanReview: true;
+};
+type AiDraftResultView =
+  | {
+      status: "ready";
+      suggestion: AiDraftSuggestionView;
+      blockedReason: null;
+      message: string;
+      inputHash: string;
+    }
+  | {
+      status: "blocked" | "not_needed";
+      suggestion: null;
+      blockedReason: string;
+      message: string;
+      inputHash: string;
+      evidence: Array<{ source: string; label: string; summary: string }>;
+      warnings: string[];
+    };
 type BrainDecisionState =
   | { status: "idle"; messageId: null }
   | { status: "loading"; messageId: string }
   | { status: "ready"; messageId: string; decision: BrainDecisionView }
+  | { status: "error"; messageId: string; message: string };
+type AiDraftState =
+  | { status: "idle"; messageId: null }
+  | { status: "loading"; messageId: string }
+  | { status: "ready"; messageId: string; result: AiDraftResultView }
   | { status: "error"; messageId: string; message: string };
 type OpsSummaryItemView = {
   id: string;
@@ -1233,7 +1269,14 @@ export default function InboxShell({
     title: string;
     unresolvedVars: string[];
   } | null>(null);
+  const [lastAppliedBrainDraft, setLastAppliedBrainDraft] = useState<{
+    id: string;
+    title: string;
+    bodyHash: string;
+    inputHash: string;
+  } | null>(null);
   const [brainDecision, setBrainDecision] = useState<BrainDecisionState>({ status: "idle", messageId: null });
+  const [aiDraft, setAiDraft] = useState<AiDraftState>({ status: "idle", messageId: null });
 
   useEffect(() => {
     // 既に空なら同一値を返してsetStateの再レンダリングを発生させない
@@ -1241,6 +1284,8 @@ export default function InboxShell({
     //  Settingsドロワー等の操作中stateとレースする — Step80-1 flaky化の教訓)
     setReplyMessage((prev) => (prev ? "" : prev));
     setLastAppliedTemplate((prev) => (prev ? null : prev));
+    setLastAppliedBrainDraft((prev) => (prev ? null : prev));
+    setAiDraft((prev) => (prev.status === "idle" ? prev : { status: "idle", messageId: null }));
     setGmailSendError((prev) => (prev ? null : prev));
     setGmailSentStatus((prev) => (prev === "idle" ? prev : "idle"));
     setGmailClientRequestId(selectedMessage?.id ? createClientRequestId() : null);
@@ -2641,6 +2686,42 @@ export default function InboxShell({
         if (e instanceof DOMException && e.name === "AbortError") return;
         if (selectedIdRef.current !== messageId) return;
         setBrainDecision({ status: "error", messageId, message: e instanceof Error ? e.message : String(e) });
+      }
+    })();
+
+    return () => controller.abort();
+  }, [channelId, selectedDetail, selectedMessage]);
+
+  useEffect(() => {
+    if (!selectedMessage || !selectedDetail || selectedDetail.id !== selectedMessage.id) {
+      setAiDraft((prev) => (prev.status === "idle" ? prev : { status: "idle", messageId: null }));
+      return;
+    }
+
+    const messageId = selectedMessage.id;
+    const controller = new AbortController();
+    setAiDraft({ status: "loading", messageId });
+
+    void (async () => {
+      try {
+        const res = await fetch(
+          `/api/mailhub/brain/draft?messageId=${encodeURIComponent(messageId)}&channel=${encodeURIComponent(channelId)}`,
+          { cache: "no-store", signal: controller.signal },
+        );
+        const data = (await res.json().catch(() => ({}))) as {
+          result?: AiDraftResultView;
+          error?: string;
+          message?: string;
+        };
+        if (!res.ok || !data.result) {
+          throw new Error(data.message || data.error || `${res.status} ${res.statusText}`);
+        }
+        if (selectedIdRef.current !== messageId) return;
+        setAiDraft({ status: "ready", messageId, result: data.result });
+      } catch (e) {
+        if (e instanceof DOMException && e.name === "AbortError") return;
+        if (selectedIdRef.current !== messageId) return;
+        setAiDraft({ status: "error", messageId, message: e instanceof Error ? e.message : String(e) });
       }
     })();
 
@@ -6133,6 +6214,7 @@ export default function InboxShell({
 
   const handleGmailCancel = useCallback(() => {
     setReplyMessage("");
+    setLastAppliedBrainDraft(null);
     setGmailSendError(null);
     setGmailSentStatus("idle");
     setGmailClientRequestId(selectedMessage?.id ? createClientRequestId() : null);
@@ -6276,6 +6358,28 @@ export default function InboxShell({
     sendEnabledFromHealth,
     showToast,
   ]);
+
+  const handleInsertBrainDraft = useCallback((draft: AiDraftSuggestionView) => {
+    if (!selectedMessage) return;
+    if (readOnlyMode) {
+      showToast("READ ONLYのためAI下書きを挿入できません", "error");
+      return;
+    }
+
+    setReplyMessage((prev) => {
+      const sep = prev.trim() ? "\n\n" : "";
+      return `${prev}${sep}${draft.body}`;
+    });
+    setLastAppliedTemplate(null);
+    setLastAppliedBrainDraft({
+      id: draft.id,
+      title: draft.title,
+      bodyHash: draft.bodyHash,
+      inputHash: draft.inputHash,
+    });
+    setGmailSendError(null);
+    showToast("AI下書きを返信欄に挿入しました", "success");
+  }, [readOnlyMode, selectedMessage, showToast]);
 
   // 返信内容をコピー
   const handleCopyReply = useCallback(async () => {
@@ -9130,6 +9234,7 @@ export default function InboxShell({
                                   return `${prev}${sep}${text}`;
                                 });
                                 setLastAppliedTemplate({ id: templateId, title: templateTitle, unresolvedVars });
+                                setLastAppliedBrainDraft(null);
                               } : undefined}
                             />
                           );
@@ -9203,6 +9308,52 @@ export default function InboxShell({
                                         ? "処理不要候補ですが、人の確認が必要です。"
                                         : "人の確認が必要です。"}
                                     </div>
+                                  </div>
+                                )}
+                                {aiDraft.messageId === selectedMessage.id && (
+                                  <div className="rounded border border-sky-100 bg-white px-3 py-2" data-testid="brain-draft-panel">
+                                    {aiDraft.status === "loading" && (
+                                      <div className="text-[12px] text-[#5f6368]" data-testid="brain-draft-loading">
+                                        AI下書きを確認中...
+                                      </div>
+                                    )}
+                                    {aiDraft.status === "error" && (
+                                      <div className="text-[12px] text-red-700" data-testid="brain-draft-error">
+                                        {aiDraft.message}
+                                      </div>
+                                    )}
+                                    {aiDraft.status === "ready" && aiDraft.result.status !== "ready" && (
+                                      <div className="text-[12px] text-[#5f6368]" data-testid="brain-draft-blocked">
+                                        {aiDraft.result.message}
+                                      </div>
+                                    )}
+                                    {aiDraft.status === "ready" && aiDraft.result.status === "ready" && (
+                                      <div className="space-y-2" data-testid="brain-draft-ready">
+                                        <div className="flex flex-wrap items-center justify-between gap-2">
+                                          <div>
+                                            <div className="text-[12px] font-semibold text-[#202124]">{aiDraft.result.suggestion.title}</div>
+                                            <div className="text-[11px] text-[#5f6368]">
+                                              hash {aiDraft.result.suggestion.bodyHash} / {aiDraft.result.suggestion.bodyLength}字
+                                            </div>
+                                          </div>
+                                          <button
+                                            type="button"
+                                            data-testid="brain-draft-insert"
+                                            onClick={() => {
+                                              const suggestion = aiDraft.result.suggestion;
+                                              if (suggestion) handleInsertBrainDraft(suggestion);
+                                            }}
+                                            disabled={readOnlyMode || replyRoute?.kind !== aiDraft.result.suggestion.route}
+                                            className="rounded border border-sky-200 bg-sky-50 px-3 py-1.5 text-[12px] font-semibold text-sky-800 hover:bg-sky-100 disabled:cursor-not-allowed disabled:border-[#e8eaed] disabled:bg-[#f1f3f4] disabled:text-[#9aa0a6]"
+                                          >
+                                            返信欄に挿入
+                                          </button>
+                                        </div>
+                                        <pre className="max-h-40 overflow-auto whitespace-pre-wrap rounded border border-[#e8eaed] bg-[#f8fafd] p-2 text-[12px] leading-5 text-[#202124]" data-testid="brain-draft-preview">
+                                          {aiDraft.result.suggestion.body}
+                                        </pre>
+                                      </div>
+                                    )}
                                   </div>
                                 )}
                               </div>
@@ -9290,6 +9441,12 @@ export default function InboxShell({
                                   <div className="mt-2 text-[12px] text-gray-600" data-testid="reply-template-applied">
                                     テンプレ: <span className="font-semibold">{lastAppliedTemplate.title}</span>{" "}
                                     <span className="text-[10px] font-mono text-gray-500">({lastAppliedTemplate.id})</span>
+                                  </div>
+                                )}
+                                {lastAppliedBrainDraft && (
+                                  <div className="mt-2 text-[12px] text-gray-600" data-testid="brain-draft-applied">
+                                    AI下書き: <span className="font-semibold">{lastAppliedBrainDraft.title}</span>{" "}
+                                    <span className="text-[10px] font-mono text-gray-500">({lastAppliedBrainDraft.bodyHash})</span>
                                   </div>
                                 )}
                                 {lastAppliedTemplate && lastAppliedTemplate.unresolvedVars.length > 0 && (
@@ -9485,6 +9642,12 @@ export default function InboxShell({
                               onTakeOwnership={handleGmailTakeOwnership}
                               onCancel={handleGmailCancel}
                             />
+                            {lastAppliedBrainDraft && (
+                              <div className="mt-2 rounded border border-sky-100 bg-sky-50 px-3 py-2 text-[12px] text-sky-900" data-testid="brain-draft-applied">
+                                AI下書き: <span className="font-semibold">{lastAppliedBrainDraft.title}</span>{" "}
+                                <span className="font-mono text-[10px]">{lastAppliedBrainDraft.bodyHash}</span>
+                              </div>
+                            )}
                           </div>
                         )}
                         
