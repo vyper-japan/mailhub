@@ -1,9 +1,9 @@
 {
-  "generatedAt": "2026-06-24T11:15:13.505Z",
+  "generatedAt": "2026-06-24T11:32:27.684Z",
   "inputs": {
     "audit": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.ai-runs/mailhub-next-phase/mailhub-staff-workflow-audit.json",
-    "auditGeneratedAt": "2026-06-24T11:15:12.188Z",
-    "auditRepoHead": "21dc34ff62781e1ceb38d77c38de5190bb733037",
+    "auditGeneratedAt": "2026-06-24T11:32:26.124Z",
+    "auditRepoHead": "822cf3256c40be86a285d670cf1d82ce6f75d9cc",
     "errors": [],
     "warnings": []
   },
@@ -16,7 +16,7 @@
     "productionEnvReady": false,
     "adminsReady": true,
     "staffAccessAllowlistReady": false,
-    "assigneeRosterReady": true,
+    "assigneeRosterReady": false,
     "durableConfigReady": false,
     "durableActivityReady": false,
     "readOnlyEnabled": false
@@ -29,7 +29,9 @@
     "staffTeamMembers": [
       "MAILHUB_TEAM_MEMBERS"
     ],
-    "assigneeRoster": [],
+    "assigneeRoster": [
+      "MAILHUB_TEAM_MEMBERS or .mailhub/assignees.json / ConfigAssignees"
+    ],
     "durableConfig": [
       "MAILHUB_CONFIG_STORE=sheets",
       "MAILHUB_SHEETS_ID or MAILHUB_SHEETS_SPREADSHEET_ID",
@@ -93,7 +95,7 @@
     },
     {
       "id": "configure_staff_roster",
-      "status": "done",
+      "status": "required",
       "description": "Configure at least one valid @vtj.co.jp assignee through MAILHUB_TEAM_MEMBERS or the assignee registry."
     },
     {
