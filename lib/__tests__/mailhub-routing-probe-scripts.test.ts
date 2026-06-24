@@ -2119,6 +2119,113 @@ describe("MailHub routing probe CLI gates", () => {
         address,
         subject: marker,
       }));
+      const repoHead = "current-head";
+
+      writeJson(preflightPath, {
+        repoHead,
+        generatedAt: freshFixtureTimestamp,
+        mode: "preflight",
+        marker,
+        inputs: { preflight: true, verifyAfterSend: false },
+        smtpPreflight: {
+          missingRequiredEnv: [],
+          readyForProductionProof: true,
+          fromIsVtj: false,
+        },
+        probeCount: probes.length,
+        addressProbes: probes,
+        sent: [],
+        verification: null,
+      });
+      writeJson(sendPath, {
+        repoHead,
+        generatedAt: freshFixtureTimestamp,
+        mode: "sent",
+        marker,
+        smtpPreflight: {
+          missingRequiredEnv: [],
+          readyForProductionProof: true,
+          fromIsVtj: false,
+        },
+        probeCount: probes.length,
+        addressProbes: probes,
+        sent: probes.map(({ channelId, address }, index) => ({
+          channelId,
+          address,
+          accepted: [address],
+          rejected: [],
+          messageId: `fixture-${index}`,
+        })),
+        verification: {
+          status: "matched",
+          allExpectedAddressesConfirmed: true,
+          productionReady: true,
+          p0Blockers: [],
+        },
+      });
+      writeJson(auditPath, {
+        repoHead,
+        generatedAt: freshFixtureTimestamp,
+        mode: "verify_marker",
+        inputs: { marker },
+        plannedAddressProbes: probes.map(({ channelId, label, address }) => ({ channelId, label, address })),
+        gate: {
+          markerProvided: true,
+          targetAddressCount: addresses.length,
+          matchedAddresses: addresses,
+          missingAddresses: [],
+          allExpectedAddressesConfirmed: true,
+        },
+      });
+      writeJson(readinessPath, {
+        repoHead,
+        requirements: {
+          currentSharedGmailRoutingReady: true,
+          routingProbeReady: true,
+          routingProbeSendReady: true,
+          routingProofChainReady: true,
+        },
+        gate: {
+          productionReady: true,
+          p0Blockers: [],
+        },
+        blockers: [],
+      });
+
+      const result = runNodeScript(routingProofContractPath, [
+        "--preflight",
+        preflightPath,
+        "--send",
+        sendPath,
+        "--audit",
+        auditPath,
+        "--readiness",
+        readinessPath,
+        "--repo-head",
+        repoHead,
+        "--repo-parent-head",
+        "parent-head",
+      ]);
+
+      expect(result.status).toBe(0);
+      expect(JSON.parse(result.stdout)).toMatchObject({
+        ok: true,
+        sentCount: addresses.length,
+        readyForProductionProof: true,
+        allExpectedAddressesConfirmed: true,
+        productionReady: true,
+      });
+    });
+  });
+
+  test("routing proof contract rejects ready proof artifacts without repoHead", () => {
+    withTempDir((dir) => {
+      const preflightPath = join(dir, "preflight.json");
+      const sendPath = join(dir, "send.json");
+      const auditPath = join(dir, "audit.json");
+      const readinessPath = join(dir, "readiness.json");
+      const marker = routingProbeMarker;
+      const probes = canonicalRoutingProbePlan;
 
       writeJson(preflightPath, {
         generatedAt: freshFixtureTimestamp,
@@ -2167,13 +2274,14 @@ describe("MailHub routing probe CLI gates", () => {
         plannedAddressProbes: probes.map(({ channelId, label, address }) => ({ channelId, label, address })),
         gate: {
           markerProvided: true,
-          targetAddressCount: addresses.length,
-          matchedAddresses: addresses,
+          targetAddressCount: canonicalRoutingProbeAddresses.length,
+          matchedAddresses: canonicalRoutingProbeAddresses,
           missingAddresses: [],
           allExpectedAddressesConfirmed: true,
         },
       });
       writeJson(readinessPath, {
+        generatedAt: freshFixtureTimestamp,
         requirements: {
           currentSharedGmailRoutingReady: true,
           routingProbeReady: true,
@@ -2196,15 +2304,35 @@ describe("MailHub routing probe CLI gates", () => {
         auditPath,
         "--readiness",
         readinessPath,
+        "--repo-head",
+        "current-head",
+        "--repo-parent-head",
+        "parent-head",
       ]);
 
-      expect(result.status).toBe(0);
-      expect(JSON.parse(result.stdout)).toMatchObject({
-        ok: true,
-        sentCount: addresses.length,
-        readyForProductionProof: true,
-        allExpectedAddressesConfirmed: true,
-        productionReady: true,
+      expect(result.status).toBe(1);
+      const out = JSON.parse(result.stdout) as {
+        errors: string[];
+        repoFreshness: Record<string, { status: string }>;
+        repoHeadRequirements: Record<string, boolean>;
+      };
+      expect(out.errors).toEqual(
+        expect.arrayContaining([
+          "missing_preflight_repo_head",
+          "missing_send_repo_head",
+          "missing_audit_repo_head",
+          "missing_readiness_repo_head",
+        ]),
+      );
+      expect(out.repoFreshness.preflight.status).toBe("missing_repo_head");
+      expect(out.repoFreshness.send.status).toBe("missing_repo_head");
+      expect(out.repoFreshness.audit.status).toBe("missing_repo_head");
+      expect(out.repoFreshness.readiness.status).toBe("missing_repo_head");
+      expect(out.repoHeadRequirements).toMatchObject({
+        preflight: true,
+        send: true,
+        audit: true,
+        readiness: true,
       });
     });
   });

@@ -158,6 +158,10 @@ function repoHeadFreshness(label, artifact, repoHead, repoParentHead, errors, wa
   return { repoHead: artifactRepoHead, fresh, status: fresh ? "fresh" : "stale_repo_head" };
 }
 
+function requireRepoHeadForClaim(label, freshness, required, errors) {
+  if (required && freshness.status === "missing_repo_head") errors.push(`missing_${label}_repo_head`);
+}
+
 function validateProbeList({ label, artifact, probes, errors }) {
   const addresses = probeAddresses(probes);
   if (artifact.probeCount !== addresses.length) errors.push(`${label}_probe_count_mismatch`);
@@ -324,12 +328,44 @@ function main() {
   const readinessRoutingProbeReady = readinessRequirements.routingProbeReady === true;
   const readinessRoutingProbeSendReady = readinessRequirements.routingProbeSendReady === true;
   const readinessRoutingProofChainReady = readinessRequirements.routingProofChainReady === true;
+  const shouldRequirePreflightRepoHead =
+    readyForProductionProof ||
+    readinessSharedRoutingReady ||
+    readinessRoutingProofChainReady ||
+    readinessGate.productionReady === true;
+  const shouldRequireSendRepoHead =
+    send.mode === "sent" ||
+    send.smtpPreflight?.readyForProductionProof === true ||
+    send.verification?.status === "matched" ||
+    send.verification?.allExpectedAddressesConfirmed === true ||
+    readinessSharedRoutingReady ||
+    readinessRoutingProbeSendReady ||
+    readinessRoutingProofChainReady ||
+    readinessGate.productionReady === true;
+  const shouldRequireAuditRepoHead =
+    audit.mode === "verify_marker" ||
+    auditGate.allExpectedAddressesConfirmed === true ||
+    readinessSharedRoutingReady ||
+    readinessRoutingProbeReady ||
+    readinessRoutingProofChainReady ||
+    readinessGate.productionReady === true;
+  const shouldRequireReadinessRepoHead =
+    readinessSharedRoutingReady ||
+    readinessRoutingProbeReady ||
+    readinessRoutingProbeSendReady ||
+    readinessRoutingProofChainReady ||
+    readinessGate.productionReady === true;
   const shouldValidateProofAge =
     send.mode === "sent" ||
     readinessSharedRoutingReady ||
     readinessRoutingProbeSendReady ||
     readinessRoutingProofChainReady ||
     readinessGate.productionReady === true;
+
+  requireRepoHeadForClaim("preflight", repoFreshness.preflight, shouldRequirePreflightRepoHead, errors);
+  requireRepoHeadForClaim("send", repoFreshness.send, shouldRequireSendRepoHead, errors);
+  requireRepoHeadForClaim("audit", repoFreshness.audit, shouldRequireAuditRepoHead, errors);
+  requireRepoHeadForClaim("readiness", repoFreshness.readiness, shouldRequireReadinessRepoHead, errors);
 
   if (shouldValidateProofAge) {
     const auditGeneratedAtIssue = proofTimestampIssue("routing_probe_audit_generated_at", auditGeneratedAtFreshness);
@@ -397,6 +433,12 @@ function main() {
     repoHead,
     repoParentHead,
     repoFreshness,
+    repoHeadRequirements: {
+      preflight: shouldRequirePreflightRepoHead,
+      send: shouldRequireSendRepoHead,
+      audit: shouldRequireAuditRepoHead,
+      readiness: shouldRequireReadinessRepoHead,
+    },
     readyForProductionProof,
     allExpectedAddressesConfirmed: auditGate.allExpectedAddressesConfirmed === true,
     productionReady: readinessGate.productionReady === true,
