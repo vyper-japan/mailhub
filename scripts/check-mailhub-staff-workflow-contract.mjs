@@ -120,6 +120,12 @@ function main() {
   const controlledWritePilotReady = requirements.controlledWritePilotReady === true;
   const staffWorkflowPermissionsReady = requirements.staffWorkflowPermissionsReady === true;
   const staffAccessAllowlistReady = requirements.staffAccessAllowlistReady === true;
+  const assigneeRosterReady = requirements.assigneeRosterReady === true;
+  const assigneeRegistry = objectValue(staff.assigneeRegistry);
+  const teamMemberCount = typeof staff.teamMemberCount === "number" ? staff.teamMemberCount : 0;
+  const trustedAssigneeRegistryReady =
+    requirements.trustedAssigneeRegistryReady === true || staff.trustedAssigneeRegistryReady === true;
+  const assigneeRegistryDefaultIgnored = staff.assigneeRegistryDefaultIgnored === true;
 
   if ((gate.readOnlyRolloutReady === true) !== readOnlyRolloutReady) errors.push("readonly_rollout_gate_mismatch");
   if ((gate.controlledWritePilotReady === true) !== controlledWritePilotReady) errors.push("controlled_write_gate_mismatch");
@@ -162,9 +168,18 @@ function main() {
   }
   if (staffAccessAllowlistReady) {
     if (staff.staffAccessAllowlistReady !== true) errors.push("staff_access_allowlist_ready_mismatch");
-    if ((staff.teamMemberCount ?? 0) < 1) errors.push("staff_access_allowlist_ready_without_team_members");
+    if (teamMemberCount < 1) errors.push("staff_access_allowlist_ready_without_team_members");
     if (stringArray(staff.teamInvalid).length > 0) errors.push("staff_access_allowlist_ready_with_invalid");
     if (stringArray(staff.teamNonVtj).length > 0) errors.push("staff_access_allowlist_ready_with_non_vtj");
+  }
+  if (trustedAssigneeRegistryReady && assigneeRegistryDefaultIgnored) {
+    errors.push("trusted_assignee_registry_uses_default_ignored_file");
+  }
+  if (assigneeRosterReady && teamMemberCount < 1 && !trustedAssigneeRegistryReady) {
+    errors.push("assignee_roster_ready_without_trusted_source");
+  }
+  if (assigneeRosterReady && teamMemberCount < 1 && assigneeRegistryDefaultIgnored && (assigneeRegistry.validCount ?? 0) > 0) {
+    errors.push("assignee_roster_ready_from_default_ignored_file");
   }
   if (requirements.durableConfigReady === true && config.configStore !== "sheets") errors.push("durable_config_not_sheets");
   if (requirements.durableActivityReady === true && config.activityStore !== "sheets") errors.push("durable_activity_not_sheets");

@@ -66,6 +66,15 @@ function runNodeScriptInCwd(scriptPath: string, args: string[], cwd: string, env
   });
 }
 
+function currentGitHead(): string {
+  const result = spawnSync("git", ["rev-parse", "HEAD"], {
+    cwd: process.cwd(),
+    encoding: "utf8",
+  });
+  if (result.status !== 0) throw new Error(`git rev-parse failed: ${result.stderr}`);
+  return result.stdout.trim();
+}
+
 function writeProductionEvidence(dir: string) {
   mkdirSync(dir, { recursive: true });
   for (const name of [
@@ -779,6 +788,83 @@ describe("MailHub staff workflow audit", () => {
         artifact.repoHead,
       ]);
       expect(contract.status).toBe(0);
+    });
+  });
+
+  test("does not treat default ignored .mailhub assignees as production roster evidence", () => {
+    withTempDir((dir) => {
+      const outPath = join(dir, "staff.json");
+      const evidenceDir = join(dir, "prod");
+      const mailhubDir = join(dir, ".mailhub");
+      mkdirSync(mailhubDir, { recursive: true });
+      writeJson(join(mailhubDir, "assignees.json"), [
+        { email: "e2e-owner@vtj.co.jp", displayName: "E2E Owner" },
+      ]);
+
+      const result = runNodeScriptInCwd(staffAuditPath, [
+        "--out",
+        outPath,
+        "--prod-evidence-dir",
+        evidenceDir,
+      ], dir, {
+        ...productionEnv,
+        MAILHUB_TEAM_MEMBERS: "",
+      });
+
+      expect(result.status).toBe(0);
+      const artifact = JSON.parse(readFileSync(outPath, "utf8")) as {
+        repoHead: string;
+        staff: {
+          teamMemberCount: number;
+          assigneeRegistry: { validCount: number; source: string };
+          assigneeRegistryDefaultIgnored: boolean;
+          trustedAssigneeRegistryReady: boolean;
+        };
+        requirements: {
+          assigneeRosterReady: boolean;
+          trustedAssigneeRegistryReady: boolean;
+        };
+        gate: { staffWorkflowPermissionsReady: boolean; p1Blockers: string[] };
+      };
+      expect(artifact.staff).toMatchObject({
+        teamMemberCount: 0,
+        assigneeRegistry: { validCount: 1, source: "file" },
+        assigneeRegistryDefaultIgnored: true,
+        trustedAssigneeRegistryReady: false,
+      });
+      expect(artifact.requirements).toMatchObject({
+        assigneeRosterReady: false,
+        trustedAssigneeRegistryReady: false,
+      });
+      expect(artifact.gate.staffWorkflowPermissionsReady).toBe(false);
+      expect(artifact.gate.p1Blockers).toEqual(expect.arrayContaining([
+        "staff_access_allowlist_not_ready",
+        "assignee_roster_not_ready",
+      ]));
+
+      artifact.repoHead = currentGitHead();
+      writeJson(outPath, artifact);
+
+      const contract = runNodeScript(staffContractPath, [
+        "--audit",
+        outPath,
+        "--repo-head",
+        artifact.repoHead,
+      ]);
+      expect(contract.status).toBe(0);
+
+      artifact.requirements.assigneeRosterReady = true;
+      writeJson(outPath, artifact);
+
+      const tamperedContract = runNodeScript(staffContractPath, [
+        "--audit",
+        outPath,
+        "--repo-head",
+        artifact.repoHead,
+      ]);
+      expect(tamperedContract.status).toBe(1);
+      expect(tamperedContract.stdout).toContain("assignee_roster_ready_without_trusted_source");
+      expect(tamperedContract.stdout).toContain("assignee_roster_ready_from_default_ignored_file");
     });
   });
 

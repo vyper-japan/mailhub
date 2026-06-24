@@ -2,7 +2,7 @@
 
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 
 const repoRoot = process.cwd();
 const runDir = join(repoRoot, ".ai-runs", "mailhub-next-phase");
@@ -722,7 +722,13 @@ function main() {
   const adminsReady = admins.length > 0 && adminInvalid.length === 0 && adminNonVtj.length === 0;
   const staffAccessAllowlistReady =
     adminsReady && validTeamMembers.length > 0 && teamInvalid.length === 0 && teamNonVtj.length === 0;
-  const assigneeRosterReady = validTeamMembers.length > 0 || assignees.validCount > 0;
+  const defaultIgnoredAssigneeFile = resolve(args.assignees) === resolve(defaultAssigneesPath);
+  const trustedAssigneeRegistryReady =
+    assignees.validCount > 0 &&
+    mailhubEnv === "production" &&
+    !testMode &&
+    !defaultIgnoredAssigneeFile;
+  const assigneeRosterReady = validTeamMembers.length > 0 || trustedAssigneeRegistryReady;
   const productionEnvReady = mailhubEnv === "production" && !testMode && missingProductionEnv.length === 0;
   const durableConfigReady = configStore === "sheets" && sheetsReady;
   const durableActivityReady = activityStore === "sheets";
@@ -766,6 +772,8 @@ function main() {
     teamNonVtj,
     assigneeInvalid: assignees.invalid,
     assigneeNonVtj: assignees.nonVtj,
+    defaultIgnoredAssigneeFile,
+    trustedAssigneeRegistryReady,
   }));
   if (!durableConfigReady) blockers.push(blocker("config_store_not_durable", "P1", "Production staff workflow requires Sheets-backed config.", {
     configStore,
@@ -820,12 +828,15 @@ function main() {
       teamInvalid,
       teamNonVtj,
       assigneeRegistry: assignees,
+      assigneeRegistryDefaultIgnored: defaultIgnoredAssigneeFile,
+      trustedAssigneeRegistryReady,
     },
     evidence,
     requirements: {
       productionEnvReady,
       adminsReady,
       staffAccessAllowlistReady,
+      trustedAssigneeRegistryReady,
       assigneeRosterReady,
       durableConfigReady,
       durableActivityReady,
