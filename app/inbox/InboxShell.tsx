@@ -6279,6 +6279,8 @@ export default function InboxShell({
           bodyText: replyMessage,
           clientRequestId: requestId,
           postSendAction,
+          templateId: lastAppliedTemplate?.id ?? null,
+          templateTitle: lastAppliedTemplate?.title ?? null,
         }),
       });
       const data = (await res.json().catch(() => ({}))) as MailhubSendSuccessResponse | MailhubSendErrorResponse;
@@ -6347,6 +6349,8 @@ export default function InboxShell({
     gmailResolvedContext,
     gmailSentStatus,
     isSendingGmailReply,
+    lastAppliedTemplate?.id,
+    lastAppliedTemplate?.title,
     lastAppliedTemplate?.unresolvedVars.length,
     markDoneWithUndo,
     readOnlyMode,

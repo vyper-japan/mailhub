@@ -254,6 +254,26 @@ describe("POST /api/mailhub/send", () => {
     expect(JSON.stringify(logs[0]?.metadata)).not.toContain("返信本文です");
   });
 
+  it("records template provenance when provided without storing the reply body", async () => {
+    const POST = await importSendPost();
+
+    const res = await POST(makeRequest(validBody({
+      clientRequestId: "client-template-001",
+      templateId: "acknowledged",
+      templateTitle: "受付返信",
+    })));
+
+    expect(res.status).toBe(200);
+    const logs = await getActivityLogs({ action: "reply_send" });
+    expect(logs).toHaveLength(1);
+    expect(logs[0]?.metadata).toMatchObject({
+      templateId: "acknowledged",
+      templateTitle: "受付返信",
+      bodyLength: 5,
+    });
+    expect(JSON.stringify(logs[0]?.metadata)).not.toContain("返信本文です");
+  });
+
   it("blocks unassigned replies before send-as and releases the duplicate reservation", async () => {
     routeMocks.getMessageDetail
       .mockResolvedValueOnce(createDetail({ assigneeSlug: null }))
