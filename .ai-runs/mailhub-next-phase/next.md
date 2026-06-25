@@ -1,27 +1,32 @@
 # MailHub Next Phase Next Actions
 
-## 2026-06-25 Resume Here: Close Out T10 Alerts Readiness Gate
+## 2026-06-25 Resume Here: Production Readiness Values
 
-Current recovered slice is implemented, locally verified, pushed, and opened as draft PR #1 on `feat/t10-alerts-readiness-gate`.
+Current recovered T10 slice is merged to `main` at `b4e70b73b5b23c6d71b31b1856fbefcdaef86c2c`. Main checks are green:
 
-The first PR `readiness-contract` run failed on the generated merge ref (`stale_repo_head`). Source fix `1f0240b` changed the workflow to checkout the PR head SHA and added the production config request contract to CI. Latest local artifact refresh passed and is ready as an artifact-only commit.
+- `MailHub Readiness Contract` run `28136054461`: PASS.
+- `qa-strict` run `28136054472`: PASS.
+- Vercel production deploy: PASS.
+- Scheduled `MailHub SLA Alerts` run `28136676806`: PASS.
 
-Immediate sequence:
+No-secret readiness artifacts have been refreshed on current `main`. Production readiness remains intentionally false.
+
+Immediate next action is value collection, not mutation:
+
+- Staff/SHEETS: `MAILHUB_TEAM_MEMBERS`, `MAILHUB_SHEETS_CLIENT_EMAIL`, `MAILHUB_SHEETS_PRIVATE_KEY`.
+- Alerts: `MAILHUB_ALERTS_SECRET`, `MAILHUB_PROD_URL`.
+- External SMTP proof: `MAILHUB_PROBE_SMTP_HOST`, `MAILHUB_PROBE_SMTP_USER`, `MAILHUB_PROBE_SMTP_PASS`, `MAILHUB_PROBE_FROM`.
+
+When values are available, first run dry-runs only:
 
 ```bash
-git status -sb
-git diff --stat
-git diff --check
-npm run security:scan-artifacts
-git add .ai-runs/mailhub-next-phase
-git commit -m "Refresh readiness artifacts after PR head CI fix"
-git push
+npm run setup:mailhub-staff-github-config -- --out .ai-runs/mailhub-next-phase/mailhub-staff-github-config-plan.json
+npm run setup:mailhub-routing-secrets -- --out .ai-runs/mailhub-next-phase/mailhub-routing-secrets-plan.json
+npm run setup:mailhub-staff-env -- --strict --out .ai-runs/mailhub-next-phase/mailhub-staff-env-readiness.json
+npm run probe:routing-preflight -- --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-preflight.json
 ```
 
-Then watch:
-
-- `MailHub Readiness Contract`
-- `qa-strict`
+Apply/send commands remain approval-gated and must use the confirm tokens emitted by the artifacts.
 
 Keep these hard gates:
 

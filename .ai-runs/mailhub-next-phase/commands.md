@@ -2,6 +2,32 @@
 
 ## 2026-06-25 T10 Alerts Readiness Gate Recovery Commands
 
+Post-merge closeout and no-secret readiness refresh:
+
+```bash
+gh run view 28136054461 --repo vyper-japan/mailhub --json status,conclusion,jobs,url,headSha,createdAt,updatedAt
+gh run view 28136054472 --repo vyper-japan/mailhub --json status,conclusion,jobs,url,headSha,createdAt,updatedAt
+gh run list --repo vyper-japan/mailhub --branch main --limit 8 --json databaseId,workflowName,status,conclusion,createdAt,headSha,event,url
+gh pr checks 1 --repo vyper-japan/mailhub
+git switch main
+git pull --ff-only
+git branch -d feat/t10-alerts-readiness-gate
+npm run ops:readiness-refresh
+```
+
+Result:
+
+- PR #1 is merged at `b4e70b7`.
+- Main `readiness-contract` passed: run `28136054461`.
+- Main `qa-strict` passed: run `28136054472`.
+- Vercel production deploy passed.
+- Scheduled `MailHub SLA Alerts` passed after the main update: run `28136676806`.
+- Local `main` is fast-forwarded to `origin/main`.
+- The local merged feature branch was deleted.
+- Latest readiness refresh passed all configured contracts.
+- `probe:routing-send` stayed `mode=dry_run` with `sentCount=0`.
+- No external email send, GitHub setup/apply mutation, or Sheets mutation was run.
+
 Recovery and validation commands:
 
 ```bash

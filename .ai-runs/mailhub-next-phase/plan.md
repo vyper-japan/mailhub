@@ -2,7 +2,7 @@
 
 ## 2026-06-25 T10 Alerts Readiness Gate Recovery Plan
 
-Status: recovered after frozen session; implementation and local verification are complete.
+Status: complete. PR #1 was fast-forwarded into `main` at `b4e70b73b5b23c6d71b31b1856fbefcdaef86c2c`; main `readiness-contract`, `qa-strict`, Vercel production deploy, and the next scheduled SLA Alerts run passed.
 
 Completed plan:
 
@@ -16,12 +16,19 @@ Completed plan:
    - missing explicit approval gates for GitHub, external mail, and Sheets mutation paths
 4. Integrated the contract into `npm run ops:readiness-refresh`.
 5. Refreshed readiness artifacts without external send.
+6. Fixed the PR-head CI checkout issue and restored green PR checks.
+7. Recovered `qa-strict` by aligning bulk/sender mute E2E expectations with the current `/api/mailhub/noise/apply` contract.
+8. Removed the duplicate simplified mind map and refreshed readiness artifacts.
+9. Fast-forwarded `origin/main` to `b4e70b7`.
+10. Refreshed no-secret readiness artifacts again on current `main`.
 
-Remaining closeout plan:
+Remaining production-readiness plan:
 
-1. Commit code, tests, contract script, and refreshed `.ai-runs/mailhub-next-phase` artifacts.
-2. Push `feat/t10-alerts-readiness-gate`.
-3. Watch `MailHub Readiness Contract` and `qa-strict`.
+1. Keep production readiness false until the P0/P1 blockers have real evidence.
+2. Collect staff/SHEETS/alerts/external-SMTP values outside repo artifacts.
+3. After explicit approval, apply GitHub Actions variables/secrets through the safe setup helpers.
+4. Run READ ONLY production validation before any write pilot.
+5. Run the external routing probe only after external SMTP proof values are present and explicit send approval is given.
 
 Constraints stay in force:
 

@@ -6,9 +6,10 @@ No implementation blocker remains for the config-request contract slice.
 
 Process blockers:
 
-- Draft PR #1 is open.
-- First `readiness-contract` run failed on stale artifact detection against the PR merge ref; workflow source fix is committed and latest readiness artifacts have been refreshed locally.
-- Latest artifact refresh still needs artifact-only commit, push, and CI re-check.
+- PR #1 is merged.
+- `main` is at `b4e70b73b5b23c6d71b31b1856fbefcdaef86c2c`.
+- Main `readiness-contract`, `qa-strict`, Vercel production deploy, and scheduled `MailHub SLA Alerts` passed.
+- No implementation or CI blocker remains for T10.
 
 Product/production blockers remain:
 
@@ -18,6 +19,12 @@ Product/production blockers remain:
 - P1 `alerts_automation_not_ready`.
 - P1 `staff_workflow_permissions`.
 - P1 `staff_github_config_not_ready`.
+
+Current missing value groups:
+
+- Staff/SHEETS: `MAILHUB_TEAM_MEMBERS`, `MAILHUB_SHEETS_CLIENT_EMAIL`, `MAILHUB_SHEETS_PRIVATE_KEY`.
+- Alerts: `MAILHUB_ALERTS_SECRET`, `MAILHUB_PROD_URL`.
+- External SMTP proof: `MAILHUB_PROBE_SMTP_HOST`, `MAILHUB_PROBE_SMTP_USER`, `MAILHUB_PROBE_SMTP_PASS`, `MAILHUB_PROBE_FROM`.
 
 Approval gates remain unchanged:
 
