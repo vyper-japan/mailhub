@@ -1,0 +1,20 @@
+{
+  "target_address": "datacolor_shopify@vtj.co.jp",
+  "error": null,
+  "page_url": "https://user.lolipop.jp/?mode=mail-address&exec=edit&id=DMA9192765",
+  "page_title": "ロリポップ！ユーザー専用ページ - メールアドレス設定 パスワード変更",
+  "forward_addresses": [
+    "maildealer-41@mdiniesta.maildealer.jp",
+    "mailhub@vtj.co.jp.test-google-a.com",
+    "info@vtj.co.jp.test-google-a.com"
+  ],
+  "leave_messages": true,
+  "raw_fields": [
+    "maildealer-41@mdiniesta.maildealer.jp",
+    "mailhub@vtj.co.jp.test-google-a.com",
+    "info@vtj.co.jp.test-google-a.com",
+    "",
+    ""
+  ],
+  "mode": "dry-run"
+}

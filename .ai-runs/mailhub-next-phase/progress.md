@@ -1793,3 +1793,28 @@ At checkpoint time:
   - P1 `rule_config_source_not_production`
   - P1 `staff_workflow_permissions`
   - P1 `staff_github_config_not_ready`
+
+---
+
+## 2026-06-26 Routing Blocker PoC 成功 — 残り6件展開待ち
+
+### 完了 (このセッション)
+- Lolipop 管理画面 audit 7件 read-only 完了 (`lolipop-routing-audit.json`)
+- mailhub@vtj.co.jp 自身の現転送設定確認 (`lolipop-poc-mailhub.json`、`mailhub@vtj.co.jp.test-google-a.com` 単独)
+- Playwright スクリプト整備: `<worktree>/scripts/lolipop-mailhub-routing/lolipop_forward_setup.py` (login + audit + apply + dump-dom)
+- ボタン構造特定: `<a class='js-update-forwarding-btn' href='javascript:setForwarding();'>` (form submit ではなく JS 関数呼出、confirm dialog 自動 accept 必要)
+- `datacolor_shopify@vtj.co.jp` に `info@vtj.co.jp.test-google-a.com` 追加 (本番 apply 成功)
+  - 確定後の転送先: [maildealer-41@mdiniesta..., mailhub@vtj.co.jp.test-google-a.com, info@vtj.co.jp.test-google-a.com], leave_messages=true
+- 個人 Gmail (ahirudesign@) → datacolor_shopify@ 送信 → info@ Gmail INBOX 到達確認 (msg_id 19f023eb40f038b2, subject `MAILHUB-POC-DATACOLOR-20260626 routing-test`, 13:44:35 JST, Spam 行きなし)
+
+### 次セッションへ
+- 引き継ぎ書: `NEXT_SESSION_HANDOFF.md` を参照
+- 残り6件 (gopro_y / gopro_order_yahoo / vyper_rakuten / vyperglobal_y / ams_vyper / ebay) に `info@vtj.co.jp.test-google-a.com` を空きスロット追加 (datacolor_shopify は適用済み)
+- 適用後 audit JSON 再生成 + のび太に7件再送依頼 + info@ Gmail で到達確認
+
+### Hard Gates (継続)
+- 外部メール送信はユーザー承認なしに実行しない
+- GitHub Secrets / Sheets / 本番 apply 系は承認なしに実行しない
+- vyper_r@vtj.co.jp は触らない (Lolipop 実体なし)
+- 既存転送先 (MailDealer / `*.test-google-a.com`) は削除しない、空きスロット追加のみ
+- 「本番完了」と言わず必ず再送・到達確認まで行う

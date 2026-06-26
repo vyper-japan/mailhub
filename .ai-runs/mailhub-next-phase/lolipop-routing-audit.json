@@ -1,0 +1,86 @@
+{
+  "audit_at": "2026-06-26T02:52:04.651597+00:00",
+  "total": 7,
+  "entries": [
+    {
+      "address": "gopro_y@vtj.co.jp",
+      "observed_at": "2026-06-26T02:51:28.369461+00:00",
+      "edit_id": "DMA5031879",
+      "page_url": "https://user.lolipop.jp/?mode=mail-address&exec=edit&id=DMA5031879",
+      "forward_addresses": [
+        "maildealer-41@mdiniesta.maildealer.jp"
+      ],
+      "leave_messages": true,
+      "error": null
+    },
+    {
+      "address": "gopro_order_yahoo@vtj.co.jp",
+      "observed_at": "2026-06-26T02:51:35.854750+00:00",
+      "edit_id": "DMA5056180",
+      "page_url": "https://user.lolipop.jp/?mode=mail-address&exec=edit&id=DMA5056180",
+      "forward_addresses": [
+        "maildealer-41@mdiniesta.maildealer.jp",
+        "mailhub@vtj.co.jp.test-google-a.com"
+      ],
+      "leave_messages": true,
+      "error": null
+    },
+    {
+      "address": "vyper_rakuten@vtj.co.jp",
+      "observed_at": "2026-06-26T02:51:41.435173+00:00",
+      "edit_id": "DMA6194268",
+      "page_url": "https://user.lolipop.jp/?mode=mail-address&exec=edit&id=DMA6194268",
+      "forward_addresses": [
+        "maildealer-41@mdiniesta.maildealer.jp"
+      ],
+      "leave_messages": true,
+      "error": null
+    },
+    {
+      "address": "vyperglobal_y@vtj.co.jp",
+      "observed_at": "2026-06-26T02:51:44.165590+00:00",
+      "edit_id": "DMA6219611",
+      "page_url": "https://user.lolipop.jp/?mode=mail-address&exec=edit&id=DMA6219611",
+      "forward_addresses": [
+        "maildealer-41@mdiniesta.maildealer.jp"
+      ],
+      "leave_messages": true,
+      "error": null
+    },
+    {
+      "address": "ams_vyper@vtj.co.jp",
+      "observed_at": "2026-06-26T02:51:51.435843+00:00",
+      "edit_id": "DMA6079860",
+      "page_url": "https://user.lolipop.jp/?mode=mail-address&exec=edit&id=DMA6079860",
+      "forward_addresses": [
+        "mailhub@vtj.co.jp.test-google-a.com"
+      ],
+      "leave_messages": true,
+      "error": null
+    },
+    {
+      "address": "datacolor_shopify@vtj.co.jp",
+      "observed_at": "2026-06-26T02:51:53.663922+00:00",
+      "edit_id": "DMA9192765",
+      "page_url": "https://user.lolipop.jp/?mode=mail-address&exec=edit&id=DMA9192765",
+      "forward_addresses": [
+        "maildealer-41@mdiniesta.maildealer.jp",
+        "mailhub@vtj.co.jp.test-google-a.com"
+      ],
+      "leave_messages": true,
+      "error": null
+    },
+    {
+      "address": "ebay@vtj.co.jp",
+      "observed_at": "2026-06-26T02:52:00.366144+00:00",
+      "edit_id": "DMA6632845",
+      "page_url": "https://user.lolipop.jp/?mode=mail-address&exec=edit&id=DMA6632845",
+      "forward_addresses": [
+        "maildealer-41@mdiniesta.maildealer.jp",
+        "mailhub@vtj.co.jp.test-google-a.com"
+      ],
+      "leave_messages": true,
+      "error": null
+    }
+  ]
+}
