@@ -1,5 +1,48 @@
 # MailHub Next Phase Next Actions
 
+## 2026-06-26 Resume Here: External Routing Probe Values
+
+The "8 emails did not arrive" checkpoint has been rechecked. The current evidence does not show a failed 8-email send. It shows that no production proof send has happened yet:
+
+- `mailhub-routing-probe-send.json`: `mode=dry_run`, `sent.length=0`.
+- `mailhub-routing-probe-preflight.json`: `mode=preflight`, `sent.length=0`.
+- shared Gmail search for `"MAILHUB-ROUTING-PROBE"` found GitHub Actions failure notifications only, not actual probe messages.
+- historical GitHub runs `27663957099`, `27664049883`, and `27664847772` failed before the send step; run `27666835940` succeeded as preflight/plan only and skipped send.
+
+Immediate next action is value collection, not code mutation:
+
+- `MAILHUB_PROBE_SMTP_HOST`
+- `MAILHUB_PROBE_SMTP_USER`
+- `MAILHUB_PROBE_SMTP_PASS`
+- `MAILHUB_PROBE_FROM` from a non-`@vtj.co.jp` sender
+
+After values are available, run no-send checks first:
+
+```bash
+npm run probe:routing-preflight -- --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-preflight.json
+npm run audit:github-routing-secrets -- --no-fail --out .ai-runs/mailhub-next-phase/github-routing-secrets-readiness.json
+npm run audit:mailhub-routing-next -- --strict --out .ai-runs/mailhub-next-phase/mailhub-routing-next-steps.json
+```
+
+Only after explicit approval, use one of the send-verify paths:
+
+```bash
+gh workflow run mailhub-routing-probe.yml --repo vyper-japan/mailhub -f mode=send_verify -f confirmSend=SEND_EXTERNAL_MAILHUB_ROUTING_PROBES -f waitSeconds=300 -f pollSeconds=15
+```
+
+or locally:
+
+```bash
+npm run probe:routing-send -- --send --confirm-send SEND_EXTERNAL_MAILHUB_ROUTING_PROBES --verify-after-send --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-send.json
+```
+
+Keep these hard gates:
+
+- no external email send without explicit approval
+- no GitHub setup/apply mutation without explicit approval
+- no Sheets mutation without explicit approval
+- do not claim production complete
+
 ## 2026-06-25 Resume Here: Production Readiness Values
 
 Current recovered T10 slice is merged to `main` at `b4e70b73b5b23c6d71b31b1856fbefcdaef86c2c`. Main checks are green:

@@ -1,5 +1,40 @@
 # MailHub Next Phase Blockers
 
+## 2026-06-26 Routing Probe 8-Address Blockers
+
+Current P0 remains `current_shared_gmail_routing`, but the latest investigation clarifies the failure mode:
+
+- This is not currently proven as "8 external emails were sent and did not arrive."
+- Current artifacts and GitHub workflow logs show the send step has not run successfully with production-proof SMTP.
+- Current local artifact state:
+  - `mailhub-routing-probe-send.json`: `mode=dry_run`, `sent.length=0`.
+  - `mailhub-routing-probe-preflight.json`: `mode=preflight`, `sent.length=0`.
+  - `mailhub-routing-probe-audit.json`: `mode=plan_only`, 8 target addresses, 0 matched because no marker was verified.
+- Shared Gmail read-only search for `"MAILHUB-ROUTING-PROBE"` found only GitHub Actions failure notification emails.
+- Historical GitHub workflow runs:
+  - `27663957099` and `27664049883`: failed at `Audit injected routing probe secrets`; send step skipped.
+  - `27664847772`: failed at `Refresh readiness and next-step artifacts`; send step skipped.
+  - `27666835940`: succeeded as preflight/plan only; send step skipped.
+
+Blocking missing values:
+
+- `MAILHUB_PROBE_SMTP_HOST`
+- `MAILHUB_PROBE_SMTP_USER`
+- `MAILHUB_PROBE_SMTP_PASS`
+- `MAILHUB_PROBE_FROM`
+
+Additional proof constraint:
+
+- `MAILHUB_PROBE_FROM` must be non-`@vtj.co.jp`; internal VTJ sender is explicitly rejected as production external-route proof.
+- Current MX is `mx01.lolipop.jp`, so GWS group membership alone is not enough. Lolipop/external route delivery must be proven by the 8-address external probe.
+
+Approval gates remain unchanged:
+
+- No external email send without explicit approval.
+- No GitHub setup/apply mutation without explicit approval.
+- No Sheets mutation without explicit approval.
+- No production-complete claim.
+
 ## 2026-06-25 T10 Alerts Readiness Gate Recovery Blockers
 
 No implementation blocker remains for the config-request contract slice.

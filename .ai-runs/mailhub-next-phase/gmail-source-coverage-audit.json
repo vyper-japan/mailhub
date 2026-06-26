@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-06-25T00:02:15.322Z",
-  "repoHead": "b4e70b73b5b23c6d71b31b1856fbefcdaef86c2c",
+  "generatedAt": "2026-06-26T01:01:57.007Z",
+  "repoHead": "0653782876f40f340058a95d3084dc1a0074007d",
   "sharedInboxEmailMasked": "inf***@vtj.co.jp",
   "sourceChannelCount": 18,
   "sourceAddressCount": 22,
@@ -1474,7 +1474,7 @@
       "resultSizeEstimate": 201,
       "firstPageIdsReturned": 50,
       "pagesFetched": 2,
-      "uniqueIdsSeenLowerBound": 75,
+      "uniqueIdsSeenLowerBound": 76,
       "hasMoreAfterFetchedPages": false,
       "hasNextPageToken": true,
       "pageSummaries": [
@@ -1486,8 +1486,8 @@
         },
         {
           "page": 2,
-          "idsReturned": 25,
-          "uniqueNewIds": 25,
+          "idsReturned": 26,
+          "uniqueNewIds": 26,
           "hasNextPageToken": false
         }
       ]
@@ -1526,7 +1526,7 @@
       "resultSizeEstimate": 201,
       "firstPageIdsReturned": 50,
       "pagesFetched": 2,
-      "uniqueIdsSeenLowerBound": 68,
+      "uniqueIdsSeenLowerBound": 70,
       "hasMoreAfterFetchedPages": false,
       "hasNextPageToken": true,
       "pageSummaries": [
@@ -1538,8 +1538,8 @@
         },
         {
           "page": 2,
-          "idsReturned": 18,
-          "uniqueNewIds": 18,
+          "idsReturned": 20,
+          "uniqueNewIds": 20,
           "hasNextPageToken": false
         }
       ]

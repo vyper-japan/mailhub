@@ -1,5 +1,39 @@
 # MailHub Next Phase Progress
 
+## 2026-06-26 Routing Probe 8-Address Follow-up
+
+Resumed from the "8 emails did not arrive" point. Rechecked the current and historical routing probe evidence.
+
+Findings:
+
+- Current P0 remains `current_shared_gmail_routing`.
+- The target proof set is 8 addresses across 6 channels:
+  - `gopro_y@vtj.co.jp`
+  - `gopro_order_yahoo@vtj.co.jp`
+  - `vyper_r@vtj.co.jp`
+  - `vyper_rakuten@vtj.co.jp`
+  - `vyperglobal_y@vtj.co.jp`
+  - `ams_vyper@vtj.co.jp`
+  - `datacolor_shopify@vtj.co.jp`
+  - `ebay@vtj.co.jp`
+- The repo-local artifacts show `mode=dry_run` / `mode=preflight`, `sent.length=0`, and no external send evidence.
+- Shared Gmail read-only search for `"MAILHUB-ROUTING-PROBE"` found only GitHub Actions failure notification emails, not actual probe messages.
+- Historical GitHub workflow dispatches on 2026-06-17 confirm the same:
+  - failures at runs `27663957099`, `27664049883`, `27664847772` stopped before `Send and verify external routing probes`.
+  - the later success run `27666835940` was preflight/plan only; `Send and verify external routing probes` was skipped.
+- Current GWS audit confirms all 8 groups exist and include `mailhub@vtj.co.jp`, but MX is still `mx01.lolipop.jp`, so external route proof is still required.
+- Current blockers are not "sent but undelivered"; they are "external SMTP proof values missing, so send_verify is blocked before send."
+- Fixed `OPS_RUNBOOK.md` local send examples so they include the required `--confirm-send SEND_EXTERNAL_MAILHUB_ROUTING_PROBES` token. The script rejects `--send` without this token.
+
+Current missing external SMTP proof values:
+
+- `MAILHUB_PROBE_SMTP_HOST`
+- `MAILHUB_PROBE_SMTP_USER`
+- `MAILHUB_PROBE_SMTP_PASS`
+- `MAILHUB_PROBE_FROM` (`@vtj.co.jp` is rejected as production external-route proof)
+
+No external email send, GitHub setup/apply mutation, or Sheets mutation was run.
+
 ## 2026-06-25 T10 Alerts Readiness Gate Recovery
 
 Recovered the frozen `feat/t10-alerts-readiness-gate` session. The active dirty tree was a readiness hardening slice, not the older initial-detail UI checkpoint.

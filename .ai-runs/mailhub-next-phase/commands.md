@@ -1,5 +1,54 @@
 # MailHub Next Phase Commands
 
+## 2026-06-26 Routing Probe 8-Address Follow-up Commands
+
+Read-only/status checks:
+
+```bash
+git status -sb
+git diff --stat
+git diff --check
+npm run security:scan-artifacts
+npm run audit:mailhub-readiness-contract
+npm run ops:readiness-refresh
+```
+
+Result:
+
+- Initial `audit:mailhub-readiness-contract` failed because the 24h artifact freshness window expired.
+- `npm run ops:readiness-refresh` regenerated no-send/no-apply readiness artifacts.
+- All contracts inside refresh passed.
+- `probe:routing-send` stayed `mode=dry_run`, `sent.length=0`.
+- `probe:routing-preflight` stayed `mode=preflight`, `sent.length=0`.
+- `security:scan-artifacts` passed.
+
+Routing probe investigation:
+
+```bash
+npm run audit:routing-probes -- --marker MAILHUB-ROUTING-PROBE-20260626T010224Z --out /tmp/mailhub-routing-probe-audit-current-marker.json
+gh run list --repo vyper-japan/mailhub --workflow 'MailHub Routing Probe' --limit 20 --json databaseId,status,conclusion,headSha,createdAt,event,url,displayTitle
+gh run view 27663957099 --repo vyper-japan/mailhub --json status,conclusion,headSha,event,createdAt,updatedAt,jobs,url
+gh run view 27664049883 --repo vyper-japan/mailhub --json status,conclusion,headSha,event,createdAt,updatedAt,jobs,url
+gh run view 27664847772 --repo vyper-japan/mailhub --json status,conclusion,headSha,event,createdAt,updatedAt,jobs,url
+gh run view 27666835940 --repo vyper-japan/mailhub --json status,conclusion,headSha,event,createdAt,updatedAt,jobs,url
+tmpdir=$(mktemp -d /tmp/mailhub-routing-run-27666835940.XXXXXX)
+gh run download 27666835940 --repo vyper-japan/mailhub --dir "$tmpdir"
+```
+
+Result:
+
+- Current marker verification found 0/8 matches, as expected because the marker came from a dry-run artifact.
+- Shared Gmail read-only search for `"MAILHUB-ROUTING-PROBE"` found only GitHub Actions failure notifications, not actual external probe messages.
+- Historical workflow failures stopped before the send step.
+- Successful workflow run `27666835940` was preflight/plan only and reported missing SMTP proof values:
+  - `MAILHUB_PROBE_SMTP_HOST`
+  - `MAILHUB_PROBE_SMTP_USER`
+  - `MAILHUB_PROBE_SMTP_PASS`
+  - `MAILHUB_PROBE_FROM`
+- `OPS_RUNBOOK.md` was corrected so local `probe:routing-send -- --send` examples include `--confirm-send SEND_EXTERNAL_MAILHUB_ROUTING_PROBES`.
+
+No external email send, GitHub setup/apply mutation, or Sheets mutation was run.
+
 ## 2026-06-25 T10 Alerts Readiness Gate Recovery Commands
 
 Post-merge closeout and no-secret readiness refresh:

@@ -588,7 +588,7 @@ workflow は送信前に `mailhub-routing-next-steps.json` も生成して artif
 
 ### 5. 外部probeをローカルから送信
 ```bash
-npm run probe:routing-send -- --send --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-send.json
+npm run probe:routing-send -- --send --confirm-send SEND_EXTERNAL_MAILHUB_ROUTING_PROBES --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-send.json
 ```
 
 出力の `marker` と `nextVerificationCommand` を控える。`sentCount=8`、`rejected=[]` が期待値。
@@ -596,7 +596,7 @@ npm run probe:routing-send -- --send --out .ai-runs/mailhub-next-phase/mailhub-r
 送信後の待機・検証・readiness再生成まで同時に実行する場合:
 
 ```bash
-npm run probe:routing-send -- --send --verify-after-send --wait-seconds 300 --poll-seconds 15 --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-send.json
+npm run probe:routing-send -- --send --confirm-send SEND_EXTERNAL_MAILHUB_ROUTING_PROBES --verify-after-send --wait-seconds 300 --poll-seconds 15 --out .ai-runs/mailhub-next-phase/mailhub-routing-probe-send.json
 ```
 
 この場合、スクリプトが `mailhub-routing-probe-audit.json` と `mailhub-production-readiness-audit.json` も更新する。
