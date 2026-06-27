@@ -1,0 +1,51 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "90699a0d353b",
+  "session_id": "372426b9-be82-4d3a-8758-e16a794f1a8d",
+  "strategy": "manual-commit",
+  "created_at": "2026-06-27T04:05:51.385117Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    ".ai-runs/mailhub-next-phase/lolipop-poc-vyperglobal_sc.json",
+    ".ai-runs/mailhub-next-phase/lolipop-routing-audit-gopro-y.png",
+    ".ai-runs/mailhub-next-phase/lolipop-routing-audit-vyperglobal-y.png",
+    ".ai-runs/mailhub-next-phase/lolipop-routing-audit.json",
+    ".ai-runs/mailhub-next-phase/lolipop-poc-sbd.json",
+    ".ai-runs/mailhub-next-phase/lolipop-poc-vyper_rakuten.json",
+    ".ai-runs/mailhub-next-phase/lolipop-poc-vyperglobal_y.json",
+    ".ai-runs/mailhub-next-phase/lolipop-routing-audit-vyper-rakuten.png",
+    ".ai-runs/mailhub-next-phase/lolipop-poc-gopro_y.json",
+    ".ai-runs/mailhub-next-phase/lolipop-poc-secondhand.json",
+    ".ai-runs/mailhub-next-phase/lolipop-poc-steiner-optics_sc.json",
+    ".ai-runs/mailhub-next-phase/lolipop-poc-vyper_rakuten.png",
+    ".ai-runs/mailhub-next-phase/lolipop-poc-vyper_sc.png",
+    ".ai-runs/mailhub-next-phase/lolipop-poc-vyperglobal_y.png",
+    ".ai-runs/mailhub-next-phase/lolipop-routing-audit-ams-vyper.png",
+    ".ai-runs/mailhub-next-phase/lolipop-routing-audit-gopro-order-yahoo.png",
+    ".ai-runs/mailhub-next-phase/lolipop-poc-steiner-optics_sc.png",
+    ".ai-runs/mailhub-next-phase/lolipop-poc-vyper_sc.json",
+    ".ai-runs/mailhub-next-phase/lolipop-poc-vyperglobal_sc.png",
+    ".ai-runs/mailhub-next-phase/lolipop-poc-sbd.png",
+    ".ai-runs/mailhub-next-phase/lolipop-poc-secondhand.png"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "f05c7e85127e",
+  "token_usage": {
+    "input_tokens": 12016,
+    "cache_creation_tokens": 117669,
+    "cache_read_tokens": 1361783,
+    "output_tokens": 16723,
+    "api_call_count": 12
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-06-27T04:05:51.284752Z",
+    "agent_lines": 0,
+    "human_added": 52622,
+    "human_modified": 8,
+    "human_removed": 0,
+    "total_committed": 52622,
+    "agent_percentage": 0
+  },
+  "transcript_path": ".claude/projects/-Users-takayukisuzuki-VYPER-Dev-Mailhub/372426b9-be82-4d3a-8758-e16a794f1a8d.jsonl"
+}

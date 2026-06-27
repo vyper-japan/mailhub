@@ -1,0 +1,46 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "90699a0d353b",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    ".ai-runs/mailhub-next-phase/lolipop-poc-gopro_y.json",
+    ".ai-runs/mailhub-next-phase/lolipop-poc-sbd.json",
+    ".ai-runs/mailhub-next-phase/lolipop-poc-sbd.png",
+    ".ai-runs/mailhub-next-phase/lolipop-poc-secondhand.json",
+    ".ai-runs/mailhub-next-phase/lolipop-poc-secondhand.png",
+    ".ai-runs/mailhub-next-phase/lolipop-poc-steiner-optics_sc.json",
+    ".ai-runs/mailhub-next-phase/lolipop-poc-steiner-optics_sc.png",
+    ".ai-runs/mailhub-next-phase/lolipop-poc-vyper_rakuten.json",
+    ".ai-runs/mailhub-next-phase/lolipop-poc-vyper_rakuten.png",
+    ".ai-runs/mailhub-next-phase/lolipop-poc-vyper_sc.json",
+    ".ai-runs/mailhub-next-phase/lolipop-poc-vyper_sc.png",
+    ".ai-runs/mailhub-next-phase/lolipop-poc-vyperglobal_sc.json",
+    ".ai-runs/mailhub-next-phase/lolipop-poc-vyperglobal_sc.png",
+    ".ai-runs/mailhub-next-phase/lolipop-poc-vyperglobal_y.json",
+    ".ai-runs/mailhub-next-phase/lolipop-poc-vyperglobal_y.png",
+    ".ai-runs/mailhub-next-phase/lolipop-routing-audit-ams-vyper.png",
+    ".ai-runs/mailhub-next-phase/lolipop-routing-audit-gopro-order-yahoo.png",
+    ".ai-runs/mailhub-next-phase/lolipop-routing-audit-gopro-y.png",
+    ".ai-runs/mailhub-next-phase/lolipop-routing-audit-vyper-rakuten.png",
+    ".ai-runs/mailhub-next-phase/lolipop-routing-audit-vyperglobal-y.png",
+    ".ai-runs/mailhub-next-phase/lolipop-routing-audit.json"
+  ],
+  "sessions": [
+    {
+      "metadata": "/90/699a0d353b/0/metadata.json",
+      "transcript": "/90/699a0d353b/0/full.jsonl",
+      "context": "/90/699a0d353b/0/context.md",
+      "content_hash": "/90/699a0d353b/0/content_hash.txt",
+      "prompt": "/90/699a0d353b/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 12016,
+    "cache_creation_tokens": 117669,
+    "cache_read_tokens": 1361783,
+    "output_tokens": 16723,
+    "api_call_count": 12
+  }
+}
