@@ -1818,3 +1818,30 @@ At checkpoint time:
 - vyper_r@vtj.co.jp は触らない (Lolipop 実体なし)
 - 既存転送先 (MailDealer / `*.test-google-a.com`) は削除しない、空きスロット追加のみ
 - 「本番完了」と言わず必ず再送・到達確認まで行う
+
+---
+
+## 2026-06-27 Lolipop集約構造完成 — 全12アドレス mailhub@ 接続 + 5/5 到達証跡
+
+### 完了（このセッション）
+- 既存7アドレス (gopro_y / gopro_order_yahoo / vyper_rakuten / vyperglobal_y / ams_vyper / ebay / datacolor_shopify) の Lolipop 転送に `mailhub@vtj.co.jp.test-google-a.com` を追加（既存の `info@.test-google-a.com` 経路は全件保持）
+- 新規5アドレス (vyperglobal_sc / vyper_sc / steiner-optics_sc / secondhand / sbd) の Lolipop 転送に `mailhub@.test-google-a.com` 経路を追加
+- sbd@ 転送先を [ken, info, junpei, akane, kumiko] → [info, kumiko, mailhub@.test-google-a.com] の3件に再構成
+- mailhub@ 検証完了: User と判明、Domain-Wide Delegation 設定済 (admin.google.com で SA Client ID 111980493288545757032 に gmail.readonly 承認 + info@ に serviceAccountTokenCreator 付与)
+- 22 GWS Group のメンバーシップ実測: 21/22 で mailhub@ 加入済み (sbd@ Group のみ未加入、Lolipop 転送で代替)
+- Lolipop 全 53 アドレスの登録一覧取得 (7-hardcoded を超えた実態把握)
+- Amazon 系の集約実態判明: cricut_sc@ / gopro_mp@ / akgstore@ 等には実際のバイヤーメッセージが既に大量到達
+- 個人 Gmail (ahirudesign@) → 新規5アドレス向けテストメール送信、mailhub@ User INBOX 直接到達 5/5 確認 (Spam 行きゼロ、X-Original-To で送信先追跡可能、2026-06-27 12:57-13:00 JST)
+- 確認手段: SA Domain-Wide Delegation で mailhub@ impersonate → Gmail API readonly (SA鍵=`~/.config/gcloud/ec-data-hub-sa-key.json`)
+- コミット `26e4931` で 21ファイル変更を origin/main に push 済み
+
+### 次セッションへ
+- T2 destructive 6項目 (実送信解禁 / refresh token 再発行 / send-as 15登録 等)
+- MX 切替 (lolipop.jp → Google Workspace 直受) → MailDealer 解約
+- CoWork からのテストメール再送が必要になったら 5アドレス向け再確認
+
+### Hard Gates (継続)
+- vyper_r@ は触らない (Lolipop に実体なし、MX 切替後の統合予定名)
+- 既存転送先 (MailDealer / `*.test-google-a.com`) は削除しない、空きスロット追加のみ
+- destructive 6項目はのび太 explicit approval なしに実行禁止
+- GitHub Secrets / Sheets / 本番 apply 系は承認なしに実行しない
