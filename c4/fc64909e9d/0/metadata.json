@@ -1,0 +1,32 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "c4fc64909e9d",
+  "session_id": "372426b9-be82-4d3a-8758-e16a794f1a8d",
+  "strategy": "manual-commit",
+  "created_at": "2026-06-27T04:19:29.606676Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    ".ai-runs/mailhub-next-phase/next.md",
+    ".ai-runs/mailhub-next-phase/progress.md"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "f05c7e85127e",
+  "token_usage": {
+    "input_tokens": 12016,
+    "cache_creation_tokens": 117669,
+    "cache_read_tokens": 1361783,
+    "output_tokens": 16723,
+    "api_call_count": 12
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-06-27T04:19:29.54679Z",
+    "agent_lines": 0,
+    "human_added": 38,
+    "human_modified": 27,
+    "human_removed": 0,
+    "total_committed": 38,
+    "agent_percentage": 0
+  },
+  "transcript_path": ".claude/projects/-Users-takayukisuzuki-VYPER-Dev-Mailhub/372426b9-be82-4d3a-8758-e16a794f1a8d.jsonl"
+}

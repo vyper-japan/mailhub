@@ -1,0 +1,137 @@
+MailHub UI/UX and code review. Read this git diff and report only P0/P1 issues: bugs, regressions, mobile/desktop usability blockers, missing tests, or architectural contradictions. Do not suggest cosmetic P2 changes. Context: user rejected high/low priority; UI should classify by processing destination/next action. Current diff includes responsive mobile fix and queue terminology changes. Return concise Japanese findings with file/line if possible.
+diff --git a/app/globals.css b/app/globals.css
+index 5f846ab..26054c0 100644
+--- a/app/globals.css
++++ b/app/globals.css
+@@ -102,3 +102,39 @@ button:disabled .action-spinner {
+     animation: none;
+   }
+ }
++
++@media (max-width: 767px) {
++  .mailhub-sidebar {
++    display: none !important;
++  }
++
++  .mailhub-main-area {
++    width: 100vw;
++    min-width: 0;
++  }
++
++  .mailhub-list-column {
++    width: 100vw !important;
++    min-width: 0 !important;
++    max-width: none !important;
++    border-right: 0;
++  }
++
++  .mailhub-list-column.mailhub-list-selected {
++    display: none;
++  }
++
++  .mailhub-list-resizer {
++    display: none;
++  }
++
++  .mailhub-detail-column {
++    display: none;
++    width: 100vw;
++    min-width: 0 !important;
++  }
++
++  .mailhub-detail-column.mailhub-detail-selected {
++    display: flex;
++  }
++}
+diff --git a/app/inbox/InboxShell.tsx b/app/inbox/InboxShell.tsx
+index 9bf11a2..775455c 100644
+--- a/app/inbox/InboxShell.tsx
++++ b/app/inbox/InboxShell.tsx
+@@ -6591,7 +6591,7 @@ export default function InboxShell({
+           <main className={t.mainArea}>
+             {/* メール一覧 */}
+             <div 
+-              className={t.listColumn}
++              className={`${t.listColumn} ${selectedMessage ? "mailhub-list-selected" : ""}`}
+               style={{ width: `${listWidth}px`, minWidth: '280px', maxWidth: '720px' }}
+             >
+               <div className="flex-1 overflow-y-auto custom-scrollbar">
+@@ -6981,12 +6981,12 @@ export default function InboxShell({
+ 
+             {/* リストリサイザー */}
+             <div 
+-              className="w-1 cursor-col-resize hover:bg-blue-500/30 transition-colors active:bg-blue-500/50 z-20 -mx-2"
++              className="mailhub-list-resizer w-1 cursor-col-resize hover:bg-blue-500/30 transition-colors active:bg-blue-500/50 z-20 -mx-2"
+               onMouseDown={() => startResizing("list")}
+             />
+ 
+             {/* 詳細表示 */}
+-            <div className={t.detailColumn} data-testid="detail-pane">
++            <div className={`${t.detailColumn} ${selectedMessage ? "mailhub-detail-selected" : ""}`} data-testid="detail-pane">
+               {!selectedMessage ? (
+                 <div className="flex-1 flex flex-col items-center justify-center text-[#5f6368] space-y-4">
+                   <Mail className="w-12 h-12 opacity-10" />
+@@ -6995,6 +6995,22 @@ export default function InboxShell({
+               ) : (
+                 <>
+                   <div className="flex-1 overflow-y-auto custom-scrollbar bg-white text-[#202124]">
++                    <div className="md:hidden sticky top-0 z-20 bg-white border-b border-[#e8eaed] px-3 py-2">
++                      <button
++                        type="button"
++                        className="text-[13px] font-medium text-[#1a73e8] px-2 py-1 rounded hover:bg-[#f1f3f4]"
++                        onClick={() => {
++                          setSelectedId(null);
++                          selectedIdRef.current = null;
++                          setSelectedMessage(null);
++                          setSelectedDetail(null);
++                          setDetailBody({ plainTextBody: null, htmlBody: null, bodyNotice: null, isLoading: false });
++                          replaceUrl(labelId, null, true, serverSearchQuery || undefined);
++                        }}
++                      >
++                        ← 一覧に戻る
++                      </button>
++                    </div>
+                     {/* スティッキーヘッダー（件名、送信者、ジャンプボタン） */}
+                     <div className="sticky top-0 z-10 bg-white border-b border-[#e8eaed] shadow-sm">
+                       <div className="max-w-3xl mx-auto px-8 py-4">
+diff --git a/app/inbox/inbox-ui.ts b/app/inbox/inbox-ui.ts
+index 57d8d5e..5d5f883 100644
+--- a/app/inbox/inbox-ui.ts
++++ b/app/inbox/inbox-ui.ts
+@@ -6,7 +6,7 @@ export const t = {
+ 
+   // サイドバー（作業キュー優先 + レスポンシブ）
+   sidebar:
+-    "min-w-[200px] w-64 max-w-[320px] bg-white flex flex-col border-r border-[#dadce0] flex-shrink-0",
++    "mailhub-sidebar min-w-[200px] w-64 max-w-[320px] bg-white flex flex-col border-r border-[#dadce0] flex-shrink-0",
+   sidebarItem:
+     "flex min-h-[36px] items-center justify-between px-3 py-1.5 mx-1 text-[14px] text-[#3c4043] rounded-r-full hover:bg-[#f1f3f4] transition-colors cursor-pointer font-normal group",
+   sidebarItemActive: "bg-[#E8F0FE] text-[#1a73e8] font-medium",
+@@ -37,11 +37,11 @@ export const t = {
+   tabActive: "text-[#1a73e8] border-[#1a73e8] font-medium",
+ 
+   // メインエリア（レスポンシブ）
+-  mainArea: "flex-1 flex bg-[#f6f8fc] overflow-hidden min-w-0",
++  mainArea: "mailhub-main-area flex-1 flex bg-[#f6f8fc] overflow-hidden min-w-0",
+ 
+   // リストカラム（クリック即応 + レスポンシブ）
+   listColumn:
+-    "min-w-[280px] w-96 max-w-[480px] flex flex-col bg-white border-r border-[#dadce0] overflow-hidden flex-shrink-0",
++    "mailhub-list-column min-w-[280px] w-96 max-w-[480px] flex flex-col bg-white border-r border-[#dadce0] overflow-hidden flex-shrink-0",
+   listItem:
+     "min-h-[42px] px-2 sm:px-3 py-1.5 border-b border-[#e8eaed] hover:bg-[#f5f8ff] cursor-pointer group select-none flex items-center gap-2",
+   listItemActive: "bg-[#d3e3fd] shadow-[inset_3px_0_0_#1a73e8,inset_0_-1px_0_#c6dafc]",
+@@ -50,7 +50,7 @@ export const t = {
+   listItemRead: "bg-[#F2F6FC]",
+ 
+   // 詳細カラム（作業詳細 + レスポンシブ）
+-  detailColumn: "flex-1 flex flex-col bg-white overflow-hidden min-w-[400px]",
++  detailColumn: "mailhub-detail-column flex-1 flex flex-col bg-white overflow-hidden min-w-[400px]",
+ 
+   // ボタン・その他
+   buttonPrimary:
+@@ -111,4 +111,3 @@ export function buildGmailForwardLink(gmailLink: string, threadId: string): stri
+ }
+ 
+ 
+-
