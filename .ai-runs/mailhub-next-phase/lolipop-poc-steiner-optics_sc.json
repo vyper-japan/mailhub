@@ -1,0 +1,7 @@
+{
+  "mode": "apply",
+  "target_address": "steiner-optics_sc@vtj.co.jp",
+  "forward_to": "mailhub@vtj.co.jp.test-google-a.com",
+  "success": true,
+  "final_url": "https://user.lolipop.jp/?mode=mail-address&exec=edit&id=DMA8787735"
+}

@@ -1,6 +1,6 @@
 {
   "mode": "apply",
-  "target_address": "gopro_y@vtj.co.jp",
+  "target_address": "vyperglobal_sc@vtj.co.jp",
   "forward_to": "mailhub@vtj.co.jp.test-google-a.com",
   "success": true,
   "final_url": "https://user.lolipop.jp/?mode=mail_setting"
