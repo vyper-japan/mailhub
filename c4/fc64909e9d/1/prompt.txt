@@ -1,0 +1,42 @@
+今どこまで作業が進んでたか教えて。
+
+---
+
+その認識は 昨日(6/26)時点で正しい が、今セッション(6/27)で結構動いたので一部古いです。差分だけ:
+
+今セッションで完了したこと
+1. mailhub@ 自体の検証完了 — Group ではなく User と判明。Domain-Wide Delegation 設定（admin.google.com で SA Client ID 111980493288545757032 に gmail.readonly 承認 + info@ に serviceAccountTokenCreator 付与）→ mailhub@ INBOX を programmatic に読める基盤確立
+2. 22 GWS Group のメンバーシップ実測 — 17 channel-list 中 21/22 で mailhub@ 加入済み、未加入は sbd@ Group のみ
+3. Lolipop 全 53 アドレスの登録一覧取得 — スクリプトの 7-hardcoded を超えて実態把握
+4. 未到達 5 アドレスに mailhub@ 経路追加 — vyperglobal_sc / vyper_sc / steiner-optics_sc / secondhand（4件は素直に追加）
+5. sbd@ Lolipop 転送先整理 — のび太指示で [ken, info, junpei, akane, kumiko] → [info, kumiko, mailhub@.test-google-a.com] の3件に再構成完了
+6. Amazon 系の集約実態判明 — cricut_sc@ gopro_mp@ akgstore@ 等には実際の顧客メール（Amazon バイヤーメッセージ含む）が既に大量に届いていることを mailhub@ INBOX で実測
+
+git status の .ai-runs/mailhub-next-phase/lolipop-poc-{sbd,secondhand,steiner-optics_sc,vyper_sc,vyperglobal_sc}.{json,png} 未追跡は、今セッションの 5アドレス処理の audit/screenshot 成果物。「途中で止まっている」ではなく、意図して追加した分が完了している状態です。コミットは未実施（手は止めてあり、のび太承認後）。
+
+残スコープの正しい更新
+- P0 routing クローズ済（変更なし）
+- P1 三項目（変更なし）
+- スコープ外残: ~~mailhub@ 検証~~ ✅ 完了 / MailDealer 解約 / MX 切替 / 今回追加 5アドレスのテストメール実測（CoWork 待ち） / destructive 6項目（実送信解禁、refresh token 再発行、send-as 15登録 等）
+
+つまり「routing 構造側は 17 channel 全部揃った」、残るは「実送信解禁（T2 destructive 6項目）」と「MX切替 → MailDealer解約」の本丸ですが、CoWork のテストメールを送ってもらってからまとめて締めるのが筋です。
+
+---
+
+じゃあ、まずコワークを使ってテストメールを送るので、終わったらご連絡します。
+
+---
+
+更新が完了したみたいです。
+
+---
+
+A
+
+---
+
+a
+
+---
+
+OK、じゃあここでやめて、キリのいいとこでストップして。じゃあ次の新しいセッションで続きからやろうか。
