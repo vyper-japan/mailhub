@@ -473,6 +473,39 @@ export async function POST(req: Request) {
         sentMessageId = sendResult.sentMessageId;
         threadId = sendResult.threadId;
       } catch (e) {
+        // D6 canary retry-readiness fix (W5): sendGmailReply throw paths
+        // (network error, auth failure, transient Gmail 4xx/5xx) must release
+        // the duplicate guard reservation AND record a release marker so the
+        // same clientRequestId can be retried after rollback. Without this,
+        // R4 §7 retry would be 409-blocked until the 600s TTL expires (the
+        // in-memory store via reserveMailhubSendDuplicateGuard, and the
+        // persisted history via findMailhubSendDuplicateHistory).
+        // Trade-off: in the rare case where Gmail accepted the send but the
+        // SDK threw on response parse, a manual retry could double-send.
+        // Accepted because R4 §7 makes retry an explicit operator decision
+        // gated on observability of the canary outcome.
+        releaseReservation(reservation);
+        reservation = null;
+        await logAction({
+          actorEmail: authResult.user.email,
+          action: "reply_send_guard",
+          messageId: sendRequest.messageId,
+          label: "send_failed",
+          metadata: {
+            route: "gmail",
+            status: "send_failed",
+            threadId: resolved.context.threadId,
+            clientRequestId: sendRequest.clientRequestId,
+            requestKey: duplicateReservation.requestKey,
+            bodyKey: duplicateReservation.bodyKey,
+            bodyHash: duplicateReservation.bodyHash,
+            reservationId: duplicateReservation.reservationId,
+            fromAlias: resolved.context.fromAlias,
+            fromChannelId: resolved.context.fromChannelId,
+            ...sendProvenanceMetadata,
+            released: true,
+          },
+        });
         return gmailApiErrorResponse(e);
       }
     }
