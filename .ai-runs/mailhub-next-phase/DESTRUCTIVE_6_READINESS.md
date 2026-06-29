@@ -17,7 +17,7 @@
 
 | # | 項目 | 何をするか | runbook | 戻し方 |
 |---|---|---|---|---|
-| D1 | **Gmail refresh token 再発行** | `scripts/get-refresh-token.mjs` で gmail.send + settings 含む scope の新token取得 → `vyper/mailhub/prod/google_shared_inbox_refresh_token_next` に格納 (旧token生存) | R1 §2 | `_next` 削除のみ。本番未影響 |
+| D1 | **Gmail refresh token 再発行** | `scripts/get-refresh-token.mjs` で `gmail.readonly` + `gmail.modify` + `gmail.send` + `gmail.settings.sharing` scope の新token取得 → `vyper/mailhub/prod/google_shared_inbox_refresh_token_next` に格納 (旧token生存) | R1 §2 | `_next` 削除のみ。本番未影響 |
 | D2 | **send-as 15エイリアス登録** | `users.settings.sendAs.create/verify` を15回。Route A=DWD自動 / Route B=mailhub@ user login (storage_state + 2FA) で Gmail Settings 直接操作 | R2 §3 | `users.settings.sendAs.delete` で個別除去 |
 | D3 | **本番env投入 (新token + activity store)** | Vercel Production env を3点更新:<br>① `GOOGLE_SHARED_INBOX_REFRESH_TOKEN` を `_next` 値に swap (旧token値を `_previous` に populate 必須)<br>② `MAILHUB_ACTIVITY_STORE=sheets`<br>③ Sheets credentials 3点 (`MAILHUB_SHEETS_SPREADSHEET_ID` / `_CLIENT_EMAIL` / `_PRIVATE_KEY`) | R1 §5 (line 160-189 Vercel env 原子的 swap) / R4 §2.5 | env を元のtoken/storeに戻して redeploy (R1 §6 は `_previous` を参照) |
 | D4 | **READ ONLY 解除** | `MAILHUB_READ_ONLY=0` に変更 | R4 §4 (approval) + R4 §5 step 2 (line 130 env mutation) | `=1` に戻す (R4 §9) |
@@ -28,7 +28,7 @@
 
 | # | 現状 | 不足 |
 |---|---|---|
-| D1 | refresh token 旧版のみ (gmail.readonly + modify, sendなし想定) | gmail.send scope を含む new token 未取得 |
+| D1 | refresh token 旧版のみ (gmail.readonly + modify、send/settings.sharing なし想定) | `gmail.send` + `gmail.settings.sharing` scope を含む new token 未取得 |
 | D2 | **15/15 unregistered** (ledger 全行 `verificationStatus=unregistered`) | 15回 create+verify 実施。Route A/B 未決 |
 | D3 | env は staging/preview レベル想定。本番 Vercel の現env未棚卸し | `prod-env-ledger.md` の最新化 + 3点投入 |
 | D4 | `MAILHUB_READ_ONLY=1` (デフォルト安全側) | 解除承認のみ |
@@ -51,14 +51,19 @@ D1着手の前に **必ず** 全て満たす:
   - Route B fallback: **mailhub@ user login (storage_state + 2FA)** で Gmail Settings 画面を直接操作 (Workspace Admin Console には send-as UI が無いため、admin 画面経由ではなく user login が必須)
 - [ ] **P5**: のび太承認 (approver / 時刻 / 対象deploy / rollback owner / enable window / 各destructive個別承認)
 - [ ] **P6**: 操作端末 secret-bearing 扱い (token値を repo / ticket / chat / screenshot / shell history に出さない)
+- [ ] **P7**: Q5 routing block 4点 closed (12アドレス audit JSON / polling 成果物永続化 / sbd destructive 削除 ledger / secondhand 再apply 不要裁定)
+- [ ] **P8**: main HEAD v25 増分 audit (3ce3975 → b6e1aea、35 commits 分) closed
+- [ ] **P9**: `send/route.ts:471-477` reservation cleanup closed (D6 canary失敗時の同一 `clientRequestId` 永久409 block防止)
 
 ## 4. 依存DAG
 
 ```
-qa:strict 2連続PASS (R005) [T2 sign-off gate]
+T2 v25 sign-off CLEAN 確認 (2026-06-24、HEAD 3ce3975)
         │
         ▼
-T2 Phase4.5 sign-off → main マージ承認
+mailhub-destructive-6-prep pre-flight closed
+  W1 READINESS修正 / Q5 routing block / main HEAD audit / reservation cleanup
+  Workspace scope承認 (`gmail.send` + `gmail.settings.sharing`) / のび太 multi-step approval
         │
         ▼
 D1 token再発行 (本番未影響、_next slot)
@@ -113,7 +118,7 @@ R4 §7 の制約:
 ## 6. 不要な拡張 (やらない)
 
 - 楽天3channel (cricut/gopro/vyperglobal-rakuten) の send-as 登録 → **T6 (R-Messe API) スコープ・除外**
-- ams_vyper@ の send-as 登録 → **送信不要なAMS請求受信専用** (FX-2 のび太裁定、出典: `~/.claude/projects/-Users-takayukisuzuki/memory/project_mailhub_dev.md:92`)
+- ams_vyper@ の send-as 登録 → **送信不要なAMS請求受信専用** (FX-2 のび太裁定、出典: `~/.claude/projects/-Users-takayukisuzuki-VYPER-Dev-vyper-ops/memory/project_mailhub_dev.md:92`)
 - token の即時 revoke → 旧token は `_previous` に保持してロールバック窓を残す
 
 ## 7. 想定タイムライン (qa:strict R005充足後)
@@ -131,15 +136,12 @@ R4 §7 の制約:
 ## 8. 引き継ぎ次のアクション
 
 順序:
-1. **qa:strict 2連続PASS 待ち #1** (T2 v25 sign-off gate、R005 constitution gate 充足用 — 深夜静環境、見張り番v2 `phase3/quiet-watch-qa-strict-v2.sh` 稼働確認)
-   - 注: T2 v25 は 2026-06-24 CLEAN sign-off 済。R005 は constitution-gate-result.json の集計対象として qa:strict PASS evidence を要求するが、**D5 SEND_ENABLED=1 直前にも R4 §1 独立ゲートとして再度 qa:strict 2連続PASS を要求する** (sign-off 後にも必要、step 8 参照)
-2. R005 MATCH追記 → constitution-gate 0 violation → final-integrity → Adjudicator → v25 sign-off (sign-off 済の場合は確認のみ)
-3. mainマージ承認 (のび太GO) → Vercel自動deploy
-4. mailhub-destructive-6-prep ticket の 7 prep tasks (W1-W7) 完了
-5. main HEAD 増分 V2.5 audit (3ce3975 → b6e1aea、35 commits 分) 別 ticket で完了
-6. Workspace admin scope (`gmail.send` + `gmail.settings.sharing`) 承認取得
-7. **このチェックリストの D1 から着手** (本書を改めて引いて承認取り)
-8. **D5 投入直前に qa:strict 2連続PASS 待ち #2** (R4 §1 独立ゲート、prod send enable の最終健全性確認)
+1. T2 v25 sign-off は `v25-status.json` (2026-06-24 CLEAN、HEAD `3ce39750ce2225d6d1aceb7805ea1c9d1067b0c5`) を正本として確認する。**qa:strict 2連続PASS → sign-off 待ちを D1 前提に戻さない**。
+2. mailhub-destructive-6-prep ticket の 7 prep tasks (W1-W7) を完了し、Q5 routing block 4点 / main HEAD 増分 V2.5 audit / reservation cleanup の closed evidence を揃える。
+3. Workspace admin scope (`gmail.send` + `gmail.settings.sharing`) 承認取得。
+4. のび太 multi-step approval (approver / 時刻 / 対象deploy / rollback owner / enable window / D1-D6 個別承認) を記録。
+5. **このチェックリストの D1 から着手** (本書を改めて引いて承認取り)。
+6. **D5 投入直前に qa:strict 2連続PASS 待ち** (R4 §1 独立ゲート、prod send enable の最終健全性確認。sign-off 後にも必要)。
 
 再開フレーズ:
 - 「destructive 6項目やろう」 (qa:strict PASS済の前提で着手)
