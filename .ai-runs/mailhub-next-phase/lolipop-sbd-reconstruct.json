@@ -1,0 +1,182 @@
+{
+  "schema_version": "1.0",
+  "ledger_kind": "lolipop_forward_destructive_reconstruct",
+  "target_address": "sbd@vtj.co.jp",
+  "lolipop_edit_id": "DMA7815855",
+  "lolipop_edit_url": "https://user.lolipop.jp/?mode=mail-address&exec=edit&id=DMA7815855",
+  "mail_server": "mail208",
+  "execution_status": "PENDING_DESTRUCTIVE",
+  "execution_status_notes": "Adjudicator (mailhub-t2-destructive-readiness-audit Q5 block 3) で sbd destructive 削除 ledger 化が destructive 6項目着手前 prep として必須化された。本 ledger は before/after diff + のび太承認 ts + Playwright trace の audit trail 雛形であり、実 apply は本 ticket スコープ外 (mailhub-destructive-6-prep は non-destructive)。POC apply (2026-06-27, lolipop-poc-sbd.json) は success=false (session expiry at edit_id=DMA7815855)、確定 5/5 forward 構成は memory 187 の time 以降未再 apply。",
+  "approval": {
+    "approver": "nobita",
+    "approved_at": null,
+    "approved_at_notes": "正確な timestamp が memory:187 では未記録。本 ledger 起票時点 (2026-06-30T06:33+09:00) より以前であることのみ確実。本 ledger 適用 worker (D2 後の Lolipop 再apply ticket) が AskUserQuestion で再確認 + ts 確定して overwrite すること。",
+    "source_references": [
+      {
+        "kind": "memory",
+        "path": "~/.claude/projects/-Users-takayukisuzuki-VYPER-Dev-vyper-ops/memory/project_mailhub_dev.md",
+        "line": 187,
+        "quote": "sbd@ は枠 5満杯のため、のびた裁定で [ken,info,junpei,akane,kumiko] → [info,kumiko,mailhub@.test-google-a.com] に再構成（scratchpad で Playwright 直接 削除+追加）"
+      },
+      {
+        "kind": "adjudicator",
+        "path": "~/.claude/instructions/mailhub-t2-destructive-readiness-audit/phase1/adjudicator-final.md",
+        "section": "Q5 routing block 条件 4 点 / 第3項",
+        "quote": "sbd destructive 削除 ledger 化: ken/junpei/akane 個人転送先削除の audit trail (before/after diff + のび太承認 ts + Playwright trace)"
+      }
+    ],
+    "approval_scope_limits": [
+      "削除対象は ken@vtj.co.jp / junpei@vtj.co.jp / akane@vtj.co.jp の3個人転送のみ",
+      "info@vtj.co.jp / kumiko@vtj.co.jp は不変 (削除禁止)",
+      "追加は mailhub@vtj.co.jp.test-google-a.com の1件のみ",
+      "他アドレスへの波及禁止 (target_address は sbd@vtj.co.jp に限定)"
+    ]
+  },
+  "before_state": {
+    "observed_at": "2026-06-27T01:10:11+00:00",
+    "observation_source": ".ai-runs/mailhub-next-phase/lolipop-poc-sbd.png",
+    "observation_source_sha256": "c4c3ba9879db4c27f8782418cddd25b5df875ede499134d4b6a607f2ba976400",
+    "forward_slot_capacity": 5,
+    "forward_addresses": [
+      {"slot": 1, "address": "ken@vtj.co.jp", "kind": "personal"},
+      {"slot": 2, "address": "info@vtj.co.jp", "kind": "channel-shared"},
+      {"slot": 3, "address": "junpei@vtj.co.jp", "kind": "personal"},
+      {"slot": 4, "address": "akane@vtj.co.jp", "kind": "personal"},
+      {"slot": 5, "address": "kumiko@vtj.co.jp", "kind": "personal-or-channel-shared"}
+    ],
+    "leave_messages_on_server": true,
+    "evidence": {
+      "screenshot_path": ".ai-runs/mailhub-next-phase/lolipop-poc-sbd.png",
+      "screenshot_sha256": "c4c3ba9879db4c27f8782418cddd25b5df875ede499134d4b6a607f2ba976400",
+      "poc_json_path": ".ai-runs/mailhub-next-phase/lolipop-poc-sbd.json",
+      "poc_json_sha256": "b0eb4dd8ad264907b219f4d4895e6b01b33e0b3b1003155cbb455246d70c262e",
+      "poc_apply_result": "success=false (final_url left on edit page, no_redirect → session-or-form-state failure)"
+    }
+  },
+  "after_state_target": {
+    "forward_slot_capacity": 5,
+    "forward_addresses": [
+      {"slot": 1, "address": "info@vtj.co.jp", "kind": "channel-shared"},
+      {"slot": 2, "address": "kumiko@vtj.co.jp", "kind": "personal-or-channel-shared"},
+      {"slot": 3, "address": "mailhub@vtj.co.jp.test-google-a.com", "kind": "mailhub-routing"}
+    ],
+    "leave_messages_on_server": true,
+    "after_state_observation_target_json": ".ai-runs/mailhub-next-phase/lolipop-routing-audit.json",
+    "after_state_observation_requirement": "実 apply 完了後、12アドレス再 audit JSON (W2 成果物 lolipop-routing-audit.json total:12) の entries[address=sbd@vtj.co.jp] が本 after_state_target.forward_addresses と byte-equal で一致すること。一致しない場合は incident open。"
+  },
+  "diff": {
+    "destructive_removed": [
+      {"address": "ken@vtj.co.jp", "rationale": "個人転送 — のび太裁定で削除確定 (memory:187)。本人 Inbox には Lolipop forward を経ない別経路 (Workspace 通常 routing) で必要なら別途配送される想定。"},
+      {"address": "junpei@vtj.co.jp", "rationale": "個人転送 — のび太裁定で削除確定 (memory:187)。同上。"},
+      {"address": "akane@vtj.co.jp", "rationale": "個人転送 — のび太裁定で削除確定 (memory:187)。同上。"}
+    ],
+    "preserved": [
+      {"address": "info@vtj.co.jp", "rationale": "channel-shared 受信、削除すると業務影響大 (FX-2 ams_vyper@ block guard 同等の concern)。"},
+      {"address": "kumiko@vtj.co.jp", "rationale": "memory:187 のび太裁定で保持確定。"}
+    ],
+    "added": [
+      {"address": "mailhub@vtj.co.jp.test-google-a.com", "rationale": "Lolipop mailhub@ routing 集約 (5/5 reach proof、commit 26e4931 で 7アドレスに展開済み)。sbd@ は枠5満杯で未追加だったため本 destructive 後に追加。"}
+    ],
+    "slot_count_delta": -2,
+    "destructive_count": 3,
+    "non_destructive_count": 1,
+    "destructive_irreversibility": "Lolipop UI の forward リストは即時上書き型で undo 機能なし。削除した個人アドレスを再投入したい場合は手動 re-entry 必須 (本 ledger の before_state.forward_addresses から復元)。"
+  },
+  "execution_plan": {
+    "scheduled_phase": "destructive_6 D2 後 / D3 前 (Lolipop forward 再 apply 用の独立 sub-step)",
+    "executor_tool": "scripts/lolipop-mailhub-routing/lolipop_forward_setup.py (W3 で MailHub canonical repo へ移管予定)",
+    "preconditions": [
+      "qa:strict 2連続 PASS",
+      "Workspace admin: gmail.settings.sharing + gmail.send 承認",
+      "本 ledger 内 approval.approved_at に正確な timestamp が確定 overwrite されていること",
+      "AskUserQuestion で ken/junpei/akane 削除 + mailhub@ 追加 の最終 GO ボタンが押されていること (multi-step approval)",
+      "Playwright storage_state 有効 (Lolipop session expired でない、POC の success=false 再発防止)",
+      "12アドレス再 audit JSON (W2 成果物) が destructive 前に snapshot 取得されていること (rollback 比較用)"
+    ],
+    "execution_steps": [
+      "Lolipop user.lolipop.jp ログイン (storage_state) → メール設定 → sbd@vtj.co.jp 編集ページ (edit_id=DMA7815855) を navigate",
+      "Playwright trace 開始 (path: .ai-runs/mailhub-next-phase/lolipop-sbd-destructive-trace.zip)",
+      "dry-run スクショ (before-apply.png) を取得 → 本 ledger before_state と byte-equal 一致を assert",
+      "転送先1 (ken@) を blank に編集",
+      "転送先3 (junpei@) を blank に編集",
+      "転送先4 (akane@) を blank に編集",
+      "転送先2 (info@) は不変 → slot 1 に rebalance しないか、Lolipop UI が自動詰めなら確認",
+      "空き slot に mailhub@vtj.co.jp.test-google-a.com を追加",
+      "leave_messages_on_server = サーバーに残す を再確認",
+      "更新ボタン click + redirect 確認 (POC failure 再発防止: final_url が edit page から離れること)",
+      "after-apply.png スクショ → 本 ledger after_state_target と byte-equal 一致を assert",
+      "Playwright trace 終了 → trace zip の sha256 を本 ledger に追記",
+      "W2 の poll_5addrs.py 同等で sbd@ INBOX に test mail を送信 → mailhub@.test-google-a.com への到達を実測",
+      "成功なら本 ledger execution_status を APPLIED に更新、approval.approved_at と applied_at を埋め、Playwright trace sha256 と after-apply.png sha256 を埋める",
+      "失敗なら execution_status を FAILED_ROLLBACK_REQUIRED に更新、before_state.forward_addresses 全 5 件を Playwright で再投入"
+    ],
+    "evidence_capture_target_paths": [
+      ".ai-runs/mailhub-next-phase/lolipop-sbd-before-apply.png",
+      ".ai-runs/mailhub-next-phase/lolipop-sbd-after-apply.png",
+      ".ai-runs/mailhub-next-phase/lolipop-sbd-destructive-trace.zip"
+    ]
+  },
+  "rollback": {
+    "rollback_strategy": "manual_re_entry",
+    "rollback_steps": [
+      "Lolipop user.lolipop.jp ログイン → sbd@vtj.co.jp 編集ページ navigate (edit_id=DMA7815855)",
+      "5 slot を全て blank → 更新 (Lolipop UI が空 slot 削除を許容するか要事前確認、不可なら placeholder 一旦投入)",
+      "本 ledger before_state.forward_addresses を slot 順に再入力 (ken@, info@, junpei@, akane@, kumiko@)",
+      "leave_messages_on_server = サーバーに残す を再確認",
+      "更新 → 12アドレス再 audit JSON を再生成して before_state と byte-equal 一致を assert",
+      "rollback 完了後、本 ledger execution_status を ROLLED_BACK に更新、rollback_evidence セクションに trace + screenshot sha256 を追記"
+    ],
+    "rollback_window_estimate_minutes": 10,
+    "rollback_blocker_risk": "Lolipop session expiry (POC success=false の再発リスク)。rollback 着手時点で storage_state 再 ensure 必須。",
+    "post_rollback_communication": "ken@ / junpei@ / akane@ への通知不要 (個人 Inbox の routing 変更を本人が観測する経路は限定的) だが、のび太が明示的に 3名へ事後告知して と指示した場合のみ事後通知。本 ledger 単独では通知禁止。"
+  },
+  "verification": {
+    "post_apply_verification": [
+      "12アドレス再 audit JSON (W2 lolipop-routing-audit.json total:12) の entries[address=sbd@vtj.co.jp].forward_addresses が after_state_target.forward_addresses と byte-equal 一致",
+      "Lolipop メールアドレス一覧画面のスクショ取得 (sbd@ 行の forward 表示確認)",
+      "scripts/lolipop-mailhub-routing/poll_5addrs.py (W2) で sbd@ への test mail (件名 MAILHUB-ROUTING-SBD-RECONSTRUCT-{YYYYMMDD}) を送信 → mailhub@vtj.co.jp の INBOX に到達確認",
+      "Phase 4.5 final_integrity_inventory に本 ledger 行を追加、execution_status=APPLIED + approval.approved_at 非 null + Playwright trace sha256 非 null をすべて満たすこと"
+    ],
+    "data_loss_check": [
+      "削除した ken@ / junpei@ / akane@ 宛に間違って sbd@ への新規受信メールが routing されなくなることを実 traffic 1 通で観測 (canary 1通)",
+      "事前に ken@ / junpei@ / akane@ の Workspace Gmail INBOX 受信状況を観測 (sbd@ 経由でしか届かないメールがある場合は本 destructive で配送停止になるため、destructive 前に Workspace 通常 routing or 別 Group 設定で代替経路を事前に確保すること — の事前確認を AskUserQuestion で実施)"
+    ]
+  },
+  "playwright_trace": {
+    "capture_required": true,
+    "trace_target_path": ".ai-runs/mailhub-next-phase/lolipop-sbd-destructive-trace.zip",
+    "trace_sha256": null,
+    "trace_sha256_capture_at_apply_time": true,
+    "trace_format": "playwright trace (chromium)",
+    "trace_retention_policy": "本 ledger に sha256 記録 + .ai-runs/ 配下に保管 (git LFS 対象外、容量超過時は別途 evidence bucket に移動して URL 記録)"
+  },
+  "history": [
+    {
+      "ts": "2026-06-30T06:33+09:00",
+      "actor": "ultracode-W4 (Claude Workflow subagent, parent ticket=mailhub-destructive-6-prep)",
+      "event": "ledger_drafted",
+      "notes": "新規起票。execution_status=PENDING_DESTRUCTIVE。実 apply 工程は別 ticket (destructive_6 D2 後 sub-step) に分離。"
+    }
+  ],
+  "cross_references": {
+    "parent_ticket": "mailhub-destructive-6-prep",
+    "originating_adjudicator": "mailhub-t2-destructive-readiness-audit/phase1/adjudicator-final.md (Q5.3)",
+    "memory_pointer": "project_mailhub_dev.md:187",
+    "related_artifacts": [
+      ".ai-runs/mailhub-next-phase/lolipop-poc-sbd.json",
+      ".ai-runs/mailhub-next-phase/lolipop-poc-sbd.png",
+      ".ai-runs/mailhub-next-phase/lolipop-routing-audit.json",
+      ".ai-runs/mailhub-next-phase/DESTRUCTIVE_6_READINESS.md"
+    ],
+    "fx_block_guards": [
+      "FX-2 ams_vyper@ block guard (input validation で sbd@ 以外への波及を排除、ledger.approval.approval_scope_limits[0] でも明文化)",
+      "FX-1 gopro_y / gopro_order_yahoo の destructive 禁止確認 (本 ledger は sbd@ のみ対象、FX-1 範囲外)"
+    ]
+  },
+  "open_questions_for_nobita_before_apply": [
+    "ken@ / junpei@ / akane@ が sbd@ 経由でしか受信しない業務メールが存在しないか? (代替経路の有無、事前 1 ターン確認)",
+    "approval.approved_at の正確な timestamp は memory:187 が記録された discussion の何時点か? (本 ledger overwrite 用)",
+    "sbd@ Group は memory:184 で 将来廃止予定 と記載 — 本 destructive 後の sbd@ 廃止 ticket と timing 競合しないか?",
+    "rollback 時に ken@ / junpei@ / akane@ への routing 復元が 10 分以内に完了できる体制 (Lolipop session 即起動可能) を本 destructive 実行 window で確保できているか?"
+  ]
+}
