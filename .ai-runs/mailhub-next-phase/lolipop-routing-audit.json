@@ -1,18 +1,7 @@
 {
-  "audit_at": "2026-06-30T00:00:00+00:00",
-  "schema_version": 2,
-  "schema_notes": "v2: total=12 (7 full-audit + 5 POC-derived). 'source' = 'audit_full' or 'poc'. 'forward_addresses_complete'=true means complete forwarding_mails[] enumeration; false means only mailhub@-presence inferred from POC apply success. Use scripts/lolipop-mailhub-routing/poll_5addrs.py to upgrade POC entries to 'audit_full'.",
+  "audit_at": "2026-06-29T22:33:11Z",
+  "previous_audit_at": "2026-06-27T01:13:17.988430+00:00",
   "total": 12,
-  "audit_full_total": 7,
-  "poc_derived_total": 5,
-  "polling_pending_addresses": [
-    "vyperglobal_sc@vtj.co.jp",
-    "vyper_sc@vtj.co.jp",
-    "steiner-optics_sc@vtj.co.jp",
-    "secondhand@vtj.co.jp",
-    "sbd@vtj.co.jp"
-  ],
-  "last_full_audit_at": "2026-06-27T01:13:17.988430+00:00",
   "entries": [
     {
       "address": "gopro_y@vtj.co.jp",
@@ -25,9 +14,7 @@
         "mailhub@vtj.co.jp.test-google-a.com"
       ],
       "leave_messages": true,
-      "error": null,
-      "source": "audit_full",
-      "forward_addresses_complete": true
+      "error": null
     },
     {
       "address": "gopro_order_yahoo@vtj.co.jp",
@@ -40,9 +27,7 @@
         "info@vtj.co.jp.test-google-a.com"
       ],
       "leave_messages": true,
-      "error": null,
-      "source": "audit_full",
-      "forward_addresses_complete": true
+      "error": null
     },
     {
       "address": "vyper_rakuten@vtj.co.jp",
@@ -55,9 +40,7 @@
         "mailhub@vtj.co.jp.test-google-a.com"
       ],
       "leave_messages": true,
-      "error": null,
-      "source": "audit_full",
-      "forward_addresses_complete": true
+      "error": null
     },
     {
       "address": "vyperglobal_y@vtj.co.jp",
@@ -70,9 +53,7 @@
         "mailhub@vtj.co.jp.test-google-a.com"
       ],
       "leave_messages": true,
-      "error": null,
-      "source": "audit_full",
-      "forward_addresses_complete": true
+      "error": null
     },
     {
       "address": "ams_vyper@vtj.co.jp",
@@ -84,9 +65,7 @@
         "info@vtj.co.jp.test-google-a.com"
       ],
       "leave_messages": true,
-      "error": null,
-      "source": "audit_full",
-      "forward_addresses_complete": true
+      "error": null
     },
     {
       "address": "datacolor_shopify@vtj.co.jp",
@@ -99,9 +78,7 @@
         "info@vtj.co.jp.test-google-a.com"
       ],
       "leave_messages": true,
-      "error": null,
-      "source": "audit_full",
-      "forward_addresses_complete": true
+      "error": null
     },
     {
       "address": "ebay@vtj.co.jp",
@@ -114,53 +91,52 @@
         "info@vtj.co.jp.test-google-a.com"
       ],
       "leave_messages": true,
-      "error": null,
-      "source": "audit_full",
-      "forward_addresses_complete": true
+      "error": null
     },
     {
-      "address": "vyperglobal_sc@vtj.co.jp",
-      "source": "poc",
-      "forward_addresses_complete": false,
-      "poc_source": "lolipop-poc-vyperglobal_sc.json",
-      "poc_success": true,
-      "poc_observed_at": null,
+      "address": "sbd@vtj.co.jp",
       "observed_at": null,
-      "edit_id": null,
-      "page_url": null,
-      "forward_addresses": [
-        "mailhub@vtj.co.jp.test-google-a.com"
-      ],
+      "edit_id": "DMA7815855",
+      "page_url": "https://user.lolipop.jp/?mode=mail-address&exec=edit&id=DMA7815855",
+      "forward_addresses": [],
       "leave_messages": null,
+      "error": "POC success=false; final_url=https://user.lolipop.jp/?mode=mail-address&exec=edit&id=DMA7815855",
+      "source": "poc",
+      "poc_source": "lolipop-poc-sbd.json",
+      "mode": "apply",
+      "forwarding": "mailhub@vtj.co.jp.test-google-a.com",
+      "success": false,
+      "applied_at": null,
+      "verification_method": null,
+      "final_url": "https://user.lolipop.jp/?mode=mail-address&exec=edit&id=DMA7815855",
+      "forward_addresses_complete": false,
       "polling_pending": true,
-      "error": null,
-      "notes": "POC apply succeeded (final_url=mail_setting). Full forwarding_mails[] slot enumeration pending; run poll_5addrs.py to upgrade to source='audit_full'."
+      "status": "poc_failed",
+      "notes": "POC success=false; W4 sbd destructive 削除 ledger 側で扱う。W2ではREAD ONLYのため再applyしない。"
     },
     {
-      "address": "vyper_sc@vtj.co.jp",
-      "source": "poc",
-      "forward_addresses_complete": false,
-      "poc_source": "lolipop-poc-vyper_sc.json",
-      "poc_success": true,
-      "poc_observed_at": null,
+      "address": "secondhand@vtj.co.jp",
       "observed_at": null,
       "edit_id": null,
-      "page_url": null,
-      "forward_addresses": [
-        "mailhub@vtj.co.jp.test-google-a.com"
-      ],
+      "page_url": "https://user.lolipop.jp/?mode=login",
+      "forward_addresses": [],
       "leave_messages": null,
+      "error": "POC success=false; final_url=https://user.lolipop.jp/?mode=login",
+      "source": "poc",
+      "poc_source": "lolipop-poc-secondhand.json",
+      "mode": "apply",
+      "forwarding": "mailhub@vtj.co.jp.test-google-a.com",
+      "success": false,
+      "applied_at": null,
+      "verification_method": null,
+      "final_url": "https://user.lolipop.jp/?mode=login",
+      "forward_addresses_complete": false,
       "polling_pending": true,
-      "error": null,
-      "notes": "POC apply succeeded (final_url=mail_setting). Full forwarding_mails[] slot enumeration pending; run poll_5addrs.py to upgrade to source='audit_full'."
+      "status": "poc_failed",
+      "notes": "Q2 canary 振替で D6 では使用しない"
     },
     {
       "address": "steiner-optics_sc@vtj.co.jp",
-      "source": "poc",
-      "forward_addresses_complete": false,
-      "poc_source": "lolipop-poc-steiner-optics_sc.json",
-      "poc_success": true,
-      "poc_observed_at": null,
       "observed_at": null,
       "edit_id": "DMA8787735",
       "page_url": "https://user.lolipop.jp/?mode=mail-address&exec=edit&id=DMA8787735",
@@ -168,43 +144,62 @@
         "mailhub@vtj.co.jp.test-google-a.com"
       ],
       "leave_messages": null,
-      "polling_pending": true,
       "error": null,
-      "notes": "POC apply succeeded; edit_id confirmed from POC final_url. Full forwarding_mails[] enumeration pending; run poll_5addrs.py to upgrade to source='audit_full'."
+      "source": "poc",
+      "poc_source": "lolipop-poc-steiner-optics_sc.json",
+      "mode": "apply",
+      "forwarding": "mailhub@vtj.co.jp.test-google-a.com",
+      "success": true,
+      "applied_at": null,
+      "verification_method": null,
+      "final_url": "https://user.lolipop.jp/?mode=mail-address&exec=edit&id=DMA8787735",
+      "forward_addresses_complete": false,
+      "polling_pending": true,
+      "notes": "POC success=true; full forwarding slot enumeration remains polling_pending because W2 did not run live polling."
     },
     {
-      "address": "secondhand@vtj.co.jp",
-      "source": "poc",
-      "forward_addresses_complete": false,
-      "poc_source": "lolipop-poc-secondhand.json",
-      "poc_success": false,
-      "poc_failure_reason": "session_expired_login_redirect",
-      "poc_observed_at": null,
+      "address": "vyper_sc@vtj.co.jp",
       "observed_at": null,
-      "edit_id": "DMA6193388",
-      "page_url": "https://user.lolipop.jp/?mode=mail-address&exec=edit&id=DMA6193388",
-      "forward_addresses": [],
+      "edit_id": null,
+      "page_url": "https://user.lolipop.jp/?mode=mail_setting",
+      "forward_addresses": [
+        "mailhub@vtj.co.jp.test-google-a.com"
+      ],
       "leave_messages": null,
+      "error": null,
+      "source": "poc",
+      "poc_source": "lolipop-poc-vyper_sc.json",
+      "mode": "apply",
+      "forwarding": "mailhub@vtj.co.jp.test-google-a.com",
+      "success": true,
+      "applied_at": null,
+      "verification_method": null,
+      "final_url": "https://user.lolipop.jp/?mode=mail_setting",
+      "forward_addresses_complete": false,
       "polling_pending": true,
-      "error": "POC apply failed: redirected to login (session expired); mailhub@ forward presence unconfirmed. Per Adjudicator Q2 (2026-06-29), D6 canary target re-assigned to ebay@; secondhand@ apply is NOT a destructive-6 prerequisite. Polling is informational only.",
-      "notes": "edit_id sourced from KNOWN_IDS map in lolipop_forward_setup.py (line 46). Re-apply optional; poll_5addrs.py records current state without modification."
+      "notes": "POC success=true; full forwarding slot enumeration remains polling_pending because W2 did not run live polling."
     },
     {
-      "address": "sbd@vtj.co.jp",
-      "source": "poc",
-      "forward_addresses_complete": false,
-      "poc_source": "lolipop-poc-sbd.json",
-      "poc_success": false,
-      "poc_failure_reason": "stale_edit_page",
-      "poc_observed_at": null,
+      "address": "vyperglobal_sc@vtj.co.jp",
       "observed_at": null,
-      "edit_id": "DMA7815855",
-      "page_url": "https://user.lolipop.jp/?mode=mail-address&exec=edit&id=DMA7815855",
-      "forward_addresses": [],
+      "edit_id": null,
+      "page_url": "https://user.lolipop.jp/?mode=mail_setting",
+      "forward_addresses": [
+        "mailhub@vtj.co.jp.test-google-a.com"
+      ],
       "leave_messages": null,
+      "error": null,
+      "source": "poc",
+      "poc_source": "lolipop-poc-vyperglobal_sc.json",
+      "mode": "apply",
+      "forwarding": "mailhub@vtj.co.jp.test-google-a.com",
+      "success": true,
+      "applied_at": null,
+      "verification_method": null,
+      "final_url": "https://user.lolipop.jp/?mode=mail_setting",
+      "forward_addresses_complete": false,
       "polling_pending": true,
-      "error": "POC apply failed (stale page). W4 ledger (lolipop-sbd-reconstruct.json) holds the destructive 削除 reconstruction plan ([ken,info,junpei,akane,kumiko] -> [info,kumiko,mailhub@.test-google-a.com]); execution gated by separate destructive ticket.",
-      "notes": "sbd@ forward state must NOT be polled until W4 ledger is approved and applied; pre-reconstruct polling would still observe the old 5-slot state. poll_5addrs.py is safe to run (read-only) but the result reflects the pre-reconstruct snapshot."
+      "notes": "POC success=true; full forwarding slot enumeration remains polling_pending because W2 did not run live polling."
     }
   ]
 }

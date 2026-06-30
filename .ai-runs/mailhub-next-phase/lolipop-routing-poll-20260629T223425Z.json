@@ -1,0 +1,57 @@
+{
+  "created_at": "2026-06-29T22:34:25Z",
+  "result_type": "polling_persistence_record",
+  "read_only_ticket": "mailhub-destructive-6-prep/W2",
+  "polling_executed": false,
+  "reason": "No prior lolipop-routing-poll-*.json was found and W2 explicitly forbids live polling; memory records polling 実測未完.",
+  "memory_reference": "~/.claude/projects/-Users-takayukisuzuki-VYPER-Dev-vyper-ops/memory/project_mailhub_dev.md:191",
+  "audit_json": ".ai-runs/mailhub-next-phase/lolipop-routing-audit.json",
+  "canonical_script": "scripts/lolipop-mailhub-routing/poll_5addrs.py",
+  "targets": [
+    {
+      "address": "sbd@vtj.co.jp",
+      "poc_source": "lolipop-poc-sbd.json",
+      "forwarding": "mailhub@vtj.co.jp.test-google-a.com",
+      "success": false,
+      "applied_at": null,
+      "verification_method": null,
+      "final_url": "https://user.lolipop.jp/?mode=mail-address&exec=edit&id=DMA7815855"
+    },
+    {
+      "address": "secondhand@vtj.co.jp",
+      "poc_source": "lolipop-poc-secondhand.json",
+      "forwarding": "mailhub@vtj.co.jp.test-google-a.com",
+      "success": false,
+      "applied_at": null,
+      "verification_method": null,
+      "final_url": "https://user.lolipop.jp/?mode=login"
+    },
+    {
+      "address": "steiner-optics_sc@vtj.co.jp",
+      "poc_source": "lolipop-poc-steiner-optics_sc.json",
+      "forwarding": "mailhub@vtj.co.jp.test-google-a.com",
+      "success": true,
+      "applied_at": null,
+      "verification_method": null,
+      "final_url": "https://user.lolipop.jp/?mode=mail-address&exec=edit&id=DMA8787735"
+    },
+    {
+      "address": "vyper_sc@vtj.co.jp",
+      "poc_source": "lolipop-poc-vyper_sc.json",
+      "forwarding": "mailhub@vtj.co.jp.test-google-a.com",
+      "success": true,
+      "applied_at": null,
+      "verification_method": null,
+      "final_url": "https://user.lolipop.jp/?mode=mail_setting"
+    },
+    {
+      "address": "vyperglobal_sc@vtj.co.jp",
+      "poc_source": "lolipop-poc-vyperglobal_sc.json",
+      "forwarding": "mailhub@vtj.co.jp.test-google-a.com",
+      "success": true,
+      "applied_at": null,
+      "verification_method": null,
+      "final_url": "https://user.lolipop.jp/?mode=mail_setting"
+    }
+  ]
+}

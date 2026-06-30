@@ -1,25 +1,27 @@
 #!/usr/bin/env python3
-"""poll_5addrs.py
+"""Read-only Lolipop routing polling for the five Q5 add-on addresses.
 
-ロリポップ管理画面に read-only で再訪し、Adjudicator Q5 #1 で「polling 未完」と
-記録された 5 アドレス (vyperglobal_sc / vyper_sc / steiner-optics_sc / secondhand
-/ sbd) の forwarding_mails[] slot を実測して
-.ai-runs/mailhub-next-phase/lolipop-routing-audit.json の該当 entry を
-source="audit_full" に昇格させる。
+実行方法:
+    python scripts/lolipop-mailhub-routing/poll_5addrs.py --dry-run
+    python scripts/lolipop-mailhub-routing/poll_5addrs.py --no-screenshot
 
-設計原則 (READ ONLY 厳守):
-- 「更新」「変更」「削除」「追加」ボタンは絶対に押さない。
-- 既存 lolipop_forward_setup.py のログイン/転送読取 API を再利用する
-  (二重実装による drift を避ける)。
-- 例外: target が見つからない / セッション失効 / DOM 変更で取得失敗した場合は
-  該当 entry を polling_pending=True のまま残し error フィールドに事由を記録する。
-- 既存の audit_full 7 アドレス entry は touch しない。
+入力:
+    --audit-json PATH
+        既定: .ai-runs/mailhub-next-phase/lolipop-routing-audit.json
+    --addresses ADDR,ADDR
+        既定: vyperglobal_sc / vyper_sc / steiner-optics_sc / secondhand / sbd
 
-スコープ外:
-- destructive 操作 (apply / delete)。lolipop_forward_setup.py --apply または W4
-  の sbd 削除 ledger 適用フローで別途扱う。
-- sbd@ の polling は W4 ledger 適用前なら pre-reconstruct snapshot を映す。これは
-  Adjudicator Q5 の意図通りで、本 script は raw observation のみ返す。
+出力:
+    - audit JSON の該当 entry を read-only observation で更新
+    - .ai-runs/mailhub-next-phase/lolipop-routing-poll-<UTC>.json
+    - 任意で .ai-runs/mailhub-next-phase/lolipop-poll-5addrs-*.png
+
+dry-run flag:
+    --dry-run は Lolipop に接続せず、audit JSON上の対象 entry と実行計画だけを表示する。
+
+READ ONLY 原則:
+    「更新」「変更」「削除」「追加」ボタンは絶対に押さない。既存7件は変更せず、
+    5件のPOC由来entryだけを source="audit_full" へ昇格する。
 """
 
 from __future__ import annotations
@@ -32,6 +34,7 @@ from pathlib import Path
 
 # 同一ディレクトリ配置を前提に lolipop_forward_setup を再利用
 SCRIPT_DIR = Path(__file__).resolve().parent
+REPO_ROOT = SCRIPT_DIR.parents[1]
 sys.path.insert(0, str(SCRIPT_DIR))
 
 
@@ -68,8 +71,8 @@ def _import_forward_setup() -> dict:
     }
 
 
-OUTPUT_DIR = Path.home() / "VYPER-Dev/Mailhub/.ai-runs/mailhub-next-phase"
-AUDIT_JSON = OUTPUT_DIR / "lolipop-routing-audit.json"
+DEFAULT_OUTPUT_DIR = REPO_ROOT / ".ai-runs/mailhub-next-phase"
+DEFAULT_AUDIT_JSON = DEFAULT_OUTPUT_DIR / "lolipop-routing-audit.json"
 
 NEW_TARGETS: list[str] = [
     "vyperglobal_sc@vtj.co.jp",
@@ -80,17 +83,17 @@ NEW_TARGETS: list[str] = [
 ]
 
 
-def _load_audit() -> dict:
-    if not AUDIT_JSON.exists():
+def _load_audit(audit_json: Path) -> dict:
+    if not audit_json.exists():
         raise FileNotFoundError(
-            f"audit JSON not found: {AUDIT_JSON}. "
+            f"audit JSON not found: {audit_json}. "
             "W2 (lolipop-routing-audit.json total=12) を先に適用してください。"
         )
-    return json.loads(AUDIT_JSON.read_text(encoding="utf-8"))
+    return json.loads(audit_json.read_text(encoding="utf-8"))
 
 
-def _save_audit(doc: dict) -> None:
-    AUDIT_JSON.write_text(
+def _save_audit(doc: dict, audit_json: Path) -> None:
+    audit_json.write_text(
         json.dumps(doc, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
 
@@ -139,7 +142,7 @@ def _print_plan(targets: list[str], doc: dict) -> None:
             continue
         print(
             f"  - {t}: source={existing.get('source')} "
-            f"poc_success={existing.get('poc_success')} "
+            f"success={existing.get('success')} "
             f"edit_id={existing.get('edit_id') or '(unknown)'}"
         )
     print("実行時の差分:")
@@ -160,6 +163,24 @@ def main() -> None:
         help="polling 対象 (カンマ区切り)。既定は Adjudicator Q5 の 5 件。",
     )
     parser.add_argument(
+        "--audit-json",
+        type=Path,
+        default=DEFAULT_AUDIT_JSON,
+        help="更新対象の audit JSON path",
+    )
+    parser.add_argument(
+        "--output-dir",
+        type=Path,
+        default=DEFAULT_OUTPUT_DIR,
+        help="poll結果JSONとスクリーンショットの出力先",
+    )
+    parser.add_argument(
+        "--result-json",
+        type=Path,
+        default=None,
+        help="poll結果JSON path。未指定なら output-dir/lolipop-routing-poll-<UTC>.json",
+    )
+    parser.add_argument(
         "--dry-run",
         action="store_true",
         help="Lolipop に接続せず計画のみ表示 (CI / 確認用)",
@@ -176,7 +197,9 @@ def main() -> None:
         print("[poll] NG 対象アドレスが空です", file=sys.stderr)
         sys.exit(2)
 
-    doc = _load_audit()
+    audit_json = args.audit_json.resolve()
+    output_dir = args.output_dir.resolve()
+    doc = _load_audit(audit_json)
 
     if args.dry_run:
         _print_plan(targets, doc)
@@ -194,7 +217,7 @@ def main() -> None:
     from playwright.sync_api import sync_playwright  # type: ignore
 
     secrets = load_secrets()
-    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    output_dir.mkdir(parents=True, exist_ok=True)
 
     print("=" * 60)
     print(f"poll_5addrs.py: {len(targets)} アドレスを READ ONLY で polling")
@@ -228,7 +251,7 @@ def main() -> None:
                 png_path: Path | None = None
                 if not args.no_screenshot:
                     slug = addr.split("@")[0].replace("_", "-")
-                    png_path = OUTPUT_DIR / f"lolipop-poll-5addrs-{slug}.png"
+                    png_path = output_dir / f"lolipop-poll-5addrs-{slug}.png"
                     try:
                         page.screenshot(path=str(png_path), full_page=True)
                         print(f"[poll] screenshot: {png_path}")
@@ -276,7 +299,25 @@ def main() -> None:
     if not pending:
         doc["last_full_audit_at"] = doc["audit_at"]
 
-    _save_audit(doc)
+    _save_audit(doc, audit_json)
+
+    result_json = args.result_json
+    if result_json is None:
+        stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+        result_json = output_dir / f"lolipop-routing-poll-{stamp}.json"
+    result_payload = {
+        "poll_at": doc["audit_at"],
+        "read_only": True,
+        "audit_json": str(audit_json),
+        "targets": targets,
+        "summary": summary,
+        "polling_pending_addresses": pending,
+        "screenshots_enabled": not args.no_screenshot,
+    }
+    result_json.write_text(
+        json.dumps(result_payload, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
 
     print("\n" + "=" * 60)
     print("poll 結果サマリ")
@@ -284,7 +325,8 @@ def main() -> None:
     print(f"  pending  : {pending}")
     for s in summary:
         print(f"  - {s['address']:<35} {s['status']}")
-    print(f"\n[output] {AUDIT_JSON}")
+    print(f"\n[output] {audit_json}")
+    print(f"[output] {result_json}")
 
 
 if __name__ == "__main__":
