@@ -1,8 +1,8 @@
 # MailHub Production Config Intake
 
-Generated: 2026-07-03T22:36:15.848Z
+Generated: 2026-07-03T23:17:52.634Z
 
-Repo head: `5794708d687d3b1d7dabaadc6b3bb3f4faa2ca9a`
+Repo head: `f1bfbeeb99ea4c40c9c0f84b4d176bc6a50d2abe`
 
 This artifact is intentionally value-free. Do not paste production secrets, tokens, private keys, SMTP passwords, or OAuth values into this file.
 
@@ -10,7 +10,6 @@ This artifact is intentionally value-free. Do not paste production secrets, toke
 
 - productionReady: `false`
 - P0 blockers:
-- `staleInput`
 - `current_shared_gmail_routing`
 - P1 blockers:
 - `rule_config_source_not_production`

@@ -1,11 +1,10 @@
 {
-  "generatedAt": "2026-07-03T22:36:15.848Z",
-  "repoHead": "5794708d687d3b1d7dabaadc6b3bb3f4faa2ca9a",
+  "generatedAt": "2026-07-03T23:17:52.634Z",
+  "repoHead": "f1bfbeeb99ea4c40c9c0f84b4d176bc6a50d2abe",
   "valuePolicy": "Secret values are never printed; this artifact contains only key names, blocker ids, readiness booleans, and commands.",
   "readiness": {
     "productionReady": false,
     "p0Blockers": [
-      "staleInput",
       "current_shared_gmail_routing"
     ],
     "p1Blockers": [
