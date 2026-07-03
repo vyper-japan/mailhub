@@ -1,6 +1,7 @@
 {
-  "audit_at": "2026-06-27T01:13:17.988430+00:00",
-  "total": 7,
+  "audit_at": "2026-06-29T22:33:11Z",
+  "previous_audit_at": "2026-06-27T01:13:17.988430+00:00",
+  "total": 12,
   "entries": [
     {
       "address": "gopro_y@vtj.co.jp",
@@ -91,6 +92,114 @@
       ],
       "leave_messages": true,
       "error": null
+    },
+    {
+      "address": "sbd@vtj.co.jp",
+      "observed_at": null,
+      "edit_id": "DMA7815855",
+      "page_url": "https://user.lolipop.jp/?mode=mail-address&exec=edit&id=DMA7815855",
+      "forward_addresses": [],
+      "leave_messages": null,
+      "error": "POC success=false; final_url=https://user.lolipop.jp/?mode=mail-address&exec=edit&id=DMA7815855",
+      "source": "poc",
+      "poc_source": "lolipop-poc-sbd.json",
+      "mode": "apply",
+      "forwarding": "mailhub@vtj.co.jp.test-google-a.com",
+      "success": false,
+      "applied_at": null,
+      "verification_method": null,
+      "final_url": "https://user.lolipop.jp/?mode=mail-address&exec=edit&id=DMA7815855",
+      "forward_addresses_complete": false,
+      "polling_pending": true,
+      "status": "poc_failed",
+      "notes": "POC success=false; W4 sbd destructive 削除 ledger 側で扱う。W2ではREAD ONLYのため再applyしない。"
+    },
+    {
+      "address": "secondhand@vtj.co.jp",
+      "observed_at": null,
+      "edit_id": null,
+      "page_url": "https://user.lolipop.jp/?mode=login",
+      "forward_addresses": [],
+      "leave_messages": null,
+      "error": "POC success=false; final_url=https://user.lolipop.jp/?mode=login",
+      "source": "poc",
+      "poc_source": "lolipop-poc-secondhand.json",
+      "mode": "apply",
+      "forwarding": "mailhub@vtj.co.jp.test-google-a.com",
+      "success": false,
+      "applied_at": null,
+      "verification_method": null,
+      "final_url": "https://user.lolipop.jp/?mode=login",
+      "forward_addresses_complete": false,
+      "polling_pending": true,
+      "status": "poc_failed",
+      "notes": "Q2 canary 振替で D6 では使用しない"
+    },
+    {
+      "address": "steiner-optics_sc@vtj.co.jp",
+      "observed_at": null,
+      "edit_id": "DMA8787735",
+      "page_url": "https://user.lolipop.jp/?mode=mail-address&exec=edit&id=DMA8787735",
+      "forward_addresses": [
+        "mailhub@vtj.co.jp.test-google-a.com"
+      ],
+      "leave_messages": null,
+      "error": null,
+      "source": "poc",
+      "poc_source": "lolipop-poc-steiner-optics_sc.json",
+      "mode": "apply",
+      "forwarding": "mailhub@vtj.co.jp.test-google-a.com",
+      "success": true,
+      "applied_at": null,
+      "verification_method": null,
+      "final_url": "https://user.lolipop.jp/?mode=mail-address&exec=edit&id=DMA8787735",
+      "forward_addresses_complete": false,
+      "polling_pending": true,
+      "notes": "POC success=true; full forwarding slot enumeration remains polling_pending because W2 did not run live polling."
+    },
+    {
+      "address": "vyper_sc@vtj.co.jp",
+      "observed_at": null,
+      "edit_id": null,
+      "page_url": "https://user.lolipop.jp/?mode=mail_setting",
+      "forward_addresses": [
+        "mailhub@vtj.co.jp.test-google-a.com"
+      ],
+      "leave_messages": null,
+      "error": null,
+      "source": "poc",
+      "poc_source": "lolipop-poc-vyper_sc.json",
+      "mode": "apply",
+      "forwarding": "mailhub@vtj.co.jp.test-google-a.com",
+      "success": true,
+      "applied_at": null,
+      "verification_method": null,
+      "final_url": "https://user.lolipop.jp/?mode=mail_setting",
+      "forward_addresses_complete": false,
+      "polling_pending": true,
+      "notes": "POC success=true; full forwarding slot enumeration remains polling_pending because W2 did not run live polling."
+    },
+    {
+      "address": "vyperglobal_sc@vtj.co.jp",
+      "observed_at": null,
+      "edit_id": null,
+      "page_url": "https://user.lolipop.jp/?mode=mail_setting",
+      "forward_addresses": [
+        "mailhub@vtj.co.jp.test-google-a.com"
+      ],
+      "leave_messages": null,
+      "error": null,
+      "source": "poc",
+      "poc_source": "lolipop-poc-vyperglobal_sc.json",
+      "mode": "apply",
+      "forwarding": "mailhub@vtj.co.jp.test-google-a.com",
+      "success": true,
+      "applied_at": null,
+      "verification_method": null,
+      "final_url": "https://user.lolipop.jp/?mode=mail_setting",
+      "forward_addresses_complete": false,
+      "polling_pending": true,
+      "notes": "POC success=true; full forwarding slot enumeration remains polling_pending because W2 did not run live polling."
     }
   ]
 }
