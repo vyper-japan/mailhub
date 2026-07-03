@@ -794,7 +794,9 @@ function main() {
     const missingEnv = stringArray(routingProbePreflight.missingRequiredEnv);
     const missingGithubSecrets = stringArray(routingProbeGithubSecrets.missingSendVerifySecrets);
 
-    if (unconfirmed.length === 0) errors.push("routing_blocker_missing_unconfirmed_channels");
+    // Allow P0 routing to remain after channel reachability is confirmed when
+    // the send/verify proof chain still records concrete unresolved gaps.
+    if (unconfirmed.length === 0 && routingProofIssues.length === 0) errors.push("routing_blocker_missing_unconfirmed_channels");
     if (mxRecords.length === 0) errors.push("routing_blocker_missing_mx_records");
     if (typeof routingProbeGate.allExpectedAddressesConfirmed !== "boolean") {
       errors.push("routing_blocker_missing_address_probe_gate");
