@@ -35,8 +35,8 @@
 
 | # | 現状 | 不足 |
 |---|---|---|
-| D1 | refresh token 旧版のみ (gmail.readonly + modify、send/settings.sharing なし想定) | `gmail.send` + `gmail.settings.sharing` scope を含む new token 未取得 |
-| D2 | **15/15 unregistered** (ledger 全行 `verificationStatus=unregistered`) | 15回 create+verify 実施。Route A/B 未決 |
+| D1 | ✅ **完了 (2026-07-04)**: 新 token を SM `vyper/mailhub/prod/google_shared_inbox_refresh_token_next` に格納、scope 4種 (readonly/modify/send/settings.sharing) 検証済。本番未swap | なし (D3 で swap) |
+| D2 | ✅ **完了 (2026-07-04)**: Route A (DWD) で **15/15 accepted** (all same-domain auto-accept、`scripts/gmail-send-as/register_send_as.py`)。ledger 全行 accepted、evidence=`sendas-registration-20260703T224507Z.json` | なし |
 | D3 | env は staging/preview レベル想定。本番 Vercel の現env未棚卸し | `prod-env-ledger.md` の最新化 + 3点投入 |
 | D4 | `MAILHUB_READ_ONLY=1` (デフォルト安全側) | 解除承認のみ |
 | D5 | `MAILHUB_SEND_ENABLED=0` or unset | 投入承認のみ |

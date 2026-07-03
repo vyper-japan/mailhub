@@ -1,0 +1,168 @@
+{
+  "operator": "takayukisuzuki",
+  "timestamp": "2026-07-03T22:44:24Z",
+  "mode": "apply",
+  "cancelled": false,
+  "subject": "mailhub@vtj.co.jp",
+  "ledger": "/Users/takayukisuzuki/.claude/instructions/mailhub-inapp-send/phase1/ops/send-as-ledger.md",
+  "scopes": [
+    "https://www.googleapis.com/auth/gmail.settings.sharing",
+    "https://www.googleapis.com/auth/gmail.readonly"
+  ],
+  "aliases": [
+    {
+      "alias": "cricut_y@vtj.co.jp",
+      "channelId": "cricut-yahoo",
+      "channelLabel": "Cricut Yahoo",
+      "action": "CREATE",
+      "verificationStatus": "accepted",
+      "checkedAt": "2026-07-03T22:44:36Z",
+      "note": "createResponseStatus=accepted",
+      "status": "OK"
+    },
+    {
+      "alias": "cricut_sc@vtj.co.jp",
+      "channelId": "cricut-amazon",
+      "channelLabel": "Cricut Amazon",
+      "action": "CREATE",
+      "verificationStatus": "accepted",
+      "checkedAt": "2026-07-03T22:44:38Z",
+      "note": "createResponseStatus=accepted",
+      "status": "OK"
+    },
+    {
+      "alias": "cricut_makeshop@vtj.co.jp",
+      "channelId": "cricut-makeshop",
+      "channelLabel": "Cricut オンラインストア",
+      "action": "CREATE",
+      "verificationStatus": "accepted",
+      "checkedAt": "2026-07-03T22:44:41Z",
+      "note": "createResponseStatus=accepted",
+      "status": "OK"
+    },
+    {
+      "alias": "gopro_y@vtj.co.jp",
+      "channelId": "gopro-yahoo",
+      "channelLabel": "GoPro Yahoo",
+      "action": "CREATE",
+      "verificationStatus": "accepted",
+      "checkedAt": "2026-07-03T22:44:43Z",
+      "note": "createResponseStatus=accepted",
+      "status": "OK"
+    },
+    {
+      "alias": "gopro_order_yahoo@vtj.co.jp",
+      "channelId": "gopro-yahoo",
+      "channelLabel": "GoPro Yahoo",
+      "action": "CREATE",
+      "verificationStatus": "accepted",
+      "checkedAt": "2026-07-03T22:44:46Z",
+      "note": "createResponseStatus=accepted",
+      "status": "OK"
+    },
+    {
+      "alias": "gopro_mp@vtj.co.jp",
+      "channelId": "gopro-mp",
+      "channelLabel": "GoPro Amazon",
+      "action": "CREATE",
+      "verificationStatus": "accepted",
+      "checkedAt": "2026-07-03T22:44:48Z",
+      "note": "createResponseStatus=accepted",
+      "status": "OK"
+    },
+    {
+      "alias": "vyperglobal_y@vtj.co.jp",
+      "channelId": "vyperglobal-yahoo",
+      "channelLabel": "VYPER GLOBAL Yahoo",
+      "action": "CREATE",
+      "verificationStatus": "accepted",
+      "checkedAt": "2026-07-03T22:44:50Z",
+      "note": "createResponseStatus=accepted",
+      "status": "OK"
+    },
+    {
+      "alias": "vyperglobal_sc@vtj.co.jp",
+      "channelId": "vyperglobal-amazon",
+      "channelLabel": "VYPER GLOBAL Amazon",
+      "action": "CREATE",
+      "verificationStatus": "accepted",
+      "checkedAt": "2026-07-03T22:44:52Z",
+      "note": "createResponseStatus=accepted",
+      "status": "OK"
+    },
+    {
+      "alias": "vyper_sc@vtj.co.jp",
+      "channelId": "vyper-amazon",
+      "channelLabel": "VYPER SC",
+      "action": "CREATE",
+      "verificationStatus": "accepted",
+      "checkedAt": "2026-07-03T22:44:55Z",
+      "note": "createResponseStatus=accepted",
+      "status": "OK"
+    },
+    {
+      "alias": "datacolor_shopify@vtj.co.jp",
+      "channelId": "datacolor",
+      "channelLabel": "Datacolor Shopify",
+      "action": "CREATE",
+      "verificationStatus": "accepted",
+      "checkedAt": "2026-07-03T22:44:57Z",
+      "note": "createResponseStatus=accepted",
+      "status": "OK"
+    },
+    {
+      "alias": "akgstore@vtj.co.jp",
+      "channelId": "akg",
+      "channelLabel": "AKGストア",
+      "action": "CREATE",
+      "verificationStatus": "accepted",
+      "checkedAt": "2026-07-03T22:44:59Z",
+      "note": "createResponseStatus=accepted",
+      "status": "OK"
+    },
+    {
+      "alias": "sbd@vtj.co.jp",
+      "channelId": "sbd",
+      "channelLabel": "SBD (Black & Decker)",
+      "action": "CREATE",
+      "verificationStatus": "accepted",
+      "checkedAt": "2026-07-03T22:45:01Z",
+      "note": "createResponseStatus=accepted",
+      "status": "OK"
+    },
+    {
+      "alias": "secondhand@vtj.co.jp",
+      "channelId": "secondhand",
+      "channelLabel": "セカンドハンド",
+      "action": "CREATE",
+      "verificationStatus": "accepted",
+      "checkedAt": "2026-07-03T22:45:04Z",
+      "note": "createResponseStatus=accepted",
+      "status": "OK"
+    },
+    {
+      "alias": "steiner-optics_sc@vtj.co.jp",
+      "channelId": "steiner",
+      "channelLabel": "Steiner Optics",
+      "action": "CREATE",
+      "verificationStatus": "accepted",
+      "checkedAt": "2026-07-03T22:45:06Z",
+      "note": "createResponseStatus=accepted",
+      "status": "OK"
+    },
+    {
+      "alias": "ebay@vtj.co.jp",
+      "action": "SKIP",
+      "verificationStatus": "accepted",
+      "note": "already registered",
+      "channelId": "ebay",
+      "channelLabel": "eBay",
+      "checkedAt": "2026-07-03T22:45:07Z"
+    }
+  ],
+  "redaction": {
+    "tokenValuesStored": false,
+    "privateKeyStored": false,
+    "verificationUrlsStored": false
+  }
+}
