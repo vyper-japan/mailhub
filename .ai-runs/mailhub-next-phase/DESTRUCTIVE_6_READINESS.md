@@ -13,6 +13,8 @@
 
 本書は4本を「依存順 + 現状 + 戻し方」で1枚に圧縮したもの。
 
+関連: 罠検出詳細と D1-D6 の 6段 checklist 正本は、同dir の `DESTRUCTIVE_6_TRAP_CHECKLIST.md` (SS5 Quick 2026-07-03)。
+
 ## 1. destructive 6項目 (依存順)
 
 | # | 項目 | 何をするか | runbook | 戻し方 |
@@ -23,6 +25,11 @@
 | D4 | **READ ONLY 解除** | `MAILHUB_READ_ONLY=0` に変更 | R4 §4 (approval) + R4 §5 step 2 (line 130 env mutation) | `=1` に戻す (R4 §9) |
 | D5 | **`MAILHUB_SEND_ENABLED=1`** | send route の最終ゲート開放 | R4 §5 | `=0` に戻す (R4 §8) |
 | D6 | **canary 1件本番送信** | 承認済み1通だけ実送信 → Gmail側 + activity 両面で着確認 | R4 §7 | D5→D4 を順次rollback |
+
+補足:
+- D2検証: send-as 承認状態は 5分 in-memory cache (`lib/mailhub-send-as.ts:34`)。health の `acceptedCount` が古い可能性があるため、直近5分内の再確認はキャッシュを疑う。
+- D4解除確認: Vercel env 表示ではなく `GET /api/mailhub/config/health` の `readOnly` フィールドで行う。`lib/read-only.ts:32-41` により Sheets activity store 未確立時は `MAILHUB_READ_ONLY=0` でも `readOnly=true` が維持される (D3成功が真の前提)。
+- D5前提: `a0bd8f1` により `productionReady` は `p1Blockers==0` も要求。D5着手前に readiness audit の P1 blockers 清算計画を確認する。
 
 ## 2. 各項目の現状
 
@@ -52,8 +59,9 @@ D1着手の前に **必ず** 全て満たす:
 - [ ] **P5**: のび太承認 (approver / 時刻 / 対象deploy / rollback owner / enable window / 各destructive個別承認)
 - [ ] **P6**: 操作端末 secret-bearing 扱い (token値を repo / ticket / chat / screenshot / shell history に出さない)
 - [ ] **P7**: Q5 routing block 4点 closed (12アドレス audit JSON / polling 成果物永続化 / sbd destructive 削除 ledger / secondhand 再apply 不要裁定)
-- [ ] **P8**: main HEAD v25 増分 audit (3ce3975 → b6e1aea、35 commits 分) closed
+- [ ] **P8**: main HEAD v25 増分 audit closed: `3ce3975..7ae6470` 49 commits を `mailhub-main-head-incremental-audit` (2026-07-03, SHIELD 5 worker) で再監査。CONFIRMED 3件 (`730334d` / `41e897a` / `a0bd8f1`) はのび太 risk acceptance 前提で runbook 反映済み
 - [ ] **P9**: `send/route.ts:471-477` reservation cleanup closed (D6 canary失敗時の同一 `clientRequestId` 永久409 block防止)
+- [ ] **P10**: 並走監査 reconcile: `mailhub-production-readiness-audit.json` の `p0Blockers` / `productionReady` を確認し、D実行と矛盾しないことを記録する。現況 P0=`current_shared_gmail_routing` は proof chain 未完由来で、D6完了により解消見込み。
 
 ## 4. 依存DAG
 
@@ -80,12 +88,15 @@ D3 本番env 3点投入 (token swap [_previous populate 必須] + activity store
         ▼
 [post-D3 health smoke] (R1 §5 step 5、SEND_ENABLED=0/READ_ONLY=1)
   send 経路は閉じたまま token + Sheets activity 接続性のみ確認
+  gmailSendReady はこの時点で構造的に false。合否は ①gmailScopes に gmail.send + gmail.settings.sharing 含有 ②activityStore.resolved=sheets かつ sheetsConfigured=true ③sendAs.error=null の 3点で判定
         │
         ▼
 D4 READ ONLY解除 (MAILHUB_READ_ONLY=0、R4 §5 step 2)
+  解除確認は /api/mailhub/config/health の readOnly=false (D3成功後)
         │
         ▼
 qa:strict 2連続PASS 再充足 (R4 §1 独立ゲート、prod send enable 直前)
+  readiness audit の P1 blockers 清算計画を確認
         │
         ▼
 D5 SEND有効化 (MAILHUB_SEND_ENABLED=1、R4 §5 step 2)
@@ -106,12 +117,15 @@ R4 §7 の制約:
 - bulk禁止 / retry禁止 (新規decision要)
 - request body は `request_body_sha256` 保管のみ
 - 失敗 or 曖昧時は **即 D5→D4 rollback + incident open**
+- retry注記: `730334d` により canary失敗時 reservation は自動解放 (guard log label=`send_failed`)。retry は duplicate guard に阻まれないが、Gmail受理後に SDK が throw した場合の二重送信残余リスクあり (`app/api/mailhub/send/route.ts:483-486`)。retry前に mailhub@ SENT と guard log を必ず確認する。
+- proof artifact反映: 実 probe 後の routing probe artifacts (preflight/send/audit) は `41e897a` により repoHead 鮮度必須。probe実行 → `ops:readiness-refresh` → artifact-only commit の順で main へ反映しないと proof が counted されない。
 
-候補channel: **`ebay@vtj.co.jp`** (Q2 振替確定、2026-06-29 Adjudicator 裁定 — secondhand@ は POC success:false / Lolipop apply 未完 のため失格、ebay@ は POC success / Lolipop 完了済 / mailhub@ INBOX 到達 7/7 実証)
+候補channel: **`ebay@vtj.co.jp`** (Q2 振替確定、2026-06-29 Adjudicator 裁定 — secondhand@ は POC success:false / Lolipop apply 未完 のため失格、ebay@ は POC success / Lolipop 完了済 / info@ INBOX 到達 7/7 実証 (`NEXT_SESSION_HANDOFF.md`)。mailhub@ INBOX 到達は未実証で、現況 evidence は mailhub@ mailbox 内の ebay@ 宛 1通のみ (`gmail-source-coverage-audit.json` ebay: `resultSizeEstimate=1`))
+- D6前提確認: 上記 1通の経路検証、または新規到達確認を必須とする。
 - canary_sender_alias: `ebay` (channel single-alias)
 - canary_recipient: `ahirudesign@gmail.com` (既存 routing probe test 送信者)
 - canary_body: "MailHub D6 canary test. 受信確認用の1通です。返信不要です。clientRequestId=<redacted>"
-- canary_observation: mailhub@ INBOX に ebay@ からの送信ログ + ahirudesign@ への外向き到達
+- canary_observation: mailhub@ SENT に ebay alias の送信記録 + guard log + ahirudesign@ への外向き到達 + activity record
 - 代替候補 (ebay@ 不能時): `steiner-optics_sc@` > `sbd@` > `secondhand@` (再apply success 後のみ昇格可)
 - NG: `gopro_y@` / `gopro_order_yahoo@` (FX-1)、`cricut_makeshop` / `ams_vyper` (大量受信)
 

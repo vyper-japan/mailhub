@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-07-03T09:04:04.720Z",
-  "repoHead": "c5ed0c16b00b71a5fb4501358d73cd7e90d0630e",
+  "generatedAt": "2026-07-03T09:21:15.765Z",
+  "repoHead": "4dee758b73e38a18b1a0b598a03f3f86c65dbfe1",
   "sharedInboxEmailMasked": "inf***@vtj.co.jp",
   "sourceChannelCount": 18,
   "sourceAddressCount": 22,
@@ -259,7 +259,7 @@
       "resultSizeEstimate": 201,
       "firstPageIdsReturned": 50,
       "pagesFetched": 2,
-      "uniqueIdsSeenLowerBound": 79,
+      "uniqueIdsSeenLowerBound": 78,
       "hasMoreAfterFetchedPages": false,
       "hasNextPageToken": true,
       "pageSummaries": [
@@ -271,8 +271,8 @@
         },
         {
           "page": 2,
-          "idsReturned": 29,
-          "uniqueNewIds": 29,
+          "idsReturned": 28,
+          "uniqueNewIds": 28,
           "hasNextPageToken": false
         }
       ]
