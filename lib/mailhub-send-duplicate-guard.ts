@@ -105,6 +105,20 @@ function historyExpiresAt(timestamp: string, nowMs: number): number | null {
   return expiresAt > nowMs ? expiresAt : null;
 }
 
+function isReleasedGuardLog(log: { label?: string; metadata?: Record<string, unknown> }): boolean {
+  // W5 (mailhub-destructive-6-prep): a guard log entry is considered released
+  // (and therefore must NOT block subsequent retries) when its writer recorded
+  // an explicit failure marker. Two recognized markers:
+  //   - metadata.released === true
+  //   - label === "send_failed"  (paired with metadata.status === "send_failed")
+  // This lets sendGmailReply throw paths retry the same clientRequestId after
+  // releasing the in-memory reservation. Successful sends (label: "send_boundary")
+  // never receive a release marker, so historical duplicates remain blocked.
+  if (log.metadata && log.metadata.released === true) return true;
+  if (log.label === "send_failed") return true;
+  return false;
+}
+
 export async function findMailhubSendDuplicateHistory(input: {
   actorEmail: string;
   messageId: string;
@@ -124,8 +138,28 @@ export async function findMailhubSendDuplicateHistory(input: {
     getActivityLogs({ action: "reply_send", limit: 200 }),
   ]).catch(() => [[], []] as const);
 
+  // W5: collect requestKey/bodyKey/clientRequestId for all release markers so we
+  // can ignore the matching prior guard log when scanning. This makes the
+  // "release happened" signal idempotent regardless of log order.
+  const releasedRequestKeys = new Set<string>();
+  const releasedBodyKeys = new Set<string>();
+  const releasedClientRequestIds = new Set<string>();
+  for (const log of guardLogs) {
+    if (log.messageId !== input.messageId) continue;
+    if (!isReleasedGuardLog(log)) continue;
+    const metadata = log.metadata;
+    const logRequestKey = stringMetadataValue(metadata, "requestKey");
+    const logBodyKey = stringMetadataValue(metadata, "bodyKey");
+    const logClientRequestId = stringMetadataValue(metadata, "clientRequestId");
+    if (logRequestKey) releasedRequestKeys.add(logRequestKey);
+    if (logBodyKey) releasedBodyKeys.add(logBodyKey);
+    if (logClientRequestId) releasedClientRequestIds.add(`${log.actorEmail}:${logClientRequestId}`);
+  }
+
   for (const log of [...guardLogs, ...sendLogs]) {
     if (log.messageId !== input.messageId) continue;
+    // Release markers themselves are not duplicates; skip them.
+    if (isReleasedGuardLog(log)) continue;
     const expiresAt = historyExpiresAt(log.timestamp, nowMs);
     if (!expiresAt) continue;
 
@@ -134,6 +168,12 @@ export async function findMailhubSendDuplicateHistory(input: {
     const logBodyKey = stringMetadataValue(metadata, "bodyKey");
     const logClientRequestId = stringMetadataValue(metadata, "clientRequestId");
     const logBodyHash = stringMetadataValue(metadata, "bodyHash");
+
+    // W5: a prior guard log paired with an explicit release marker no longer
+    // counts as a duplicate (the send failed and was released for retry).
+    if (logRequestKey && releasedRequestKeys.has(logRequestKey)) continue;
+    if (logClientRequestId && releasedClientRequestIds.has(`${log.actorEmail}:${logClientRequestId}`)) continue;
+    if (logBodyKey && releasedBodyKeys.has(logBodyKey)) continue;
 
     const requestMatches =
       logRequestKey === keys.requestKey ||

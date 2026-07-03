@@ -511,7 +511,11 @@ describe("POST /api/mailhub/send", () => {
     expect(routeMocks.archiveMessage).not.toHaveBeenCalled();
   });
 
-  it("keeps the duplicate reservation after a 429 send attempt and does not run Done", async () => {
+  it("releases the duplicate reservation after a 429 send attempt so the same clientRequestId can retry", async () => {
+    // W5 (mailhub-destructive-6-prep): D6 canary retry-readiness.
+    // sendGmailReply throw paths now release the duplicate guard reservation
+    // so the same clientRequestId is not permanently 409-blocked while the
+    // 600s TTL elapses. R4 §7 retry decision becomes operator-driven.
     vi.stubEnv("MAILHUB_TEST_MODE", "0");
     vi.stubEnv("MAILHUB_SEND_ENABLED", "1");
     routeMocks.assertSendAsAccepted.mockResolvedValue({
@@ -521,24 +525,59 @@ describe("POST /api/mailhub/send", () => {
       cache: "miss",
       checkedAt: "2026-06-12T00:00:00.000Z",
     });
-    routeMocks.sendGmailReply.mockRejectedValueOnce(Object.assign(new Error("rate limit 429"), { code: 429 }));
+    routeMocks.sendGmailReply
+      .mockRejectedValueOnce(Object.assign(new Error("rate limit 429"), { code: 429 }))
+      .mockResolvedValueOnce({ sentMessageId: "sent-retry-001", threadId: "thread-001" });
     const POST = await importSendPost();
 
     let res = await POST(makeRequest(validBody({
       clientRequestId: "client-429",
-      postSendAction: "done",
+      postSendAction: "none",
     })));
     expect(res.status).toBe(429);
     expect(await readJson(res)).toMatchObject({ error: "gmail_api_error", error_code: "rate_limit_exceeded" });
     expect(routeMocks.archiveMessage).not.toHaveBeenCalled();
 
+    // Retry with the same clientRequestId must now succeed (reservation released).
     res = await POST(makeRequest(validBody({
       clientRequestId: "client-429",
-      postSendAction: "done",
+      postSendAction: "none",
     })));
-    expect(res.status).toBe(409);
-    expect(await readJson(res)).toMatchObject({ error: "duplicate_send", duplicateKey: "clientRequestId" });
-    expect(routeMocks.sendGmailReply).toHaveBeenCalledTimes(1);
+    expect(res.status).toBe(200);
+    expect(await readJson(res)).toMatchObject({ ok: true, sentMessageId: "sent-retry-001" });
+    expect(routeMocks.sendGmailReply).toHaveBeenCalledTimes(2);
+  });
+
+  it("releases the duplicate reservation after a 500 send attempt so the same clientRequestId can retry", async () => {
+    // W5 companion: verify release happens for any send-side throw, not only 429.
+    vi.stubEnv("MAILHUB_TEST_MODE", "0");
+    vi.stubEnv("MAILHUB_SEND_ENABLED", "1");
+    routeMocks.assertSendAsAccepted.mockResolvedValue({
+      ok: true,
+      fromAlias: "vyper_sc@vtj.co.jp",
+      acceptedAliases: ["vyper_sc@vtj.co.jp"],
+      cache: "miss",
+      checkedAt: "2026-06-12T00:00:00.000Z",
+    });
+    routeMocks.sendGmailReply
+      .mockRejectedValueOnce(Object.assign(new Error("send failed"), { code: 500 }))
+      .mockResolvedValueOnce({ sentMessageId: "sent-retry-002", threadId: "thread-001" });
+    const POST = await importSendPost();
+
+    let res = await POST(makeRequest(validBody({
+      clientRequestId: "client-500-retry",
+      postSendAction: "none",
+    })));
+    expect(res.status).toBe(500);
+    expect(await readJson(res)).toMatchObject({ error: "gmail_api_error" });
+
+    res = await POST(makeRequest(validBody({
+      clientRequestId: "client-500-retry",
+      postSendAction: "none",
+    })));
+    expect(res.status).toBe(200);
+    expect(await readJson(res)).toMatchObject({ ok: true, sentMessageId: "sent-retry-002" });
+    expect(routeMocks.sendGmailReply).toHaveBeenCalledTimes(2);
   });
 
   it("blocks cold-start duplicate sends from persisted send guard activity", async () => {
