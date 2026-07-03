@@ -1,14 +1,14 @@
 {
-  "generatedAt": "2026-07-03T09:21:31.090Z",
+  "generatedAt": "2026-07-03T22:36:15.510Z",
   "inputs": {
     "readiness": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json",
     "rulesAudit": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.ai-runs/mailhub-next-phase/gmail-rule-safety-audit.json",
-    "readinessGeneratedAt": "2026-07-03T09:21:30.813Z",
-    "readinessRepoHead": "4dee758b73e38a18b1a0b598a03f3f86c65dbfe1",
-    "rulesAuditGeneratedAt": "2026-07-03T09:21:25.549Z",
-    "repoHead": "4dee758b73e38a18b1a0b598a03f3f86c65dbfe1",
-    "repoParentHead": "7ae64707f4a0995be0ffcb1ad79f4d26be7fe697",
-    "localEnvFile": ".env.local",
+    "readinessGeneratedAt": "2026-07-03T22:35:50.199Z",
+    "readinessRepoHead": "5794708d687d3b1d7dabaadc6b3bb3f4faa2ca9a",
+    "rulesAuditGeneratedAt": "2026-07-03T22:34:00.708Z",
+    "repoHead": "5794708d687d3b1d7dabaadc6b3bb3f4faa2ca9a",
+    "repoParentHead": "7750e9728031f7b5227789d46ac7f3b089673022",
+    "localEnvFile": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.env.local",
     "localEnvFileLoaded": true,
     "valuePolicy": "Secret values are never printed; this artifact contains only key names, booleans, counts, commands, and validation issues.",
     "errors": [],
@@ -100,16 +100,16 @@
     {
       "id": "run_sheets_rule_safety_audit",
       "status": "blocked",
-      "command": "MAILHUB_CONFIG_STORE=sheets npm run audit:gmail-rules -- --env-file .env.local --config-source sheets --out .ai-runs/mailhub-next-phase/gmail-rule-safety-audit.json --max 100",
+      "command": "MAILHUB_CONFIG_STORE=sheets npm run audit:gmail-rules -- --env-file /Users/takayukisuzuki/VYPER-Dev/Mailhub/.env.local --config-source sheets --out .ai-runs/mailhub-next-phase/gmail-rule-safety-audit.json --max 100",
       "expected": "config.resolvedSource=sheets, config.warnings=[], and ruleSafetyGate.realDataRuleRiskPass=true"
     },
     {
       "id": "refresh_rule_and_readiness_artifacts",
       "status": "required",
       "commands": [
-        "MAILHUB_CONFIG_STORE=sheets npm run audit:gmail-rules -- --env-file .env.local --config-source sheets --out .ai-runs/mailhub-next-phase/gmail-rule-safety-audit.json --max 100",
+        "MAILHUB_CONFIG_STORE=sheets npm run audit:gmail-rules -- --env-file /Users/takayukisuzuki/VYPER-Dev/Mailhub/.env.local --config-source sheets --out .ai-runs/mailhub-next-phase/gmail-rule-safety-audit.json --max 100",
         "npm run audit:mailhub-readiness -- --out .ai-runs/mailhub-next-phase/mailhub-production-readiness-audit.json",
-        "npm run audit:mailhub-rule-config-next -- --local-env-file .env.local --out .ai-runs/mailhub-next-phase/mailhub-rule-config-next-steps.json"
+        "npm run audit:mailhub-rule-config-next -- --local-env-file /Users/takayukisuzuki/VYPER-Dev/Mailhub/.env.local --out .ai-runs/mailhub-next-phase/mailhub-rule-config-next-steps.json"
       ]
     }
   ]

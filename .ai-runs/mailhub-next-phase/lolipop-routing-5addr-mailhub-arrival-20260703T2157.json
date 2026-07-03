@@ -1,0 +1,58 @@
+{
+ "generatedAt": "2026-07-03T21:57:48Z",
+ "test": "MAILHUB-ROUTING-5 mailhub@ arrival",
+ "sender": "info@vtj.co.jp",
+ "results": {
+  "vyperglobal_sc": {
+   "marker": "MAILHUB-ROUTING-5-vyperglobal_sc-20260703T2157",
+   "sent_id": "19f29fc51c310c3f",
+   "mailhub_msg_id": "19f29fc6733f60e0",
+   "labelIds": [
+    "UNREAD",
+    "INBOX"
+   ],
+   "reached": true
+  },
+  "vyper_sc": {
+   "marker": "MAILHUB-ROUTING-5-vyper_sc-20260703T2157",
+   "sent_id": "19f29fc522bc2544",
+   "mailhub_msg_id": "19f29fc6012760cc",
+   "labelIds": [
+    "UNREAD",
+    "INBOX"
+   ],
+   "reached": true
+  },
+  "steiner-optics_sc": {
+   "marker": "MAILHUB-ROUTING-5-steiner-optics_sc-20260703T2157",
+   "sent_id": "19f29fc54774fec7",
+   "mailhub_msg_id": "19f29fc65125957e",
+   "labelIds": [
+    "UNREAD",
+    "INBOX"
+   ],
+   "reached": true
+  },
+  "secondhand": {
+   "marker": "MAILHUB-ROUTING-5-secondhand-20260703T2157",
+   "sent_id": "19f29fc599dd4d69",
+   "mailhub_msg_id": "19f29fc671997bc7",
+   "labelIds": [
+    "UNREAD",
+    "INBOX"
+   ],
+   "reached": true
+  },
+  "sbd": {
+   "marker": "MAILHUB-ROUTING-5-sbd-20260703T2157",
+   "sent_id": "19f29fc5b618de63",
+   "mailhub_msg_id": "19f29fc6a2c3d51a",
+   "labelIds": [
+    "UNREAD",
+    "INBOX"
+   ],
+   "reached": true
+  }
+ },
+ "reached_count": 5
+}
