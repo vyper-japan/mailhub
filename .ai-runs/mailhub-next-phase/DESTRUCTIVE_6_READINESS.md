@@ -21,7 +21,7 @@
 |---|---|---|---|---|
 | D1 | **Gmail refresh token 再発行** | `scripts/get-refresh-token.mjs` で `gmail.readonly` + `gmail.modify` + `gmail.send` + `gmail.settings.sharing` scope の新token取得 → `vyper/mailhub/prod/google_shared_inbox_refresh_token_next` に格納 (旧token生存) | R1 §2 | `_next` 削除のみ。本番未影響 |
 | D2 | **send-as 15エイリアス登録** | `users.settings.sendAs.create/verify` を15回。Route A=DWD自動 / Route B=mailhub@ user login (storage_state + 2FA) で Gmail Settings 直接操作 | R2 §3 | `users.settings.sendAs.delete` で個別除去 |
-| D3 | **本番env投入 (新token + activity store)** | Vercel Production env を3点更新:<br>① `GOOGLE_SHARED_INBOX_REFRESH_TOKEN` を `_next` 値に swap (旧token値を `_previous` に populate 必須)<br>② `MAILHUB_ACTIVITY_STORE=sheets`<br>③ Sheets credentials 3点 (`MAILHUB_SHEETS_SPREADSHEET_ID` / `_CLIENT_EMAIL` / `_PRIVATE_KEY`) | R1 §5 (line 160-189 Vercel env 原子的 swap) / R4 §2.5 | env を元のtoken/storeに戻して redeploy (R1 §6 は `_previous` を参照) |
+| D3 | **本番env投入 (新token + activity store, 2 stage化 2026-07-04)** | **Stage A**: `MAILHUB_READ_ONLY=1` 先行投入 + `GOOGLE_SHARED_INBOX_REFRESH_TOKEN` を `_next` 値に swap (旧token値を `_previous` に populate 必須)<br>**Stage B**: `MAILHUB_ACTIVITY_STORE=sheets` (推奨: `MAILHUB_SHEETS_SPREADSHEET_ID` 明示追加。`MAILHUB_SHEETS_CLIENT_EMAIL`/`_PRIVATE_KEY` は2026-07-04 audit で本番投入済を確認済)<br>詳細・P0トラップは本節末尾「D3 改訂実行プラン」参照 | R1 §5 (line 160-189 Vercel env 原子的 swap) / R4 §2.5 | Stage A: SM `_previous` の値へ戻し redeploy。Stage B: `MAILHUB_ACTIVITY_STORE=memory` に戻し redeploy (R1 §6 は `_previous` を参照) |
 | D4 | **READ ONLY 解除** | `MAILHUB_READ_ONLY=0` に変更 | R4 §4 (approval) + R4 §5 step 2 (line 130 env mutation) | `=1` に戻す (R4 §9) |
 | D5 | **`MAILHUB_SEND_ENABLED=1`** | send route の最終ゲート開放 | R4 §5 | `=0` に戻す (R4 §8) |
 | D6 | **canary 1件本番送信** | 承認済み1通だけ実送信 → Gmail側 + activity 両面で着確認 | R4 §7 | D5→D4 を順次rollback |
@@ -31,14 +31,37 @@
 - D4解除確認: Vercel env 表示ではなく `GET /api/mailhub/config/health` の `readOnly` フィールドで行う。`lib/read-only.ts:32-41` により Sheets activity store 未確立時は `MAILHUB_READ_ONLY=0` でも `readOnly=true` が維持される (D3成功が真の前提)。
 - D5前提: `a0bd8f1` により `productionReady` は `p1Blockers==0` も要求。D5着手前に readiness audit の P1 blockers 清算計画を確認する。
 
+### D3 改訂実行プラン (2026-07-04 audit反映、2 stage化)
+
+**P0トラップ (2026-07-04発見)**: `MAILHUB_READ_ONLY=0` が2026-01-23から本番に残存している。現在の `effective readOnly=true` は `MAILHUB_ACTIVITY_STORE=memory` の durable-audit guard (`lib/read-only.ts`) が効いているだけで、`MAILHUB_READ_ONLY` の値自体は既に解除済み。D3で `MAILHUB_ACTIVITY_STORE=sheets` を単独投入すると、その瞬間に `effective readOnly=false` へ反転し、D4の承認ゲートを飛ばして書込みが開いてしまう。対策 = D3をStage A/Bに分割し、Stage Aで `MAILHUB_READ_ONLY=1` を明示先行投入する (token swapと同時でよい)。
+
+**Stage A: READ_ONLY先行固定 + token swap**
+1. `MAILHUB_READ_ONLY=1` を明示投入 (現行値と同じだが、Stage Bでの反転を防ぐための先行固定)
+2. `GOOGLE_SHARED_INBOX_REFRESH_TOKEN` を `_next` 値へswap
+   - 前提: のび太がVercel UIで現行token値をreveal → SM `vyper/mailhub/prod/google_shared_inbox_refresh_token_previous` へpopulate (R1 §5の原子的swap手順)
+   - 衛生note: 新tokenはVercel上で **Sensitive** として保存する (SMが正本のため、Vercel側での読み返しは不要)
+3. redeploy
+4. health検証: `gmailScopes` に `gmail.send` + `gmail.settings.sharing` を含む / `readOnly=true` 維持 / `sendAs.error=null`
+
+**Stage B: activity store切替**
+1. `MAILHUB_ACTIVITY_STORE=sheets` を投入 (推奨: `MAILHUB_SHEETS_SPREADSHEET_ID` を明示追加。現状は `MAILHUB_SHEETS_ID` へのfallback (`lib/activityStore.ts:317`) で動作するが、canonical keyを明示する方が安全。`MAILHUB_SHEETS_CLIENT_EMAIL`/`_PRIVATE_KEY` は2026-07-04 audit で本番投入済を確認済のため追加投入不要)
+   - `MAILHUB_ENV=production` への変更は本stageのスコープ外・のび太裁定事項
+2. Activity タブは2026-07-04時点で作成済 (`sheetId=88141432`、ヘッダ `A1:J1` 投入済、コードのスキーマと一致) — 本stageの前提の一つは既に充足済み
+3. redeploy
+4. health検証: `activityStore.resolved=sheets` / `readOnly=true` 維持 (Stage Aの先行投入により反転しないことを確認)
+
+**rollback**
+- Stage A: SM `_previous` の値へ戻し → redeploy
+- Stage B: `MAILHUB_ACTIVITY_STORE=memory` へ戻し → redeploy
+
 ## 2. 各項目の現状
 
 | # | 現状 | 不足 |
 |---|---|---|
 | D1 | ✅ **完了 (2026-07-04)**: 新 token を SM `vyper/mailhub/prod/google_shared_inbox_refresh_token_next` に格納、scope 4種 (readonly/modify/send/settings.sharing) 検証済。本番未swap | なし (D3 で swap) |
 | D2 | ✅ **完了 (2026-07-04)**: Route A (DWD) で **15/15 accepted** (all same-domain auto-accept、`scripts/gmail-send-as/register_send_as.py`)。ledger 全行 accepted、evidence=`sendas-registration-20260703T224507Z.json` | なし |
-| D3 | env は staging/preview レベル想定。本番 Vercel の現env未棚卸し | `prod-env-ledger.md` の最新化 + 3点投入 |
-| D4 | `MAILHUB_READ_ONLY=1` (デフォルト安全側) | 解除承認のみ |
+| D3 | ✅ **棚卸し完了 (2026-07-04)**: `prod-env-ledger.md` の 2026-07-04 audit セクション参照 | Stage A (`READ_ONLY=1`先行 + token swap) → Stage B (`ACTIVITY_STORE=sheets`) の2 stage投入。詳細・P0トラップは「D3 改訂実行プラン」参照 |
+| D4 | ⚠️ Vercel実値は `MAILHUB_READ_ONLY=0` (2026-01-23から残存、2026-07-04 audit で判明)。ただし `effective readOnly=true` は維持中 (`MAILHUB_ACTIVITY_STORE=memory` のdurable-audit guardによる、D3 Stage A未実施のため未反転) | D3 Stage Aで明示 `=1` を先行投入し固定 (P0トラップ対策、「D3 改訂実行プラン」参照)。その後の解除承認 |
 | D5 | `MAILHUB_SEND_ENABLED=0` or unset | 投入承認のみ |
 | D6 | 未実施 | canary対象channel/message/operator 未指名 |
 
