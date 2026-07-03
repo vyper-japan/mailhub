@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-06-26T01:15:36.911Z",
-  "repoHead": "12761a956cdd3d215ded95826dd779bf9724f35a",
+  "generatedAt": "2026-07-03T09:04:20.278Z",
+  "repoHead": "c5ed0c16b00b71a5fb4501358d73cd7e90d0630e",
   "inputs": {
     "sourceAudit": ".ai-runs/mailhub-next-phase/gmail-source-coverage-audit.json",
     "opsAudit": ".ai-runs/mailhub-next-phase/mailhub-operational-confirmations.json",
@@ -13,23 +13,23 @@
     "viewsAudit": ".ai-runs/mailhub-next-phase/gmail-default-views-audit.json",
     "rulesAudit": ".ai-runs/mailhub-next-phase/gmail-rule-safety-audit.json",
     "staffWorkflowAudit": ".ai-runs/mailhub-next-phase/mailhub-staff-workflow-audit.json",
-    "sourceAuditGeneratedAt": "2026-06-26T01:15:12.497Z",
-    "opsAuditGeneratedAt": "2026-06-26T01:15:24.684Z",
-    "gwsRoutingAuditGeneratedAt": "2026-06-26T01:15:32.570Z",
+    "sourceAuditGeneratedAt": "2026-07-03T09:04:04.720Z",
+    "opsAuditGeneratedAt": "2026-07-03T09:04:14.380Z",
+    "gwsRoutingAuditGeneratedAt": "2026-07-03T09:04:15.357Z",
     "routingProbeAuditGeneratedAt": "2026-06-26T01:15:36.425Z",
     "routingProbeSendGeneratedAt": "2026-06-26T01:15:36.660Z",
     "routingProbePreflightGeneratedAt": "2026-06-26T01:15:34.869Z",
-    "githubRoutingSecretsCheckedAt": "2026-06-26T01:15:33.264Z",
-    "githubStaffSecretsCheckedAt": "2026-06-26T01:15:34.401Z",
-    "viewsAuditGeneratedAt": "2026-06-26T01:15:20.198Z",
-    "rulesAuditGeneratedAt": "2026-06-26T01:15:24.243Z",
+    "githubRoutingSecretsCheckedAt": "2026-07-03T09:04:15.988Z",
+    "githubStaffSecretsCheckedAt": "2026-07-03T09:04:17.107Z",
+    "viewsAuditGeneratedAt": "2026-07-03T09:04:10.865Z",
+    "rulesAuditGeneratedAt": "2026-07-03T09:04:14.241Z",
     "ruleSafetyAuditEnv": {
       "envFile": ".env.local",
       "envFileLoaded": true,
       "envFileMode": "env_file",
       "valuePolicyPresent": true
     },
-    "staffWorkflowAuditGeneratedAt": "2026-06-26T01:15:34.619Z",
+    "staffWorkflowAuditGeneratedAt": "2026-07-03T09:04:17.385Z",
     "rulesConfigFingerprint": "sha256:64ce3c152193b489c6d1b48a3c89ad4ea195b7824e0c25c5412db1c4a1cababd",
     "ruleConfigSource": {
       "requestedSource": "file",
@@ -43,14 +43,14 @@
         "path": ".ai-runs/mailhub-next-phase/gmail-source-coverage-audit.json",
         "present": true,
         "timestampField": "generatedAt",
-        "timestamp": "2026-06-26T01:15:12.497Z",
+        "timestamp": "2026-07-03T09:04:04.720Z",
         "repoHeadPolicy": "fresh_repo_head",
         "requiresFreshRepoHead": true,
-        "repoHead": "12761a956cdd3d215ded95826dd779bf9724f35a",
+        "repoHead": "c5ed0c16b00b71a5fb4501358d73cd7e90d0630e",
         "repoHeadFresh": true,
         "maxAgeMs": 86400000,
         "timestampFresh": true,
-        "timestampAgeMs": 24362,
+        "timestampAgeMs": 15522,
         "status": "fresh",
         "readyForProduction": true
       },
@@ -59,14 +59,14 @@
         "path": ".ai-runs/mailhub-next-phase/mailhub-operational-confirmations.json",
         "present": true,
         "timestampField": "generatedAt",
-        "timestamp": "2026-06-26T01:15:24.684Z",
+        "timestamp": "2026-07-03T09:04:14.380Z",
         "repoHeadPolicy": "fresh_repo_head",
         "requiresFreshRepoHead": true,
-        "repoHead": "12761a956cdd3d215ded95826dd779bf9724f35a",
+        "repoHead": "c5ed0c16b00b71a5fb4501358d73cd7e90d0630e",
         "repoHeadFresh": true,
         "maxAgeMs": 86400000,
         "timestampFresh": true,
-        "timestampAgeMs": 12175,
+        "timestampAgeMs": 5862,
         "status": "fresh",
         "readyForProduction": true
       },
@@ -75,14 +75,14 @@
         "path": ".ai-runs/mailhub-next-phase/mailhub-gws-routing-audit.json",
         "present": true,
         "timestampField": "generatedAt",
-        "timestamp": "2026-06-26T01:15:32.570Z",
+        "timestamp": "2026-07-03T09:04:15.357Z",
         "repoHeadPolicy": "fresh_repo_head",
         "requiresFreshRepoHead": true,
-        "repoHead": "12761a956cdd3d215ded95826dd779bf9724f35a",
+        "repoHead": "c5ed0c16b00b71a5fb4501358d73cd7e90d0630e",
         "repoHeadFresh": true,
         "maxAgeMs": 86400000,
         "timestampFresh": true,
-        "timestampAgeMs": 4289,
+        "timestampAgeMs": 4885,
         "status": "fresh",
         "readyForProduction": true
       },
@@ -95,12 +95,12 @@
         "repoHeadPolicy": "fresh_repo_head",
         "requiresFreshRepoHead": true,
         "repoHead": "12761a956cdd3d215ded95826dd779bf9724f35a",
-        "repoHeadFresh": true,
+        "repoHeadFresh": false,
         "maxAgeMs": 86400000,
-        "timestampFresh": true,
-        "timestampAgeMs": 434,
-        "status": "fresh",
-        "readyForProduction": true
+        "timestampFresh": false,
+        "timestampAgeMs": 632923817,
+        "status": "stale_repo_head",
+        "readyForProduction": false
       },
       {
         "key": "routingProbeSend",
@@ -111,12 +111,12 @@
         "repoHeadPolicy": "fresh_repo_head",
         "requiresFreshRepoHead": true,
         "repoHead": "12761a956cdd3d215ded95826dd779bf9724f35a",
-        "repoHeadFresh": true,
+        "repoHeadFresh": false,
         "maxAgeMs": 86400000,
-        "timestampFresh": true,
-        "timestampAgeMs": 199,
-        "status": "fresh",
-        "readyForProduction": true
+        "timestampFresh": false,
+        "timestampAgeMs": 632923582,
+        "status": "stale_repo_head",
+        "readyForProduction": false
       },
       {
         "key": "routingProbePreflight",
@@ -127,26 +127,26 @@
         "repoHeadPolicy": "fresh_repo_head",
         "requiresFreshRepoHead": true,
         "repoHead": "12761a956cdd3d215ded95826dd779bf9724f35a",
-        "repoHeadFresh": true,
+        "repoHeadFresh": false,
         "maxAgeMs": 86400000,
-        "timestampFresh": true,
-        "timestampAgeMs": 1990,
-        "status": "fresh",
-        "readyForProduction": true
+        "timestampFresh": false,
+        "timestampAgeMs": 632925373,
+        "status": "stale_repo_head",
+        "readyForProduction": false
       },
       {
         "key": "githubRoutingSecrets",
         "path": ".ai-runs/mailhub-next-phase/github-routing-secrets-readiness.json",
         "present": true,
         "timestampField": "checkedAt",
-        "timestamp": "2026-06-26T01:15:33.264Z",
+        "timestamp": "2026-07-03T09:04:15.988Z",
         "repoHeadPolicy": "fresh_repo_head",
         "requiresFreshRepoHead": true,
-        "repoHead": "12761a956cdd3d215ded95826dd779bf9724f35a",
+        "repoHead": "c5ed0c16b00b71a5fb4501358d73cd7e90d0630e",
         "repoHeadFresh": true,
         "maxAgeMs": 86400000,
         "timestampFresh": true,
-        "timestampAgeMs": 3595,
+        "timestampAgeMs": 4254,
         "status": "fresh",
         "readyForProduction": true
       },
@@ -155,14 +155,14 @@
         "path": ".ai-runs/mailhub-next-phase/github-staff-secrets-readiness.json",
         "present": true,
         "timestampField": "checkedAt",
-        "timestamp": "2026-06-26T01:15:34.401Z",
+        "timestamp": "2026-07-03T09:04:17.107Z",
         "repoHeadPolicy": "fresh_repo_head",
         "requiresFreshRepoHead": true,
-        "repoHead": "12761a956cdd3d215ded95826dd779bf9724f35a",
+        "repoHead": "c5ed0c16b00b71a5fb4501358d73cd7e90d0630e",
         "repoHeadFresh": true,
         "maxAgeMs": 86400000,
         "timestampFresh": true,
-        "timestampAgeMs": 2458,
+        "timestampAgeMs": 3135,
         "status": "fresh",
         "readyForProduction": true
       },
@@ -171,14 +171,14 @@
         "path": ".ai-runs/mailhub-next-phase/gmail-default-views-audit.json",
         "present": true,
         "timestampField": "generatedAt",
-        "timestamp": "2026-06-26T01:15:20.198Z",
+        "timestamp": "2026-07-03T09:04:10.865Z",
         "repoHeadPolicy": "fresh_repo_head",
         "requiresFreshRepoHead": true,
-        "repoHead": "12761a956cdd3d215ded95826dd779bf9724f35a",
+        "repoHead": "c5ed0c16b00b71a5fb4501358d73cd7e90d0630e",
         "repoHeadFresh": true,
         "maxAgeMs": 86400000,
         "timestampFresh": true,
-        "timestampAgeMs": 16661,
+        "timestampAgeMs": 9377,
         "status": "fresh",
         "readyForProduction": true
       },
@@ -187,14 +187,14 @@
         "path": ".ai-runs/mailhub-next-phase/gmail-rule-safety-audit.json",
         "present": true,
         "timestampField": "generatedAt",
-        "timestamp": "2026-06-26T01:15:24.243Z",
+        "timestamp": "2026-07-03T09:04:14.241Z",
         "repoHeadPolicy": "fresh_repo_head",
         "requiresFreshRepoHead": true,
-        "repoHead": "12761a956cdd3d215ded95826dd779bf9724f35a",
+        "repoHead": "c5ed0c16b00b71a5fb4501358d73cd7e90d0630e",
         "repoHeadFresh": true,
         "maxAgeMs": 86400000,
         "timestampFresh": true,
-        "timestampAgeMs": 12616,
+        "timestampAgeMs": 6001,
         "status": "fresh",
         "readyForProduction": true
       },
@@ -203,21 +203,21 @@
         "path": ".ai-runs/mailhub-next-phase/mailhub-staff-workflow-audit.json",
         "present": true,
         "timestampField": "generatedAt",
-        "timestamp": "2026-06-26T01:15:34.619Z",
+        "timestamp": "2026-07-03T09:04:17.385Z",
         "repoHeadPolicy": "fresh_repo_head",
         "requiresFreshRepoHead": true,
-        "repoHead": "12761a956cdd3d215ded95826dd779bf9724f35a",
+        "repoHead": "c5ed0c16b00b71a5fb4501358d73cd7e90d0630e",
         "repoHeadFresh": true,
         "maxAgeMs": 86400000,
         "timestampFresh": true,
-        "timestampAgeMs": 2240,
+        "timestampAgeMs": 2857,
         "status": "fresh",
         "readyForProduction": true
       }
     ]
   },
   "requirements": {
-    "inputArtifactsFresh": true,
+    "inputArtifactsFresh": false,
     "sourceCodeCoverageReady": true,
     "sourceInventoryReady": true,
     "currentSharedGmailRoutingReady": false,
@@ -256,26 +256,72 @@
   },
   "blockers": [
     {
+      "id": "staleInput",
+      "severity": "P0",
+      "message": "Production readiness input artifacts are stale or unverifiable.",
+      "evidence": {
+        "currentRepoHead": "c5ed0c16b00b71a5fb4501358d73cd7e90d0630e",
+        "repoParentHead": "3fc9da2ca99dd6497ee144e8621b105226bfad67",
+        "staleInputs": [
+          {
+            "key": "routingProbeAudit",
+            "path": ".ai-runs/mailhub-next-phase/mailhub-routing-probe-audit.json",
+            "present": true,
+            "timestampField": "generatedAt",
+            "timestamp": "2026-06-26T01:15:36.425Z",
+            "repoHeadPolicy": "fresh_repo_head",
+            "requiresFreshRepoHead": true,
+            "repoHead": "12761a956cdd3d215ded95826dd779bf9724f35a",
+            "repoHeadFresh": false,
+            "maxAgeMs": 86400000,
+            "timestampFresh": false,
+            "timestampAgeMs": 632923817,
+            "status": "stale_repo_head",
+            "readyForProduction": false
+          },
+          {
+            "key": "routingProbeSend",
+            "path": ".ai-runs/mailhub-next-phase/mailhub-routing-probe-send.json",
+            "present": true,
+            "timestampField": "generatedAt",
+            "timestamp": "2026-06-26T01:15:36.660Z",
+            "repoHeadPolicy": "fresh_repo_head",
+            "requiresFreshRepoHead": true,
+            "repoHead": "12761a956cdd3d215ded95826dd779bf9724f35a",
+            "repoHeadFresh": false,
+            "maxAgeMs": 86400000,
+            "timestampFresh": false,
+            "timestampAgeMs": 632923582,
+            "status": "stale_repo_head",
+            "readyForProduction": false
+          },
+          {
+            "key": "routingProbePreflight",
+            "path": ".ai-runs/mailhub-next-phase/mailhub-routing-probe-preflight.json",
+            "present": true,
+            "timestampField": "generatedAt",
+            "timestamp": "2026-06-26T01:15:34.869Z",
+            "repoHeadPolicy": "fresh_repo_head",
+            "requiresFreshRepoHead": true,
+            "repoHead": "12761a956cdd3d215ded95826dd779bf9724f35a",
+            "repoHeadFresh": false,
+            "maxAgeMs": 86400000,
+            "timestampFresh": false,
+            "timestampAgeMs": 632925373,
+            "status": "stale_repo_head",
+            "readyForProduction": false
+          }
+        ]
+      }
+    },
+    {
       "id": "current_shared_gmail_routing",
       "severity": "P0",
       "message": "Current external mail routing into the shared Gmail/MailHub workbench is not fully confirmed.",
       "evidence": {
-        "currentSharedGmailRoutingUnconfirmed": [
-          "gopro-yahoo",
-          "vyperglobal-rakuten",
-          "vyperglobal-yahoo",
-          "ams-vyper",
-          "datacolor",
-          "ebay"
-        ],
-        "noSharedInboxEvidence": [
-          "vyperglobal-yahoo",
-          "ebay"
-        ],
-        "routingConfirmationRequired": [
-          "vyperglobal-yahoo",
-          "ebay"
-        ],
+        "currentSharedGmailRoutingUnconfirmed": [],
+        "noSharedInboxEvidence": [],
+        "routingConfirmationRequired": [],
         "gwsRoutingGate": {
           "allGroupsFound": true,
           "allGroupsHaveMailhubMember": true,
@@ -350,6 +396,8 @@
           "ready": false,
           "sendReady": false,
           "issues": [
+            "routing_probe_audit_generated_at_stale",
+            "routing_probe_send_generated_at_stale",
             "routing_probe_audit_not_verify_marker",
             "routing_probe_audit_invalid_marker",
             "routing_probe_audit_marker_missing",
@@ -357,6 +405,7 @@
             "routing_probe_audit_missing_addresses",
             "routing_probe_audit_match_set_mismatch",
             "routing_probe_send_not_sent",
+            "routing_probe_send_marker_stale",
             "routing_probe_send_sent_count_mismatch",
             "routing_probe_send_sent_address_mismatch",
             "routing_probe_send_smtp_not_production_proof",
@@ -422,15 +471,15 @@
           "auditGeneratedAt": "2026-06-26T01:15:36.425Z",
           "sendGeneratedAt": "2026-06-26T01:15:36.660Z",
           "auditGeneratedAtFreshness": {
-            "fresh": true,
-            "status": "fresh",
-            "ageMs": 434,
+            "fresh": false,
+            "status": "stale_timestamp",
+            "ageMs": 632923817,
             "maxAgeMs": 86400000
           },
           "sendGeneratedAtFreshness": {
-            "fresh": true,
-            "status": "fresh",
-            "ageMs": 199,
+            "fresh": false,
+            "status": "stale_timestamp",
+            "ageMs": 632923582,
             "maxAgeMs": 86400000
           },
           "auditMarkerFreshness": {
@@ -440,9 +489,9 @@
             "maxAgeMs": 86400000
           },
           "sendMarkerFreshness": {
-            "fresh": true,
-            "status": "fresh",
-            "ageMs": 859,
+            "fresh": false,
+            "status": "stale_timestamp",
+            "ageMs": 632924242,
             "maxAgeMs": 86400000
           },
           "routingProbePreflightReady": false,
@@ -576,7 +625,7 @@
             "MAILHUB_ALERTS_SECRET"
           ]
         },
-        "staffWorkflowAuditGeneratedAt": "2026-06-26T01:15:34.619Z"
+        "staffWorkflowAuditGeneratedAt": "2026-07-03T09:04:17.385Z"
       }
     },
     {
@@ -587,10 +636,10 @@
         "alertAutomation": {
           "source": "github_actions_config",
           "sourceTrusted": true,
-          "checkedAt": "2026-06-26T01:15:34.401Z",
-          "repoHead": "12761a956cdd3d215ded95826dd779bf9724f35a",
-          "currentRepoHead": "12761a956cdd3d215ded95826dd779bf9724f35a",
-          "repoParentHead": "0653782876f40f340058a95d3084dc1a0074007d",
+          "checkedAt": "2026-07-03T09:04:17.107Z",
+          "repoHead": "c5ed0c16b00b71a5fb4501358d73cd7e90d0630e",
+          "currentRepoHead": "c5ed0c16b00b71a5fb4501358d73cd7e90d0630e",
+          "repoParentHead": "3fc9da2ca99dd6497ee144e8621b105226bfad67",
           "repoHeadMatchesCurrent": true,
           "repoHeadFresh": true,
           "readyForProductionAlerts": false,
@@ -779,10 +828,10 @@
         "staffGithubConfig": {
           "source": "github_actions_config",
           "sourceTrusted": true,
-          "checkedAt": "2026-06-26T01:15:34.401Z",
-          "repoHead": "12761a956cdd3d215ded95826dd779bf9724f35a",
-          "currentRepoHead": "12761a956cdd3d215ded95826dd779bf9724f35a",
-          "repoParentHead": "0653782876f40f340058a95d3084dc1a0074007d",
+          "checkedAt": "2026-07-03T09:04:17.107Z",
+          "repoHead": "c5ed0c16b00b71a5fb4501358d73cd7e90d0630e",
+          "currentRepoHead": "c5ed0c16b00b71a5fb4501358d73cd7e90d0630e",
+          "repoParentHead": "3fc9da2ca99dd6497ee144e8621b105226bfad67",
           "repoHeadMatchesCurrent": true,
           "repoHeadFresh": true,
           "secretCount": 4,
@@ -833,6 +882,7 @@
   "gate": {
     "productionReady": false,
     "p0Blockers": [
+      "staleInput",
       "current_shared_gmail_routing"
     ],
     "p1Blockers": [

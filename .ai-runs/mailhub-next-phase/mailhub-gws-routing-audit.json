@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-06-26T01:15:32.570Z",
-  "repoHead": "12761a956cdd3d215ded95826dd779bf9724f35a",
+  "generatedAt": "2026-07-03T09:04:15.357Z",
+  "repoHead": "c5ed0c16b00b71a5fb4501358d73cd7e90d0630e",
   "inputs": {
     "opsAudit": "/Users/takayukisuzuki/VYPER-Dev/Mailhub/.ai-runs/mailhub-next-phase/mailhub-operational-confirmations.json",
     "domain": "vtj.co.jp",
     "project": "ec-data-hub",
     "memberEmail": "mailhub@vtj.co.jp",
-    "opsAuditGeneratedAt": "2026-06-26T01:15:24.684Z"
+    "opsAuditGeneratedAt": "2026-07-03T09:04:14.380Z"
   },
   "dns": {
     "mxRecords": [
@@ -17,152 +17,7 @@
     ],
     "domainMxGoogleLike": false
   },
-  "groups": [
-    {
-      "address": "gopro_y@vtj.co.jp",
-      "groupFound": true,
-      "groupName": "groups/00gjdgxs27vfa5s",
-      "membershipsListed": true,
-      "membershipsError": null,
-      "memberCount": 1,
-      "members": [
-        {
-          "id": "mailhub@vtj.co.jp",
-          "roles": [
-            "MEMBER"
-          ],
-          "type": "USER"
-        }
-      ],
-      "mailhubMember": true
-    },
-    {
-      "address": "gopro_order_yahoo@vtj.co.jp",
-      "groupFound": true,
-      "groupName": "groups/00vx12270zakfuc",
-      "membershipsListed": true,
-      "membershipsError": null,
-      "memberCount": 1,
-      "members": [
-        {
-          "id": "mailhub@vtj.co.jp",
-          "roles": [
-            "MEMBER"
-          ],
-          "type": "USER"
-        }
-      ],
-      "mailhubMember": true
-    },
-    {
-      "address": "vyper_r@vtj.co.jp",
-      "groupFound": true,
-      "groupName": "groups/030j0zll1y0pdt4",
-      "membershipsListed": true,
-      "membershipsError": null,
-      "memberCount": 1,
-      "members": [
-        {
-          "id": "mailhub@vtj.co.jp",
-          "roles": [
-            "MEMBER"
-          ],
-          "type": "USER"
-        }
-      ],
-      "mailhubMember": true
-    },
-    {
-      "address": "vyper_rakuten@vtj.co.jp",
-      "groupFound": true,
-      "groupName": "groups/01ljsd9k341mhd0",
-      "membershipsListed": true,
-      "membershipsError": null,
-      "memberCount": 1,
-      "members": [
-        {
-          "id": "mailhub@vtj.co.jp",
-          "roles": [
-            "MEMBER"
-          ],
-          "type": "USER"
-        }
-      ],
-      "mailhubMember": true
-    },
-    {
-      "address": "vyperglobal_y@vtj.co.jp",
-      "groupFound": true,
-      "groupName": "groups/00tyjcwt49jwmgt",
-      "membershipsListed": true,
-      "membershipsError": null,
-      "memberCount": 1,
-      "members": [
-        {
-          "id": "mailhub@vtj.co.jp",
-          "roles": [
-            "MEMBER"
-          ],
-          "type": "USER"
-        }
-      ],
-      "mailhubMember": true
-    },
-    {
-      "address": "ams_vyper@vtj.co.jp",
-      "groupFound": true,
-      "groupName": "groups/00haapch0k7jbxt",
-      "membershipsListed": true,
-      "membershipsError": null,
-      "memberCount": 1,
-      "members": [
-        {
-          "id": "mailhub@vtj.co.jp",
-          "roles": [
-            "MEMBER"
-          ],
-          "type": "USER"
-        }
-      ],
-      "mailhubMember": true
-    },
-    {
-      "address": "datacolor_shopify@vtj.co.jp",
-      "groupFound": true,
-      "groupName": "groups/00xvir7l438atoy",
-      "membershipsListed": true,
-      "membershipsError": null,
-      "memberCount": 1,
-      "members": [
-        {
-          "id": "mailhub@vtj.co.jp",
-          "roles": [
-            "MEMBER"
-          ],
-          "type": "USER"
-        }
-      ],
-      "mailhubMember": true
-    },
-    {
-      "address": "ebay@vtj.co.jp",
-      "groupFound": true,
-      "groupName": "groups/03rdcrjn4b4kv0b",
-      "membershipsListed": true,
-      "membershipsError": null,
-      "memberCount": 1,
-      "members": [
-        {
-          "id": "mailhub@vtj.co.jp",
-          "roles": [
-            "MEMBER"
-          ],
-          "type": "USER"
-        }
-      ],
-      "mailhubMember": true
-    }
-  ],
+  "groups": [],
   "gate": {
     "allGroupsFound": true,
     "allGroupsHaveMailhubMember": true,
