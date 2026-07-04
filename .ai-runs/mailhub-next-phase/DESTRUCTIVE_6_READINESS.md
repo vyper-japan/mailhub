@@ -61,7 +61,7 @@
 | D1 | ✅ **完了 (2026-07-04)**: 新 token を SM `vyper/mailhub/prod/google_shared_inbox_refresh_token_next` に格納、scope 4種 (readonly/modify/send/settings.sharing) 検証済。本番未swap | なし (D3 で swap) |
 | D2 | ✅ **完了 (2026-07-04)**: Route A (DWD) で **15/15 accepted** (all same-domain auto-accept、`scripts/gmail-send-as/register_send_as.py`)。ledger 全行 accepted、evidence=`sendas-registration-20260703T224507Z.json` | なし |
 | D3 | ✅ **完了 (2026-07-04)**: Stage A+B 両方投入・redeploy・health検証 ALL PASS。`_previous` に旧token backup 済 (SM `google_shared_inbox_refresh_token_previous`) | ~~Stage A/B~~ 完了。health 実測: `activityStore.resolved=sheets` / `configStore.resolved=sheets` / `readOnly=true` 維持 / `gmailScopes`=[modify,readonly,send,settings.sharing] / `sendAs` 15/15 accepted / `gmailSendBlockedReason=read_only` (D4 まで送信封鎖継続) |
-| D4 | ⚠️ Vercel実値は `MAILHUB_READ_ONLY=0` (2026-01-23から残存、2026-07-04 audit で判明)。ただし `effective readOnly=true` は維持中 (`MAILHUB_ACTIVITY_STORE=memory` のdurable-audit guardによる、D3 Stage A未実施のため未反転) | D3 Stage Aで明示 `=1` を先行投入し固定 (P0トラップ対策、「D3 改訂実行プラン」参照)。その後の解除承認 |
+| D4 | ✅ **完了 (2026-07-04)**: `MAILHUB_READ_ONLY` を D3 Stage A の `1` から `0` へ変更 (All Environments)・redeploy (EqToPWBct, main 8b44f44, 1m39s Ready)・health 実測 `readOnly=false` / `writeGuards.readOnly=false` / `gmailSendBlockedReason=send_disabled` (送信は D5 まで封鎖継続=設計通り)。承認=`d4-approval-20260704.json` / 検証=`d4-readonly-release-verification-20260704.json` | なし |
 | D5 | `MAILHUB_SEND_ENABLED=0` or unset | 投入承認のみ |
 | D6 | 未実施 | canary対象channel/message/operator 未指名 |
 
@@ -143,8 +143,8 @@ R4 §7 の制約:
 - retry注記: `730334d` により canary失敗時 reservation は自動解放 (guard log label=`send_failed`)。retry は duplicate guard に阻まれないが、Gmail受理後に SDK が throw した場合の二重送信残余リスクあり (`app/api/mailhub/send/route.ts:483-486`)。retry前に mailhub@ SENT と guard log を必ず確認する。
 - proof artifact反映: 実 probe 後の routing probe artifacts (preflight/send/audit) は `41e897a` により repoHead 鮮度必須。probe実行 → `ops:readiness-refresh` → artifact-only commit の順で main へ反映しないと proof が counted されない。
 
-候補channel: **`ebay@vtj.co.jp`** (Q2 振替確定、2026-06-29 Adjudicator 裁定 — secondhand@ は POC success:false / Lolipop apply 未完 のため失格、ebay@ は POC success / Lolipop 完了済 / info@ INBOX 到達 7/7 実証 (`NEXT_SESSION_HANDOFF.md`)。mailhub@ INBOX 到達は未実証で、現況 evidence は mailhub@ mailbox 内の ebay@ 宛 1通のみ (`gmail-source-coverage-audit.json` ebay: `resultSizeEstimate=1`))
-- D6前提確認: 上記 1通の経路検証、または新規到達確認を必須とする。
+候補channel: **`ebay@vtj.co.jp`** (Q2 振替確定、2026-06-29 Adjudicator 裁定 — secondhand@ は POC success:false / Lolipop apply 未完 のため失格、ebay@ は POC success / Lolipop 完了済 / info@ INBOX 到達 7/7 実証 (`NEXT_SESSION_HANDOFF.md`)。mailhub@ INBOX 到達は 2026-07-04 実測で解消: mailbox 内 ebay@ 宛 4 通 (eBay 公式通知 2026-01/05 + probe 2026-06-26 ×2) 全てで `X-Original-To: ebay@` → Lolipop → `Delivered-To: mailhub@vtj.co.jp.test-google-a.com` の経路ヘッダを確認、全 INBOX 着・Spam 0 (`ebay-mailhub-arrival-verification-20260704.json`))
+- D6前提確認: ✅ 済 (2026-07-04)。mailbox 内 4 通のヘッダ経路検証で充足 (SS5 罠 P0-1 解消、Lolipop 転送スロット実測 edit_id=DMA6632845 とも整合)。
 - canary_sender_alias: `ebay` (channel single-alias)
 - canary_recipient: `ahirudesign@gmail.com` (既存 routing probe test 送信者)
 - canary_body: "MailHub D6 canary test. 受信確認用の1通です。返信不要です。clientRequestId=<redacted>"

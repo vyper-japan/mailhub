@@ -1,0 +1,69 @@
+{
+ "generatedAt": "2026-07-04T01:47:06Z",
+ "test": "SS5 P0-1 resolution: ebay@ -> mailhub@ INBOX arrival route verification",
+ "method": "DWD (ec-data-hub-sa, sub=mailhub@vtj.co.jp, gmail.readonly) messages.list + messages.get format=metadata. Read-only.",
+ "query": "deliveredto:ebay@vtj.co.jp OR to:ebay@vtj.co.jp OR cc:ebay@vtj.co.jp",
+ "resultSizeEstimate": 4,
+ "note": "SS5 audit (2026-07-03) 時点の gmail-source-coverage-audit.json では ebay 宛 1 通のみだったが、実測 4 通に増加 (eBay 公式通知 2 + 2026-06-26 probe 2)。",
+ "messages": [
+  {
+   "msg_id": "19be2361b034e7a9",
+   "date": "2026-01-21",
+   "from": "ebay@info.ebay.com",
+   "subject": "Important User Agreement Update",
+   "labelIds": [
+    "UNREAD",
+    "INBOX"
+   ]
+  },
+  {
+   "msg_id": "19e6ca4c1c6d7606",
+   "date": "2026-05-28",
+   "from": "ebay@info.ebay.com",
+   "subject": "Important User Agreement Update",
+   "labelIds": [
+    "UNREAD",
+    "INBOX"
+   ]
+  },
+  {
+   "msg_id": "19f00f27cfcb5865",
+   "date": "2026-06-26",
+   "from": "ahirudesign@gmail.com",
+   "subject": "MAILHUB-ROUTING-PROBE-20260626-AHIRU-MANUAL / ebay@vtj.co.jp",
+   "labelIds": [
+    "UNREAD",
+    "INBOX"
+   ]
+  },
+  {
+   "msg_id": "19f025be416b79f3",
+   "date": "2026-06-26",
+   "from": "ahirudesign@gmail.com",
+   "subject": "MAILHUB-ROUTING-7-ebay-20260626",
+   "labelIds": [
+    "UNREAD",
+    "INBOX"
+   ]
+  }
+ ],
+ "route_evidence_all_4_messages": {
+  "x_original_to": "ebay@vtj.co.jp",
+  "lolipop_hop": "mx-proxy10x.phy.lolipop.jp -> mail208.phy.lolipop.jp",
+  "google_handoff": "mx.google.com for <mailhub@vtj.co.jp.test-google-a.com> (TLS1_2)",
+  "delivered_to": "mailhub@vtj.co.jp.test-google-a.com",
+  "inbox": true,
+  "spam": false
+ },
+ "lolipop_forward_slot_evidence": {
+  "source": "lolipop-routing-audit.json (observed 2026-06-27, edit_id=DMA6632845)",
+  "forward_addresses": [
+   "maildealer-41@mdiniesta.maildealer.jp",
+   "mailhub@vtj.co.jp.test-google-a.com",
+   "info@vtj.co.jp.test-google-a.com"
+  ],
+  "leave_messages": true
+ },
+ "verdict": "P0-1 RESOLVED: ebay@ -> Lolipop -> mailhub@ INBOX 到達経路は 2026-01 から 2026-06 まで継続実証。D6 canary channel としての受信側前提を充足。",
+ "read_only": true
+}

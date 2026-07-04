@@ -1,0 +1,16 @@
+{
+ "action": "D4: MAILHUB_READ_ONLY 1->0 (production READ_ONLY 解除)",
+ "approver": "のび太 (鈴木隆之)",
+ "approvedAt": "2026-07-04T01:48:53Z",
+ "approvalMethod": "AskUserQuestion 明示選択 'GO（今すぐ実行）' (Claude Code session 7b5b0f73)",
+ "targetDeployment": "Vercel takayuki-suzukis-projects-27be1d4f/mailhub (mailhub-kappa.vercel.app, Production)",
+ "reason": "destructive 6 の D4。D3 完了 (Sheets activity store 確立) 済み、SS5 P0-1 (ebay@->mailhub@ 経路) 実測解消済み。",
+ "precondition_evidence": [
+  ".ai-runs/mailhub-next-phase/ebay-mailhub-arrival-verification-20260704.json",
+  "D3 health 実測: activityStore.resolved=sheets / readOnly=true 維持 (memory project_mailhub_dev.md D3 完了節)"
+ ],
+ "rollbackOwner": "のび太 + Claude PM (R4 §9: MAILHUB_READ_ONLY=1 戻し + redeploy)",
+ "enableWindow": "恒久 (D5/D6 進行前提。異常検知時は即 rollback)",
+ "sendStillBlocked": "MAILHUB_SEND_ENABLED=0 のため実送信は D5 まで構造的に封鎖",
+ "verificationPlan": "GET /api/mailhub/config/health の readOnly フィールド=false を実測 (SS5 P0-4: Vercel env 表示では判定しない)"
+}

@@ -1,0 +1,59 @@
+{
+ "generatedAt": "2026-07-04T01:53:37Z",
+ "action": "D4: MAILHUB_READ_ONLY 1->0 (production READ_ONLY 解除)",
+ "deployment": {
+  "id": "EqToPWBct",
+  "source": "main 8b44f44",
+  "status": "Ready",
+  "duration": "1m39s",
+  "domain": "mailhub-kappa.vercel.app",
+  "environment": "Production"
+ },
+ "envChange": {
+  "key": "MAILHUB_READ_ONLY",
+  "before": "1",
+  "after": "0",
+  "environments": "All Environments",
+  "changedVia": "Vercel dashboard (Claude in Chrome, のび太承認済み)"
+ },
+ "healthVerification": {
+  "url": "https://mailhub-kappa.vercel.app/api/mailhub/config/health",
+  "checkedAt": "2026-07-04T01:53:02.948Z (sendAs.checkedAt)",
+  "readOnly": false,
+  "writeGuards": {
+   "readOnly": false,
+   "isAdmin": true,
+   "testMode": false,
+   "productionTestModeForcedOff": true
+  },
+  "activityStore": {
+   "requested": "sheets",
+   "resolved": "sheets",
+   "sheetsConfigured": true
+  },
+  "configStore": {
+   "resolved": "sheets",
+   "sheetsOk": true
+  },
+  "gmailScopes": [
+   "gmail.modify",
+   "gmail.readonly",
+   "gmail.send",
+   "gmail.settings.sharing"
+  ],
+  "gmailSendEnabled": false,
+  "gmailSendCapable": true,
+  "gmailSendReady": false,
+  "gmailSendBlockedReason": "send_disabled",
+  "sendAs": {
+   "requiredCount": 15,
+   "acceptedCount": 15,
+   "missingAliases": [],
+   "error": null
+  },
+  "readOk": true
+ },
+ "verdict": "D4 PASS: readOnly=false を health フィールドで実測確認 (SS5 P0-4 準拠)。送信封鎖は send_disabled (D5 ゲート) のみ残存 = 設計通り。",
+ "approvalRecord": ".ai-runs/mailhub-next-phase/d4-approval-20260704.json",
+ "rollback": "MAILHUB_READ_ONLY=1 に戻し redeploy (R4 §9)"
+}
