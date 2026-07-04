@@ -305,6 +305,9 @@ describe("activityStore", () => {
     expect(get).toHaveBeenCalled();
     expect(update).toHaveBeenCalled(); // header init attempted
     expect(append).toHaveBeenCalled();
+    // Sheets API v4 InsertDataOption enum は {OVERWRITE, INSERT_ROWS} のみ。
+    // 単数形 "INSERT_ROW" は 400 を返し send guard 永続化を落とす (D6 canary で顕在化)。
+    expect(append.mock.calls[0][0].insertDataOption).toBe("INSERT_ROWS");
   });
 
   it("SheetsStore: append/list round-trips label metadata reason in 10 columns", async () => {

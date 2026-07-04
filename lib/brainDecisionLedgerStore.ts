@@ -417,7 +417,7 @@ class SheetsBrainDecisionLedgerStore implements BrainDecisionLedgerStore {
       spreadsheetId: this.spreadsheetId,
       range: `${this.sheetName}!A:T`,
       valueInputOption: "RAW",
-      insertDataOption: "INSERT_ROW",
+      insertDataOption: "INSERT_ROWS",
       requestBody: { values: [brainLedgerEntryToSheetRow(entry)] },
     });
   }

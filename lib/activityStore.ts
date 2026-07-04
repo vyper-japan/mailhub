@@ -193,7 +193,7 @@ export class SheetsStore implements ActivityStore {
         spreadsheetId: this.spreadsheetId,
         range: `${this.sheetName}!A:J`,
         valueInputOption: "RAW",
-        insertDataOption: "INSERT_ROW",
+        insertDataOption: "INSERT_ROWS",
         requestBody: {
           values: [[
             entry.timestamp,
