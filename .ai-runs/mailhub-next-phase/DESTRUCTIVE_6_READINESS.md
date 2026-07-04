@@ -62,7 +62,7 @@
 | D2 | ✅ **完了 (2026-07-04)**: Route A (DWD) で **15/15 accepted** (all same-domain auto-accept、`scripts/gmail-send-as/register_send_as.py`)。ledger 全行 accepted、evidence=`sendas-registration-20260703T224507Z.json` | なし |
 | D3 | ✅ **完了 (2026-07-04)**: Stage A+B 両方投入・redeploy・health検証 ALL PASS。`_previous` に旧token backup 済 (SM `google_shared_inbox_refresh_token_previous`) | ~~Stage A/B~~ 完了。health 実測: `activityStore.resolved=sheets` / `configStore.resolved=sheets` / `readOnly=true` 維持 / `gmailScopes`=[modify,readonly,send,settings.sharing] / `sendAs` 15/15 accepted / `gmailSendBlockedReason=read_only` (D4 まで送信封鎖継続) |
 | D4 | ✅ **完了 (2026-07-04)**: `MAILHUB_READ_ONLY` を D3 Stage A の `1` から `0` へ変更 (All Environments)・redeploy (EqToPWBct, main 8b44f44, 1m39s Ready)・health 実測 `readOnly=false` / `writeGuards.readOnly=false` / `gmailSendBlockedReason=send_disabled` (送信は D5 まで封鎖継続=設計通り)。承認=`d4-approval-20260704.json` / 検証=`d4-readonly-release-verification-20260704.json` | なし |
-| D5 | `MAILHUB_SEND_ENABLED=0` or unset | 投入承認のみ |
+| D5 | ✅ **完了 (2026-07-04)**: `MAILHUB_SEND_ENABLED=1` を新規作成 (Production のみ・Sensitive OFF、従来は unset)・redeploy (CRgcPtGSh, Ready 1m34s)・R4 §6 health smoke **ALL PASS** (`gmailSendReady=true` / `gmailSendBlockedReason=null` / sendAs 15/15 / missingAliases=[] / error=null)。qa:strict ゲート=PASS2 先例裁定 (run43+run44、`qa-strict-d5gate-decision.md`)。承認=`d5-approval-20260704.json` / 検証=`d5-sendenable-verification-20260704.json` | なし |
 | D6 | 未実施 | canary対象channel/message/operator 未指名 |
 
 ## 3. 着手前に揃えるべき pre-flight (Block条件)

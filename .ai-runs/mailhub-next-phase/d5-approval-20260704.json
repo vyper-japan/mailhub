@@ -1,0 +1,20 @@
+{
+  "action": "D5_send_enable",
+  "change": "MAILHUB_SEND_ENABLED=1 (Vercel Production, single-key change + redeploy)",
+  "approver": "nobita",
+  "approvedAt": "2026-07-04T20:20:00+09:00",
+  "approvalMethod": "AskUserQuestion GO — D5実行",
+  "gateEvidence": {
+    "qaStrictGate": "PASS2 by precedent ruling (run43+run44), see ~/.claude/instructions/mailhub-inapp-send/phase3/qa-strict-d5gate-decision.md",
+    "run43": "0 failed / 1 flaky (Activity永続化 retry回復・送信無関係) / QA_EXIT=0",
+    "run44": "150/150 true clean / QA_EXIT=0",
+    "corroboration": "failed=0 x5 consecutive (run43-47), W2-T3a isolated 6/6, CI rerun success on ef36d2f"
+  },
+  "riskAccept": {
+    "p0_current_shared_gmail_routing": "proof chain未完由来。D6実probe+ops:readiness-refresh+artifact commitで解消見込み (READINESS P10)",
+    "p1_local_audit_artifacts": "rule_config_source_not_production / staff_workflow_permissions = 監査がmailhubEnv=localで走る構造的アーティファクト。本番実態はD3/D4 health実測で解消済",
+    "p1_alerts_gha": "alerts_not_ready / alerts_automation_not_ready / staff_github_config_not_ready = 送信有効化の前提でない運用強化系。D6後に mailhub-alerts-setup 起票"
+  },
+  "rollback": {"owner": "nobita + Fable session", "procedure": "MAILHUB_SEND_ENABLED=0 に戻し redeploy (R4 §8)"},
+  "postCheck": "R4 §6 health smoke 全項目。1つでもfailならD6に進まず即rollback"
+}

@@ -1,0 +1,19 @@
+{
+  "action": "D5_send_enable",
+  "verifiedAt": "2026-07-04T12:37:00+00:00",
+  "envChange": "MAILHUB_SEND_ENABLED=1 added (Production only, Sensitive OFF, new variable — did not exist before)",
+  "deployment": {"id": "CRgcPtGSh", "status": "Ready Latest", "buildDuration": "1m34s", "source": "Redeploy of ef36d2f (main)", "domain": "mailhub-kappa.vercel.app"},
+  "healthSmoke_R4S6": {
+    "apiHealth": "200 ok",
+    "readOnly": false, "gmailSendEnabled": true, "gmailSendCapable": true,
+    "gmailSendReady": true, "gmailSendBlockedReason": null,
+    "sendAs": {"requiredCount": 15, "acceptedCount": 15, "missingAliases": [], "error": null, "checkedAt": "2026-07-04T12:36:26.618Z"},
+    "activityStore": {"resolved": "sheets", "sheetsConfigured": true},
+    "configStore": {"resolved": "sheets", "sheetsOk": true},
+    "writeGuards": {"readOnly": false, "testMode": false, "productionTestModeForcedOff": true},
+    "verdict": "ALL PASS"
+  },
+  "approvalRef": "d5-approval-20260704.json",
+  "gateRef": "qa-strict-d5gate-decision.md (PASS2 by precedent ruling, run43+run44)",
+  "rollback": "MAILHUB_SEND_ENABLED=0 + redeploy (R4 §8) — unused"
+}
