@@ -60,7 +60,7 @@
 |---|---|---|
 | D1 | ✅ **完了 (2026-07-04)**: 新 token を SM `vyper/mailhub/prod/google_shared_inbox_refresh_token_next` に格納、scope 4種 (readonly/modify/send/settings.sharing) 検証済。本番未swap | なし (D3 で swap) |
 | D2 | ✅ **完了 (2026-07-04)**: Route A (DWD) で **15/15 accepted** (all same-domain auto-accept、`scripts/gmail-send-as/register_send_as.py`)。ledger 全行 accepted、evidence=`sendas-registration-20260703T224507Z.json` | なし |
-| D3 | ✅ **棚卸し完了 (2026-07-04)**: `prod-env-ledger.md` の 2026-07-04 audit セクション参照 | Stage A (`READ_ONLY=1`先行 + token swap) → Stage B (`ACTIVITY_STORE=sheets`) の2 stage投入。詳細・P0トラップは「D3 改訂実行プラン」参照 |
+| D3 | ✅ **完了 (2026-07-04)**: Stage A+B 両方投入・redeploy・health検証 ALL PASS。`_previous` に旧token backup 済 (SM `google_shared_inbox_refresh_token_previous`) | ~~Stage A/B~~ 完了。health 実測: `activityStore.resolved=sheets` / `configStore.resolved=sheets` / `readOnly=true` 維持 / `gmailScopes`=[modify,readonly,send,settings.sharing] / `sendAs` 15/15 accepted / `gmailSendBlockedReason=read_only` (D4 まで送信封鎖継続) |
 | D4 | ⚠️ Vercel実値は `MAILHUB_READ_ONLY=0` (2026-01-23から残存、2026-07-04 audit で判明)。ただし `effective readOnly=true` は維持中 (`MAILHUB_ACTIVITY_STORE=memory` のdurable-audit guardによる、D3 Stage A未実施のため未反転) | D3 Stage Aで明示 `=1` を先行投入し固定 (P0トラップ対策、「D3 改訂実行プラン」参照)。その後の解除承認 |
 | D5 | `MAILHUB_SEND_ENABLED=0` or unset | 投入承認のみ |
 | D6 | 未実施 | canary対象channel/message/operator 未指名 |
