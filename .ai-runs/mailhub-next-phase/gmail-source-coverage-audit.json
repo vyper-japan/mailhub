@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-07-04T01:58:25.385Z",
-  "repoHead": "71efadfaa6aa4927b26a9900bd7f157a614db34c",
+  "generatedAt": "2026-07-04T12:37:46.742Z",
+  "repoHead": "dc3df557dd9afd54e1ab93d90f414f2b9018179b",
   "sharedInboxEmailMasked": "inf***@vtj.co.jp",
   "sourceChannelCount": 18,
   "sourceAddressCount": 22,
@@ -259,7 +259,7 @@
       "resultSizeEstimate": 201,
       "firstPageIdsReturned": 50,
       "pagesFetched": 2,
-      "uniqueIdsSeenLowerBound": 81,
+      "uniqueIdsSeenLowerBound": 82,
       "hasMoreAfterFetchedPages": false,
       "hasNextPageToken": true,
       "pageSummaries": [
@@ -271,8 +271,8 @@
         },
         {
           "page": 2,
-          "idsReturned": 31,
-          "uniqueNewIds": 31,
+          "idsReturned": 32,
+          "uniqueNewIds": 32,
           "hasNextPageToken": false
         }
       ]
@@ -378,17 +378,17 @@
       ],
       "replyKind": "gmail",
       "query": "(deliveredto:ams_vyper@vtj.co.jp OR to:ams_vyper@vtj.co.jp OR cc:ams_vyper@vtj.co.jp)",
-      "resultSizeEstimate": 9,
-      "firstPageIdsReturned": 9,
+      "resultSizeEstimate": 10,
+      "firstPageIdsReturned": 10,
       "pagesFetched": 1,
-      "uniqueIdsSeenLowerBound": 9,
+      "uniqueIdsSeenLowerBound": 10,
       "hasMoreAfterFetchedPages": false,
       "hasNextPageToken": false,
       "pageSummaries": [
         {
           "page": 1,
-          "idsReturned": 9,
-          "uniqueNewIds": 9,
+          "idsReturned": 10,
+          "uniqueNewIds": 10,
           "hasNextPageToken": false
         }
       ]
