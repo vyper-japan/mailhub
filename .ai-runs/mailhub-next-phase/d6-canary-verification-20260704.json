@@ -1,0 +1,27 @@
+{
+  "action": "D6_canary_send",
+  "executedAt": "2026-07-04T20:31:54+00:00 (JST 2026-07-05 05:31)",
+  "deployment": "main-0543c13 (INSERT_ROWS fix promoted before canary)",
+  "canary": {
+    "channel": "ebay", "fromAlias": "ebay@vtj.co.jp", "recipient": "ahirudesign@gmail.com",
+    "subject": "MAILHUB-ROUTING-7-ebay-20260626 (reply)", "body": "MailHub D6 canary test. 受信確認用の1通です。返信不要です。",
+    "clientRequestId": "af631543-7c6f-441a-9fcb-ece12904b867", "sentMessageId": "19f2ed49acd304c6"
+  },
+  "verification": {
+    "httpStatus": 200,
+    "auditLog": "action=reply_send label=sent_and_done sendAsAccepted=true (Vercel runtime log + Activity sheet row)",
+    "mailhubSent": "mailhub@ SENT に To:ahirudesign@ 件名 canary、ラベル MailHub/Done 付与",
+    "activitySheet": "Activity タブに2行記録: reply_send_guard/send_boundary + reply_send/sent_and_done (バグ震源の Sheets append が INSERT_ROWS 修正で成功)",
+    "duplicateSend": "なし (単一 clientRequestId)",
+    "recipientInbox": "ahirudesign@gmail.com 着信 = のび太個人 Gmail のため要目視確認 (Spam フォルダ含む)"
+  },
+  "firstAttemptBlocked": {
+    "at": "2026-07-04T20:16:47Z",
+    "error": "send_guard_unavailable 503 — [SheetsStore] Failed to append: Invalid value at insert_data_option INSERT_ROW (Sheets API v4 400)",
+    "rootCause": "lib/activityStore.ts:196 + lib/brainDecisionLedgerStore.ts:420 の insertDataOption=INSERT_ROW (単数、無効enum)",
+    "fix": "commit 0543c13 INSERT_ROW→INSERT_ROWS + activityStore.test.ts 回帰アサーション。tsc+unit 777緑。E2E は TEST_MODE=memory のため構造的に検出不可だった",
+    "predictedBySS5": "罠 P0-4 (health の activity store false positive: sheetsConfigured のみで実書込未検証) が顕在化"
+  },
+  "approvalRef": "d6-approval-20260704.json",
+  "rollback": "未使用 (成功)。失敗時は D5→D4 rollback + incident だった"
+}

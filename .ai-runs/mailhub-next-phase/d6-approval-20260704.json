@@ -1,0 +1,8 @@
+{
+  "action": "D6_canary_send + routing_probes",
+  "approver": "nobita",
+  "approvedAt": "2026-07-04T21:45:00+09:00",
+  "approvalMethod": "AskUserQuestion 「canary + probes 両方 GO」",
+  "canary": {"count": 1, "channel": "ebay", "fromAlias": "ebay@vtj.co.jp", "recipient": "ahirudesign@gmail.com", "target": "mailhub@ INBOX 内 6/26 probe メッセージ (送信元 ahirudesign@) への返信", "body": "MailHub D6 canary test. 受信確認用の1通です。返信不要です。", "constraints": "1通のみ/bulk禁止/失敗時retry禁止→即D5→D4 rollback+incident"},
+  "routingProbes": {"count": 8, "addresses": "CANONICAL_ROUTING_PROBE_ADDRESSES (gopro_y/gopro_order_yahoo/vyper_r/vyper_rakuten/vyperglobal_y/ams_vyper/datacolor_shopify/ebay)", "purpose": "P0 current_shared_gmail_routing 解消 (probe→audit→refresh→artifact commit)"}
+}

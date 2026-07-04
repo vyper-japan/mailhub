@@ -63,7 +63,7 @@
 | D3 | ✅ **完了 (2026-07-04)**: Stage A+B 両方投入・redeploy・health検証 ALL PASS。`_previous` に旧token backup 済 (SM `google_shared_inbox_refresh_token_previous`) | ~~Stage A/B~~ 完了。health 実測: `activityStore.resolved=sheets` / `configStore.resolved=sheets` / `readOnly=true` 維持 / `gmailScopes`=[modify,readonly,send,settings.sharing] / `sendAs` 15/15 accepted / `gmailSendBlockedReason=read_only` (D4 まで送信封鎖継続) |
 | D4 | ✅ **完了 (2026-07-04)**: `MAILHUB_READ_ONLY` を D3 Stage A の `1` から `0` へ変更 (All Environments)・redeploy (EqToPWBct, main 8b44f44, 1m39s Ready)・health 実測 `readOnly=false` / `writeGuards.readOnly=false` / `gmailSendBlockedReason=send_disabled` (送信は D5 まで封鎖継続=設計通り)。承認=`d4-approval-20260704.json` / 検証=`d4-readonly-release-verification-20260704.json` | なし |
 | D5 | ✅ **完了 (2026-07-04)**: `MAILHUB_SEND_ENABLED=1` を新規作成 (Production のみ・Sensitive OFF、従来は unset)・redeploy (CRgcPtGSh, Ready 1m34s)・R4 §6 health smoke **ALL PASS** (`gmailSendReady=true` / `gmailSendBlockedReason=null` / sendAs 15/15 / missingAliases=[] / error=null)。qa:strict ゲート=PASS2 先例裁定 (run43+run44、`qa-strict-d5gate-decision.md`)。承認=`d5-approval-20260704.json` / 検証=`d5-sendenable-verification-20260704.json` | なし |
-| D6 | 未実施 | canary対象channel/message/operator 未指名 |
+| D6 | ✅ **完了 (2026-07-05 05:31 JST)**: canary 1通 実送信成功。ebay@→ahirudesign@ (mailhub@ SENT に MailHub/Done、sentMessageId=19f2ed49acd304c6、sendAsAccepted=true、Activity Sheet 2行記録、重複なし)。**初回は send_guard_unavailable 503 でブロック→ 実バグ発見・修正 (commit 0543c13 insertDataOption INSERT_ROW→INSERT_ROWS、SS5罠 P0-4 の顕在化) 後に再送で成功**。検証=`d6-canary-verification-20260704.json` / 承認=`d6-approval-20260704.json` | 着信目視 (ahirudesign@ Spam含む) はのび太確認待ち |
 
 ## 3. 着手前に揃えるべき pre-flight (Block条件)
 
