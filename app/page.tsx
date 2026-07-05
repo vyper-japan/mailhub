@@ -145,7 +145,7 @@ export default async function HomePage({
     .catch(() => []);
 
   return (
-    <main className="h-screen flex overflow-hidden bg-white">
+    <main className="fixed inset-0 flex overflow-hidden bg-white">
       {/* InboxShellにサイドバーとユーザー情報を丸ごと任せる（インタラクティブな要素が多いため） */}
       <InboxShell
         initialLabelId={label.id}

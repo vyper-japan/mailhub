@@ -52,6 +52,74 @@ body {
   transition: background-color 75ms ease, box-shadow 75ms ease;
 }
 
+.mailhub-list-column {
+  container-type: inline-size;
+  container-name: mailhub-list;
+}
+
+.mailhub-row-text-block {
+  display: grid;
+  grid-template-areas:
+    "sender"
+    "subject"
+    "snippet";
+  grid-template-columns: minmax(0, 1fr);
+  row-gap: 2px;
+}
+
+.mailhub-row-sender-line {
+  grid-area: sender;
+}
+
+.mailhub-row-subject-line {
+  grid-area: subject;
+}
+
+.mailhub-row-snippet-line {
+  grid-area: snippet;
+  overflow: hidden;
+}
+
+.mailhub-row-inline-separator {
+  display: none;
+}
+
+.mailhub-row-chip {
+  flex-shrink: 0;
+}
+
+@container mailhub-list (min-width: 680px) {
+  .mailhub-row-grid {
+    grid-template-columns: 16px 17px minmax(0, 1fr) 38px;
+    align-items: center;
+    column-gap: 6px;
+  }
+
+  .mailhub-row-text-block {
+    grid-template-areas: "sender subject snippet";
+    grid-template-columns: minmax(112px, 176px) minmax(120px, 34%) minmax(0, 1fr);
+    align-items: center;
+    column-gap: 6px;
+    row-gap: 0;
+  }
+
+  .mailhub-row-sender-line,
+  .mailhub-row-subject-line,
+  .mailhub-row-snippet-line {
+    margin-top: 0;
+    min-height: 18px;
+  }
+
+  .mailhub-row-snippet-line {
+    font-size: 13px;
+    line-height: 18px;
+  }
+
+  .mailhub-row-inline-separator {
+    display: inline;
+  }
+}
+
 .mailhub-message-row-shell > div {
   min-width: 0;
   width: 100%;

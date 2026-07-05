@@ -6994,10 +6994,10 @@ export default function InboxShell({
 
   return (
     <div
-      className={`w-full h-screen ${t.bg} flex flex-col font-sans`}
+      className={`w-full h-full min-h-0 overflow-hidden ${t.bg} flex flex-col font-sans`}
       data-mailhub-client-ready={isClientReady ? "true" : "false"}
     >
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex min-h-0 flex-1 overflow-hidden">
         {/* --- 左サイドバー --- */}
         <Sidebar
           sidebarWidth={sidebarWidth}
@@ -7030,7 +7030,7 @@ export default function InboxShell({
         />
 
         {/* --- 右側エリア (ヘッダー + ツールバー + タブ + メイン) --- */}
-        <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        <div className="flex min-h-0 flex-1 flex-col min-w-0 overflow-hidden">
           
           {/* ヘッダー（検索バー） */}
           <TopHeader
@@ -8152,7 +8152,7 @@ export default function InboxShell({
                       const isGroupChild = mail.isGroupChild;
                       const hasNote = noteIndexIds?.has(mail.id) ?? false;
                       const workTags = workTagsById[mail.id] ?? [];
-                      const isCompactList = listDensity === "compact";
+                      const isCompactDensity = listDensity === "compact";
                       const rowAssigneeName = getAssigneeDisplayName(mail.assigneeSlug);
                       const rowAssigneeState = !mail.assigneeSlug
                         ? "unassigned"
@@ -8248,7 +8248,7 @@ export default function InboxShell({
                         >
                           <div
                             data-testid={isActive ? "message-row-selected" : undefined}
-                            className={`${t.listItem} ${isCompactList ? "!min-h-[48px] !py-1.5" : "!min-h-[62px] !py-2"} ${rowTone} ${isActive ? t.listItemActive : ""} ${isChecked ? t.listItemChecked : ""} ${isTriageCandidate(mail.id) ? "bg-yellow-50" : ""} ${flashingIds.has(mail.id) ? "bg-blue-200 scale-[1.01] transition-all duration-200 shadow-md" : ""} ${removingIds.has(mail.id) ? "opacity-0 scale-95 -translate-x-8 transition-all duration-500 ease-out" : "transition-[background-color,box-shadow,border-color] duration-75"} relative`}
+                            className={`${t.listItem} ${isCompactDensity ? "!min-h-[48px] !py-1.5" : "!min-h-[62px] !py-2"} ${rowTone} ${isActive ? t.listItemActive : ""} ${isChecked ? t.listItemChecked : ""} ${isTriageCandidate(mail.id) ? "bg-yellow-50" : ""} ${flashingIds.has(mail.id) ? "bg-blue-200 scale-[1.01] transition-all duration-200 shadow-md" : ""} ${removingIds.has(mail.id) ? "opacity-0 scale-95 -translate-x-8 transition-all duration-500 ease-out" : "transition-[background-color,box-shadow,border-color] duration-75"} relative`}
                           >
                             {/* Assignee カラーバー（左端） */}
                             {mail.assigneeSlug && (
@@ -8263,7 +8263,7 @@ export default function InboxShell({
                               />
                             )}
                             {/* checkbox / star / sender+subject / date */}
-                            <div className="grid w-full min-w-0 grid-cols-[16px_17px_minmax(0,1fr)_38px] items-start gap-1">
+                            <div className="mailhub-row-grid grid w-full min-w-0 grid-cols-[16px_17px_minmax(0,1fr)_38px] items-start gap-1">
                             {/* チェックボックス */}
                             <div className="flex items-center justify-center">
                               <input
@@ -8331,8 +8331,8 @@ export default function InboxShell({
                               />
                             </button>
 
-                            <div className="min-w-0" data-testid="row-text-block">
-                              <div className="flex min-w-0 items-center gap-1">
+                            <div className="mailhub-row-text-block min-w-0" data-testid="row-text-block">
+                              <div className="mailhub-row-sender-line flex min-w-0 items-center gap-1">
                                 {isUnread && <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#1a73e8]" title="未読" />}
                                 {!seenIds.has(mail.id) && <span data-testid="badge-unseen" className="h-2 w-2 flex-shrink-0 rounded-full bg-orange-400" title="未確認" />}
                                 {mail.assigneeSlug === myAssigneeSlug && (
@@ -8364,7 +8364,7 @@ export default function InboxShell({
                                 </button>
                               </div>
 
-                              <div className={`mt-0.5 flex min-w-0 items-center gap-1 text-[13px] leading-[18px] ${isUnread ? "font-medium text-[#202124]" : "font-normal text-[#202124]"} ${isGroupChild ? "pl-4 border-l-2 border-blue-200" : ""}`}>
+                              <div className={`mailhub-row-subject-line flex min-w-0 items-center gap-1 text-[13px] leading-[18px] ${isUnread ? "font-medium text-[#202124]" : "font-normal text-[#202124]"} ${isGroupChild ? "pl-4 border-l-2 border-blue-200" : ""}`}>
                                 {isGroupHeader && groupCount > 1 && (
                                   <button
                                     type="button"
@@ -8381,73 +8381,27 @@ export default function InboxShell({
                                   </button>
                                 )}
                                 <span data-testid="row-subject" className={`min-w-0 truncate ${isUnread ? "font-semibold" : "font-medium"}`}>{mail.subject ?? "(no subject)"}</span>
-                                {isCompactList && mail.snippet && (
-                                  <>
-                                    <span className="flex-shrink-0 text-[#5f6368]"> - </span>
-                                    <span data-testid="row-snippet" className="min-w-0 flex-1 truncate font-normal text-[#5f6368]">{shortSnippet(mail.snippet, 96)}</span>
-                                  </>
-                                )}
                               </div>
 
-                              {!isCompactList && (
-                                <div className="mt-0.5 flex min-w-0 items-center gap-1.5 text-[12px] leading-[16px] text-[#5f6368]">
-                                  <span data-testid="row-snippet" className="block min-w-0 w-full truncate font-normal">{shortSnippet(mail.snippet, 150)}</span>
-                                  {workTags.slice(0, 2).map((tag) => (
-                                    <span
-                                      key={tag}
-                                      data-testid="work-tag-pill"
-                                      className="hidden max-w-[82px] truncate rounded border border-purple-200 bg-purple-50 px-1 py-0.5 text-[9px] font-bold text-purple-700 sm:inline-flex"
-                                      title={`状況タグ: ${tag}`}
-                                    >
-                                      {tag}
-                                    </span>
-                                  ))}
-                                  {workTags.length > 2 && (
-                                    <span
-                                      data-testid="work-tag-more"
-                                      className="hidden rounded border border-purple-200 bg-purple-50 px-1 py-0.5 text-[9px] font-bold text-purple-700 sm:inline-flex"
-                                      title={workTags.join(", ")}
-                                    >
-                                      +{workTags.length - 2}
-                                    </span>
-                                  )}
-                                  {hasNote && (
-                                    <span data-testid="note-badge" className="hidden rounded border border-[#dadce0] bg-[#f1f3f4] px-1 py-0.5 text-[10px] text-[#5f6368] sm:inline-flex" title="社内メモあり">
-                                      📝
-                                    </span>
-                                  )}
-                                  {mail.snoozeUntil && (
-                                    <span data-testid="snooze-pill" className="hidden rounded border border-blue-200 bg-blue-50 px-1 py-0.5 text-[9px] font-bold text-blue-700 sm:inline-flex" title={`指定日に戻す: ${mail.snoozeUntil}`}>
-                                      Snooze: {mail.snoozeUntil.split("-").slice(1).join("/")}
-                                    </span>
-                                  )}
-                                  {(mail.userLabels ?? []).slice(0, 2).map((labelName) => (
-                                    <span
-                                      key={labelName}
-                                      data-testid="user-label-pill"
-                                      className="hidden max-w-[82px] truncate rounded border border-purple-200 bg-purple-50 px-1 py-0.5 text-[9px] font-bold text-purple-700 sm:inline-flex"
-                                      title={labelName}
-                                    >
-                                      {displayUserLabel(labelName)}
-                                    </span>
-                                  ))}
-                                  {(mail.userLabels ?? []).length > 2 && (
-                                    <span
-                                      data-testid="user-label-pill"
-                                      className="hidden rounded border border-purple-200 bg-purple-50 px-1 py-0.5 text-[9px] font-bold text-purple-700 sm:inline-flex"
-                                      title={(mail.userLabels ?? []).join(", ")}
-                                    >
-                                      +{(mail.userLabels ?? []).length - 2}
-                                    </span>
-                                  )}
-                                  {isTriageCandidate(mail.id) && (
-                                    <span data-testid="triage-badge-muted" className="hidden rounded border border-yellow-300 bg-yellow-100 px-1 py-0.5 text-[9px] font-bold uppercase tracking-wider text-yellow-700 sm:inline-flex" title="処理不要候補">
-                                      処理不要
-                                    </span>
-                                  )}
-                                </div>
-                              )}
-
+                              <div className="mailhub-row-snippet-line mt-0.5 flex min-w-0 items-center gap-1.5 text-[12px] leading-[16px] text-[#5f6368]">
+                                {mail.snippet ? <span className="mailhub-row-inline-separator flex-shrink-0 text-[#5f6368]"> - </span> : null}
+                                <span data-testid="row-snippet" className="block min-w-0 flex-1 truncate font-normal">{shortSnippet(mail.snippet ?? "", 180)}</span>
+                                {workTags.slice(0, 2).map((tag) => (
+                                  <span key={tag} data-testid="work-tag-pill" className="mailhub-row-chip inline-flex max-w-[82px] truncate rounded border border-purple-200 bg-purple-50 px-1 py-0.5 text-[9px] font-bold text-purple-700" title={`状況タグ: ${tag}`}>{tag}</span>
+                                ))}
+                                {workTags.length > 2 && (
+                                  <span data-testid="work-tag-more" className="mailhub-row-chip inline-flex rounded border border-purple-200 bg-purple-50 px-1 py-0.5 text-[9px] font-bold text-purple-700" title={workTags.join(", ")}>+{workTags.length - 2}</span>
+                                )}
+                                {hasNote && <span data-testid="note-badge" className="mailhub-row-chip inline-flex rounded border border-[#dadce0] bg-[#f1f3f4] px-1 py-0.5 text-[10px] text-[#5f6368]" title="社内メモあり">📝</span>}
+                                {mail.snoozeUntil && <span data-testid="snooze-pill" className="mailhub-row-chip inline-flex rounded border border-blue-200 bg-blue-50 px-1 py-0.5 text-[9px] font-bold text-blue-700" title={`指定日に戻す: ${mail.snoozeUntil}`}>Snooze: {mail.snoozeUntil.split("-").slice(1).join("/")}</span>}
+                                {(mail.userLabels ?? []).slice(0, 2).map((labelName) => (
+                                  <span key={labelName} data-testid="user-label-pill" className="mailhub-row-chip inline-flex max-w-[82px] truncate rounded border border-purple-200 bg-purple-50 px-1 py-0.5 text-[9px] font-bold text-purple-700" title={labelName}>{displayUserLabel(labelName)}</span>
+                                ))}
+                                {(mail.userLabels ?? []).length > 2 && (
+                                  <span data-testid="user-label-pill" className="mailhub-row-chip inline-flex rounded border border-purple-200 bg-purple-50 px-1 py-0.5 text-[9px] font-bold text-purple-700" title={(mail.userLabels ?? []).join(", ")}>+{(mail.userLabels ?? []).length - 2}</span>
+                                )}
+                                {isTriageCandidate(mail.id) && <span data-testid="triage-badge-muted" className="mailhub-row-chip inline-flex rounded border border-yellow-300 bg-yellow-100 px-1 py-0.5 text-[9px] font-bold uppercase tracking-wider text-yellow-700" title="処理不要候補">処理不要</span>}
+                              </div>
                             </div>
 
                             {/* 日時 + 経過 */}

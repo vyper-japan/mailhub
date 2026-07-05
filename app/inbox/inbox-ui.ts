@@ -37,11 +37,11 @@ export const t = {
   tabActive: "text-[#1a73e8] border-[#d2e3fc] bg-[#E8F0FE] font-semibold",
 
   // メインエリア（レスポンシブ）
-  mainArea: "mailhub-main-area flex-1 flex bg-[#f6f8fc] overflow-hidden min-w-0",
+  mainArea: "mailhub-main-area flex-1 min-h-0 flex bg-[#f6f8fc] overflow-hidden min-w-0",
 
   // リストカラム（クリック即応 + レスポンシブ）
   listColumn:
-    "mailhub-list-column min-w-[280px] w-96 max-w-[480px] flex flex-col bg-white border-r border-[#dadce0] overflow-hidden flex-shrink-0",
+    "mailhub-list-column min-h-0 min-w-[280px] w-96 max-w-[480px] flex flex-col bg-white border-r border-[#dadce0] overflow-hidden flex-shrink-0",
   listItem:
     "min-h-[58px] px-2 sm:px-3 py-2 border-b border-[#e8eaed] hover:bg-[#f5f8ff] cursor-pointer group select-none flex items-center gap-2",
   listItemActive: "bg-[#d3e3fd] shadow-[inset_3px_0_0_#1a73e8,inset_0_-1px_0_#c6dafc]",
@@ -50,7 +50,7 @@ export const t = {
   listItemRead: "bg-[#F2F6FC]",
 
   // 詳細カラム（作業詳細 + レスポンシブ）
-  detailColumn: "mailhub-detail-column flex-1 flex flex-col bg-white overflow-hidden min-w-0 md:min-w-[420px]",
+  detailColumn: "mailhub-detail-column min-h-0 flex-1 flex flex-col bg-white overflow-hidden min-w-0 md:min-w-[420px]",
 
   // ボタン・その他
   buttonPrimary:
