@@ -187,8 +187,13 @@ function isInternalLabelName(labelName: string): boolean {
 }
 
 async function getRegisteredLabelNameSet(): Promise<Set<string>> {
-  const labels = await getLabelRegistryStore().list();
-  return new Set(labels.map((l) => l.labelName));
+  try {
+    const labels = await getLabelRegistryStore().list();
+    return new Set(labels.map((l) => l.labelName));
+  } catch (e) {
+    console.error("[gmail] getRegisteredLabelNameSet failed; continuing without registered user labels", e);
+    return new Set();
+  }
 }
 
 function filterUserLabels(labelNames: string[], registered: Set<string>): string[] {

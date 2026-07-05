@@ -96,6 +96,7 @@ export async function GET(req: Request) {
       { headers: { "cache-control": "no-store" } },
     );
   } catch (e) {
+    console.error("[mailhub/list] GET failed", e);
     const msg = e instanceof Error ? e.message : String(e);
     return NextResponse.json(
       { error: "gmail_api_error", message: msg },

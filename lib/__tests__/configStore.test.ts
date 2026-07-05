@@ -15,6 +15,7 @@ const sheetsState: {
   throwSpreadsheetsGet?: boolean;
   throwUpdate?: boolean;
   throwClear?: boolean;
+  getImpl?: (args: { spreadsheetId: string; range: string }) => Promise<{ data: { values?: string[][] } }>;
   updateImpl?: (args: { spreadsheetId: string; range: string; requestBody: { values: string[][] } }) => Promise<{ data: object }>;
 } = {
   valuesByRange: {},
@@ -62,6 +63,7 @@ vi.mock("googleapis", () => {
           get: async (args: { spreadsheetId: string; range: string }) => {
             if (sheetsState.throwGet) throw new Error("mock_get_fail");
             sheetsState.calls.get.push({ spreadsheetId: args.spreadsheetId, range: args.range });
+            if (sheetsState.getImpl) return sheetsState.getImpl(args);
             const rangeError = sheetsState.getErrorsByRange[args.range];
             if (rangeError) throw rangeError;
             return { data: { values: sheetsState.valuesByRange[args.range] ?? [] } };
@@ -128,6 +130,7 @@ describe("configStore", () => {
     sheetsState.throwSpreadsheetsGet = false;
     sheetsState.throwUpdate = false;
     sheetsState.throwClear = false;
+    sheetsState.getImpl = undefined;
     sheetsState.updateImpl = undefined;
   });
 
@@ -387,6 +390,181 @@ describe("configStore", () => {
     });
     const h = await store.health();
     expect(h.ok).toBe(false);
+  });
+
+  describe("SheetsConfigStore read cache", () => {
+    function makeJsonBlobStore(sheetName = "ConfigLabels") {
+      setSheetsEnv();
+      return createConfigStore<string[]>({
+        key: `__test_sheets_read_cache_blob_${sheetName}`,
+        empty: [],
+        forceType: "sheets",
+        sheets: {
+          sheetName,
+          mode: "json_blob",
+          toJson: (v) => JSON.stringify(v),
+          fromJson: (json) => (json.trim() ? (JSON.parse(json) as string[]) : []),
+        },
+      });
+    }
+
+    test("dedupes json_blob reads within the 20s TTL", async () => {
+      sheetsState.valuesByRange["ConfigLabels!A1:B2"] = [["json", "updatedAt"], ["[\"old\"]", "2026-01-01T00:00:00.000Z"]];
+      const store = makeJsonBlobStore();
+
+      await expect(store.read()).resolves.toMatchObject({ data: ["old"] });
+      sheetsState.valuesByRange["ConfigLabels!A1:B2"] = [["json", "updatedAt"], ["[\"new\"]", "2026-01-01T00:00:01.000Z"]];
+      await expect(store.read()).resolves.toMatchObject({ data: ["old"] });
+
+      expect(sheetsState.calls.get.filter((call) => call.range === "ConfigLabels!A1:B2")).toHaveLength(1);
+    });
+
+    test("rereads json_blob after the TTL expires", async () => {
+      vi.useFakeTimers();
+      try {
+        sheetsState.valuesByRange["ConfigLabels!A1:B2"] = [["json", "updatedAt"], ["[\"old\"]", "2026-01-01T00:00:00.000Z"]];
+        const store = makeJsonBlobStore();
+
+        await expect(store.read()).resolves.toMatchObject({ data: ["old"] });
+        sheetsState.valuesByRange["ConfigLabels!A1:B2"] = [["json", "updatedAt"], ["[\"new\"]", "2026-01-01T00:00:01.000Z"]];
+        await vi.advanceTimersByTimeAsync(20_001);
+        await expect(store.read()).resolves.toMatchObject({ data: ["new"] });
+
+        expect(sheetsState.calls.get.filter((call) => call.range === "ConfigLabels!A1:B2")).toHaveLength(2);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    test("updates json_blob cache after successful write without readback", async () => {
+      const store = makeJsonBlobStore();
+
+      await store.write(["new"]);
+      sheetsState.calls.get = [];
+      await expect(store.read()).resolves.toMatchObject({ data: ["new"] });
+
+      expect(sheetsState.calls.get).toHaveLength(0);
+    });
+
+    test("returns successful write value after clearing stale read cache", async () => {
+      sheetsState.valuesByRange["ConfigLabels!A1:B2"] = [["json", "updatedAt"], ["[\"old\"]", "2026-01-01T00:00:00.000Z"]];
+      const store = makeJsonBlobStore();
+
+      await expect(store.read()).resolves.toMatchObject({ data: ["old"] });
+      await store.write(["new"]);
+      sheetsState.calls.get = [];
+      await expect(store.read()).resolves.toMatchObject({ data: ["new"] });
+
+      expect(sheetsState.calls.get.filter((call) => call.range === "ConfigLabels!A1:B2")).toHaveLength(0);
+    });
+
+    test("invalidates same-sheet read cache across store instances after write", async () => {
+      sheetsState.valuesByRange["ConfigLabels!A1:B2"] = [["json", "updatedAt"], ["[\"old\"]", "2026-01-01T00:00:00.000Z"]];
+      const storeA = makeJsonBlobStore();
+      const storeB = makeJsonBlobStore();
+
+      await expect(storeA.read()).resolves.toMatchObject({ data: ["old"] });
+      await storeB.write(["new"]);
+
+      sheetsState.calls.get = [];
+      await expect(storeA.read()).resolves.toMatchObject({ data: ["new"] });
+
+      expect(sheetsState.calls.get.filter((call) => call.range === "ConfigLabels!A1:B2")).toHaveLength(1);
+    });
+
+    test("clears stale read cache after failed write and rereads Sheets", async () => {
+      const sheetName = "ConfigFailedWriteRead";
+      const range = `${sheetName}!A1:B2`;
+      sheetsState.valuesByRange[range] = [["json", "updatedAt"], ["[\"old\"]", "2026-01-01T00:00:00.000Z"]];
+      const store = makeJsonBlobStore(sheetName);
+
+      await expect(store.read()).resolves.toMatchObject({ data: ["old"] });
+      sheetsState.throwUpdate = true;
+      await expect(store.write(["failed"])).rejects.toThrow("mock_update_fail");
+
+      sheetsState.throwUpdate = false;
+      sheetsState.valuesByRange[range] = [["json", "updatedAt"], ["[\"sheet\"]", "2026-01-01T00:00:01.000Z"]];
+      sheetsState.calls.get = [];
+      await expect(store.read()).resolves.toMatchObject({ data: ["sheet"] });
+
+      expect(sheetsState.calls.get.filter((call) => call.range === range)).toHaveLength(1);
+    });
+
+    test("does not populate read cache during failed-write suppression window", async () => {
+      const sheetName = "ConfigSuppressedReadCache";
+      const range = `${sheetName}!A1:B2`;
+      sheetsState.valuesByRange[range] = [["json", "updatedAt"], ["[\"old\"]", "2026-01-01T00:00:00.000Z"]];
+      const store = makeJsonBlobStore(sheetName);
+
+      await expect(store.read()).resolves.toMatchObject({ data: ["old"] });
+      sheetsState.throwUpdate = true;
+      await expect(store.write(["failed"])).rejects.toThrow("mock_update_fail");
+
+      sheetsState.throwUpdate = false;
+      sheetsState.calls.get = [];
+      sheetsState.valuesByRange[range] = [["json", "updatedAt"], ["[\"first\"]", "2026-01-01T00:00:01.000Z"]];
+      await expect(store.read()).resolves.toMatchObject({ data: ["first"] });
+
+      sheetsState.valuesByRange[range] = [["json", "updatedAt"], ["[\"second\"]", "2026-01-01T00:00:02.000Z"]];
+      await expect(store.read()).resolves.toMatchObject({ data: ["second"] });
+
+      expect(sheetsState.calls.get.filter((call) => call.range === range)).toHaveLength(2);
+    });
+
+    test("updates table cache after successful write without readback", async () => {
+      setSheetsEnv();
+      const store = createConfigStore<{ n: number }[]>({
+        key: "__test_sheets_read_cache_table",
+        empty: [],
+        forceType: "sheets",
+        sheets: {
+          sheetName: "ConfigRules",
+          mode: "table",
+          headers: ["n"],
+          toRows: (data) => data.map((x) => [String(x.n)]),
+          fromRows: (rows) => rows.map((r) => ({ n: Number(r[0] ?? "0") })),
+        },
+      });
+
+      await store.write([{ n: 7 }]);
+      sheetsState.calls.get = [];
+      await expect(store.read()).resolves.toMatchObject({ data: [{ n: 7 }] });
+
+      expect(sheetsState.calls.get).toHaveLength(0);
+    });
+
+    test("coalesces concurrent same-instance reads into one Sheets get", async () => {
+      const sheetName = "ConfigCoalescedReads";
+      const store = makeJsonBlobStore(sheetName);
+      const resolveGetRef: { current: ((value: { data: { values?: string[][] } }) => void) | null } = { current: null };
+      sheetsState.getImpl = async () =>
+        await new Promise<{ data: { values?: string[][] } }>((resolve) => {
+          resolveGetRef.current = resolve;
+        });
+
+      const first = store.read();
+      const second = store.read();
+      await vi.waitUntil(() => sheetsState.calls.get.length === 1);
+      if (!resolveGetRef.current) throw new Error("missing deferred get resolver");
+      resolveGetRef.current({ data: { values: [["json", "updatedAt"], ["[\"same\"]", "2026-01-01T00:00:00.000Z"]] } });
+
+      const [a, b] = await Promise.all([first, second]);
+      expect(a.data).toEqual(["same"]);
+      expect(b.data).toEqual(["same"]);
+      expect(sheetsState.calls.get.filter((call) => call.range === `${sheetName}!A1:B2`)).toHaveLength(1);
+    });
+
+    test("health bypasses cached reads", async () => {
+      sheetsState.valuesByRange["ConfigLabels!A1:B2"] = [["json", "updatedAt"], ["[\"cached\"]", "2026-01-01T00:00:00.000Z"]];
+      const store = makeJsonBlobStore();
+      await expect(store.read()).resolves.toMatchObject({ data: ["cached"] });
+
+      sheetsState.throwGet = true;
+      const health = await store.health();
+
+      expect(health.ok).toBe(false);
+      expect(health.detail).toBe("mock_get_fail");
+    });
   });
 
   test("SheetsConfigStore json_blob read treats missing Config tab as empty but throws range errors for existing tab", async () => {

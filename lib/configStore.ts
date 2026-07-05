@@ -89,6 +89,23 @@ async function withWriteTimeout<T>(p: Promise<T>, ms: number, label: string): Pr
   }
 }
 
+const SHEETS_READ_CACHE_TTL_MS = 20_000;
+
+type SheetsReadOptions = {
+  bypassCache?: boolean;
+};
+
+type SheetsReadCacheEntry<T> = {
+  result: ConfigReadResult<T>;
+  expiresAt: number;
+  epoch: number;
+};
+
+type SheetsReadInFlight<T> = {
+  promise: Promise<ConfigReadResult<T>>;
+  epoch: number;
+};
+
 function asRecord(value: unknown): Record<string, unknown> | null {
   return value && typeof value === "object" ? (value as Record<string, unknown>) : null;
 }
@@ -281,7 +298,12 @@ class FileConfigStore<T> implements ConfigStore<T> {
 
 class SheetsConfigStore<T> implements ConfigStore<T> {
   private static sheetWriteLocks = new Map<string, Promise<void>>();
+  private static globalEpochs = new Map<string, number>();
+  private static globalSuppressedUntil = new Map<string, number>();
   private opts: SheetsBackendOpts<T>;
+  private readCache: SheetsReadCacheEntry<T> | null = null;
+  private readInFlight: SheetsReadInFlight<T> | null = null;
+
   constructor(opts: SheetsBackendOpts<T>) {
     this.opts = { ...opts, privateKey: opts.privateKey.replace(/\\n/g, "\n") };
   }
@@ -361,7 +383,82 @@ class SheetsConfigStore<T> implements ConfigStore<T> {
     }
   }
 
-  async read(): Promise<ConfigReadResult<T>> {
+  private get sheetKey(): string {
+    return `${this.opts.spreadsheetId}:${this.opts.sheetName}`;
+  }
+
+  private getGlobalEpoch(): number {
+    return SheetsConfigStore.globalEpochs.get(this.sheetKey) ?? 0;
+  }
+
+  private bumpGlobalEpoch(): number {
+    const next = this.getGlobalEpoch() + 1;
+    SheetsConfigStore.globalEpochs.set(this.sheetKey, next);
+    return next;
+  }
+
+  private getGlobalSuppressedUntil(): number {
+    return SheetsConfigStore.globalSuppressedUntil.get(this.sheetKey) ?? 0;
+  }
+
+  private setGlobalSuppressedUntil(until: number): void {
+    SheetsConfigStore.globalSuppressedUntil.set(this.sheetKey, until);
+  }
+
+  private clearGlobalSuppression(): void {
+    SheetsConfigStore.globalSuppressedUntil.delete(this.sheetKey);
+  }
+
+  private setReadCache(result: ConfigReadResult<T>, epoch = this.getGlobalEpoch()): void {
+    this.readCache = { result, expiresAt: Date.now() + SHEETS_READ_CACHE_TTL_MS, epoch };
+  }
+
+  private invalidateReadCacheForWrite(): void {
+    this.bumpGlobalEpoch();
+    this.readCache = null;
+    this.readInFlight = null;
+  }
+
+  private setReadCacheAfterWrite(result: ConfigReadResult<T>): void {
+    this.clearGlobalSuppression();
+    this.readInFlight = null;
+    this.setReadCache(result);
+  }
+
+  async read(opts: SheetsReadOptions = {}): Promise<ConfigReadResult<T>> {
+    const bypassCache = opts.bypassCache === true;
+    const now = Date.now();
+    const currentEpoch = this.getGlobalEpoch();
+    const cachePopulateSuppressed = now < this.getGlobalSuppressedUntil();
+    const cached = this.readCache;
+    if (!bypassCache && !cachePopulateSuppressed && cached && cached.epoch === currentEpoch && cached.expiresAt > now) {
+      return cached.result;
+    }
+    if (!bypassCache && !cachePopulateSuppressed && this.readInFlight?.epoch === currentEpoch) {
+      return this.readInFlight.promise;
+    }
+
+    const epoch = currentEpoch;
+    const run = this.readUnlocked().then((result) => {
+      if (this.getGlobalEpoch() === epoch && Date.now() >= this.getGlobalSuppressedUntil()) {
+        this.setReadCache(result, epoch);
+      }
+      return result;
+    });
+
+    if (!bypassCache && !cachePopulateSuppressed) {
+      this.readInFlight = { promise: run, epoch };
+      void run
+        .finally(() => {
+          if (this.readInFlight?.promise === run) this.readInFlight = null;
+        })
+        .catch(() => {});
+    }
+
+    return await run;
+  }
+
+  private async readUnlocked(): Promise<ConfigReadResult<T>> {
     const sheets = await this.getSheetsClient();
     if (this.opts.mode === "json_blob") {
       const range = `${this.opts.sheetName}!A1:B2`;
@@ -400,9 +497,13 @@ class SheetsConfigStore<T> implements ConfigStore<T> {
   }
 
   async write(data: T): Promise<void> {
-    const key = `${this.opts.spreadsheetId}:${this.opts.sheetName}`;
+    this.invalidateReadCacheForWrite();
+    const key = this.sheetKey;
     const prev = SheetsConfigStore.sheetWriteLocks.get(key) ?? Promise.resolve();
-    const run = prev.catch(() => {}).then(() => this.writeUnlocked(data));
+    const run = prev.catch(() => {}).then(() => {
+      this.invalidateReadCacheForWrite();
+      return this.writeUnlocked(data);
+    });
     const lock = run.catch(async (e) => {
       const drain = getWriteTimeoutDrain(e);
       if (drain) await drain;
@@ -415,7 +516,12 @@ class SheetsConfigStore<T> implements ConfigStore<T> {
       }
     });
 
-    await run;
+    try {
+      await run;
+    } catch (e) {
+      this.setGlobalSuppressedUntil(Date.now() + 60_000);
+      throw e;
+    }
   }
 
   private async writeUnlocked(data: T): Promise<void> {
@@ -443,6 +549,7 @@ class SheetsConfigStore<T> implements ConfigStore<T> {
         await this.ensureJsonBlobSheet();
         await withWriteTimeout(writeJsonBlob(), 6000, "sheets_write");
       }
+      this.setReadCacheAfterWrite({ data, lastUpdatedAt: now, source: "sheets" });
       return;
     }
 
@@ -460,6 +567,7 @@ class SheetsConfigStore<T> implements ConfigStore<T> {
       6000,
       "sheets_write",
     );
+    this.setReadCacheAfterWrite({ data, lastUpdatedAt: null, source: "sheets" });
   }
 
   async health(): Promise<ConfigHealth> {
@@ -467,7 +575,7 @@ class SheetsConfigStore<T> implements ConfigStore<T> {
       if (this.opts.mode === "table") {
         await withTimeout(this.ensureHeaderTable(), 3000, "sheets_header_health");
       }
-      await withTimeout(this.read(), 3000, "sheets_read_health");
+      await withTimeout(this.read({ bypassCache: true }), 3000, "sheets_read_health");
       return { storeType: "sheets", ok: true, lastUpdatedAt: null };
     } catch (e) {
       return { storeType: "sheets", ok: false, detail: e instanceof Error ? e.message : String(e), lastUpdatedAt: null };

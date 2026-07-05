@@ -21,6 +21,7 @@ export async function GET(req: Request) {
     // short TTL caching (client/proxy). Server-side cache is in lib/gmail.ts.
     return NextResponse.json(result, { headers: { "cache-control": "private, max-age=15" } });
   } catch (e) {
+    console.error("[mailhub/thread] GET failed", e);
     const msg = e instanceof Error ? e.message : String(e);
     return NextResponse.json(
       { error: "thread_error", message: msg },

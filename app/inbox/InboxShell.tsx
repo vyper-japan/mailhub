@@ -386,9 +386,23 @@ const THREAD_LOAD_DELAY_MS = 260;
 const SANITIZED_HTML_CACHE_MAX_SIZE = 30;
 const BACKGROUND_FETCH_IDLE_TIMEOUT_MS = 2_500;
 const CHANNEL_COUNT_PREFETCH_BATCH_SIZE = 3;
+const RULES_APPLY_SUCCESS_COOLDOWN_MS = 30_000;
+const RULES_APPLY_FAILURE_COOLDOWN_MS = 60_000;
+const RULES_APPLY_TEST_COOLDOWN_MS = 1_000;
 const MAYBE_SENT_MESSAGE =
   "すでに同じ送信が処理されています。送信済みの可能性があるため、受信トレイ/送信済みを確認してください";
 const UNRESOLVED_TEMPLATE_VAR_RE = /{{\s*[\w.-]+\s*}}/g;
+
+function getHttpStatus(e: unknown): number | null {
+  if (!e || typeof e !== "object") return null;
+  const status = (e as { status?: unknown }).status;
+  return typeof status === "number" && Number.isFinite(status) ? status : null;
+}
+
+function shouldCooldownRulesApplyFailure(e: unknown): boolean {
+  const status = getHttpStatus(e);
+  return status === 429 || (status !== null && status >= 500);
+}
 
 function scheduleIdleTask(callback: () => void, timeout = BACKGROUND_FETCH_IDLE_TIMEOUT_MS): () => void {
   if (typeof window === "undefined") return () => {};
@@ -1069,6 +1083,8 @@ export default function InboxShell({
   const [serverSearchQuery, setServerSearchQuery] = useState<string>(initialSearchQuery);
   // Step 23: Gmail-like labels (registered labels + manual apply + rules)
   const [registeredLabels, setRegisteredLabels] = useState<Array<{ labelName: string; displayName?: string; createdAt: string }>>([]);
+  const rulesApplyInFlightKeysRef = useRef<Set<string>>(new Set());
+  const rulesApplyCooldownUntilByKeyRef = useRef<Map<string, number>>(new Map());
   const [labelPopoverOpen, setLabelPopoverOpen] = useState(false);
   const [labelPopoverQuery, setLabelPopoverQuery] = useState("");
   const [newLabelName, setNewLabelName] = useState("");
@@ -2957,9 +2973,16 @@ export default function InboxShell({
     }
   }, [slaFilteredMessages, selectedId, onSelectMessage]);
 
-  const applyRulesBestEffort = useCallback(async (messageIds: string[]) => {
+  const applyRulesBestEffort = useCallback(async (key: string, messageIds: string[]) => {
     if (messageIds.length === 0) return;
     if (!writeGuardReady || readOnlyMode) return;
+
+    const now = Date.now();
+    const cooldownUntil = rulesApplyCooldownUntilByKeyRef.current.get(key) ?? 0;
+    if (cooldownUntil > now) return;
+    if (rulesApplyInFlightKeysRef.current.has(key)) return;
+
+    rulesApplyInFlightKeysRef.current.add(key);
     try {
       const idSet = new Set(messageIds);
       const res = (await postJsonOrThrow("/api/mailhub/rules/apply", {
@@ -2974,6 +2997,10 @@ export default function InboxShell({
             attachmentCount: message.attachmentCount ?? 0,
           })),
       })) as { appliedDetails?: Array<{ id: string; labels: string[] }> };
+
+      const successCooldownMs = testMode ? RULES_APPLY_TEST_COOLDOWN_MS : RULES_APPLY_SUCCESS_COOLDOWN_MS;
+      rulesApplyCooldownUntilByKeyRef.current.set(key, Date.now() + successCooldownMs);
+
       const appliedDetails = res?.appliedDetails ?? [];
       if (appliedDetails.length === 0) return;
       const idToLabels = new Map(appliedDetails.map((x) => [x.id, x.labels] as const));
@@ -2992,10 +3019,16 @@ export default function InboxShell({
         const next = new Set([...(prev.userLabels ?? []), ...add]);
         return { ...prev, userLabels: [...next] };
       });
-    } catch {
+    } catch (e) {
+      if (shouldCooldownRulesApplyFailure(e)) {
+        const failureCooldownMs = testMode ? RULES_APPLY_TEST_COOLDOWN_MS : RULES_APPLY_FAILURE_COOLDOWN_MS;
+        rulesApplyCooldownUntilByKeyRef.current.set(key, Date.now() + failureCooldownMs);
+      }
       // ignore（一覧表示が最優先）
+    } finally {
+      rulesApplyInFlightKeysRef.current.delete(key);
     }
-  }, [messages, readOnlyMode, writeGuardReady]);
+  }, [messages, readOnlyMode, testMode, writeGuardReady]);
 
   const loadList = useCallback(async (
     nextLabelId: string,
@@ -3114,16 +3147,19 @@ export default function InboxShell({
   }, [nextPageToken, isLoadingMore, labelId, serverSearchQuery, listMax]);
 
   // Step 23: 初期表示（SSRで届いたmessages）でもルール適用を走らせる（best-effort）
-  const lastRulesApplyKeyRef = useRef<string>("");
   useEffect(() => {
     if (messages.length === 0) return;
     if (!writeGuardReady || readOnlyMode) return;
+
     const key = `${labelId}:${messages.map((m) => m.id).join(",")}`;
-    if (lastRulesApplyKeyRef.current === key) return;
-    lastRulesApplyKeyRef.current = key;
+    const now = Date.now();
+    const cooldownUntil = rulesApplyCooldownUntilByKeyRef.current.get(key) ?? 0;
+    if (cooldownUntil > now) return;
+    if (rulesApplyInFlightKeysRef.current.has(key)) return;
+
     const messageIds = messages.map((m) => m.id);
     const cancelIdle = scheduleIdleTask(() => {
-      void applyRulesBestEffort(messageIds);
+      void applyRulesBestEffort(key, messageIds);
     }, 3_500);
     return cancelIdle;
   }, [applyRulesBestEffort, labelId, messages, readOnlyMode, writeGuardReady]);
@@ -3678,7 +3714,7 @@ export default function InboxShell({
           }
         }
         await postJsonOrThrow("/api/mailhub/rules", { match, labelNames: [labelName], enabled: true });
-        lastRulesApplyKeyRef.current = "";
+        rulesApplyCooldownUntilByKeyRef.current.delete(`${labelId}:${messages.map((m) => m.id).join(",")}`);
         showToast("ラベルを付与しました（ルール保存）", "success");
       } else {
         showToast(shouldRemove ? "ラベルを解除しました" : "ラベルを付与しました", "success");
@@ -3701,6 +3737,7 @@ export default function InboxShell({
     autoApplyRule,
     autoApplyRuleMatchMode,
     getWriteBlockedTitle,
+    labelId,
     labelSelectionState,
     messages,
     readOnlyMode,

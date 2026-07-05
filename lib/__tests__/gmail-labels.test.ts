@@ -10,6 +10,7 @@ const gmailMockState = vi.hoisted(() => ({
     labelIds?: string[];
   }>,
   messageGetCalls: [] as Array<{ userId?: string; id?: string }>,
+  threadGetCalls: [] as Array<{ userId?: string; id?: string }>,
   labelGetCalls: [] as Array<{ userId?: string; id?: string }>,
   createCalls: [] as Array<{
     userId?: string;
@@ -25,9 +26,22 @@ const gmailMockState = vi.hoisted(() => ({
     nextPageToken?: string;
     resultSizeEstimate?: number;
   }>,
+  threadGetResponses: [] as Array<{
+    messages?: Array<{
+      id?: string;
+      labelIds?: string[];
+      internalDate?: string;
+      snippet?: string;
+      payload?: { headers?: Array<{ name?: string; value?: string }> };
+    }>;
+  }>,
   labelTotals: {} as Record<string, number>,
   labelIdsByMessageId: {} as Record<string, string[]>,
   createConflict: false,
+}));
+
+const labelRegistryMockState = vi.hoisted(() => ({
+  list: vi.fn(async () => [] as Array<{ labelName: string }>),
 }));
 
 vi.mock("googleapis", () => {
@@ -74,6 +88,13 @@ vi.mock("googleapis", () => {
             };
           },
         },
+        threads: {
+          get: async (args: { userId?: string; id?: string }) => {
+            gmailMockState.threadGetCalls.push(args);
+            const response = gmailMockState.threadGetResponses.shift() ?? { messages: [] };
+            return { data: response };
+          },
+        },
         labels: {
           list: async (args: { userId?: string }) => {
             gmailMockState.listCalls.push(args);
@@ -111,8 +132,15 @@ vi.mock("googleapis", () => {
   return { google };
 });
 
+vi.mock("@/lib/labelRegistryStore", () => ({
+  getLabelRegistryStore: () => ({
+    list: labelRegistryMockState.list,
+  }),
+}));
+
 import {
   ensureLabelId,
+  getThreadSummaryByMessageId,
   getMessageCounts,
   listLatestInboxMessages,
   MAILHUB_LABEL_ASSIGNEE_PREFIX,
@@ -136,13 +164,17 @@ describe("ensureLabelId", () => {
     gmailMockState.listCalls = [];
     gmailMockState.messageListCalls = [];
     gmailMockState.messageGetCalls = [];
+    gmailMockState.threadGetCalls = [];
     gmailMockState.labelGetCalls = [];
     gmailMockState.createCalls = [];
     gmailMockState.listResponses = [];
     gmailMockState.messageListResponses = [];
+    gmailMockState.threadGetResponses = [];
     gmailMockState.labelTotals = {};
     gmailMockState.labelIdsByMessageId = {};
     gmailMockState.createConflict = false;
+    labelRegistryMockState.list.mockReset();
+    labelRegistryMockState.list.mockResolvedValue([]);
   });
 
   it("recovers from Gmail label create 409 by refreshing labels and returning the existing id", async () => {
@@ -289,5 +321,78 @@ describe("ensureLabelId", () => {
       "msg-unassigned-1",
       "msg-unassigned-2",
     ]);
+  });
+
+  describe("registered label degradation", () => {
+    it("continues listLatestInboxMessages when registered label store read fails", async () => {
+      const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+      try {
+        labelRegistryMockState.list.mockRejectedValueOnce(new Error("sheets 429"));
+        gmailMockState.listResponses = [[
+          { id: "user-label-id", name: "MailHub/Label/VIP" },
+        ]];
+        gmailMockState.messageListResponses = [
+          {
+            messages: [{ id: "msg-label-degraded", threadId: "thread-label-degraded" }],
+          },
+        ];
+        gmailMockState.labelIdsByMessageId = {
+          "msg-label-degraded": ["user-label-id"],
+        };
+
+        const result = await listLatestInboxMessages({ max: 1 });
+
+        expect(result.messages).toHaveLength(1);
+        expect(result.messages[0]?.id).toBe("msg-label-degraded");
+        expect(result.messages[0]?.userLabels).toBeUndefined();
+        expect(errorSpy).toHaveBeenCalledWith(
+          "[gmail] getRegisteredLabelNameSet failed; continuing without registered user labels",
+          expect.any(Error),
+        );
+      } finally {
+        errorSpy.mockRestore();
+      }
+    });
+
+    it("continues getThreadSummaryByMessageId when registered label store read fails", async () => {
+      const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+      try {
+        labelRegistryMockState.list.mockRejectedValueOnce(new Error("sheets 429"));
+        gmailMockState.listResponses = [[
+          { id: "user-label-id", name: "MailHub/Label/VIP" },
+        ]];
+        gmailMockState.threadGetResponses = [
+          {
+            messages: [
+              {
+                id: "msg-thread-degraded",
+                labelIds: ["user-label-id"],
+                internalDate: "1767139200000",
+                snippet: "thread snippet",
+                payload: {
+                  headers: [
+                    { name: "Subject", value: "Thread subject" },
+                    { name: "From", value: "Customer <customer@example.com>" },
+                    { name: "Message-ID", value: "<msg-thread-degraded@example.com>" },
+                  ],
+                },
+              },
+            ],
+          },
+        ];
+
+        const result = await getThreadSummaryByMessageId("msg-thread-degraded");
+
+        expect(result.threadId).toBe("thread-msg-thread-degraded");
+        expect(result.messages).toHaveLength(1);
+        expect(result.messages[0]?.labels).toEqual([]);
+        expect(errorSpy).toHaveBeenCalledWith(
+          "[gmail] getRegisteredLabelNameSet failed; continuing without registered user labels",
+          expect.any(Error),
+        );
+      } finally {
+        errorSpy.mockRestore();
+      }
+    });
   });
 });
