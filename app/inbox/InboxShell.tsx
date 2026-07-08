@@ -29,6 +29,7 @@ import { GmailComposePanel, type GmailComposePanelProps } from "./components/Gma
 import { ViewsCommandPalette } from "./components/ViewsCommandPalette";
 import { CommandPalette, type Command } from "./components/CommandPalette";
 import { AssigneeSelector } from "./components/AssigneeSelector";
+import { getSlaEmptyMessage } from "@/lib/emptyStateMessage";
 import type { View } from "@/lib/views";
 import { extractFromDomain, extractFromEmail } from "@/lib/labelRules";
 import { 
@@ -8131,13 +8132,18 @@ export default function InboxShell({
                   </div>
                 ) : slaFocus && slaFilteredMessages.length === 0 && !isPending ? (
                   // Step 66: SLA Focus ON で0件
-                  <div className="flex min-h-[320px] items-center justify-center p-8 text-gray-500 text-sm font-medium" data-testid="sla-empty">
-                    <div className="text-center space-y-2">
-                      <AlertTriangle size={40} className="mx-auto text-[#34a853]" />
-                      <div>長く残っているメールはありません</div>
-                      <div className="text-xs text-gray-400">全てのメールが期限内です</div>
-                    </div>
-                  </div>
+                  (() => {
+                    const emptyMessage = getSlaEmptyMessage(activeViewId, views);
+                    return (
+                      <div className="flex min-h-[320px] items-center justify-center p-8 text-gray-500 text-sm font-medium" data-testid="sla-empty">
+                        <div className="text-center space-y-2">
+                          <AlertTriangle size={40} className="mx-auto text-[#34a853]" />
+                          <div>{emptyMessage.title}</div>
+                          {emptyMessage.subtitle ? <div className="text-xs text-gray-400">{emptyMessage.subtitle}</div> : null}
+                        </div>
+                      </div>
+                    );
+                  })()
                 ) : slaFilteredMessages.length === 0 && !isPending ? (
                   <div className="flex min-h-[320px] items-center justify-center p-8 text-gray-500 text-sm font-medium" data-testid={serverSearchQuery ? undefined : (searchTerm ? undefined : (activeLabel?.statusType === "todo" ? "zero-inbox" : undefined))}>
                     {serverSearchQuery ? `検索結果が見つかりませんでした: ${serverSearchQuery}` : searchTerm ? "見つかりませんでした" : activeLabel?.statusType === "todo" ? "今返すメールはありません" : "メールはありません"}

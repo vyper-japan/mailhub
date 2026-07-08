@@ -58,4 +58,72 @@ describe("mailhubClassification", () => {
     expect(isSuppressiveLabelName("処理不要")).toBe(true);
     expect(isSuppressiveLabelName("MailHub/Important")).toBe(false);
   });
+
+  describe("marketplace notification noise", () => {
+    it.each([
+      {
+        label: "Amazon seller notification sender and shipping date subject",
+        message: { from: "seller-notification@amazon.co.jp", subject: "ご注文の発送予定日", snippet: "" },
+      },
+      {
+        label: "Amazon order confirmation snippet",
+        message: { from: "seller-notification@amazon.co.jp", subject: "", snippet: "注文確定のお知らせ" },
+      },
+      {
+        label: "Amazon shipping date keyword",
+        message: { from: "any@example.com", subject: "出荷予定日のご連絡", snippet: "" },
+      },
+      {
+        label: "Rakuten order confirmation sender and subject",
+        message: { from: "order-confirm@mail.rms.rakuten.co.jp", subject: "ご注文内容ご確認", snippet: "" },
+      },
+      {
+        label: "Rakuten order sender",
+        message: { from: "order@rakuten.co.jp", subject: "", snippet: "" },
+      },
+      {
+        label: "Rakuten shipping completion report",
+        message: { from: "any@example.com", subject: "【楽天】発送完了報告", snippet: "" },
+      },
+      {
+        label: "Rakuten order confirmation snippet",
+        message: { from: "any@example.com", subject: "", snippet: "ご注文内容ご確認のお願い" },
+      },
+      {
+        label: "Yahoo shopping order morning report",
+        message: { from: "store-shopping-order-master@mail.yahoo.co.jp", subject: "本日の朝レポ", snippet: "" },
+      },
+      {
+        label: "Yahoo shopping editor reflected",
+        message: { from: "shopping-editor-master@mail.yahoo.co.jp", subject: "エディター反映のお知らせ", snippet: "" },
+      },
+    ])("marks $label as suppressible noise", ({ message }) => {
+      expect(classifyMailhubMessage(message)).toMatchObject({
+        purpose: "noise",
+        suppressible: true,
+        blockedReasons: [],
+      });
+    });
+
+    it.each([
+      {
+        label: "Amazon returns request",
+        message: { from: "seller-notification@amazon.co.jp", subject: "返品リクエスト", snippet: "" },
+      },
+      {
+        label: "Rakuten cancellation request",
+        message: { from: "order-confirm@mail.rms.rakuten.co.jp", subject: "キャンセルのお願い", snippet: "" },
+      },
+      {
+        label: "Yahoo urgent request",
+        message: { from: "store-shopping-order-master@mail.yahoo.co.jp", subject: "至急ご対応ください", snippet: "" },
+      },
+    ])("keeps $label protected as important", ({ message }) => {
+      expect(classifyMailhubMessage(message)).toMatchObject({
+        purpose: "important",
+        suppressible: false,
+        blockedReasons: ["protected_important"],
+      });
+    });
+  });
 });
