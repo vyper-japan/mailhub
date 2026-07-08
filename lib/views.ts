@@ -76,7 +76,7 @@ export const DEFAULT_VIEWS: View[] = [
     name: "問い合わせ",
     icon: "💬",
     labelId: "todo",
-    q: "(問い合わせ OR お問い合わせ OR inquiry OR question OR 質問 OR 相談 OR 返品 OR 交換 OR キャンセル)",
+    q: "(問い合わせ OR お問い合わせ OR \"返信がありました\" OR \"お客様から\" OR inquiry OR question OR 質問 OR 相談 OR from:ichiba-inquiry@rakuten.co.jp OR from:shopping-proorder-master@mail.yahoo.co.jp)",
     pinned: true,
     order: 5,
     createdAt: new Date().toISOString(),

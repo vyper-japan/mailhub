@@ -29,7 +29,7 @@ describe("views", () => {
     expect(DEFAULT_VIEWS.find((v) => v.id === "customer-inquiries")).toMatchObject({
       name: "問い合わせ",
       labelId: "todo",
-      q: "(問い合わせ OR お問い合わせ OR inquiry OR question OR 質問 OR 相談 OR 返品 OR 交換 OR キャンセル)",
+      q: "(問い合わせ OR お問い合わせ OR \"返信がありました\" OR \"お客様から\" OR inquiry OR question OR 質問 OR 相談 OR from:ichiba-inquiry@rakuten.co.jp OR from:shopping-proorder-master@mail.yahoo.co.jp)",
       pinned: true,
     });
     expect(DEFAULT_VIEWS.find((v) => v.id === "noise-candidates")).toMatchObject({
