@@ -870,6 +870,10 @@ export default function InboxShell({
     }
 
     element.innerHTML = sanitizedHtmlState.html;
+    element.querySelectorAll<HTMLAnchorElement>("a[href]").forEach((a) => {
+      a.setAttribute("target", "_blank");
+      a.setAttribute("rel", "noopener noreferrer");
+    });
     renderedHtmlRef.current = { messageId: detailBody.messageId, rawHtml: detailBody.htmlBody };
   }, [
     detailBody.htmlBody,
