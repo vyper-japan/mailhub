@@ -59,7 +59,6 @@ export function Sidebar({
 }: Props) {
   const pinnedViews = views.filter((v) => v.pinned).sort((a, b) => a.order - b.order);
   const otherViews = views.filter((v) => !v.pinned).sort((a, b) => a.order - b.order);
-  const activeView = activeViewId ? views.find((v) => v.id === activeViewId) : null;
   const channelGroup = labelGroups.find((g) => g.id === "channels");
   const channelTotal = channelGroup?.items.reduce((sum, item) => {
     const count = item.type === "channel" && typeof channelCounts[item.id] === "number" ? channelCounts[item.id] : 0;
@@ -78,53 +77,60 @@ export function Sidebar({
       </div>
 
       <div className="flex-1 overflow-y-auto py-2">
-        {/* Work Queue（保存ビュー）: Gmailの「もっと見る」相当として通常は畳む */}
+        {/* Work Queue（保存ビュー）: pinnedを常時表示し、その他のみ畳む */}
         {views.length > 0 && (
           <div className="mb-1" data-testid="nav-views">
-            <details className="group">
-              <summary className="mx-1 flex min-h-[25px] cursor-pointer items-center rounded-r-full px-3 py-0.5 text-[12px] leading-4 text-[#5f6368] hover:bg-[#f1f3f4]">
-                <ChevronRight size={14} className="mr-1 shrink-0 transition-transform group-open:rotate-90" />
-                <span className="truncate">
-                  {activeView ? `保存ビュー: ${activeView.name}` : `保存ビュー（${views.length}）`}
-                </span>
-              </summary>
-              <div className="mt-1 space-y-0.5">
-                {pinnedViews.map((v) => {
-                  const isActive = v.id === activeViewId;
-                  return (
-                    <div
-                      key={v.id}
-                      data-testid={`view-item-${v.id}`}
-                      onClick={() => onSelectView(v.id)}
-                      className={`${t.sidebarItem} ${isActive ? t.sidebarItemActive : ""}`}
-                      title={v.id}
-                    >
-                      <span className="flex items-center gap-2 min-w-0">
-                        <span className={`w-1.5 h-1.5 rounded-full ${isActive ? "bg-[#1a73e8]" : "bg-[#dadce0]"}`} />
-                        <span className="truncate">{v.icon ? `${v.icon} ` : ""}{v.name}</span>
-                      </span>
-                    </div>
-                  );
-                })}
-                {otherViews.map((v) => {
-                  const isActive = v.id === activeViewId;
-                  return (
-                    <div
-                      key={v.id}
-                      data-testid={`view-item-${v.id}`}
-                      onClick={() => onSelectView(v.id)}
-                      className={`${t.sidebarItem} ${isActive ? t.sidebarItemActive : ""}`}
-                      title={v.id}
-                    >
-                      <span className="flex items-center gap-2 min-w-0">
-                        <span className={`w-1.5 h-1.5 rounded-full ${isActive ? "bg-[#1a73e8]" : "bg-[#dadce0]"}`} />
-                        <span className="truncate">{v.icon ? `${v.icon} ` : ""}{v.name}</span>
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </details>
+            {pinnedViews.length > 0 && (
+              <>
+                <div className={t.sidebarHeader}>Work Queue</div>
+                <div className="space-y-0.5">
+                  {pinnedViews.map((v) => {
+                    const isActive = v.id === activeViewId;
+                    return (
+                      <div
+                        key={v.id}
+                        data-testid={`view-item-${v.id}`}
+                        onClick={() => onSelectView(v.id)}
+                        className={`${t.sidebarItem} ${isActive ? t.sidebarItemActive : ""}`}
+                        title={v.id}
+                      >
+                        <span className="flex items-center gap-2 min-w-0">
+                          <span className={`w-1.5 h-1.5 rounded-full ${isActive ? "bg-[#1a73e8]" : "bg-[#dadce0]"}`} />
+                          <span className="truncate">{v.icon ? `${v.icon} ` : ""}{v.name}</span>
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+            {otherViews.length > 0 && (
+              <details className="group">
+                <summary className="mx-1 flex min-h-[25px] cursor-pointer items-center rounded-r-full px-3 py-0.5 text-[12px] leading-4 text-[#5f6368] hover:bg-[#f1f3f4]">
+                  <ChevronRight size={14} className="mr-1 shrink-0 transition-transform group-open:rotate-90" />
+                  <span className="truncate">もっと見る（{otherViews.length}）</span>
+                </summary>
+                <div className="mt-1 space-y-0.5">
+                  {otherViews.map((v) => {
+                    const isActive = v.id === activeViewId;
+                    return (
+                      <div
+                        key={v.id}
+                        data-testid={`view-item-${v.id}`}
+                        onClick={() => onSelectView(v.id)}
+                        className={`${t.sidebarItem} ${isActive ? t.sidebarItemActive : ""}`}
+                        title={v.id}
+                      >
+                        <span className="flex items-center gap-2 min-w-0">
+                          <span className={`w-1.5 h-1.5 rounded-full ${isActive ? "bg-[#1a73e8]" : "bg-[#dadce0]"}`} />
+                          <span className="truncate">{v.icon ? `${v.icon} ` : ""}{v.name}</span>
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </details>
+            )}
           </div>
         )}
 
