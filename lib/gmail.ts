@@ -1293,9 +1293,10 @@ export async function getMessageFromEmail(id: string): Promise<string | null> {
  */
 export async function getMessageMetadataForRules(
   id: string,
-): Promise<{ fromEmail: string | null; labelIds: string[] }> {
+): Promise<{ fromEmail: string | null; subject?: string | null; labelIds: string[] }> {
   if (isTestMode()) {
-    return { fromEmail: await getMessageFromEmail(id), labelIds: [] };
+    const msg = (messagesFixture as InboxListMessage[]).find((m) => m.id === id);
+    return { fromEmail: await getMessageFromEmail(id), subject: msg?.subject ?? null, labelIds: [] };
   }
 
   const { gmail, sharedInboxEmail } = createGmailClient();
@@ -1303,12 +1304,13 @@ export async function getMessageMetadataForRules(
     userId: sharedInboxEmail,
     id,
     format: "metadata",
-    metadataHeaders: ["From"],
+    metadataHeaders: ["From", "Subject"],
   });
   const headers = msgRes.data.payload?.headers ?? undefined;
   const fromEmail = extractFromEmail(headerValue(headers, "From"));
+  const subject = headerValue(headers, "Subject");
   const labelIds = Array.isArray(msgRes.data.labelIds) ? (msgRes.data.labelIds as string[]) : [];
-  return { fromEmail, labelIds };
+  return { fromEmail, subject, labelIds };
 }
 
 /**
@@ -1379,6 +1381,59 @@ export async function applyLabelsToMessages(
 
   const successIds = results.filter((r) => r.ok).map((r) => r.id);
   return { successIds, failed };
+}
+
+export async function archiveMessagesForRules(
+  ids: string[],
+  opts: { addLabelNames?: string[] } = {},
+): Promise<{ successIds: string[]; failed: Array<{ id: string; error: string }> }> {
+  const addNames = (opts.addLabelNames ?? []).filter(Boolean);
+  if (ids.length === 0) return { successIds: [], failed: [] };
+
+  if (isTestMode()) {
+    const map = getTestUserLabels();
+    for (const id of ids) {
+      const cur = map.get(id) ?? new Set<string>();
+      for (const n of addNames) cur.add(n);
+      map.set(id, cur);
+    }
+    clearAllMessageCaches();
+    return { successIds: [...ids], failed: [] };
+  }
+
+  const { gmail, sharedInboxEmail } = createGmailClient();
+  const addIds: string[] = [];
+  for (const name of [...new Set(addNames)]) {
+    const labelId = await ensureLabelId(name);
+    if (labelId) addIds.push(labelId);
+  }
+
+  const failed: Array<{ id: string; error: string }> = [];
+  const results = await mapWithConcurrency(ids, 3, async (id) => {
+    try {
+      await gmail.users.messages.modify({
+        userId: sharedInboxEmail,
+        id,
+        requestBody: {
+          addLabelIds: addIds.length ? addIds : undefined,
+          removeLabelIds: ["INBOX"],
+        },
+      });
+      return { ok: true as const, id };
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      failed.push({ id, error: msg });
+      return { ok: false as const, id };
+    }
+  });
+
+  getCache().list.clear();
+  getCache().thread.clear();
+  for (const r of results) {
+    if (r.ok) getCache().detail.delete(`detail:${sharedInboxEmail}:id=${r.id}`);
+  }
+
+  return { successIds: results.filter((r) => r.ok).map((r) => r.id), failed };
 }
 
 /**

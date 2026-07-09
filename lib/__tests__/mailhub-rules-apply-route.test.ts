@@ -9,6 +9,7 @@ const routeMocks = vi.hoisted(() => ({
   getMessageMetadataForRules: vi.fn(),
   ensureLabelId: vi.fn(),
   applyLabelsToMessages: vi.fn(),
+  archiveMessagesForRules: vi.fn(),
   assignMessage: vi.fn(),
   applyTestActionDelay: vi.fn(),
   getTestUserLabelNames: vi.fn(),
@@ -43,6 +44,7 @@ vi.mock("@/lib/gmail", () => ({
   getMessageMetadataForRules: routeMocks.getMessageMetadataForRules,
   ensureLabelId: routeMocks.ensureLabelId,
   applyLabelsToMessages: routeMocks.applyLabelsToMessages,
+  archiveMessagesForRules: routeMocks.archiveMessagesForRules,
   assignMessage: routeMocks.assignMessage,
   applyTestActionDelay: routeMocks.applyTestActionDelay,
   getTestUserLabelNames: routeMocks.getTestUserLabelNames,
@@ -147,6 +149,7 @@ describe("mailhub rules apply route", () => {
     routeMocks.getMessageMetadataForRules.mockResolvedValue({ fromEmail: "billing@example.com", labelIds: [] });
     routeMocks.ensureLabelId.mockResolvedValue("Label_Muted");
     routeMocks.applyLabelsToMessages.mockResolvedValue({ applied: ["m1"], failed: [] });
+    routeMocks.archiveMessagesForRules.mockResolvedValue({ successIds: ["m1"], failed: [] });
     routeMocks.applyTestActionDelay.mockResolvedValue(undefined);
     routeMocks.getTestUserLabelNames.mockReturnValue([]);
     routeMocks.getTestAssigneeMap.mockReturnValue(new Map());

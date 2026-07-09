@@ -3,7 +3,7 @@ import { requireUser, authErrorResponse } from "@/lib/require-user";
 import { getLabelRulesStore } from "@/lib/labelRulesStore";
 import { getLabelRegistryStore } from "@/lib/labelRegistryStore";
 import { matchRulesWithAssign, type AssignToSpec } from "@/lib/labelRules";
-import { applyLabelsToMessages, ensureLabelId, getMessageDetail, getMessageMetadataForRules, getTestUserLabelNames, listLatestInboxMessages, applyTestActionDelay, assignMessage, getTestAssigneeMap, assigneeSlug } from "@/lib/gmail";
+import { applyLabelsToMessages, archiveMessagesForRules, ensureLabelId, getMessageDetail, getMessageMetadataForRules, getTestUserLabelNames, listLatestInboxMessages, applyTestActionDelay, assignMessage, getTestAssigneeMap, assigneeSlug } from "@/lib/gmail";
 import { isTestMode } from "@/lib/test-mode";
 import { logAction } from "@/lib/audit-log";
 import { isAdminEmail } from "@/lib/admin";
@@ -48,7 +48,7 @@ async function mapWithConcurrency<T, R>(
 }
 
 type ApplyItem =
-  | { id: string; status: "applied"; labels: string[]; assignedTo: string | null; classification: MailhubClassification }
+  | { id: string; status: "applied"; labels: string[]; assignedTo: string | null; archived: boolean; classification: MailhubClassification }
   | { id: string; status: "skipped"; reason: string; classification?: MailhubClassification }
   | { id: string; status: "failed"; error: string };
 
@@ -83,7 +83,8 @@ export async function POST(req: Request) {
   if (!authResult.ok) return authErrorResponse(authResult);
 
   const body = (await req.json().catch(() => ({} as Record<string, unknown>))) as Record<string, unknown>;
-  const dryRun = body.dryRun === true;
+  const url = new URL(req.url);
+  const dryRun = body.dryRun === true || url.searchParams.get("dryRun") === "1";
   // READ ONLY: Preview(dryRun)のみ許可
   if (isReadOnlyMode() && !dryRun) {
     return writeForbiddenResponse("rules_apply");
@@ -131,12 +132,14 @@ export async function POST(req: Request) {
 
   // registered labels -> labelId（冪等スキップ判定用）
   const labelNameToId = new Map<string, string>();
-  await Promise.all(
-    [...registered].map(async (name) => {
-      const id = await withTimeout(ensureLabelId(name), PER_MESSAGE_TIMEOUT_MS, `ensureLabelId:${name}`).catch(() => null);
-      if (id) labelNameToId.set(name, id);
-    }),
-  );
+  if (!dryRun) {
+    await Promise.all(
+      [...registered].map(async (name) => {
+        const id = await withTimeout(ensureLabelId(name), PER_MESSAGE_TIMEOUT_MS, `ensureLabelId:${name}`).catch(() => null);
+        if (id) labelNameToId.set(name, id);
+      }),
+    );
+  }
 
   const inTest = isTestMode();
 
@@ -160,21 +163,23 @@ export async function POST(req: Request) {
       if (!fromEmail) return { id, status: "skipped", reason: "missing_from" };
 
       // Step 83: matchRulesWithAssignを使用
-      const matchResult = matchRulesWithAssign(fromEmail, effectiveRules);
-      const matchedLabels = matchResult.labels.filter((n) => registered.has(n));
-      const assignToEmail = resolveAssigneeEmail(matchResult.assignTo);
       const summary = idToSummary.get(id);
+      const subject = summary?.subject ?? meta.subject ?? null;
+      const matchResult = matchRulesWithAssign(fromEmail, effectiveRules, subject);
+      const matchedLabels = matchResult.labels.filter((n) => registered.has(n));
+      const shouldArchive = matchResult.action === "archive";
+      const assignToEmail = resolveAssigneeEmail(matchResult.assignTo);
       let safety = evaluateNoiseSafety({
         id,
-        subject: summary?.subject ?? null,
+        subject,
         from: summary?.from ?? fromEmail,
         snippet: summary?.snippet ?? "",
         attachmentCount: summary?.attachmentCount,
       });
       const hasSuppressiveLabel = matchedLabels.some(isSuppressiveLabelName);
 
-      // labels も assignTo も無い場合はスキップ
-      if (matchedLabels.length === 0 && !assignToEmail) {
+      // archive / labels / assignTo のいずれも無い場合はスキップ
+      if (!shouldArchive && matchedLabels.length === 0 && !assignToEmail) {
         return { id, status: "skipped", reason: "no_match", classification: safety.classification };
       }
 
@@ -229,16 +234,18 @@ export async function POST(req: Request) {
       // labels追加もassignも不要ならスキップ
       const hasLabelChange = toAdd.length > 0;
       const hasAssignChange = assignToEmail && !alreadyAssigned;
-      if (!hasLabelChange && !hasAssignChange) {
+      if (!shouldArchive && !hasLabelChange && !hasAssignChange) {
         return { id, status: "skipped", reason: "already_labeled", classification };
       }
 
       if (dryRun) {
-        return { id, status: "applied", labels: toAdd, assignedTo: hasAssignChange ? assignToEmail : null, classification };
+        return { id, status: "applied", labels: toAdd, assignedTo: hasAssignChange ? assignToEmail : null, archived: shouldArchive, classification };
       }
 
-      // Labels適用
-      if (toAdd.length > 0) {
+      if (shouldArchive) {
+        const res = await withTimeout(archiveMessagesForRules([id], { addLabelNames: toAdd }), PER_MESSAGE_TIMEOUT_MS, `archive:${id}`);
+        if (res.failed.length > 0) return { id, status: "failed", error: res.failed[0].error };
+      } else if (toAdd.length > 0) {
         const res = await withTimeout(applyLabelsToMessages([id], { addLabelNames: toAdd }), PER_MESSAGE_TIMEOUT_MS, `apply:${id}`);
         if (res.failed.length > 0) return { id, status: "failed", error: res.failed[0].error };
       }
@@ -269,16 +276,16 @@ export async function POST(req: Request) {
         try {
           await logAction({
             actorEmail: authResult.user.email,
-            action: "archive", // label付与はarchiveアクションとして記録
+            action: shouldArchive ? "archive" : "rule_apply",
             messageId: id,
-            metadata: { ruleId, labels: toAdd, assignedTo: assignedToFinal },
+            metadata: { ruleId, labels: toAdd, assignedTo: assignedToFinal, archived: shouldArchive },
           });
         } catch {
           // ignore
         }
       }
       
-      return { id, status: "applied", labels: toAdd, assignedTo: assignedToFinal, classification };
+      return { id, status: "applied", labels: toAdd, assignedTo: assignedToFinal, archived: shouldArchive, classification };
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       return { id, status: "failed", error: msg };
@@ -287,8 +294,9 @@ export async function POST(req: Request) {
 
   const appliedDetails = results
     .filter((r): r is Extract<ApplyItem, { status: "applied" }> => r.status === "applied")
-    .map((r) => ({ id: r.id, labels: r.labels, assignedTo: r.assignedTo, classification: r.classification }));
+    .map((r) => ({ id: r.id, labels: r.labels, assignedTo: r.assignedTo, archived: r.archived, classification: r.classification }));
   const applied = appliedDetails.map((x) => x.id);
+  const wouldArchive = dryRun ? appliedDetails.filter((x) => x.archived).map((x) => x.id) : [];
   // Step 83: assign予定/実行件数
   const assignedCount = appliedDetails.filter((x) => x.assignedTo).length;
   const skipped = results.filter((r) => r.status === "skipped").map((r) => r.id);
@@ -318,6 +326,7 @@ export async function POST(req: Request) {
     ? {
         matchedCount: matchedIds.length,
         matchedIds,
+        wouldArchive,
         samples,
         max: targetIds.length,
         truncated: sourceIds.length > targetIds.length,
@@ -338,6 +347,7 @@ export async function POST(req: Request) {
           ruleId,
           processed: targetIds.length,
           matched: matchedIds.length,
+          archived: appliedDetails.filter((x) => x.archived).length,
           protected: protectedCount,
           truncated: sourceIds.length > targetIds.length,
           max,
@@ -355,6 +365,7 @@ export async function POST(req: Request) {
       skipped,
       skippedDetails,
       failed,
+      wouldArchive,
       truncated: sourceIds.length > targetIds.length,
       processed: targetIds.length,
       assignedCount, // Step 83: assign実行/予定件数

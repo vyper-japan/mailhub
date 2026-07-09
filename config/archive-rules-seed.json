@@ -1,0 +1,16 @@
+[
+  { "id": "archive-rule-20-1", "match": { "fromEmail": "seller-notification@amazon.co.jp" }, "action": "archive", "enabled": true, "createdAt": "2026-07-09T00:00:00.000Z" },
+  { "id": "archive-rule-20-2", "match": { "fromEmail": "no-reply@info.rms.rakuten.co.jp" }, "action": "archive", "enabled": true, "createdAt": "2026-07-09T00:00:00.000Z" },
+  { "id": "archive-rule-20-3", "match": { "fromEmail": "order-confirm@mail.rms.rakuten.co.jp" }, "action": "archive", "enabled": true, "createdAt": "2026-07-09T00:00:00.000Z" },
+  { "id": "archive-rule-20-4", "match": { "fromEmail": "amazon-service-jp@sell.amazon.com" }, "action": "archive", "enabled": true, "createdAt": "2026-07-09T00:00:00.000Z" },
+  { "id": "archive-rule-20-5", "match": { "fromEmail": "order@rakuten.co.jp" }, "action": "archive", "enabled": true, "createdAt": "2026-07-09T00:00:00.000Z" },
+  { "id": "archive-rule-20-6", "match": { "fromEmail": "email@email.shopify.com" }, "action": "archive", "enabled": true, "createdAt": "2026-07-09T00:00:00.000Z" },
+  { "id": "archive-rule-20-7", "match": { "fromEmail": "shipment-tracking@amazon.co.jp" }, "action": "archive", "enabled": true, "createdAt": "2026-07-09T00:00:00.000Z" },
+  { "id": "archive-rule-20-8", "match": { "fromEmail": "myhillsshop_webmail@hillspet.com" }, "action": "archive", "enabled": true, "createdAt": "2026-07-09T00:00:00.000Z" },
+  { "id": "archive-rule-20-9", "match": { "fromEmail": "yuka@vtj.co.jp" }, "action": "archive", "enabled": true, "createdAt": "2026-07-09T00:00:00.000Z" },
+  { "id": "archive-rule-20-10", "match": { "fromEmail": "kaori.sudo@gf-k.co.jp" }, "action": "archive", "enabled": true, "createdAt": "2026-07-09T00:00:00.000Z" },
+  { "id": "archive-rule-20-11", "match": { "fromEmail": "donotreply@amazon.com", "subjectContains": ["キャンセル"] }, "action": "label", "labelNames": ["重要/キャンセル"], "enabled": true, "createdAt": "2026-07-09T00:00:00.000Z" },
+  { "id": "archive-rule-20-12", "match": { "fromEmail": "donotreply@amazon.com", "subjectNotContains": ["キャンセル"] }, "action": "archive", "enabled": true, "createdAt": "2026-07-09T00:00:00.000Z" },
+  { "id": "archive-rule-20-13", "match": { "fromEmail": "noreply@ads.amazon.com", "subjectContains": ["請求書"] }, "action": "label", "labelNames": ["経理/請求書"], "enabled": true, "createdAt": "2026-07-09T00:00:00.000Z" },
+  { "id": "archive-rule-20-14", "match": { "fromEmail": "noreply@ads.amazon.com", "subjectNotContains": ["請求書"] }, "action": "archive", "enabled": true, "createdAt": "2026-07-09T00:00:00.000Z" }
+]

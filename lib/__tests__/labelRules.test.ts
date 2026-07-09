@@ -7,6 +7,7 @@ import {
   normalizeAssignToSpec,
   normalizeFromEmail,
 } from "@/lib/labelRules";
+import type { LabelRule } from "@/lib/labelRules";
 
 describe("labelRules", () => {
   test("extractFromEmail: 日本語名 + <email> から抽出できる（楽天想定）", () => {
@@ -146,8 +147,40 @@ describe("labelRules", () => {
       },
     ]);
 
-    expect(result.labels).toEqual(["Domain", "Exact"]);
-    expect(result.assignTo).toEqual({ assigneeEmail: "owner@vtj.co.jp" });
+    expect(result).toMatchObject({
+      labels: ["Domain", "Exact"],
+      assignTo: { assigneeEmail: "owner@vtj.co.jp" },
+      action: "label",
+      matchedRuleId: "r1",
+    });
+  });
+
+  const baseRule = (overrides: Partial<LabelRule>): LabelRule => ({
+    id: overrides.id ?? "rule",
+    match: overrides.match ?? { fromEmail: "sender@example.com" },
+    labelNames: overrides.labelNames ?? ["Hit"],
+    action: overrides.action,
+    enabled: overrides.enabled ?? true,
+    createdAt: "2026-07-09T00:00:00.000Z",
+  });
+
+  const subjectActionCases: Array<[string, LabelRule[], string | null, string[], "label" | "archive" | null, string | null]> = [
+    ["subjectContains matches case-insensitively", [baseRule({ id: "c", match: { fromEmail: "sender@example.com", subjectContains: ["invoice"] } })], "INVOICE ready", ["Hit"], "label", "c"],
+    ["subjectContains rejects when absent", [baseRule({ match: { fromEmail: "sender@example.com", subjectContains: ["キャンセル"] } })], "通常通知", [], null, null],
+    ["subjectNotContains passes when absent", [baseRule({ id: "a", action: "archive", labelNames: [], match: { fromEmail: "sender@example.com", subjectNotContains: ["キャンセル"] } })], "通常通知", [], "archive", "a"],
+    ["subjectNotContains rejects when present", [baseRule({ action: "archive", labelNames: [], match: { fromEmail: "sender@example.com", subjectNotContains: ["キャンセル"] } })], "キャンセル通知", [], null, null],
+    ["contains and notContains both pass", [baseRule({ id: "both", match: { fromEmail: "sender@example.com", subjectContains: ["請求書"], subjectNotContains: ["広告"] } })], "7月 請求書", ["Hit"], "label", "both"],
+    ["contains and notContains are AND", [baseRule({ match: { fromEmail: "sender@example.com", subjectContains: ["請求書"], subjectNotContains: ["広告"] } })], "広告 請求書", [], null, null],
+    ["no subject condition ignores null subject", [baseRule({ id: "plain", action: "archive", labelNames: [] })], null, [], "archive", "plain"],
+    ["undefined action defaults to label", [baseRule({ id: "default" })], "anything", ["Hit"], "label", "default"],
+    ["from mismatch blocks subject match", [baseRule({ match: { fromEmail: "other@example.com", subjectContains: ["請求書"] } })], "請求書", [], null, null],
+    ["fromDomain and subject match together", [baseRule({ id: "domain", match: { fromDomain: "example.com", subjectContains: ["ship"] } })], "SHIP notice", ["Hit"], "label", "domain"],
+  ];
+
+  test.each(subjectActionCases)("%s", (_name, rules, subject, labels, action, matchedRuleId) => {
+    const result = matchRulesWithAssign("sender@example.com", rules, subject);
+    expect(result.labels).toEqual(labels);
+    expect(result.action).toBe(action);
+    expect(result.matchedRuleId).toBe(matchedRuleId);
   });
 });
-

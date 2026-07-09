@@ -2,7 +2,7 @@ import "server-only";
 
 import { join } from "path";
 import { randomUUID } from "crypto";
-import { normalizeAssignToSpec, type LabelRule, type LabelRuleMatch, type AssignToSpec } from "@/lib/labelRules";
+import { normalizeAssignToSpec, type LabelRule, type LabelRuleMatch, type AssignToSpec, type LabelRuleAction } from "@/lib/labelRules";
 import { createConfigStore, type ConfigStore, type ConfigStoreType } from "@/lib/configStore";
 
 export interface LabelRulesStore {
@@ -13,6 +13,7 @@ export interface LabelRulesStore {
     labelNames: string[];
     enabled?: boolean;
     assignTo?: AssignToSpec; // Step 83: Assignアクション
+    action?: LabelRuleAction;
   }): Promise<LabelRule>;
   deleteRule(id: string): Promise<void>;
   toggleRule(id: string, enabled: boolean): Promise<void>;
@@ -39,6 +40,13 @@ function parseRules(raw: string): LabelRule[] {
         const matchRaw = o.match && typeof o.match === "object" ? (o.match as Record<string, unknown>) : {};
         const fromEmail = typeof matchRaw.fromEmail === "string" ? matchRaw.fromEmail : undefined;
         const fromDomain = typeof matchRaw.fromDomain === "string" ? matchRaw.fromDomain : undefined;
+        const subjectContains = Array.isArray(matchRaw.subjectContains)
+          ? matchRaw.subjectContains.filter((v): v is string => typeof v === "string" && v.trim().length > 0)
+          : undefined;
+        const subjectNotContains = Array.isArray(matchRaw.subjectNotContains)
+          ? matchRaw.subjectNotContains.filter((v): v is string => typeof v === "string" && v.trim().length > 0)
+          : undefined;
+        const action = o.action === "archive" || o.action === "label" ? o.action : undefined;
         const labelName = typeof o.labelName === "string" ? o.labelName : undefined;
         const labelNamesRaw = o.labelNames;
         const labelNames = Array.isArray(labelNamesRaw)
@@ -49,7 +57,13 @@ function parseRules(raw: string): LabelRule[] {
           id,
           enabled,
           createdAt,
-          match: { ...(fromEmail ? { fromEmail } : {}), ...(fromDomain ? { fromDomain } : {}) },
+          match: {
+            ...(fromEmail ? { fromEmail } : {}),
+            ...(fromDomain ? { fromDomain } : {}),
+            ...(subjectContains?.length ? { subjectContains } : {}),
+            ...(subjectNotContains?.length ? { subjectNotContains } : {}),
+          },
+          ...(action ? { action } : {}),
           ...(labelNames.length ? { labelNames } : {}),
           ...(labelName ? { labelName } : {}),
           ...(assignTo ? { assignTo } : {}),
@@ -99,7 +113,7 @@ class Store implements LabelRulesStore {
     await this.cfg.write(rules);
   }
 
-  async upsertRule(input: { id?: string; match: LabelRuleMatch; labelNames: string[]; enabled?: boolean; assignTo?: AssignToSpec }): Promise<LabelRule> {
+  async upsertRule(input: { id?: string; match: LabelRuleMatch; labelNames: string[]; enabled?: boolean; assignTo?: AssignToSpec; action?: LabelRuleAction }): Promise<LabelRule> {
     const cur = await this.getRules();
     const enabled = input.enabled ?? true;
     if (input.id) {
@@ -107,6 +121,7 @@ class Store implements LabelRulesStore {
       const next: LabelRule = {
         id: input.id,
         match: input.match,
+        action: input.action,
         labelNames: input.labelNames,
         assignTo: input.assignTo, // Step 83
         enabled,
@@ -120,6 +135,7 @@ class Store implements LabelRulesStore {
     const rule: LabelRule = {
       id: randomUUID(),
       match: input.match,
+      action: input.action,
       labelNames: input.labelNames,
       assignTo: input.assignTo, // Step 83
       enabled,
@@ -170,4 +186,3 @@ export function getLabelRulesFileStoreForImport(): LabelRulesStore {
 export async function overwriteLabelRulesForImport(rules: LabelRule[]): Promise<void> {
   await buildConfigStore().write(rules);
 }
-
