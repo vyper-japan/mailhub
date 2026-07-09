@@ -7,7 +7,7 @@ type MessageMeta = { id: string; fromEmail: string | null; subject: string | nul
 type Target = { id: string; labels: string[] };
 const seedPath = join(process.cwd(), "config", "archive-rules-seed.json");
 const envPath = join(process.cwd(), ".env.local");
-const pageSize = 500, batchSize = 50, query = "label:todo";
+const pageSize = 500, batchSize = 50, query = "label:INBOX";
 function loadEnvFile() {
   if (!existsSync(envPath)) return;
   for (const line of readFileSync(envPath, "utf8").split(/\r?\n/)) {
@@ -39,7 +39,7 @@ function matchesRule(message: MessageMeta, rule: Rule): boolean {
 function createGmailClient() {
   const oauth2Client = new google.auth.OAuth2({ clientId: requireEnv("GOOGLE_CLIENT_ID"), clientSecret: requireEnv("GOOGLE_CLIENT_SECRET") });
   oauth2Client.setCredentials({ refresh_token: requireEnv("GOOGLE_SHARED_INBOX_REFRESH_TOKEN") });
-  return { gmail: google.gmail({ version: "v1", auth: oauth2Client }), userId: requireEnv("GOOGLE_SHARED_INBOX_EMAIL") };
+  return { gmail: google.gmail({ version: "v1", auth: oauth2Client }), userId: "me" };
 }
 function headerValue(headers: Array<{ name?: string | null; value?: string | null }> | undefined, name: string): string | null { return headers?.find((h) => h.name?.toLowerCase() === name.toLowerCase())?.value ?? null; }
 async function mapLimit<T, R>(items: T[], limit: number, fn: (item: T) => Promise<R>): Promise<R[]> {
@@ -89,7 +89,7 @@ async function main() {
     const page = await gmail.users.messages.list({ userId, q: query, maxResults: pageSize, pageToken });
     pageToken = page.data.nextPageToken ?? undefined;
     const ids = (page.data.messages ?? []).map((m) => m.id).filter((id): id is string => Boolean(id));
-    const metas = await mapLimit(ids, 20, async (id) => {
+    const metas = await mapLimit(ids, 5, async (id) => {
       const res = await gmail.users.messages.get({ userId, id, format: "metadata", metadataHeaders: ["From", "Subject"] });
       const headers = res.data.payload?.headers ?? undefined;
       return { id, fromEmail: normalizeEmail(headerValue(headers, "From")), subject: headerValue(headers, "Subject") } satisfies MessageMeta;
@@ -107,6 +107,7 @@ async function main() {
         for (const label of labels) labelCounts.set(label, (labelCounts.get(label) ?? 0) + 1);
       }
     }
+    if (pageToken) await new Promise((r) => setTimeout(r, 500));
   } while (pageToken);
   console.log(`mode: ${args.apply ? "apply" : "dry-run"}`);
   console.log(`total_scanned: ${totalScanned}`);
