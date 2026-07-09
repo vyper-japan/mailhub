@@ -65,9 +65,12 @@ async function ensureLabelIds(gmail: ReturnType<typeof google.gmail>, userId: st
   return ids;
 }
 async function applyTargets(gmail: ReturnType<typeof google.gmail>, userId: string, targets: Target[], archive: boolean) {
+  const allLabelNames = [...new Set(targets.flatMap((target) => target.labels))];
+  const allLabelIds = await ensureLabelIds(gmail, userId, allLabelNames);
+  const labelIdByName = new Map(allLabelNames.map((name, index) => [name, allLabelIds[index]] as const));
   for (let i = 0; i < targets.length; i += batchSize) {
     await Promise.all(targets.slice(i, i + batchSize).map(async (item) => {
-      const addLabelIds = await ensureLabelIds(gmail, userId, item.labels);
+      const addLabelIds = item.labels.map((label) => labelIdByName.get(label)).filter((id): id is string => Boolean(id));
       if (!archive && !addLabelIds.length) return;
       await gmail.users.messages.modify({ userId, id: item.id, requestBody: { addLabelIds: addLabelIds.length ? addLabelIds : undefined, removeLabelIds: archive ? ["INBOX"] : undefined } });
     }));
