@@ -16,3 +16,5 @@ out
 .vyper/
 tsconfig.tsbuildinfo
 __pycache__/
+.vercel
+.env*
