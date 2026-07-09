@@ -7,7 +7,7 @@ type MessageMeta = { id: string; fromEmail: string | null; subject: string | nul
 type Target = { id: string; labels: string[] };
 const seedPath = join(process.cwd(), "config", "archive-rules-seed.json");
 const envPath = join(process.cwd(), ".env.local");
-const pageSize = 500, batchSize = 50, query = "label:INBOX";
+const pageSize = 500, batchSize = 5, query = "label:INBOX";
 function loadEnvFile() {
   if (!existsSync(envPath)) return;
   for (const line of readFileSync(envPath, "utf8").split(/\r?\n/)) {
