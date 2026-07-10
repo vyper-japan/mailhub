@@ -1,13 +1,31 @@
 #!/usr/bin/env -S node --experimental-strip-types
-import { existsSync, readFileSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { google } from "googleapis";
 type Rule = { id: string; action?: "label" | "archive"; match: { fromEmail?: string; fromDomain?: string; subjectContains?: string[]; subjectNotContains?: string[] }; labelNames?: string[]; labelName?: string; enabled: boolean };
 type MessageMeta = { id: string; fromEmail: string | null; subject: string | null };
-type Target = { id: string; labels: string[] };
+export type Target = { id: string; labels: string[] };
+// 最小限の Gmail client interface（vitest でモック可能にするための type alias。実体は googleapis の gmail client がこれを構造的に満たす）
+export type GmailClient = {
+  users: {
+    messages: {
+      modify(args: { userId: string; id: string; requestBody: { addLabelIds?: string[]; removeLabelIds?: string[] } }): Promise<unknown>;
+    };
+    labels: {
+      list(args: { userId: string }): Promise<{ data: { labels?: Array<{ id?: string | null; name?: string | null }> | null } }>;
+      create(args: { userId: string; requestBody: { name: string; labelListVisibility: string; messageListVisibility: string } }): Promise<{ data: { id?: string | null } }>;
+    };
+    getProfile(args: { userId: string }): Promise<{ data: { emailAddress?: string | null } }>;
+  };
+};
 const seedPath = join(process.cwd(), "config", "archive-rules-seed.json");
 const envPath = join(process.cwd(), ".env.local");
 const pageSize = 500, batchSize = 5, query = "label:INBOX";
+// P1-1 429 指数バックオフ定数: formula = min(cap, base * 2^attempt) * (1 + rand(-jitter, jitter))
+const BACKOFF_BASE_MS = 1000, BACKOFF_CAP_MS = 60000, BACKOFF_MAX_RETRY = 5, BACKOFF_JITTER_RATIO = 0.2;
+// P2-5 labels.list memoize の TTL
+const LABELS_CACHE_TTL_MS = 60000;
 function loadEnvFile() {
   if (!existsSync(envPath)) return;
   for (const line of readFileSync(envPath, "utf8").split(/\r?\n/)) {
@@ -49,32 +67,114 @@ async function mapLimit<T, R>(items: T[], limit: number, fn: (item: T) => Promis
   }));
   return out;
 }
-async function ensureLabelIds(gmail: ReturnType<typeof google.gmail>, userId: string, labels: string[]): Promise<string[]> {
-  if (!labels.length) return [];
+function extractStatusCode(e: unknown): number | null {
+  if (!e || typeof e !== "object") return null;
+  const err = e as { code?: unknown; status?: unknown; response?: { status?: unknown } };
+  const code = err.code ?? err.status ?? err.response?.status;
+  return typeof code === "number" ? code : null;
+}
+function isGmailConflictError(e: unknown): boolean { return extractStatusCode(e) === 409; }
+function backoffDelayMs(attempt: number): number {
+  const raw = Math.min(BACKOFF_CAP_MS, BACKOFF_BASE_MS * 2 ** attempt);
+  return raw * (1 + (Math.random() * 2 - 1) * BACKOFF_JITTER_RATIO);
+}
+async function sleep(ms: number): Promise<void> { await new Promise((resolve) => setTimeout(resolve, ms)); }
+// P2-5: labels.list の 60s TTL memoize（module scope。409 fallback 時は force=true で invalidate 後に再取得）
+let labelsCache: { ids: Map<string, string>; expiresAt: number } | null = null;
+async function fetchLabelIds(gmail: GmailClient, userId: string, force: boolean): Promise<Map<string, string>> {
+  if (!force && labelsCache && Date.now() < labelsCache.expiresAt) return labelsCache.ids;
   const res = await gmail.users.labels.list({ userId });
-  const nameToId = new Map((res.data.labels ?? []).flatMap((l) => l.name && l.id ? [[l.name, l.id] as const] : []));
+  const ids = new Map((res.data.labels ?? []).flatMap((l) => l.name && l.id ? [[l.name, l.id] as const] : []));
+  labelsCache = { ids, expiresAt: Date.now() + LABELS_CACHE_TTL_MS };
+  return ids;
+}
+export async function ensureLabelIds(gmail: GmailClient, userId: string, labels: string[]): Promise<string[]> {
+  if (!labels.length) return [];
+  const nameToId = await fetchLabelIds(gmail, userId, false);
   const ids: string[] = [];
   for (const name of [...new Set(labels)]) {
     const existing = nameToId.get(name);
-    if (existing) ids.push(existing);
-    else {
+    if (existing) { ids.push(existing); continue; }
+    try {
       const created = await gmail.users.labels.create({ userId, requestBody: { name, labelListVisibility: "labelShow", messageListVisibility: "show" } });
-      if (created.data.id) ids.push(created.data.id);
+      if (created.data.id) { ids.push(created.data.id); nameToId.set(name, created.data.id); }
+    } catch (err) {
+      if (!isGmailConflictError(err)) throw err;
+      // 409: race で他プロセスが同名ラベルを作成済み。memoize を強制 invalidate して再取得し、name match で ID を復元する
+      const refreshed = await fetchLabelIds(gmail, userId, true);
+      const conflictedId = refreshed.get(name);
+      if (!conflictedId) throw new Error(`label_conflict_but_not_found:${name}`);
+      ids.push(conflictedId);
     }
   }
   return ids;
 }
-async function applyTargets(gmail: ReturnType<typeof google.gmail>, userId: string, targets: Target[], archive: boolean) {
+type ModifyOutcome = { status: "ok" } | { status: "fail"; statusCode: number | null; reason: string; retryAttempt: number };
+async function modifyWithBackoff(gmail: GmailClient, userId: string, item: Target, archive: boolean, labelIdByName: Map<string, string>): Promise<ModifyOutcome> {
+  const addLabelIds = item.labels.map((label) => labelIdByName.get(label)).filter((id): id is string => Boolean(id));
+  if (!archive && !addLabelIds.length) return { status: "ok" };
+  let attempt = 0;
+  for (;;) {
+    try {
+      await gmail.users.messages.modify({ userId, id: item.id, requestBody: { addLabelIds: addLabelIds.length ? addLabelIds : undefined, removeLabelIds: archive ? ["INBOX"] : undefined } });
+      return { status: "ok" };
+    } catch (err) {
+      const statusCode = extractStatusCode(err);
+      if (statusCode === 429 && attempt < BACKOFF_MAX_RETRY) {
+        await sleep(backoffDelayMs(attempt));
+        attempt += 1;
+        continue;
+      }
+      // 非 429 の失敗は 1 回だけ集計して skip（fatal でなければ次 batch へ）
+      return { status: "fail", statusCode, reason: err instanceof Error ? err.message : String(err), retryAttempt: attempt };
+    }
+  }
+}
+type ProgressEntry = { ts: string; batchIndex: number; mode: "archive" | "label"; attempted: number; succeeded: string[]; failed: Array<{ id: string; status: number | null; reason: string; retryAttempt: number }>; elapsedMs: number };
+let cachedRunId: string | null = null;
+function getRunId(): string {
+  if (!cachedRunId) cachedRunId = new Date().toISOString().replace(/[:.]/g, "-");
+  return cachedRunId;
+}
+function appendProgressEntry(entry: ProgressEntry): void {
+  const dir = join(process.cwd(), ".ai-runs", "mailhub-archive-backfill");
+  if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+  appendFileSync(join(dir, `apply-progress-${getRunId()}.jsonl`), `${JSON.stringify(entry)}\n`);
+}
+export async function applyTargets(gmail: GmailClient, userId: string, targets: Target[], archive: boolean): Promise<void> {
   const allLabelNames = [...new Set(targets.flatMap((target) => target.labels))];
   const allLabelIds = await ensureLabelIds(gmail, userId, allLabelNames);
   const labelIdByName = new Map(allLabelNames.map((name, index) => [name, allLabelIds[index]] as const));
   for (let i = 0; i < targets.length; i += batchSize) {
-    await Promise.all(targets.slice(i, i + batchSize).map(async (item) => {
-      const addLabelIds = item.labels.map((label) => labelIdByName.get(label)).filter((id): id is string => Boolean(id));
-      if (!archive && !addLabelIds.length) return;
-      await gmail.users.messages.modify({ userId, id: item.id, requestBody: { addLabelIds: addLabelIds.length ? addLabelIds : undefined, removeLabelIds: archive ? ["INBOX"] : undefined } });
-    }));
-    await new Promise((resolve) => setTimeout(resolve, 200));
+    const batch = targets.slice(i, i + batchSize);
+    const startedAt = Date.now();
+    const outcomes = await Promise.all(batch.map((item) => modifyWithBackoff(gmail, userId, item, archive, labelIdByName)));
+    const succeeded: string[] = [], failed: ProgressEntry["failed"] = [];
+    outcomes.forEach((outcome, index) => {
+      const id = batch[index].id;
+      if (outcome.status === "ok") succeeded.push(id);
+      else failed.push({ id, status: outcome.statusCode, reason: outcome.reason, retryAttempt: outcome.retryAttempt });
+    });
+    appendProgressEntry({ ts: new Date().toISOString(), batchIndex: Math.floor(i / batchSize), mode: archive ? "archive" : "label", attempted: batch.length, succeeded, failed, elapsedMs: Date.now() - startedAt });
+    await sleep(200);
+  }
+}
+// P2-3: local part 先頭 3 文字 + ***@<domain>（3 文字未満なら ***@<domain>、@ 無しなら文字列全体 mask）
+export function maskEmail(email: string): string {
+  const at = email.indexOf("@");
+  if (at < 0) return "***";
+  const local = email.slice(0, at), domain = email.slice(at + 1);
+  return `${local.length >= 3 ? local.slice(0, 3) : ""}***@${domain}`;
+}
+async function assertSharedInboxEmail(gmail: GmailClient, userId: string): Promise<void> {
+  const expectedRaw = process.env.GOOGLE_SHARED_INBOX_EMAIL ?? "";
+  const expected = expectedRaw.trim().toLowerCase();
+  const profile = await gmail.users.getProfile({ userId });
+  const actualRaw = profile.data.emailAddress ?? "";
+  const actual = actualRaw.trim().toLowerCase();
+  if (!expected || expected !== actual) {
+    console.error(`assert_email_mismatch: expected=${maskEmail(expectedRaw)} actual=${maskEmail(actualRaw)} env=GOOGLE_SHARED_INBOX_EMAIL`);
+    process.exit(2);
   }
 }
 async function main() {
@@ -84,6 +184,7 @@ async function main() {
   loadEnvFile();
   const rules = (JSON.parse(readFileSync(seedPath, "utf8")) as Rule[]).filter((rule) => rule.enabled);
   const { gmail, userId } = createGmailClient();
+  await assertSharedInboxEmail(gmail, userId);
   const senderCounts = new Map<string, number>(), labelCounts = new Map<string, number>();
   const archiveTargets: Target[] = [], labelTargets: Target[] = [];
   let totalScanned = 0, noMatch = 0;
@@ -123,4 +224,7 @@ async function main() {
   await applyTargets(gmail, userId, archiveTargets, true);
   await applyTargets(gmail, userId, labelTargets, false);
 }
-main().catch((e) => { console.error(e instanceof Error ? e.message : String(e)); process.exit(1); });
+// テスト (vitest) からの import 時に main() が自走しないようにするガード
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  main().catch((e) => { console.error(e instanceof Error ? e.message : String(e)); process.exit(1); });
+}
